@@ -2,6 +2,23 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.041 alpha · Escudos propios y siempre la última versión
+
+*13 de octubre de 2026, 14:45 (hora de Argentina)*
+
+Escudos propios en un par de clics, el editor que se actualiza solo y una salida para quienes tienen Sider dentro de Archivos de programa.
+
+- **Subí tus propios escudos** (Plantel). En Datos y colores hay una sección Escudo. Subís un PNG (o tus archivos e_XXXXXX_*.png) y el editor arma los 11 archivos que usa el juego, cada uno con su tamaño y con el ID de 6 cifras del equipo, y los guarda en livecpk\…\common\render\symbol\flag. Lo que había queda como .bak-edit21.
+  1. Conectá la carpeta Sider.
+  2. Abrí un equipo y entrá en Datos y colores.
+  3. En Escudo tocá "Elegir imagen o archivos" (o arrastrá el PNG).
+  4. Tocá "Guardar escudo en el Parche" y abrí el juego de nuevo.
+- **Carpeta de escudos automática** (Plantel). Si tu Sider no tiene ninguna carpeta con escudos, el editor crea livecpk\PESEditor-Escudos y la agrega a sider.ini, antes de las otras, para que tus escudos manden. Guarda una copia del sider.ini como sider.ini.bak-pes-editor.
+- **Sider dentro de Archivos de programa** (Archivo). Chrome y Edge no dejan abrir para escribir carpetas dentro de C:\Program Files, donde Steam instala el juego. Ahora la pantalla de carga lo explica y ofrece "Abrir solo para ver": se ven kits, caras, escudos y nombres. Para poder guardar en el Parche, mové el juego a otra biblioteca de Steam.
+- **Siempre la última versión** (Velocidad). El editor revisa sus archivos contra GitHub cada vez que abre, así ya no queda una copia vieja después de una actualización. Si se publica algo nuevo con la página abierta, aparece arriba "Hay una versión nueva del editor" con Actualizar ahora o Más tarde.
+- **Fotos y escudos guardados** (Velocidad). Las fotos y escudos de internet se descargan una sola vez y después cargan al instante, también sin conexión.
+- **Versión a la vista y Borrar caché** (Interfaz). Debajo de la versión, arriba, se ve la fecha de la versión que estás usando. En Apariencia hay una sección Caché con la versión, cuántas fotos hay guardadas, el espacio usado y el botón Borrar caché, en los 4 modos gráficos.
+
 ## v0.040 alpha · Ahora en inglés, y una Formación más cómoda
 
 *13 de octubre de 2026, 11:15 (hora de Argentina)*

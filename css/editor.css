@@ -1341,3 +1341,18 @@ html[data-gfx="pes6"] .updbar .sub{color:#55534d}
 .uicache i{font-style:normal;font-family:var(--mono);white-space:nowrap;text-transform:none}
 .uicache + .btn{justify-self:start;margin-top:6px}
 @media (prefers-reduced-motion:reduce){.updbar{transition:none}}
+/* Subir tu propio escudo */
+.crestup .crestrow{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:18px;align-items:start}
+.crestbox{display:grid;gap:6px;justify-items:center}
+.crestup .crest.big{width:120px;height:120px;font-size:2rem;border-radius:10px}
+.crestup .crest.big.img{background:transparent;border-color:transparent}
+.crestnew{width:120px;height:120px;display:grid;place-items:center;border-radius:10px;cursor:pointer;background:repeating-conic-gradient(var(--sunk) 0 25%,var(--panel) 0 50%) 0 0/16px 16px;border:1px solid var(--line)}
+.crestnew img{max-width:100%;max-height:100%;filter:drop-shadow(0 4px 10px #0004)}
+.crestnew.empty{border:2px dashed var(--line);background:var(--sunk);color:var(--muted);font-size:.74rem;text-align:center;line-height:1.3}
+.crestup.drag .crestnew{border-color:var(--accent);background:var(--accent-soft)}
+.crestinfo{display:grid;gap:8px;min-width:0}
+.crestinfo .note.bad{color:var(--bad)}.crestinfo .note.ok{color:var(--accent);font-weight:600}.crestinfo .note.warn{color:var(--warn)}
+.crestfiles{margin-top:12px}.crestfiles summary{cursor:pointer;font-size:.8rem;color:var(--muted)}
+.crestfiles .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
+@media (max-width:700px){.crestup .crestrow{grid-template-columns:auto auto}.crestinfo{grid-column:1/-1}}

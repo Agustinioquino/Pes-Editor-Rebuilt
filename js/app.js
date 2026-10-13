@@ -619,7 +619,7 @@ function teamSheet(t) {
       <div class="sub">ID ${t.id} · ${isNat(t) ? 'Selección' : 'Club'} · ${r.length}/40 jugadores${(() => { const tr = teamRating(t), l = leagueOf(t); return (l ? ' · ' + esc(LEAGUE_NAME[l] || l) : '') + (tr ? ' · valor ' + fmtMoney(tr.value) : ''); })()} · DT ${esc(COACH.get(coach) || 'ID ' + coach)} · <span class="thstad" data-stad="${t.id}">🏟️ ${stadLabel(t)}</span></div></div></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ttab="${k}" aria-selected="${S.ttab === k}">${n}</button>`).join('')}</div>
   </div>
-  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) : stadiumCard(t)}
+  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) + crestCard(t) : stadiumCard(t)}
   ${helpCard(S.ttab)}`;
 }
 function teamDataCard(t) {
@@ -968,6 +968,7 @@ function bindTeam(t, m) {
     $('tLock').onchange = e => { setT(t, [['e_name', e.target.checked ? 1 : 0]], 'Protección de nombre de ' + tn()); rer(); };
     const col = (n, v) => { const h = v.slice(1); setT(t, [[`c${n}r`, c6(h.slice(0, 2))], [`c${n}g`, c6(h.slice(2, 4))], [`c${n}b`, c6(h.slice(4, 6))]], 'Colores de ' + tn()); rer(); };
     $('tC1').onchange = e => col(1, e.target.value); $('tC2').onchange = e => col(2, e.target.value);
+    bindCrest(t);
     $('tCountry').onchange = e => { setT(t, [['country', +e.target.value]], 'País de ' + tn()); rer(); };
     $('tCoach').onchange = e => { setT(t, [['manager_id', +e.target.value]], 'Entrenador de ' + tn()); rer(); };
     const uk = $('tUseKit'); if (uk) uk.onclick = () => { const k = kitFor(t, false), h1 = k.c1.slice(1), h2 = k.c2.slice(1); setT(t, [['c1r', c6(h1.slice(0, 2))], ['c1g', c6(h1.slice(2, 4))], ['c1b', c6(h1.slice(4, 6))], ['c2r', c6(h2.slice(0, 2))], ['c2g', c6(h2.slice(2, 4))], ['c2b', c6(h2.slice(4, 6))]], 'Colores de ' + tn() + ' desde el kit'); rer(); };

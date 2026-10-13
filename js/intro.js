@@ -127,6 +127,9 @@ async function pesOpen(root) {
 // ---- Sider: pedir la carpeta (o el permiso) y esperar a que carguen caras, escudos y nombres ----
 const introWait = ms => new Promise(r => setTimeout(r, ms));
 function introAsk(html) { return new Promise(res => introActions(html, a => a.querySelectorAll('[data-a]').forEach(b => b.onclick = () => res(b.dataset.a)))); }
+// Chrome no deja abrir (para escribir) carpetas dentro de Archivos de programa: ahí se ofrece abrirla solo para ver
+const INTRO_BROWSER = /Edg\//.test(navigator.userAgent) ? 'Edge' : /Chrome\//.test(navigator.userAgent) ? 'Chrome' : '';
+const INTRO_RO_NOTE = '<p class="note">¿Te dijo <b>"contiene archivos del sistema"</b>? Tu Sider está dentro de <b>Archivos de programa</b> (por ejemplo en Steam) y ' + (INTRO_BROWSER || 'el navegador') + ' no deja escribir ahí. Abrila <b>solo para ver</b> (kits, caras, escudos y nombres, sin guardar en el Parche) o mové el juego a otra biblioteca de Steam.</p>';
 async function introSider(t0) {
   let h = await idbGet('sider').catch(() => null), ready = false;
   if (h) {
@@ -144,13 +147,15 @@ async function introSider(t0) {
     }
   } else {
     introStep('Conectá tu carpeta Sider para ver caras, kits, escudos y nombres del Parche.', 'wait');
+    let failed = !!INTRO_BROWSER; // en Chrome y Edge se avisa desde el principio
     for (;;) {
-      const a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button><button class="btn ghost" type="button" data-a="no">Ahora no</button>
-        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>). Se hace una sola vez: después el editor la recuerda.</p>`);
+      const a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button>${failed ? '<button class="btn" type="button" data-a="ro">📂 Abrir solo para ver</button>' : ''}<button class="btn ghost" type="button" data-a="no">Ahora no</button>
+        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>). Se hace una sola vez: después el editor la recuerda.</p>${failed ? INTRO_RO_NOTE : ''}`);
       if (a === 'no') break;
+      if (a === 'ro') { introActions(''); introStep('Leyendo tu carpeta Sider…'); if (await connectSiderRO()) { ready = true; break; } continue; }
       introActions(''); introStep('Leyendo tu carpeta Sider…');
       if (await connectKits()) { ready = true; break; }
-      introStep('No se conectó Sider. Probá de nuevo con la carpeta que tiene sider.exe.', 'wait');
+      introStep('No se conectó Sider. Probá de nuevo con la carpeta que tiene sider.exe.', 'wait'); failed = true;
     }
   }
   introActions(''); INTRO.el && INTRO.el.classList.add('busy');

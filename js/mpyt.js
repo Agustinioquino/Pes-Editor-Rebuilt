@@ -27,11 +27,11 @@ function ytPlayers() {
       events: { onReady: () => res(p), onStateChange: e => ytState(n, e.data), onError: e => ytError(n, e.data) } });
   })))).then(ps => { YT_ST.p = ps; return ps; }).catch(e => { YT_ST.made = null; throw e; }));
 }
-// a los 15 segundos de video queda solo la carátula; tocándola vuelve el video por otros 15 segundos
+// a los 15 segundos el video se esconde y queda la carátula del reproductor; tocándola vuelve el video por otros 15 segundos
 // (lo mide ytTick con el tiempo real del video, así funciona aunque YouTube no avise cuándo empezó)
-function ytMinOn() { const el = MP.el; if (!el) return; const img = el.querySelector('#mpTvCov img'), tr = MP.list[MP.i]; if (img && tr) img.src = mpCover(tr); el.classList.add('ytmin'); }
+function ytMinOn() { const el = MP.el; if (!el) return; const img = el.querySelector('#mpTvCov img'), tr = MP.list[MP.i]; if (img && tr) img.src = mpCover(tr); el.classList.add('ytmin'); const c = el.querySelector('#mpCov'); if (c) c.title = 'Ver el video otra vez'; }
 function ytMinOff() {
-  const el = MP.el; if (!el) return; el.classList.remove('ytmin');
+  const el = MP.el; if (!el) return; el.classList.remove('ytmin'); const c = el.querySelector('#mpCov'); if (c) c.title = 'Abrir el reproductor';
   const p = YT_ST.p[YT_ST.cur]; let t = 0; try { t = p ? p.getCurrentTime() : 0; } catch { } YT_ST.shownAt = t;
 }
 function ytState(n, s) {

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img alt="PES Editor v0.017: la base del Dream Patch en cuatro pasos" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.017/como-funciona.png" width="100%">
+<img alt="PES Editor v0.018: antes y después del módulo edit21_db v1.5" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.018/antes-y-despues.png" width="100%">
 
 **[▶ Abrir PES Editor](https://agustinioquino.github.io/pes-editor/)** · [📜 Todos los cambios](https://github.com/Agustinioquino/pes-editor/blob/main/CHANGELOG.md) · [🐛 Avisar un error](https://github.com/Agustinioquino/pes-editor/issues/new/choose)
 
@@ -8,62 +8,64 @@
 
 ## ⚽ De qué se trata
 
-Hasta ahora, para ver los **nombres, valoraciones y planteles completos** del Dream Patch había que copiar a mano un módulo de Sider y editar `sider.ini`. Desde esta versión **el editor lo hace solo**: tocás *Conectar carpeta Sider* y listo. Y si la base todavía no está, te dice exactamente qué hacer en el juego.
+La v0.017 instalaba sola el módulo de Sider que copia la base del Dream Patch, pero en algunas PCs **la copia nunca llegaba a guardarse**. Esta versión lo resuelve, y ya está probada de punta a punta en una PC real: el juego copió **27 archivos de la base** y el editor reconoció **20.174 jugadores de 748 equipos**, cada uno con su dorsal.
 
-Además, con esa copia de la base el editor ahora **muestra el plantel real de los equipos que en tu EDIT están vacíos**, y los podés pasar al EDIT con un toque.
+Además, el video de YouTube del reproductor se mudó a un lugar donde no molesta.
 
 ---
 
-## 🔌 El módulo de Sider se instala solo
+## 🔧 Por qué no se guardaba la copia
 
-Al tocar **Conectar carpeta Sider** y elegir la carpeta del Dream Patch (la que tiene `sider.exe`), el editor:
+Sider le da a sus módulos una versión limitada de `io`, la función de Lua para abrir archivos. En algunas instalaciones esa versión **no deja crear ni sobrescribir archivos**: devuelve vacío y ni siquiera dice por qué. En `sider.log` se ve así:
+
+```
+[edit21_db] ERROR no puedo escribir: ...\content\edit21-db\ -> nil
+```
+
+No era un problema de permisos de Windows ni del antivirus: en el mismo registro les pasa a otros módulos, como **UIColors** (no puede guardar sus archivos de menú) y **PostProcessingEditor** (no puede guardar su caché).
+
+## ✅ Qué hace el módulo v1.5
 
 | | Qué hace | Detalle |
 |:-:|---|---|
-| 📄 | Copia `edit21_db.lua` en `modules\` | Si ya tenías una versión vieja, la actualiza y guarda la anterior como `edit21_db.lua.anterior` |
-| ⚙️ | Agrega `lua.module = "edit21_db.lua"` a `sider.ini` | Lo pone debajo de tus otros módulos y activa `lua.enabled`. Antes guarda una copia: `sider.ini.bak-pes-editor` |
-| 📁 | Crea `content\edit21-db` | Y una carpeta de reserva, `content\pes-editor-db`, por si Windows no deja escribir en la primera |
+| 1️⃣ | Prueba guardar de la forma normal | Si funciona, sigue así, como siempre |
+| 2️⃣ | Si Sider no lo deja, escribe con las funciones de Windows | Usa el `ffi` de LuaJIT, que el Dream Patch ya deja activado con `luajit.ext.enabled = 1` en `sider.ini` |
+| 3️⃣ | No toca nada mientras Sider arranca | Elige la carpeta recién cuando el juego carga el primer archivo de la base, y la crea si no existe |
+| 4️⃣ | Anota todo en `sider.log` | Qué método usó (`metodo: ffi`) y una línea `copiado ...` por cada archivo |
 
 > [!NOTE]
-> El módulo es de **solo lectura**: no cambia nada del juego ni del parche. Cuando PES carga su base (`common\etc\pesdb\*.bin`), guarda una copia tal como la usa el juego, con todo lo que agrega el Dream Patch. Si preferís instalarlo a mano, está adjunto abajo en **Assets**.
+> Sigue siendo **de solo lectura**: no cambia nada del juego ni del parche. Solo guarda una copia de lo que el juego ya carga, en `content\edit21-db`.
 
-## 🧭 Si la base no está cargada, el editor te avisa
+### Cómo actualizarlo
 
-La primera vez (o si falta algún archivo) aparece este aviso con los pasos:
-
-<div align="center">
-<img alt="Aviso: La base del juego no está cargada" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.017/aviso-base.png" width="90%">
-</div>
-
-1. Abrí **PES 2021 con Sider** y esperá al **menú principal**.
-2. Entrá en **Partido › Amistoso** hasta la **elección de equipos**. Ahí el juego termina de cargar la base.
-3. **Cerrá el juego.**
+1. Abrí PES Editor y tocá **Conectar carpeta Sider**. El editor reemplaza el módulo viejo por la v1.5 y guarda el anterior como `edit21_db.lua.anterior`.
+2. Abrí **PES 2021 con Sider** hasta el **menú principal**.
+3. Entrá en **Partido › Amistoso** hasta la **elección de equipos** y cerrá el juego.
 4. Volvé al editor y tocá **"Ya lo hice: volver a leer"**.
 
-Se hace **una sola vez**. Si actualizás el Dream Patch, repetilo para que la copia quede al día.
+Si todo salió bien, en `content\edit21-db` vas a ver `PlayerAssignment.bin`, `Player.bin`, `Team.bin` y el resto de la base, con la hora de recién.
 
-## 📋 Planteles de la base para equipos vacíos
+## 📋 Planteles de la base, verificados con archivos reales
 
-Con la copia de `Team.bin` y `PlayerAssignment.bin`, el editor sabe qué jugadores tiene cada uno de los **750 equipos** del parche. Si abrís un equipo que en tu EDIT no tiene plantel, vas a ver arriba el que trae el Dream Patch, con dorsal, posición y valoración:
+Hasta ahora el editor adivinaba cómo estaba armado `PlayerAssignment.bin`, el archivo que dice qué jugador está en qué equipo. Con la copia real del Dream Patch se confirmó el formato:
 
-<div align="center">
-<img alt="Plantel según la base del juego" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.017/plantel-de-la-base.png" width="90%">
-</div>
+| Bytes | Qué guarda |
+|---|---|
+| 0 – 3 | Número de fila |
+| 4 – 7 | ID del jugador |
+| 8 – 11 | ID del equipo |
+| 12 | Dorsal (el juego cuenta desde 0: el **1** figura como **0**) |
+| 13 | Orden dentro del plantel |
 
-- Tocá un jugador para abrir su ficha; si todavía no está en tu EDIT, el editor te ofrece agregarlo.
-- **Copiar este plantel a mi EDIT** los agrega al equipo con sus habilidades. Si te arrepentís, **Ctrl+Z**.
-- Para ver los equipos vacíos en la lista, activá **"Incluir sin plantel"**.
+El editor lo reconoce directo y **calibra el dorsal comparando con los planteles de tu EDIT**: en la prueba coincidieron los 20.174 jugadores. Los equipos vacíos en tu EDIT muestran el plantel del parche con el dorsal correcto.
 
-Los jugadores que están en la base pero no en tu EDIT ahora se leen con **habilidades, altura, edad, nacionalidad y posiciones**, así que su valoración y su valor se calculan igual que los de los editados.
+## 🎵 Video de YouTube arriba del reproductor
 
-## 🛠️ Módulo v1.3: más claro cuando algo falla
+Con el reproductor minimizado, el video ahora va **arriba de la barra**, en el espacio libre de la izquierda, y usa todo el ancho que haya (mínimo 200 × 200, lo que exige YouTube). En pantallas más angostas, donde ese hueco no existe, sigue al costado para no tapar la lista de equipos. En el celular no cambia nada: el video solo se ve con el panel abierto.
 
-- Copia **todos** los archivos de la base (Player, Team, PlayerAssignment, Coach, Stadium, Competition, Tactics y el resto), no una lista fija.
-- Deja un `index.txt` con lo que copió y un `estado.txt` con el último resultado.
-- Si Windows no lo deja escribir, **anota el error exacto en `sider.log`** y prueba en `content\pes-editor-db`. El editor lee ese registro y te lo muestra en el aviso.
+## 💬 El aviso del editor, más claro
 
-> [!TIP]
-> **¿Sale "Permission denied" o el aviso no se va?** Es Windows bloqueando al juego. Entrá en **Seguridad de Windows › Protección contra virus y amenazas › Protección contra ransomware › Acceso controlado a carpetas** y tocá **Permitir una aplicación** → `PES2021.exe`. Después repetí los pasos 1 a 4.
+Si `sider.log` muestra el error de una versión anterior del módulo, el aviso ya no manda a revisar la protección contra ransomware: explica qué pasó y que alcanza con repetir los pasos. Además, las líneas de ayuda que deja el módulo ya no se confunden con un error de permisos.
 
 ---
 
@@ -72,8 +74,8 @@ Los jugadores que están en la base pero no en tu EDIT ahora se leen con **habil
 | Archivo | Para qué |
 |---|---|
 | **[Abrir en el navegador](https://agustinioquino.github.io/pes-editor/)** | Lo más fácil: siempre la última versión, y se puede instalar como app |
-| `pes-editor-v0.017.zip` | El editor completo para tenerlo en tu PC. Descomprimilo y abrí `index.html` con **Chrome** o **Edge** |
-| `edit21_db.lua` | El módulo de Sider, por si lo querés instalar a mano en `modules\` |
+| `pes-editor-v0.018.zip` | El editor completo para tenerlo en tu PC. Descomprimilo y abrí `index.html` con **Chrome** o **Edge** |
+| `edit21_db.lua` | El módulo de Sider v1.5, por si lo querés instalar a mano en `modules\` |
 
 > [!WARNING]
-> Versión **alpha**. El editor hace una copia de respaldo del EDIT y de `sider.ini` antes de tocarlos, pero conviene que guardes tu propia copia antes de empezar. ¿Algo no anda? Contalo en [Issues](https://github.com/Agustinioquino/pes-editor/issues/new/choose), con captura y, si podés, las últimas líneas de `sider.log`.
+> Versión **alpha**. El editor hace una copia de respaldo del EDIT y de `sider.ini` antes de tocarlos, pero conviene que guardes tu propia copia antes de empezar. ¿Algo no anda? Contalo en [Issues](https://github.com/Agustinioquino/pes-editor/issues/new/choose), con una captura y, si podés, las líneas `[edit21_db]` de tu `sider.log`.

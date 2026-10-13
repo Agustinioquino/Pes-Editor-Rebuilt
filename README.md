@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.017%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.018%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
@@ -91,7 +91,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
   - carátula, aleatorio, repetir y volumen;
   - pases entre canciones *Corte*, *Suave* o *Remix* (filtros y eco estilo DJ);
   - agregás tus canciones y el editor lee **título, artista y carátula** de sus etiquetas (MP3, FLAC, M4A);
-  - **listas y videos de YouTube** pegando el link (el video se ve chiquito arriba del reproductor).
+  - **listas y videos de YouTube** pegando el link (con el reproductor minimizado, el video va arriba de la barra si hay espacio libre a la izquierda; si no, al costado).
 - **Novedades.** Cada cambio con fecha, explicación y pasos para usarlo.
 - **Instalable como app** desde Chrome o Edge, con su ícono y funcionamiento sin internet.
 
@@ -119,7 +119,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 > [!TIP]
 > **¿No ves nombres de jugadores ni valoraciones?** Si en el plantel aparece *"sin nombre · conectá la carpeta Sider"* o las columnas de valoración y valor están vacías, falta el paso 4: tocá **"Conectar carpeta Sider"** arriba y elegí la carpeta de Sider. El EDIT solo guarda tus cambios; los datos completos de cada jugador vienen de la base del Dream Patch. Si ya la habías conectado y el navegador te pide permiso de nuevo, tocá **"Permitir"**.
 >
-> **¿El aviso de la base no se va?** Fijate en `Dream Patch Sider\sider.log`: si aparece `[edit21_db] ERROR no se pudo escribir` con *Permission denied*, Windows está bloqueando la escritura. Entrá en **Seguridad de Windows › Protección contra ransomware › Acceso controlado a carpetas** y permití `PES2021.exe`, o desactivá esa opción mientras abrís el juego una vez. El módulo prueba también en `content\pes-editor-db`.
+> **¿El aviso de la base no se va?** Mirá `Dream Patch Sider\sider.log` y buscá las líneas `[edit21_db]`. Si dice `copiado ...`, la copia se hizo: tocá **"Ya lo hice"**. Si dice `ERROR no puedo escribir ... -> nil`, es el `io` de Sider, que en algunas instalaciones no deja guardar archivos: desde la v1.5 el módulo lo resuelve solo escribiendo con las funciones de Windows, siempre que `sider.ini` tenga `luajit.ext.enabled = 1` (el Dream Patch ya lo trae). Si el error dice *Permission denied*, revisá **Seguridad de Windows › Protección contra ransomware › Acceso controlado a carpetas** y permití `PES2021.exe`.
 
 **Instalarlo como app:** en Chrome o Edge tocá el ícono de instalar en la barra de direcciones (o menú ⋮ → *Instalar PES Editor*).
 

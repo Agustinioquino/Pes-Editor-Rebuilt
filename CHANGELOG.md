@@ -2,6 +2,21 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.018 alpha · La copia de la base ya se guarda y el video va arriba del reproductor
+
+*13 de octubre de 2026, 06:30 (hora de Argentina)*
+
+Arreglo del módulo edit21_db.lua (en algunas instalaciones Sider no deja que los módulos guarden archivos), planteles de la base verificados con los archivos reales del Dream Patch y un lugar mejor para el video de YouTube.
+
+- **Escritura con las funciones de Windows** (Archivo). En algunas instalaciones, el io de Sider no deja crear ni sobrescribir archivos: abrir un archivo para escribir devuelve vacío y sin error (en el sider.log se ve como "-> nil", y le pasa también a otros módulos, como PostProcessingEditor y UIColors). La v1.5 lo detecta y en ese caso escribe la copia con las funciones de Windows, por medio del ffi de LuaJIT que el Dream Patch ya deja activado (luajit.ext.enabled = 1 en sider.ini). En sider.log queda anotado qué método usó.
+  1. Tocá "Conectar carpeta Sider": el editor reemplaza el módulo viejo por la v1.5 (guarda el anterior como edit21_db.lua.anterior).
+  2. Abrí el juego hasta el menú principal, entrá en Partido › Amistoso hasta la elección de equipos y cerralo.
+  3. Volvé al editor y tocá "Ya lo hice: volver a leer".
+- **Nada de archivos al arrancar** (Archivo). El módulo ya no toca ningún archivo mientras Sider arranca: elige la carpeta recién cuando el juego carga el primer archivo de la base, la crea si no existe y, si algo falla, vuelve a probar con el siguiente.
+- **Planteles de la base verificados** (Plantel). Con la copia real de PlayerAssignment.bin se confirmó cómo guarda el juego cada fila (registro de 16 bytes: número de fila, jugador, equipo, dorsal y orden). El editor ahora lo reconoce directo, y el dorsal se calibra comparando con los planteles de tu EDIT: el juego lo guarda empezando desde 0, así que el 1 figura como 0. En la prueba con el Dream Patch coincidieron los 20.174 jugadores de los 748 equipos.
+- **Video de YouTube arriba del reproductor** (Música). Con el reproductor minimizado, el video ahora va arriba de la barra, en el espacio libre de la izquierda, y toma el ancho que haya (mínimo 200 × 200, lo que exige YouTube). Si la pantalla es angosta y no hay hueco, sigue al costado del reproductor para no tapar la lista de equipos.
+- **Aviso más preciso** (Archivo). Si el sider.log muestra el error de una versión anterior del módulo, el aviso ya no manda a revisar la protección contra ransomware de Windows: explica qué pasó y que alcanza con repetir los pasos. Las líneas de ayuda que el módulo deja en el registro ya no se confunden con un error de permisos.
+
 ## v0.017 alpha · Módulo de Sider automático y más datos de la base
 
 *13 de octubre de 2026, 05:30 (hora de Argentina)*

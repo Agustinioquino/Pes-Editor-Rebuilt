@@ -247,7 +247,17 @@ function mpYtMobile() {
 // video de YouTube: chiquito arriba del reproductor; con el panel abierto ocupa el lugar de la carátula
 function mpTvPlace() {
   const el = MP.el, tv = el && el.querySelector('#mpTv'); if (!tv) return;
-  if (!MP.st.open) { tv.style.left = tv.style.top = tv.style.width = tv.style.height = ''; return; }
+  if (!MP.st.open) {
+    // minimizado: arriba del reproductor si a la izquierda de la página queda un hueco libre;
+    // si no hay lugar (pantallas más angostas), al costado como antes
+    const r = el.getBoundingClientRect(), mc = document.getElementById('main'), first = mc && mc.firstElementChild;
+    const contentLeft = first ? first.getBoundingClientRect().left : mc ? mc.getBoundingClientRect().left + 16 : 0;
+    const free = Math.round(Math.min(r.width, contentLeft - r.left - 12));
+    if (free >= 200) { tv.style.left = '0px'; tv.style.top = 'auto'; tv.style.bottom = 'calc(100% + 10px)'; tv.style.width = free + 'px'; tv.style.height = Math.max(200, Math.round(free * 9 / 16)) + 'px'; }
+    else { tv.style.left = (r.width + 10) + 'px'; tv.style.top = 'auto'; tv.style.bottom = '0px'; tv.style.width = tv.style.height = '200px'; }
+    return;
+  }
+  tv.style.bottom = '';
   const art = el.querySelector('.mpart'), a = art.getBoundingClientRect(), r = el.getBoundingClientRect(), full = el.querySelector('#mpFull'), fr = full.getBoundingClientRect();
   const top = Math.max(fr.top, a.top), bot = Math.min(fr.bottom, a.bottom);
   tv.style.left = (a.left - r.left) + 'px'; tv.style.top = (top - r.top) + 'px'; tv.style.width = Math.max(200, a.width) + 'px'; tv.style.height = Math.max(200, bot - top) + 'px';

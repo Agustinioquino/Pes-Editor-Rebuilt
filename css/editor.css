@@ -806,7 +806,7 @@ tr:hover .face.pl{scale:1.12;box-shadow:inset 0 0 0 2px var(--accent),0 4px 12px
 /* YouTube en el reproductor */
 .mpyt{display:grid;gap:6px;padding:10px;border-radius:12px;background:color-mix(in srgb,var(--sunk) 75%,transparent);border:1px solid var(--line)}
 .mpyt[hidden]{display:none}.mpyt label{font-size:.75rem;color:var(--muted)}.mpyt input{flex:1;min-width:0}
-.mptv{position:absolute;left:calc(100% + 10px);bottom:0;width:200px;height:200px;z-index:3;border-radius:12px;overflow:hidden;background:#000;border:1px solid color-mix(in srgb,var(--mpc) 40%,var(--line));box-shadow:0 14px 34px -14px #000c;display:none;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s}
+.mptv{position:absolute;left:0;bottom:calc(100% + 10px);width:200px;height:200px;z-index:3;border-radius:12px;overflow:hidden;background:#000;border:1px solid color-mix(in srgb,var(--mpc) 40%,var(--line));box-shadow:0 14px 34px -14px #000c;display:none;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s}
 .mp.yt .mptv{display:block}
 .mp.open .mptv{bottom:auto;border-radius:16px}
 @media (max-width:640px){.mp.yt:not(.open) .mptv{display:none}}

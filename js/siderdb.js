@@ -47,7 +47,7 @@ async function sdbDbDir(sider) {
 }
 // lo que dejó el módulo en sider.log la última vez que se abrió el juego
 async function sdbLog(sider) {
-  try { const f = await sdbFile(sider, 'sider.log'); if (!f) return null; const txt = await f.slice(Math.max(0, f.size - 1500000)).text(); const i = txt.lastIndexOf('Loading module: edit21_db'); if (i < 0) return { loaded: false }; const lines = txt.slice(i).split(/\r?\n/).filter(l => l.includes('[edit21_db')); const ver = (lines.join(' ').match(/v(\d+\.\d+) listo/) || [])[1]; const errs = lines.filter(l => /ERROR|no se pudo|AVISO/.test(l)).map(l => l.replace(/^.*?\[edit21_db\]\s*/, '')); return { loaded: true, ver, errs, copied: lines.filter(l => /copiado/.test(l)).length, when: f.lastModified }; } catch { return null; }
+  try { const f = await sdbFile(sider, 'sider.log'); if (!f) return null; const txt = await f.slice(Math.max(0, f.size - 1500000)).text(); const i = txt.lastIndexOf('Loading module: edit21_db'); if (i < 0) return { loaded: false }; const lines = txt.slice(i).split(/\r?\n/).filter(l => l.includes('[edit21_db')); const ver = (lines.join(' ').match(/v(\d+\.\d+) listo/) || [])[1]; const errs = lines.filter(l => /ERROR|no se pudo|AVISO/.test(l) && !/sin carpeta de salida/.test(l)).map(l => l.replace(/^.*?\[edit21_db\]\s*/, '')); return { loaded: true, ver, errs, copied: lines.filter(l => /copiado/.test(l)).length, when: f.lastModified }; } catch { return null; }
 }
 async function sdbCheck(sider) {
   const st = { dir: null, have: [], missing: DB_NEEDED.slice(), index: null };
@@ -82,13 +82,13 @@ async function sdbTeams(bytes) {
 }
 // PlayerAssignment.bin: el tamaño del registro no está documentado; se prueba con varios y se queda con el que hace que
 // casi todos los ids sean jugadores y equipos conocidos.
-async function sdbAssign(bytes, playerIds, teamIds) {
+async function sdbAssign(bytes, playerIds, teamIds, editNums) {
   const b = await sdbUnpack(bytes), u32 = o => (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0, u16 = o => b[o] | b[o + 1] << 8;
   let best = null;
   for (const R of [8, 12, 16, 20, 24, 32]) {
     if (b.length % R) continue;
     const n = b.length / R, sample = Math.min(n, 2000);
-    for (const [po, to, tw] of [[0, 4, 4], [0, 4, 2], [4, 0, 4], [4, 0, 2], [0, 8, 4], [0, 6, 2], [0, 8, 2]]) {
+    for (const [po, to, tw] of [[4, 8, 4], [0, 4, 4], [0, 4, 2], [4, 0, 4], [4, 0, 2], [0, 8, 4], [0, 6, 2], [0, 8, 2], [4, 8, 2], [8, 4, 4]]) {
       if (Math.max(po + 4, to + tw) > R) continue;
       let hit = 0;
       for (let i = 0; i < sample; i++) { const o = Math.floor(i * n / sample) * R, p = u32(o + po), t = tw === 4 ? u32(o + to) : u16(o + to); if (playerIds.has(p) && teamIds.has(t)) hit++; }
@@ -99,14 +99,19 @@ async function sdbAssign(bytes, playerIds, teamIds) {
   const { R, po, to, tw } = best;
   // dorsal: el byte que, dentro del registro, se mueve entre 1 y 99 y cambia en cada fila
   const cand = []; for (let o = 0; o < R; o++) if (!(o >= po && o < po + 4) && !(o >= to && o < to + tw)) cand.push(o);
-  let numOff = -1, bestN = 0;
-  for (const c of cand) { let ok = 0; for (let i = 0; i < Math.min(b.length / R, 3000); i++) { const v = b[i * R + c]; if (v >= 1 && v <= 99) ok++; } if (ok > bestN) { bestN = ok; numOff = c; } }
+  let numOff = -1, bestN = 0, numAdd = 0;
+  // si hay planteles en el EDIT, el dorsal es el byte (o byte + 1, el juego lo guarda desde 0) que más coincide con ellos
+  if (editNums && editNums.size) {
+    for (const c of cand) for (const add of [0, 1]) { let ok = 0; for (let o = 0; o + R <= b.length; o += R) { const want = editNums.get(u32(o + po)); if (want != null && b[o + c] + add === want) ok++; } if (ok > bestN) { bestN = ok; numOff = c; numAdd = add; } }
+    if (bestN < 50) { numOff = -1; bestN = 0; numAdd = 0; }
+  }
+  if (numOff < 0) for (const c of cand) { let ok = 0; for (let i = 0; i < Math.min(b.length / R, 3000); i++) { const v = b[i * R + c]; if (v >= 1 && v <= 99) ok++; } if (ok > bestN) { bestN = ok; numOff = c; } }
   for (let o = 0; o + R <= b.length; o += R) {
     const p = u32(o + po), t = tw === 4 ? u32(o + to) : u16(o + to); if (!playerIds.has(p) || !teamIds.has(t)) continue;
     let arr = out.get(t); if (!arr) out.set(t, arr = []);
-    arr.push({ pid: p, num: numOff >= 0 ? b[o + numOff] : 0, i: arr.length });
+    arr.push({ pid: p, num: numOff >= 0 ? b[o + numOff] + numAdd : 0, i: arr.length });
   }
-  return { map: out, layout: best };
+  return { map: out, layout: Object.assign({}, best, { numOff, numAdd }) };
 }
 async function sdbLoadAll(sider) {
   const st = await sdbCheck(sider); if (!st.dir) return st;
@@ -114,7 +119,7 @@ async function sdbLoadAll(sider) {
   try { const t = await get('Team.bin'); if (t) SDB.teams = await sdbTeams(t); } catch { }
   try {
     const a = await get('PlayerAssignment.bin');
-    if (a && S.names.size) { const teamIds = new Set([...(S.ix ? S.ix.teams.map(t => t.id) : []), ...SDB.teams.keys()]); const r = await sdbAssign(a, new Set(S.names.keys()), teamIds); SDB.assign = r.map; SDB.layout = r.layout; }
+    if (a && S.names.size) { const teamIds = new Set([...(S.ix ? S.ix.teams.map(t => t.id) : []), ...SDB.teams.keys()]); const editNums = new Map(); if (S.ix && S.d) for (const t of S.ix.teams) for (const e of PD.roster(S.d, t)) if (e && e.pid != null && e.number != null) editNums.set(e.pid, e.number); const r = await sdbAssign(a, new Set(S.names.keys()), teamIds, editNums); SDB.assign = r.map; SDB.layout = r.layout; }
   } catch { }
   return st;
 }
@@ -132,7 +137,7 @@ function sdbNotice(st, inst) {
     <p>Para que el parche y la base queden cargados correctamente, hacé esto una vez:</p>
     <ol class="sdbsteps"><li>Abrí <b>PES 2021 con Sider</b> y esperá a llegar al <b>menú principal</b>.</li><li>Entrá en <b>Partido › Amistoso</b> hasta la pantalla de <b>elección de equipos</b> (ahí el juego carga el resto de la base).</li><li><b>Cerrá el juego.</b></li><li>Volvé acá y tocá <b>"Ya lo hice"</b>.</li></ol>
     <p class="note">El módulo es de solo lectura: no cambia nada del juego. Copia los archivos a <code>content\\edit21-db</code>. Si el juego ya estaba abierto, cerralo y abrilo de nuevo para que tome el módulo.</p>
-    ${st && st.log && st.log.errs && st.log.errs.length ? `<div class="warnbox"><b>Lo que pasó la última vez que abriste el juego</b> (según sider.log): el módulo ${st.log.ver ? 'v' + st.log.ver + ' ' : ''}se cargó pero no pudo guardar la copia.<br><code style="font-size:.75rem">${esc(st.log.errs[0].slice(0, 220))}</code><br>${/denied|denegado|permiso|Permission/i.test(st.log.errs.join(' ')) ? 'Windows no le da permiso al juego para escribir en esa carpeta. Abrí <b>Seguridad de Windows › Protección contra virus y amenazas › Protección contra ransomware</b> y, si "Acceso controlado a carpetas" está activado, tocá "Permitir una aplicación" y agregá <b>PES2021.exe</b>. Si no, probá abrir el juego sin "Ejecutar como administrador" (o con, si siempre lo abrís así).' : 'Revisá que la carpeta exista y que no esté marcada como "Solo lectura" (clic derecho › Propiedades).'}</div>` : st && st.log && !st.log.loaded ? '<div class="warnbox">En sider.log no aparece el módulo edit21_db: Sider no lo cargó. Revisá que en sider.ini esté <code>lua.enabled = 1</code> y la línea <code>lua.module = "edit21_db.lua"</code>.</div>' : ''}
+    ${st && st.log && st.log.errs && st.log.errs.length ? `<div class="warnbox"><b>Lo que pasó la última vez que abriste el juego</b> (según sider.log): el módulo ${st.log.ver ? 'v' + st.log.ver + ' ' : ''}se cargó pero no pudo guardar la copia.<br><code style="font-size:.75rem">${esc(st.log.errs[0].slice(0, 220))}</code><br>${/-> nil\s*$/.test(st.log.errs[0]) && !(parseFloat(st.log.ver) >= parseFloat(LUA_VERSION)) ? `Ese error es de una versión anterior del módulo (${st.log.ver ? 'v' + st.log.ver : 'vieja'}): el <code>io</code> de tu Sider no deja que los módulos guarden archivos (en tu sider.log les pasa también a otros, como PostProcessingEditor y UIColors). No es un problema de permisos de Windows. Ya instalé la <b>v${LUA_VERSION}</b>, que si eso pasa escribe con las funciones de Windows (necesita <code>luajit.ext.enabled = 1</code> en sider.ini, que el Dream Patch ya trae): repetí los pasos de arriba.` : /denied|denegado|Permission/i.test(st.log.errs.join(' ')) ? 'Windows no le da permiso al juego para escribir en esa carpeta. Abrí <b>Seguridad de Windows › Protección contra virus y amenazas › Protección contra ransomware</b> y, si "Acceso controlado a carpetas" está activado, tocá "Permitir una aplicación" y agregá <b>PES2021.exe</b>. Si no, probá abrir el juego sin "Ejecutar como administrador" (o con, si siempre lo abrís así).' : 'Revisá que la carpeta exista y que no esté marcada como "Solo lectura" (clic derecho › Propiedades).'}</div>` : st && st.log && !st.log.loaded ? '<div class="warnbox">En sider.log no aparece el módulo edit21_db: Sider no lo cargó. Revisá que en sider.ini esté <code>lua.enabled = 1</code> y la línea <code>lua.module = "edit21_db.lua"</code>.</div>' : ''}
     ${st && st.have.length ? `<p class="note">Archivos copiados hasta ahora: ${st.have.map(x => x.n).join(', ')}.</p>` : ''}
     <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn ghost" type="button" data-x>Más tarde</button><button class="btn primary" type="button" id="sdbRetry">Ya lo hice: volver a leer</button></div>`,
     (box, close) => { box.querySelector('#sdbRetry').onclick = async () => { close(); const h = await idbGet('sider'); if (!h) return; toast('Leyendo la base…', 3000); await loadDbQuiet(h, true); const st2 = await sdbLoadAll(h); if (st2.missing.length) { toast('Todavía faltan: ' + st2.missing.join(', ') + '. Revisá que Sider cargue el módulo (sider.log).', 8000); setTimeout(() => sdbNotice(st2), 400); } else { toast('Base del juego cargada: ' + st2.have.length + ' archivos.', 5000); render(); } }; });

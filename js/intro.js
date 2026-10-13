@@ -30,10 +30,10 @@ async function pesFind(root) {
 const INTRO = { el: null, steps: [] };
 function introShow() {
   if (INTRO.el) return INTRO.el;
-  const el = document.createElement('div'); el.className = 'intro'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Cargando PES Editor');
+  const el = document.createElement('div'); el.className = 'intro'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Cargando PES Editor Rebuilt');
   const nSp = typeof GFX === 'function' ? { low: 0, mid: 22, high: 48 }[GFX().q] : 22, sparks = Array.from({ length: nSp }, () => `<b style="left:${(Math.random() * 100).toFixed(1)}%;animation-duration:${(5 + Math.random() * 7).toFixed(1)}s;animation-delay:-${(Math.random() * 10).toFixed(1)}s;--dx:${((Math.random() - .5) * 120).toFixed(0)}px;scale:${(.5 + Math.random()).toFixed(2)}"></b>`).join('');
   el.innerHTML = `${typeof musBtn === 'function' ? musBtn('intromus') : ''}<div class="introbg" aria-hidden="true"><span class="introrays"></span><i></i><i></i><i></i><span class="introfloor"></span><span class="introsparks">${sparks}</span></div>
-    <div class="introc"><div class="introlog"><span class="introhalo" aria-hidden="true"></span><span class="introback" aria-hidden="true"><i></i></span><img id="introLogo" alt="PES Editor · Pro Evolution Soccer">
+    <div class="introc"><div class="introlog"><span class="introhalo" aria-hidden="true"></span><span class="introback" aria-hidden="true"><i></i></span><img id="introLogo" alt="PES Editor Rebuilt · Pro Evolution Soccer">
         <span class="introsheenwrap" aria-hidden="true"><span class="sheen"></span></span><span class="introneon" aria-hidden="true"><i></i></span><span class="introflash" aria-hidden="true"></span></div>
       <ol class="introsteps" id="introSteps" aria-live="polite"></ol>
       <div class="introbar" aria-hidden="true"><b id="introBar"></b></div>
@@ -94,7 +94,7 @@ async function pesStart(force) {
   }
   introStep('Para encontrar el EDIT, elegí tu carpeta Documentos (una sola vez).', 'wait');
   introActions(`<button class="btn primary big" type="button" id="introGo">📂 Elegir mi carpeta Documentos</button>
-    <p class="note">El navegador no deja que una página lea tus archivos sin permiso. La ventana se abre en Documentos: tocá "Seleccionar carpeta" y listo. El editor busca solo <b>KONAMI\\eFootball PES 2021 SEASON UPDATE</b>, el EDIT00000000 y la carpeta WEPES, y lo recuerda para la próxima.</p>`, a => a.querySelector('#introGo').onclick = () => pesPick());
+    <p class="note">${window.pesNative ? 'Se abre el selector de carpetas de Windows en Documentos: elegí Documentos y listo.' : 'El navegador no deja que una página lea tus archivos sin permiso. La ventana se abre en Documentos: tocá "Seleccionar carpeta" y listo.'} El editor busca solo <b>KONAMI\\eFootball PES 2021 SEASON UPDATE</b>, el EDIT00000000 y la carpeta WEPES, y lo recuerda para la próxima.</p>`, a => a.querySelector('#introGo').onclick = () => pesPick());
 }
 async function pesPick() {
   let root; try { root = await window.showDirectoryPicker({ id: 'pesdocs', mode: 'readwrite', startIn: 'documents' }); }
@@ -133,8 +133,8 @@ async function pesOpen(root) {
 const introWait = ms => new Promise(r => setTimeout(r, ms));
 function introAsk(html) { return new Promise(res => introActions(html, a => a.querySelectorAll('[data-a]').forEach(b => b.onclick = () => res(b.dataset.a)))); }
 // Chrome no deja abrir (para escribir) carpetas dentro de Archivos de programa: ahí se ofrece abrirla solo para ver
-const INTRO_BROWSER = /Edg\//.test(navigator.userAgent) ? 'Edge' : /Chrome\//.test(navigator.userAgent) ? 'Chrome' : '';
-const INTRO_RO_NOTE = '<p class="note">¿Te dijo <b>"contiene archivos del sistema"</b>? Tu Sider está dentro de <b>Archivos de programa</b> (por ejemplo en Steam) y ' + (INTRO_BROWSER || 'el navegador') + ' no deja escribir ahí. Abrila <b>solo para ver</b> (kits, caras, escudos y nombres, sin guardar en el Parche) o mové el juego a otra biblioteca de Steam.</p>';
+const INTRO_BROWSER = window.pesNative ? '' : /Edg\//.test(navigator.userAgent) ? 'Edge' : /Chrome\//.test(navigator.userAgent) ? 'Chrome' : '';
+const introRoNote = () => '<p class="note">¿Te dijo <b>"contiene archivos del sistema"</b>? ' + (INTRO_BROWSER || 'El navegador') + ' no deja escribir en <b>Archivos de programa</b>. <a href="' + APP_DL_URL() + '" target="_blank" rel="noopener">Descargá PES Editor Rebuilt para Windows</a>, que sí puede, o tocá Cómo moverla.</p>';
 async function introSider(t0) {
   let h = await idbGet('sider').catch(() => null), ready = false;
   if (h) {
@@ -154,9 +154,14 @@ async function introSider(t0) {
     introStep('Conectá tu carpeta Sider para ver caras, kits, escudos y nombres del Parche.', 'wait');
     let failed = !!INTRO_BROWSER; // en Chrome y Edge se avisa desde el principio
     for (;;) {
-      const a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button>${failed ? '<button class="btn" type="button" data-a="ro">📂 Abrir solo para ver</button>' : ''}<button class="btn ghost" type="button" data-a="no">Ahora no</button>
-        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>). Se hace una sola vez: después el editor la recuerda.</p>${failed ? INTRO_RO_NOTE : ''}`);
+      let a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button>${failed ? '<button class="btn" type="button" data-a="ro">📂 Abrir solo para ver</button>' : ''}${failed ? '<button class="btn ghost" type="button" data-a="how">Cómo moverla</button>' : ''}<button class="btn ghost" type="button" data-a="no">Ahora no</button>
+        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>). Se hace una sola vez: después el editor la recuerda.</p>${failed ? introRoNote() : ''}`);
       if (a === 'no') break;
+      if (a === 'how') {
+        const b = await introAsk(`${siderMoveSteps(siderRoName(), 'Ya la moví: elegir la carpeta')}
+          <button class="btn primary big" type="button" data-a="ok">Ya la moví: elegir la carpeta</button><div class="introrow"><button class="btn" type="button" data-a="ro">📂 Abrir solo para ver</button><button class="btn ghost" type="button" data-a="back">Volver</button></div>`);
+        if (b === 'back') continue; a = b;
+      }
       if (a === 'ro') { introActions(''); introStep('Leyendo tu carpeta Sider…'); if (await connectSiderRO()) { ready = true; break; } continue; }
       introActions(''); introStep('Leyendo tu carpeta Sider…');
       if (await connectKits()) { ready = true; break; }

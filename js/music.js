@@ -293,7 +293,7 @@ function mpUi() {
   el.querySelector('#mpNote').textContent = { corte: 'Pasa directo a la siguiente canción.', suave: 'Una canción baja mientras la otra sube, sin silencio en el medio.', remix: 'Como un DJ: a la que termina se le cierran los sonidos con un filtro y queda un eco; la nueva entra sin graves y se abre de a poco.' }[MP.st.mode];
   mpUiVol(); mpUiTime(); if (MP.st.open) mpRenderList();
   mpColor(tr, c => { if (c) el.style.setProperty('--mpc', c); });
-  if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: tr.t, artist: tr.g, album: 'PES Editor', artwork: cov ? [{ src: cov, sizes: '320x320', type: cov.startsWith('data:image/png') ? 'image/png' : 'image/jpeg' }] : [] }); navigator.mediaSession.playbackState = MP.playing ? 'playing' : 'paused'; } catch { } }
+  if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: tr.t, artist: tr.g, album: 'PES Editor Rebuilt', artwork: cov ? [{ src: cov, sizes: '320x320', type: cov.startsWith('data:image/png') ? 'image/png' : 'image/jpeg' }] : [] }); navigator.mediaSession.playbackState = MP.playing ? 'playing' : 'paused'; } catch { } }
 }
 // ---- canciones y carátulas propias (quedan guardadas en este navegador) ----
 async function mpLoadCustom() {

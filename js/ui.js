@@ -169,7 +169,8 @@ function uiPanelHtml() {
       <div class="uisec"><span class="lab">🔤 Tamaño de letra</span>${uiTiles('uiFs', UI_FS_TILES, u.fs)}</div>
       ${uiFontHtml(false)}
       <div class="uisec"><span class="lab">✨ Efectos</span>${uiTiles('uiQ', [['low', 'Pocos (más rápido)', '🐢'], ['mid', 'Normales', '⚖️'], ['high', 'Todos', '🚀']], gm.q)}
-        <p class="note" style="margin:0">Es la misma "Calidad gráfica" del botón 🖥️ Gráficos.</p></div>`;
+        <p class="note" style="margin:0">Es la misma "Calidad gráfica" del botón 🖥️ Gráficos.</p></div>
+      ${uiCacheHtml(false)}`;
   }
   const sw = (c, n) => `<span class="uisw" style="background:${c}" title="${n}: ${c}"></span>`;
   // botones grandes con dibujo: se entiende qué hace cada uno sin leer
@@ -192,7 +193,20 @@ function uiPanelHtml() {
       <button class="btn small" type="button" id="uiTry" ${t ? '' : 'disabled'}>✨ Probar mezcla sugerida</button>`, 'Si un color no se lee bien sobre el fondo, se aclara u oscurece solo.')}
     ${grp('🔤', 'Letra', `${uiFontHtml(true)}<span class="lab">Tamaño</span>${tiles('uiFs', UI_FS_TILES, u.fs)}`)}
     ${grp('⬜', 'Esquinas', tiles('uiR', [['recto', 'Rectas', '<i class="uicorner" style="border-radius:0"></i>'], ['normal', 'Normales', '<i class="uicorner" style="border-radius:5px"></i>'], ['redondo', 'Redondas', '<i class="uicorner" style="border-radius:11px"></i>']], u.r))}
+    ${uiCacheHtml(true)}
     <button class="btn small ghost uireset" type="button" id="uiReset">↺ Volver a lo original</button>`;
+}
+// versión, fotos y escudos guardados y el botón "Borrar caché" (en todos los modos gráficos)
+function uiCacheHtml(grp) {
+  if (typeof cacheClear !== 'function' || !UPD.on) return '';
+  const note = 'Si algo se ve viejo o raro, borrá la caché: el editor se recarga con la última versión. Tus ajustes y el EDIT no se tocan.', body = `<div class="uicache" id="uiCache"><span class="sub">Calculando…</span></div><button class="btn small" type="button" id="uiCacheClear">🧹 Borrar caché</button>`;
+  return grp ? `<section class="uigrp"><h4 class="uih"><span class="uihi" aria-hidden="true">🧹</span>Caché</h4><p class="note uinote">${note}</p>${body}</section>`
+    : `<div class="uisec"><span class="lab">🧹 Caché</span><p class="note" style="margin:0">${note}</p>${body}</div>`;
+}
+async function uiCacheFill() {
+  const el = $('uiCache'); if (!el) return;
+  const c = await cacheInfo(), d = UPD.when ? updDate(UPD.when) : '';
+  el.innerHTML = `<span><b>Versión</b><i data-noi18n>v${APP_VER} alpha${d ? ' · ' + d : ''}</i></span><span><b>Fotos y escudos guardados</b><i>${c.imgs}</i></span>${c.mb ? `<span><b>Espacio usado</b><i>${c.mb < 10 ? c.mb.toFixed(1) : Math.round(c.mb)} MB</i></span>` : ''}`;
 }
 function uiPrevHtml(P) {
   const sw = (c, n) => `<span class="uisw" style="background:${c}" title="${n}: ${c}"></span>`;
@@ -201,7 +215,7 @@ function uiPrevHtml(P) {
 }
 function uiPanelFill(keepFocus) {
   const pn = $('uiPanel'), fid = keepFocus && document.activeElement && pn.contains(document.activeElement) ? document.activeElement.id : null;
-  pn.innerHTML = uiPanelHtml(); musUi();
+  pn.innerHTML = uiPanelHtml(); musUi(); uiCacheFill();
   if (fid && $(fid)) $(fid).focus();
 }
 function uiSet(o) { Object.assign(UI(), o); savePrefs(); uiTheme(); }
@@ -212,6 +226,7 @@ function uiPanelToggle(open) {
     pn.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.id === 'uiClose') return uiPanelToggle(false);
+      if (b.id === 'uiCacheClear') return cacheClear();
       if (b.id === 'uiReset') { PREFS.ui = Object.assign({}, UI_DEF, { fonts: {} }); savePrefs(); uiFontApply(); uiTheme(true); return; }
       if (b.id === 'uiTry') { uiSet({ mix: 100, tint: 30 }); return; }
       if (b.id === 'uiPinCur') { uiSet({ pin: S.team }); return; }

@@ -126,7 +126,7 @@ function pInfo(id) {
   // la flecha de forma se ve siempre; la valoración solo cambia en el modo "Por rendimiento".
   // si el ajuste ya está guardado en el EDIT, "Del juego" ya lo incluye: solo se suma lo que falta
   const done = formDone(id), pend = a.adj - done;
-  return Object.assign({}, b, { adj: a.adj, form: a, r0: b.r, applied: done }, PREFS.rateMode !== 'base' ? { r: Math.max(40, Math.min(99, b.r + pend)) } : {});
+  return Object.assign({}, b, { adj: a.adj, form: a, r0: b.r, applied: done }, PREFS.rateMode !== 'base' ? { r: Math.max(40, Math.min(rateCap(b.pos), b.r + pend)) } : {});
 }
 // flechas de forma estilo PES: ⬆ verde, ↗ verde claro, ➡ neutral, ↘ naranja, ⬇ rojo
 function formLevel(a) { return a >= 3 ? 2 : a >= 1 ? 1 : a <= -3 ? -2 : a <= -1 ? -1 : 0; }
@@ -146,7 +146,7 @@ function formTip(f) {
 function rateHtml(pi, tag = 'span') {
   if (!pi || !pi.r) return '';
   const oop = pi.outpos ? `<span class="oop" title="Fuera de su puesto: en ${POS[pi.natPos]} tiene ${pi.nat} (${pi.outpos})">⚠</span>` : '';
-  const pend = pi.form ? pi.adj - (pi.applied || 0) : 0, base = pi.r0 != null ? pi.r0 : pi.r, target = Math.max(40, Math.min(99, base + pend));
+  const pend = pi.form ? pi.adj - (pi.applied || 0) : 0, base = pi.r0 != null ? pi.r0 : pi.r, target = Math.max(40, Math.min(rateCap(pi.pos), base + pend));
   // la flecha solo aparece mientras hay algo por aplicar; ya aplicado, se ve la media nueva y nada más
   const cls = pi.outpos ? ' op' : '', arrow = pend ? adjHtml(pend, pi.form) : '';
   const rv = typeof REVEAL !== 'undefined' && REVEAL.get(pi.id), rev = rv ? ` data-rev="${rv}"` : '';
@@ -230,7 +230,22 @@ function starsHtml(n) { let h = ''; for (let i = 1; i <= 5; i++) h += `<span cla
 // corrección por línea, calibrada con las medias que muestra el juego (arqueros y centrales salían altos)
 const RATING_BIAS = {gk: -6.59, cb: -4.23, fb: -0.48, dmf: -0.73, cmf: -2.46, smf: -2.5, amf: -0.87, wf: -1.71}; // calibrado con 90 medias reales del juego (Boca, Racing, Independiente, Barracas, Unión)
 const RATING_W = { cf: { w: {atk: 0.1386, ball_ctrl: 0.1407, drib: 0.0053, lowpass: 0.0063, loftpass: 0.0032, finish: 0.1511, header: 0.1165, swerve: 0.0125, speed: 0.1046, exp_pwr: 0.0352, kick_pwr: 0.1219, phys_cont: 0.1053, stamina: 0.0314, aggres: 0.025}, b: -2.18 } }; // delanteros: pesos ajustados (mejor que el promedio simple)
-function posFormula(g, ab) { const m = RATING_W[g]; if (m) { let r = m.b; for (const k in m.w) r += m.w[k] * ab(k); return r; } const ks = KEY_ABIL[g]; return ks.reduce((a, k) => a + ab(k), 0) / ks.length + (RATING_BIAS[g] || 0); }
+function posBase(g, ab) { const m = RATING_W[g]; if (m) { let r = m.b; for (const k in m.w) r += m.w[k] * ab(k); return r; } const ks = KEY_ABIL[g]; return ks.reduce((a, k) => a + ab(k), 0) / ks.length + (RATING_BIAS[g] || 0); }
+// arriba el juego estira la media y pesan todas las habilidades: con todo en 99 da 109 (central 108, arquero 97),
+// y Mbeumo de extremo con 67 en defensa y 77 de cabeza da 102. Se suma una curva que arranca cuando el promedio
+// de todas las habilidades de juego pasa de 72,5, así las medias normales (las calibradas) quedan igual.
+const RATING_TOP = { gk: 97, cb: 108 }, RATING_TOP_FROM = 72.5, RATING_V = 2;
+const OUT_ABIL = ABIL.map(a => a[0]).filter(k => !['gk', 'catching', 'clearing', 'reflex', 'cover'].includes(k));
+const RATING_K = {};
+const rateCap = pos => RATING_TOP[POS_KEY[pos]] || 109;
+function posFormula(g, ab) {
+  let r = posBase(g, ab); const ks = g === 'gk' ? KEY_ABIL.gk : OUT_ABIL, q = ks.reduce((a, k) => a + ab(k), 0) / ks.length;
+  if (q > RATING_TOP_FROM) {
+    if (RATING_K[g] == null) RATING_K[g] = ((RATING_TOP[g] || 109) - posBase(g, () => 99)) / (99 - RATING_TOP_FROM) ** 2;
+    r += RATING_K[g] * (q - RATING_TOP_FROM) ** 2;
+  }
+  return r;
+}
 function rating(p) { return Math.round(posFormula(POS_KEY[pget(p, 'reg_pos')] || 'cmf', k => pget(p, k))); }
 // media en un puesto que no es el suyo (como la muestra el juego en la alineación): A sin castigo, B −6, C −7 (medido en el juego)
 const DB_POSFLAG = { 1: 468, 3: 474, 4: 414, 5: 456, 6: 466, 7: 460, 8: 464, 9: 472, 10: 476, 11: 478, 12: 470 };
@@ -375,8 +390,8 @@ async function namesFromBin(bytes) {
   return out;
 }
 const NAMES_LS = 'edit21-names-v5';
-function namesSave() { try { localStorage.setItem(NAMES_LS, JSON.stringify({ from: S.namesFrom, list: [...S.names].map(([id, v]) => [id, v.name, v.pos, v.r, v.a || 0, v.n || 0]) })); } catch { } }
-function namesLoadCache() { try { const j = JSON.parse(localStorage.getItem(NAMES_LS) || 'null'); if (j) { S.names = new Map(j.list.map(([id, n, pos, r, a, nat]) => [id, { name: n, pos: pos ?? null, r: r || 0, a: a || 0, n: nat || 0 }])); S.namesFrom = j.from; } } catch { } }
+function namesSave() { S.namesStale = false; try { localStorage.setItem(NAMES_LS, JSON.stringify({ rv: RATING_V, from: S.namesFrom, list: [...S.names].map(([id, v]) => [id, v.name, v.pos, v.r, v.a || 0, v.n || 0]) })); } catch { } }
+function namesLoadCache() { try { const j = JSON.parse(localStorage.getItem(NAMES_LS) || 'null'); if (j) { S.names = new Map(j.list.map(([id, n, pos, r, a, nat]) => [id, { name: n, pos: pos ?? null, r: r || 0, a: a || 0, n: nat || 0 }])); S.namesFrom = j.from; S.namesStale = j.rv !== RATING_V; } } catch { } }
 async function loadNames(file) {
   try {
     const m = await namesFromBin(new Uint8Array(await file.arrayBuffer()));

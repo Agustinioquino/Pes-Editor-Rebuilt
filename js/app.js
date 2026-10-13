@@ -427,11 +427,18 @@ window.addEventListener('focus', async () => {
     else toast('El juego modificó el EDIT y vos tenés cambios sin guardar.', 9000, ['Recargar el del juego', () => reloadFromGame()]);
   } catch { }
 });
+// cifra y vuelve a descifrar para revisar el resultado; si algo no cierra, no devuelve nada y avisa
+async function buildChecked() {
+  const bytes = PesCrypt.encrypt(S.f);
+  const errs = EditCheck.check(bytes, S.f, S.origData);
+  if (!errs.length) return bytes;
+  await choiceBox({ title: '⛔ No se guardó nada', html: '<p>Antes de escribir el EDIT lo volví a abrir para revisarlo y encontré problemas. Para no dañar tu archivo, el guardado se canceló.</p><ul>' + errs.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul><p class="note">Tu archivo original sigue intacto. Podés deshacer el último cambio (Ctrl+Z) y probar de nuevo, o reportar el error con esta lista.</p>', options: [{ k: 'ok', label: 'Entendido', cls: 'primary' }] });
+  return null;
+}
 async function save() {
   if (!S.f) return;
-  const bytes = PesCrypt.encrypt(S.f);
-  const chk = PesCrypt.decrypt(bytes);
-  if (chk.data.length !== S.d.length || !chk.data.every((v, i) => v === S.d[i])) { toast('Error de verificación: no se guardó nada.'); return; }
+  const bytes = await buildChecked();
+  if (!bytes) return;
   if (S.editHandle) {
     try {
       const cur = (await S.editHandle.getFile()).lastModified;
@@ -1337,7 +1344,7 @@ function renderFile(m) {
   $('fDesc').onchange = e => { edit('Nombre del archivo', 'desc', [], () => PesCrypt.setDescription(S.f, e.target.value)); };
   $('fSidBtn').onclick = () => { const v = $('fSid').value.trim(); if (!/^S-1-5-21-\d+-\d+-\d+-\d+$/.test(v)) { toast('El SID tiene que tener la forma S-1-5-21-número-número-número-número.'); return; } edit('Cambiar SID', 'sid', [], () => PesCrypt.setSid(S.f, v)); toast('SID cambiado. Descargá una copia para la otra PC.'); renderFile(m); };
   $('discard').onclick = async () => { if (!await confirmBox('¿Descartar todos los cambios de esta sesión?')) return; openBytes(S.orig, S.name); toast('Cambios descartados.'); setTab('file'); };
-  $('dlCopy').onclick = () => downloadBytes('EDIT00000000', PesCrypt.encrypt(S.f));
+  $('dlCopy').onclick = async () => { const b = await buildChecked(); if (b) downloadBytes('EDIT00000000', b); };
   if (S.dir) listBackups();
 }
 async function listBackups() {

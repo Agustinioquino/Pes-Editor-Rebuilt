@@ -17,7 +17,7 @@ async function connectKits(dirIn) {
   if (!dir) {
     if (!window.showDirectoryPicker) return connectSiderRO(); // Firefox y otros: solo para ver
     try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'readwrite' }); SIDER_RO = null; }
-    catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); else toast('¿El navegador no te dejó abrir la carpeta?', 9000, ['Ver qué hacer', siderBlockedHelp]); return; }
+    catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); else if (!window.pesNative) toast('¿El navegador no te dejó abrir la carpeta?', 9000, ['Ver qué hacer', siderBlockedHelp]); return; }
   }
   let root = null;
   for (const p of ['', 'kit-server', 'content/kit-server']) { try { const d = p ? await subDir(dir, p) : dir; if (await readText(d, 'map.txt') != null) { root = d; break; } } catch { } }

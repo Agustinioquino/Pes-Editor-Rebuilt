@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PES Editor</title>
+<style>:root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0d10;color:#e8e6e1;font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}
+h1{font-size:1.4rem;margin:0 0 8px}p{margin:0 0 20px;color:#a9a59c}button{font:inherit;font-weight:600;padding:10px 22px;border-radius:8px;border:0;background:#e8b923;color:#151515;cursor:pointer}</style></head>
+<body><main><h1 data-es="Sin conexión" data-en="No connection">Sin conexión</h1>
+<p data-es="La primera vez, PES Editor necesita internet para descargarse. Después abre también sin conexión." data-en="The first time, PES Editor needs internet to download itself. After that it also opens offline.">La primera vez, PES Editor necesita internet para descargarse. Después abre también sin conexión.</p>
+<button id="b" data-es="Probar de nuevo" data-en="Try again">Probar de nuevo</button></main>
+<script>
+let en = false; try { en = localStorage.getItem('edit21-lang') === 'en'; } catch { } en = en || !/^es/i.test(navigator.language);
+if (en) document.querySelectorAll('[data-en]').forEach(e => e.textContent = e.dataset.en);
+const site = new URLSearchParams(location.search).get('site');
+document.getElementById('b').onclick = () => { if (site) location.href = site; };
+</script></body></html>

@@ -133,7 +133,7 @@ async function pesOpen(root) {
 const introWait = ms => new Promise(r => setTimeout(r, ms));
 function introAsk(html) { return new Promise(res => introActions(html, a => a.querySelectorAll('[data-a]').forEach(b => b.onclick = () => res(b.dataset.a)))); }
 // Chrome no deja abrir (para escribir) carpetas dentro de Archivos de programa: ahí se ofrece abrirla solo para ver
-const INTRO_BROWSER = /Edg\//.test(navigator.userAgent) ? 'Edge' : /Chrome\//.test(navigator.userAgent) ? 'Chrome' : '';
+const INTRO_BROWSER = window.pesNative ? '' : /Edg\//.test(navigator.userAgent) ? 'Edge' : /Chrome\//.test(navigator.userAgent) ? 'Chrome' : '';
 const INTRO_RO_NOTE = '<p class="note">¿Te dijo <b>"contiene archivos del sistema"</b>? Tu Sider está dentro de <b>Archivos de programa</b> (por ejemplo en Steam) y ' + (INTRO_BROWSER || 'el navegador') + ' no deja escribir ahí. Para poder guardar, tocá <b>Cómo moverla</b>: se arregla sacando la carpeta Sider de ahí, sin mover el juego. O abrila <b>solo para ver</b>.</p>';
 async function introSider(t0) {
   let h = await idbGet('sider').catch(() => null), ready = false;

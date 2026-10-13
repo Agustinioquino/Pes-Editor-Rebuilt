@@ -1112,7 +1112,7 @@ function dbPlayerSheet(id) {
   const n = S.names.get(id) || {}, o = DBRAW && DBRAW.off.get(id), cl = dbClubs(id), c0 = dbClubOf(id), ct = c0 && S.ix.teamById.get(c0.tid), inEdit = S.ix.byId.has(id);
   const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, shirt = o != null ? dbStr(o + 0x81, 61) : '';
   const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0;
-  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del Parche</h3><div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
+  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del Parche</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
     <div class="grid" style="margin-top:12px">${[['Uso de pierna mala', 'weak_use', 1], ['Precisión de pierna mala', 'weak_acc', 1], ['Estado de forma', 'form', 1], ['Resistencia a lesiones', 'injury', 0]].map(([l, k, add]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="f"><span class="lab">${l}</span><b>${k === 'injury' ? ['C', 'B', 'A'][v] || v : v + add}</b></div>`; }).join('')}</div></div>` : '<div class="card"><p class="note">Las habilidades se ven cuando la copia de Player.bin está en la carpeta Sider.</p></div>';
   return `<div class="card dbsheet">
     <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
@@ -1246,7 +1246,7 @@ function tabPos(p) {
 }
 function tabAbil(p) {
   const g = k => pget(p, k);
-  return `<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
+  return `${hexaCard(p)}<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
     <div class="row"><button class="btn small" data-bulk="-1" type="button">−1 a todas</button><button class="btn small" data-bulk="1" type="button">+1 a todas</button>
     <input type="number" id="bulkSet" min="40" max="99" placeholder="Valor" style="width:80px" aria-label="Valor para todas"><button class="btn small" id="bulkSetBtn" type="button">Poner todas</button></div></div>
   <div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, n]) => { const v = g(k); return `<div class="ab"><div class="l"><span>${n}</span><input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}"></div><input type="number" class="${vcls(v)}" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"></div>`; }).join('')}</div>`).join('')}</div>
@@ -1326,6 +1326,7 @@ function bindPlayer(p, m) {
     edit('Copiar ' + $('pCopyWhat').selectedOptions[0].text + ' a ' + nm(), 'p' + p.id, regP(p), () => { for (const k of COPY_KEYS[what]) { PD.player.set(S.d, p.base, k, PD.player.get(S.d, src.base, k)); if (S.autoLock) for (const fl of [...LOCK_FLAGS, ...FIELD_FLAGS(k)]) PD.player.set(S.d, p.base, fl, 1); } });
     toast('Copiado de ' + pget(src, 'name') + '.', 4000, ['Deshacer', undo]); rer();
   };
+  if (S.ptab === 'abil') hexaBind(p, rer);
   sh.addEventListener('input', e => {
     const el = e.target; if (el.type !== 'range') return;
     const ab = el.closest('.ab'); if (!ab) return;

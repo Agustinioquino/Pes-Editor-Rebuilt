@@ -2877,4 +2877,9 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "\"Como 1907\" ya encuentra a \"Como\" en ESPN.":"\"Como 1907\" now finds \"Como\" on ESPN.",
 "la forma de cada jugador mira toda la temporada, las lesiones y su historial.":"each player's form looks at the whole season, injuries and their history.",
 "tocá ⓘ en Forma del plantel para ver de dónde sale cada punto.":"tap ⓘ in Squad form to see where every point comes from.",
-"un cartel muestra lo que está en desarrollo.":"a notice shows what is in development."};
+"un cartel muestra lo que está en desarrollo.":"a notice shows what is in development.",
+"Técnica":"Technique",
+"Ficha hexagonal":"Hexagon chart",
+"Gráfico hexagonal de habilidades":"Hexagon chart of abilities",
+"Arrastrá una punta para subir o bajar todas las habilidades de esa área. También podés tocar una punta y usar las flechas del teclado.":"Drag a corner to raise or lower every ability in that area. You can also tap a corner and use the arrow keys.",
+"Línea punteada: cómo estaba al abrir el archivo.":"Dotted line: how it was when you opened the file."};

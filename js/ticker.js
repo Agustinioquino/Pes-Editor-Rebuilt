@@ -8,6 +8,16 @@ const TICKER_IDEAS = [
   'Idea a futuro: guardar y compartir tus formaciones favoritas como plantillas.',
   '¿Tenés una idea para el editor? Escribila en GitHub, en "Ideas", y puede aparecer en una próxima versión.'
 ];
+// lo nuevo de la última versión, contado para la barra
+const TICKER_NEW = [
+  'Novedad v0.030: este modo PES 6 Editar estrena fondo de estadio con efecto de tele vieja, como jugar en la PS2 del living.',
+  'Novedad v0.030: la tabla del plantel ahora es dorada, como la selección del modo Editar de PES 6.',
+  'Novedad v0.030: el logo de arriba respira despacio con una segunda capa, al estilo de los menús de PES.',
+  'Novedad v0.030: cada jugador muestra la bandera real de su país, y el borde de su foto dice si es arquero, defensa, medio o delantero.',
+  'Novedad v0.030: en la cabecera del equipo ves el nombre real del estadio y, entre paréntesis, el que usa tu EDIT.',
+  'Novedad v0.030: al cargar elegís fotos recortadas de TheSportsDB o una mezcla con Wikipedia para las que falten.',
+  'Novedad v0.030: el video de YouTube se guarda a los 15 segundos y queda la carátula; tocala y vuelve.'
+];
 const TICKER_SAGA = [
   'PES nació en 2001 en PlayStation 2. En Japón la saga se llamaba Winning Eleven.',
   'PES 6 salió en 2006 y para muchos sigue siendo el mejor de la saga: por eso este estilo.',
@@ -36,7 +46,7 @@ const TICKER_HELP = {
 const TK = { el: null, help: null };
 const tickerKind = t => /^(Novedad|v0\.)/.test(t) ? 'novedad' : /^(Idea|¿Tenés)/.test(t) ? 'idea' : 'pes';
 function tickerItems() {
-  const news = (typeof NEWS !== 'undefined' ? NEWS.slice(0, 3) : []).flatMap(n => [`Novedad ${newsVer(n.v)}: ${n.t}.`, ...(n.items || []).slice(0, 2).map(it => `${newsVer(n.v)} · ${it[1]}.`)]);
+  const news = [...TICKER_NEW, ...(typeof NEWS !== 'undefined' ? NEWS.slice(1, 3) : []).map(n => `Novedad ${newsVer(n.v)}: ${n.t}.`)];
   const mix = (a, b, c) => { const out = [], m = Math.max(a.length, b.length, c.length); for (let k = 0; k < m; k++) [a[k], b[k], c[k]].forEach(x => x && out.push(x)); return out; };
   const sh = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
   return mix(news, sh(TICKER_SAGA), sh(TICKER_IDEAS));

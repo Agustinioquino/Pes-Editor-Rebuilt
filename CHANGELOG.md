@@ -2,6 +2,25 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.030 alpha · Lavada de cara: PES 6 Editar, plantel y carga
+
+*13 de octubre de 2026, 09:55 (hora de Argentina)*
+
+Una versión dedicada a cómo se ve: el modo PES 6 Editar se pone nostálgico, el plantel muestra más cosas de un vistazo y la pantalla de carga te acompaña a conectar todo.
+
+- **PES 6 Editar, como en la PS2** (Interfaz). Fondo de estadio con un leve desenfoque y efecto de tele vieja (CRT), tabla del plantel en dorado suave, bordes rectos y el logo que respira con una segunda capa que lo acompaña.
+- **La barra de texto de abajo** (Interfaz). En PES 6 Editar corre despacio una cinta con novedades, ideas a futuro y datos de la saga, en letra blanca de PES. Al pasar el mouse por un botón o una pestaña, explica qué hace.
+- **Toda la pantalla, en una fila** (Interfaz). En la PC el editor ocupa todo el ancho, la cabecera entra en una sola fila y Apariencia tiene íconos y vistas previas de cada paleta. Las acciones de cada jugador están en el botón ⋯.
+- **Banderas reales y fotos más grandes** (Plantel). La columna Nación muestra la bandera de verdad del país. Las fotos son más grandes y su borde y fondo cambian según la posición: arquero, defensa, medio o delantero.
+  1. Abrí un equipo y entrá en Plantel.
+  2. Con "Fotos / Camisetas" elegís ver las caras o solo la camiseta del equipo.
+- **Promedios explicados** (Plantel). Debajo del plantel se aclara que media, edad y altura son promedios del plantel y que el valor es la suma de todos.
+- **El estadio real en la cabecera** (Plantel). Arriba de todo se ve el nombre real del estadio y, entre paréntesis, el que tiene elegido el EDIT.
+- **Fotos de dos lugares** (Plantel). Al cargar elegís: fotos recortadas de TheSportsDB, una mezcla que completa con fotos de Wikipedia las que falten, o ninguna. Se cambia después en Formación, con la vista Fotos.
+- **La carga te pide Sider** (Archivo). Después de abrir el EDIT, la pantalla de carga pide conectar la carpeta Sider (o el permiso para volver a leerla) y espera a que carguen caras, escudos y fuentes antes de entrar. El botón de nombres ahora se llama "Conectar Player.bin".
+- **Carátula en lugar del video** (Música). El reproductor quieto queda como un círculo, y a los 15 segundos de empezar un video de YouTube queda solo la carátula. Tocándola vuelve el video.
+- **Windows en modo oscuro** (Interfaz). En PES 6 Editar y Clásico, con Windows en modo oscuro, el dorsal repetido y las casillas ya no quedan en negro.
+
 ## v0.020 alpha · El Plan de juego, como en el juego
 
 *13 de octubre de 2026, 08:25 (hora de Argentina)*

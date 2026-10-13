@@ -27,8 +27,15 @@ function ytPlayers() {
       events: { onReady: () => res(p), onStateChange: e => ytState(n, e.data), onError: e => ytError(n, e.data) } });
   })))).then(ps => { YT_ST.p = ps; return ps; }).catch(e => { YT_ST.made = null; throw e; }));
 }
+// a los 15 segundos de sonar, el video se esconde y queda la carátula; tocándola vuelve el video
+function ytMinArm() {
+  clearTimeout(YT_ST.minT); const el = MP.el; if (!el) return; el.classList.remove('ytmin');
+  const c = el.querySelector('#mpTvCov'); if (c && !c.__on) { c.__on = 1; c.onclick = ytMinArm; }
+  YT_ST.minT = setTimeout(() => { if (MP.kind !== 'yt' || !MP.playing) { YT_ST.minT = 0; return; } const img = el.querySelector('#mpTvCov img'); if (img) img.src = mpCover(MP.list[MP.i]); el.classList.add('ytmin'); }, 15000);
+}
 function ytState(n, s) {
   if (n !== YT_ST.cur || MP.kind !== 'yt') return;
+  if (s === 1 && !YT_ST.minT) ytMinArm();
   if (s === 1) { // sonando: sin silencio, con el volumen del reproductor, y completa el título si faltaba
     const p = YT_ST.p[n]; try { if (p.isMuted && p.isMuted()) p.unMute(); if (!p.__iv) p.setVolume(ytVol()); } catch { }
     if (typeof mpYtMobile === 'function' && mpIsPhone() && !MP.st.open) mpYtMobile();
@@ -53,6 +60,7 @@ function ytRamp(p, to, dur) {
 const ytVol = () => Math.round((MP.st.mute ? 0 : MP.st.vol) * 100);
 function ytShow(n) {
   const el = MP.el; if (!el) return; el.classList.toggle('yt', MP.kind === 'yt'); mpTvPlace();
+  clearTimeout(YT_ST.minT); YT_ST.minT = 0; el.classList.remove('ytmin'); // cada video nuevo se ve de nuevo 15 segundos
   el.querySelectorAll('.mptvp').forEach(w => w.classList.toggle('on', +w.dataset.n === n));
 }
 function ytTick() {

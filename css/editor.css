@@ -1193,3 +1193,15 @@ html.tking .tk{font-family:"PES Express",var(--body);color:#fff}
 .introchoice{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}.introchoice .btn{display:grid;gap:4px;justify-items:center;padding:12px 14px;white-space:normal;height:auto}.introchoice small{font-size:.74rem;font-weight:400;opacity:.85;line-height:1.35;text-transform:none}@media (max-width:520px){.introchoice{grid-template-columns:1fr}}
 #fsrc button{padding:3px 10px}
 .introsteps li:nth-last-child(n+4){display:none}
+/* modos claros con Windows en modo oscuro: que no se cuelen los colores oscuros (por ej. el dorsal repetido quedaba negro) */
+html[data-gfx="pes6"],html[data-gfx="clasico"]:not(.cdark){--a60:#b65a1a!important;--a70:#a07a00!important;--a80:#4f8f2f!important;--a90:#1d6e47!important;--alo:#8a958f!important;--bad-soft:#f8e0dd!important;--warn-soft:#fbeed8!important;--pitch-ink:#fff!important;--pitch-line:#ffffff66!important}
+html[data-gfx="clasico"]:not(.cdark){--warn:#9a5800!important;--bad:#b0281f!important;--pitch:#2f7d4f!important}
+html[data-gfx="pes6"] tr.dup td.num input{background:linear-gradient(180deg,#fffaf0,#f6e7c4);border-color:#c98a1a;color:#1c1c1a}
+.mptvcov{position:absolute;inset:0;z-index:4;display:none;border:0;padding:0;margin:0;background:#000;cursor:pointer;animation:popIn .5s both}.mp.ytmin .mptvcov{display:block}.mp.ytmin .mptvp{opacity:0!important}.mptvcov img{width:100%;height:100%;object-fit:cover;display:block}.mptvcov span{position:absolute;left:50%;bottom:10px;translate:-50% 0;padding:4px 10px;border-radius:99px;background:#000b;color:#fff;font:600 .78rem var(--body);white-space:nowrap;opacity:.85}.mptvcov:hover span{opacity:1;background:var(--mpc,#000)}
+/* foto del plantel: borde y fondo según la posición (arquero, defensa, medio, delantero) */
+.dt tr[data-g="gk"]{--pc:#d4a017}.dt tr[data-g="df"]{--pc:#2f6db3}.dt tr[data-g="mf"]{--pc:#2e8b57}.dt tr[data-g="fw"]{--pc:#c0392b}
+.dt tr[data-g] .face.pl{background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--pc) 28%,var(--panel)) 0%,color-mix(in srgb,var(--pc) 14%,var(--sunk)) 78%);box-shadow:inset 0 0 0 2.5px var(--pc)}
+html[data-gfx="pes6"] .dt tr[data-g] .face.pl{background:radial-gradient(circle at 50% 30%,#fff 0%,color-mix(in srgb,var(--pc) 10%,#efe6cc) 80%);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--pc) 75%,#7a5f17)}
+.rsumnote{flex-basis:100%;font-size:.8rem;color:var(--muted);font-style:italic}
+.thstad b{font-weight:700;color:var(--ink)}
+html[data-gfx="pes6"],html[data-gfx="clasico"]:not(.cdark){color-scheme:light!important}

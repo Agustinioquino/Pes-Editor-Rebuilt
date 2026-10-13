@@ -236,8 +236,21 @@ async function onlineBadge(t) {
     if (!(x.strBadge || x.strTeamBadge)) s -= 10;
     if (s > bs) { bs = s; best = x; }
   }
-  if (!best || bs < 2) return null;
+  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return null; }
+  STADS.set(t.id, best.strStadium || ''); saveStads(); stadPaint(t);
   return best.strBadge || best.strTeamBadge || null;
+}
+
+// ---- nombre real del estadio (TheSportsDB, la misma búsqueda que el escudo) ----
+const STAD_LS = 'edit21-online-stadiums-v1';
+const STADS = (() => { try { return new Map(JSON.parse(localStorage.getItem(STAD_LS) || '[]')); } catch { return new Map(); } })();
+const saveStads = () => { try { localStorage.setItem(STAD_LS, JSON.stringify([...STADS])); } catch { } };
+const STAD_Q = new Set();
+function stadPaint(t) { document.querySelectorAll(`[data-stad="${t.id}"]`).forEach(e => { e.innerHTML = '🏟️ ' + stadLabel(t); }); }
+function realStadium(t) {
+  if (STADS.has(t.id)) return STADS.get(t.id);
+  if (PREFS.onlineBadges && navigator.onLine !== false && tget(t, 'name') && !STAD_Q.has(t.id)) { STAD_Q.add(t.id); setTimeout(() => onlineBadge(t).then(u => { if (u && !BADGES.online.get(t.id) && !BADGES.idx.has(t.id)) { BADGES.online.set(t.id, u); saveOnlineBadges(); paintBadge(t.id, u); } }).catch(() => STAD_Q.delete(t.id)), 400); }
+  return '';
 }
 
 // ---- club vs. national-team photo: compare the shirt color in the photo with both kits ----

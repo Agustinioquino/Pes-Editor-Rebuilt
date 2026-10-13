@@ -86,7 +86,7 @@ const S = {
   hist: [], hp: 0, savedHp: 0,
   names: new Map(), namesFrom: '',
   tab: 'teams', team: null, teamByTab: {}, natSeen: false, player: null, ttab: 'roster', ptab: 'profile',
-  qTeam: '', tSort: 'name', tFilter: 'all', qPlayer: '', pSrc: 'edit', dbPlayer: null, showEmpty: false, autoLock: true, pFilter: 'all', rosterSort: 'xi', fplan: 0, fvar: 0, flink: true, fsel: null, fbench: null,
+  qTeam: '', tSort: 'name', tFilter: 'all', tLeague: '', qPlayer: '', pSrc: 'edit', dbPlayer: null, showEmpty: false, autoLock: true, pFilter: 'all', rosterSort: 'xi', fplan: 0, fvar: 0, flink: true, fsel: null, fbench: null,
 };
 const LAYOUT = { '2021': 0x24C, '2020': 0x210 };
 
@@ -542,6 +542,7 @@ function teamList() {
     if ((S.tab === 'nats') !== isNat(t)) return false;
     if (S.tFilter === 'dirty' && !dk.has('t' + t.id)) return false;
     if (S.tFilter === 'custom' && !(tget(t, 'e_name') || PD.roster(S.d, t).some(x => S.ix.byId.has(x.pid)))) return false;
+    if (S.tLeague && S.tab !== 'nats' && !teamInLeague(t, S.tLeague)) return false;
     return !q || normName(tget(t, 'name')).toLowerCase().includes(q) || tget(t, 'short').toLowerCase().includes(q) || String(t.id) === q;
   });
   const by = {
@@ -550,8 +551,24 @@ function teamList() {
     rating: (a, b) => ((teamRating(b) || {}).score || 0) - ((teamRating(a) || {}).score || 0),
     value: (a, b) => ((teamRating(b) || {}).value || 0) - ((teamRating(a) || {}).value || 0),
     count: (a, b) => PD.roster(S.d, b).length - PD.roster(S.d, a).length,
+    country: (a, b) => COLL.compare(COUNTRY.get(tget(a, 'country')) || '~', COUNTRY.get(tget(b, 'country')) || '~') || COLL.compare(nmOf(a), nmOf(b)),
   }[S.tSort] || null;
   return by ? list.sort(by) : list;
+}
+// filtro de liga o país del panel de equipos: 'l:ENG/A' (liga, con la carpeta Sider) o 'c:204' (país del club)
+const teamInLeague = (t, v) => v[0] === 'l' ? leagueOf(t) === v.slice(2) : String(tget(t, 'country')) === v.slice(2);
+function leagueOptions() {
+  if (S.tab === 'nats') return '';
+  const lg = new Map(), ct = new Map();
+  for (const t of S.ix.teams) {
+    if (isNat(t) || (!S.showEmpty && !PD.roster(S.d, t).length)) continue;
+    const l = leagueOf(t); if (l) lg.set(l, (lg.get(l) || 0) + 1);
+    const c = tget(t, 'country'); if (COUNTRY.has(c)) ct.set(c, (ct.get(c) || 0) + 1);
+  }
+  const opt = (v, n, k) => `<option value="${v}" ${S.tLeague === v ? 'selected' : ''}>${esc(n)} (${k})</option>`;
+  const ls = [...lg].map(([l, k]) => [l, LEAGUE_NAME[l] || l, k]).sort((a, b) => COLL.compare(a[1], b[1]));
+  const cs = [...ct].map(([c, k]) => [c, COUNTRY.get(c), k]).sort((a, b) => COLL.compare(a[1], b[1]));
+  return `<div class="row tleague"><label class="lab" for="tLeague">Liga o país</label><select id="tLeague"><option value="">Todas las ligas y países</option>${ls.length ? `<optgroup label="Ligas">${ls.map(([l, n, k]) => opt('l:' + l, n, k)).join('')}</optgroup>` : ''}<optgroup label="Países">${cs.map(([c, n, k]) => opt('c:' + c, n, k)).join('')}</optgroup></select></div>`;
 }
 function renderTeams(m) {
   const list = teamList(), dk = dirtyKeys();
@@ -562,8 +579,9 @@ function renderTeams(m) {
   // al elegir otro equipo o cambiar de pestaña se reemplaza solo la ficha de la derecha
   const lh = `<div class="list-head">
         <input type="search" id="qTeam" placeholder="${S.tab === 'nats' ? 'Buscar selección…' : 'Buscar equipo, sigla o ID…'}" value="${esc(S.qTeam)}" aria-label="Buscar equipos">
-        <div class="fchips" id="tFilter">${[['all', S.tab === 'nats' ? 'Todas' : 'Todos'], ['custom', 'Editados'], ['dirty', 'Sin guardar']].map(([k, n]) => `<button type="button" data-tf="${k}" aria-pressed="${S.tFilter === k}">${n}</button>`).join('')}</div>
-        <div class="row" style="flex-wrap:nowrap"><label class="lab" for="tSort" style="white-space:nowrap">Ordenar</label><select id="tSort">${[['name', 'Nombre (A-Z)'], ['rating', 'Valoración'], ['value', 'Valor de mercado del club'], ['count', 'Cantidad de jugadores'], ['id', 'ID del juego']].map(([k, n]) => `<option value="${k}" ${S.tSort === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div class="tfrow"><div class="fchips" id="tFilter">${[['all', S.tab === 'nats' ? 'Todas' : 'Todos'], ['custom', 'Editados'], ['dirty', 'Sin guardar']].map(([k, n]) => `<button type="button" data-tf="${k}" aria-pressed="${S.tFilter === k}">${n}</button>`).join('')}</div>
+        <div class="tsort"><label class="lab" for="tSort">Ordenar</label><select id="tSort">${[['name', 'Nombre (A-Z)'], ['rating', 'Valoración'], ['value', 'Valor de mercado del club'], ['count', 'Cantidad de jugadores'], ...(S.tab === 'nats' ? [] : [['country', 'País']]), ['id', 'ID del juego']].map(([k, n]) => `<option value="${k}" ${S.tSort === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
+        ${leagueOptions()}
         <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="showEmpty" ${S.showEmpty ? 'checked' : ''}> Incluir sin plantel</label><label class="chk" title="Si el escudo no está en las carpetas del Parche, se busca por nombre en TheSportsDB y queda guardado."><input type="checkbox" id="onBadge" ${PREFS.onlineBadges ? 'checked' : ''}> Escudos de internet</label><span class="sub">${list.length} ${S.tab === 'nats' ? 'selecciones' : 'equipos'}</span></div>
       </div>
       <div class="list-body" id="teamItems">${list.map(x => { const tr = teamRating(x), n = PD.roster(S.d, x).length; return `<button class="item" data-t="${x.id}" type="button">
@@ -579,12 +597,13 @@ function renderTeams(m) {
     return;
   }
   m._lh = lh;
-  m.innerHTML = `<div class="split"><aside class="list">${lh}</aside><section class="sheet" id="teamSheet">${sheetHtml}</section></div>`;
+  m.innerHTML = `<div class="split wide"><aside class="list">${lh}</aside><section class="sheet" id="teamSheet">${sheetHtml}</section></div>`;
   { const on = t && m.querySelector(`#teamItems [data-t="${t.id}"]`); if (on) on.classList.add('on'); }
   $('qTeam').oninput = e => { S.qTeam = e.target.value; const pos = e.target.selectionStart; flipRender(m, () => renderTeams(m)); const el = $('qTeam'); el.focus(); el.setSelectionRange(pos, pos); el.classList.add('kick'); };
   $('showEmpty').onchange = e => { S.showEmpty = e.target.checked; later(() => renderTeams(m)); };
   $('onBadge').onchange = e => { PREFS.onlineBadges = e.target.checked; savePrefs(); later(() => renderTeams(m)); };
   $('tSort').onchange = e => { S.tSort = e.target.value; later(() => { flipRender(m, () => renderTeams(m)); const sel = $('tSort'); sel && sel.classList.add('kick'); }); };
+  { const lg = $('tLeague'); if (lg) lg.onchange = e => { S.tLeague = e.target.value; later(() => { flipRender(m, () => renderTeams(m)); const sel = $('tLeague'); sel && sel.classList.add('kick'); }); }; }
   $('tFilter').onclick = e => { const b = e.target.closest('[data-tf]'); if (b) { S.tFilter = b.dataset.tf; renderTeams(m); } };
   $('teamItems').onclick = e => { const b = e.target.closest('[data-t]'); if (b && +b.dataset.t !== S.team) { S.team = +b.dataset.t; S.fsel = null; S.fbench = null; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); leave($('teamSheet'), () => renderTeams(m)); } };
   if (t) bindTeam(t, m);

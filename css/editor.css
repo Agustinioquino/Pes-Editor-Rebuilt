@@ -1236,3 +1236,19 @@ html[data-q="low"] .tab[aria-selected="true"]::after,html[data-q="low"] .tab[ari
 .mptvx{position:absolute;top:6px;right:6px;z-index:5;width:26px;height:26px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#000b;color:#fff;font:700 .8rem/1 var(--body);cursor:pointer;opacity:.75;transition:opacity .2s,background .2s}
 .mptvx:hover,.mptvx:focus-visible{opacity:1;background:var(--mpc,#c00)}
 .mp.ytmin .mptvx{display:none}
+/* panel de equipos: más ancho, Ordenar al lado de los filtros y selector de liga o país */
+.split.wide{grid-template-columns:minmax(300px,410px) minmax(0,1fr)}
+@media (max-width:860px){.split.wide{grid-template-columns:1fr}}
+.tfrow{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
+.tfrow .fchips{flex:none;flex-wrap:nowrap;gap:4px}
+.tfrow .fchips button{padding-inline:7px;font-size:.84em;white-space:nowrap}
+.tsort,.tleague{display:flex;align-items:center;gap:8px;min-width:0}
+.tsort{flex:1 1 0;gap:6px;min-width:0}
+.tfrow .tsort select{min-width:118px}
+html[data-gfx="pes6"] .tfrow .fchips button{font-size:.74em;padding-inline:5px}
+html[data-gfx="pes6"] .tsort .lab{font-size:0}
+html[data-gfx="pes6"] .tsort .lab::before{content:"\21C5";font-size:15px}
+.tsort select{font-size:.86em;padding-inline:6px 22px}
+.tsort .lab,.tleague .lab{white-space:nowrap}
+.tsort select,.tleague select{flex:1;min-width:0}
+.tleague{flex-wrap:nowrap}

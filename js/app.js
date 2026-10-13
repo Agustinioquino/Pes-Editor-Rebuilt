@@ -798,7 +798,7 @@ function rosterCard(t) {
           <td class="c-player"><span class="pcell">${faceHtml(PREFS.rLook === 'kits' ? 0 : w.pid, kitFor(t, isGk), 'pl')}<span class="pn">${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
           <td class="idc c-id">${w.pid}</td>
           <td class="c-pos">${i ? posBadge(i.pos) : ''}</td>
-          <td class="mono c-val">${i && i.r ? `<b class="${vcls(i.r)}">${i.r}</b>${adjHtml(i.adj, i.form)}` : ''}</td>
+          <td class="mono c-val">${i && i.r ? `<button type="button" class="qeval" data-qe="${w.pid}" title="Editar la media" aria-label="Editar la media de ${esc(w.name || 'este jugador')}"><b class="${vcls(i.r)}">${i.r}</b><i class="qepen" aria-hidden="true">✎</i></button>${adjHtml(i.adj, i.form)}` : ''}</td>
           ${ageValCells(w.pid)}
           <td class="c-act"><div class="acts">${p ? `<button class="btn small icon" data-edit="${w.pid}" type="button" title="Editar jugador" aria-label="Editar">✎</button>` : ''}
             <select data-act="${w.slot}" data-cap="${w.cap ? 1 : 0}" data-lazy="${w.si < 0 && st.length ? 'sm' : 'm'}" aria-label="Acciones: capitán, titular o pasar a otro equipo" title="${w.si < 0 && st.length ? 'Titular, capitán o pasar a otro equipo' : 'Capitán o pasar a otro equipo'}" class="mini actsel"><option value="">⋯</option></select>
@@ -1007,6 +1007,7 @@ function bindTeam(t, m) {
   });
   sh.addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.qe != null) { e.stopPropagation(); quickEdit(+b.dataset.qe); return; }
     if (b.id === 'addBtn') {
       const pid = parseInt($('addQ').dataset.pid || $('addQ').value, 10);
       if (!pid) { toast('Buscá el jugador por nombre o escribí su ID.'); return; }

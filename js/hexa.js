@@ -46,16 +46,16 @@ function hexaOrig(p) {
   if (!S.origData || p.base + 0x138 > S.origData.length) return null;
   try { return k => PD.player.get(S.origData, p.base, k); } catch { return null; }
 }
-function hexaCard(p) {
+function hexaCard(p, compact) {
   const reg = pget(p, 'reg_pos'), axes = hexaAxes(reg), og = hexaOrig(p);
   const vals = hexaVals(k => pget(p, k), axes), orig = og ? hexaVals(og, axes) : null;
-  return `<div class="hexa" id="hexa">
+  return `<div class="hexa${compact ? ' compact' : ''}" id="hexa">
     <div class="hxwrap" id="hxWrap">${hexaSvg(axes, vals, { orig, edit: true })}</div>
     <div class="hxside">
-      <h3>Ficha hexagonal</h3>
+      ${compact ? '' : '<h3>Ficha hexagonal</h3>'}
       <p class="note">Arrastrá una punta para subir o bajar todas las habilidades de esa área. También podés tocar una punta y usar las flechas del teclado.</p>
-      <div class="hxrate"><span>Valoración aprox.</span><b id="hxRate" class="${vcls(rating(p))}">${rating(p)}</b><i id="hxRateD"></i></div>
-      <ul class="hxlist">${axes.map(([n, ks]) => `<li><b>${esc(n)}</b> <span>${ks.map(k => esc(FIELD_LABEL[k] || (ABIL.find(a => a[0] === k) || [k, k])[1])).join(' · ')}</span></li>`).join('')}</ul>
+      ${compact ? '' : `<div class="hxrate"><span>Valoración aprox.</span><b id="hxRate" class="${vcls(rating(p))}">${rating(p)}</b><i id="hxRateD"></i></div>`}
+      ${compact ? '' : `<ul class="hxlist">${axes.map(([n, ks]) => `<li><b>${esc(n)}</b> <span>${ks.map(k => esc(FIELD_LABEL[k] || (ABIL.find(a => a[0] === k) || [k, k])[1])).join(' · ')}</span></li>`).join('')}</ul>`}
       ${orig && orig.some((v, i) => v != null && Math.abs(v - vals[i]) >= .05) ? '<p class="note hxlegend"><i class="hxsw"></i>Línea punteada: cómo estaba al abrir el archivo.</p>' : ''}
     </div>
   </div>`;

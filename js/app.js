@@ -630,11 +630,19 @@ function stadiumCard(t) {
     ${[1, 2, 3, 4].map(i => `<div class="f"><label for="tBan${i}">Bandera ${i}</label><input type="text" id="tBan${i}" data-banner="banner${i}" value="${esc(tget(t, 'banner' + i))}" maxlength="15"></div>`).join('')}</div>
     <p class="note">Hasta 15 caracteres cada una.</p></div>`;
 }
+// bandera chiquita de la nación: el escudo de su selección (con la carpeta Sider es la bandera del Parche; si no, sus colores y sigla)
+const NAT_TEAM = new WeakMap();
+function natFlag(n) {
+  if (!S.ix) return '';
+  let m = NAT_TEAM.get(S.ix); if (!m) NAT_TEAM.set(S.ix, m = new Map());
+  if (!m.has(n)) m.set(n, S.ix.teams.find(x => isNat(x) && tget(x, 'country') === n) || null);
+  const t = m.get(n); return t ? crest(t, 'flagmini') : '';
+}
 function ageValCells(pid, ro) {
   const i = pInfo(pid), pv = playerValue(pid);
   const tip = pv ? (pv.manual ? 'Valor cargado a mano' + (pv.est != null ? ' (el estimado era ' + fmtMoney(pv.est) + ')' : '') : `Estimado: valoración ${pv.r}, ${pv.ageKnown ? pv.a + ' años' : 'edad desconocida'}, potencial ~${pv.pot}, ${pv.club ? tget(pv.club, 'name') : 'sin club'}${pv.league ? ' (' + (LEAGUE_NAME[pv.league] || pv.league) + ')' : ''}`) : 'Sin datos para estimar';
   const m = pMeta(pid);
-  return `<td class="mono c-age">${i && i.a ? i.a : ''}</td><td class="mono c-h">${m.h ? m.h : ''}</td><td class="c-nat"><span class="natc" title="${esc(m.natName)}">${esc(m.natName)}</span></td><td class="mono c-foot">${m.foot}</td><td class="mono c-mv">${ro ? `<span title="${esc(tip)}" class="mval${pv && pv.manual ? ' man' : ''}">${pv ? fmtMoney(pv.v) : '—'}</span>` : `<button type="button" class="mval${pv && pv.manual ? ' man' : ''}" data-val="${pid}" title="${esc(tip)}. Tocá para cargar el valor real.">${pv ? fmtMoney(pv.v) : '—'}</button>`}</td>`;
+  return `<td class="mono c-age">${i && i.a ? i.a : ''}</td><td class="mono c-h">${m.h ? m.h : ''}</td><td class="c-nat">${m.nat ? `<span class="natw">${natFlag(m.nat)}<span class="natc" title="${esc(m.natName)}">${esc(m.natName)}</span></span>` : ''}</td><td class="mono c-foot">${m.foot}</td><td class="mono c-mv">${ro ? `<span title="${esc(tip)}" class="mval${pv && pv.manual ? ' man' : ''}">${pv ? fmtMoney(pv.v) : '—'}</span>` : `<button type="button" class="mval${pv && pv.manual ? ' man' : ''}" data-val="${pid}" title="${esc(tip)}. Tocá para cargar el valor real.">${pv ? fmtMoney(pv.v) : '—'}</button>`}</td>`;
 }
 // affiliate (reserve / B) teams: same base name + suffix, or "Jong <name>"
 const FIL_RE = /^(.*?)\s+(B|II|U-?\d{2}|Sub-?\d{2}|Reserves|Reservas|Reserva|Castilla|Atl[eè]tic|Juvenil|Primavera|Youth|Academy|Next Gen|Futures)$/;
@@ -650,7 +658,7 @@ const RCOLS = [
 const RCOL_FIXED = new Set(['sel', 'player']);
 const RSORT_KEY = { xi: 'xi', num: 'num', player: 'name', id: 'id', pos: 'pos', val: 'val', age: 'age', h: 'h', nat: 'nat', mv: 'mv' };
 const RSORT_DESC = new Set(['val', 'mv', 'h']); // estas empiezan de mayor a menor
-const rHide = () => new Set(Array.isArray(PREFS.rHide) ? PREFS.rHide : ['h', 'nat', 'foot']);
+const rHide = () => new Set(Array.isArray(PREFS.rHide) ? PREFS.rHide : ['h', 'foot']);
 const foldTxt = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 function pMeta(pid) {
   const p = S.ix.byId.get(pid), n = S.names.get(pid);

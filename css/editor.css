@@ -959,7 +959,7 @@ html[data-gfx="pes6"] .tab[aria-selected="true"]{color:#1c1c1a;background:linear
 html[data-gfx="pes6"] .tab .count{color:#5a4a10}
 html[data-gfx="pes6"] .tabbar .status .chip{background:#f2f1ec;color:#2b2b2b;border-color:#8f8c84}
 html[data-gfx="pes6"] .tabbar .uibtn{color:#1c1c1a}
-@media (max-width:1300px){html[data-gfx="pes6"] .tabbar .ublab{display:none}}
+@media (max-width:1500px){html[data-gfx="pes6"] .tabbar .ublab{display:none}}
 html[data-gfx="pes6"] .card{background:linear-gradient(180deg,#f6f5f1f2,#e7e6e0f2);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 10px 24px -14px #5a2a00cc}
 html[data-gfx="pes6"] .btn{background:linear-gradient(180deg,#fafaf8,#cfcdc7);color:#1c1c1a;border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 1px 2px #0003}
 html[data-gfx="pes6"] .btn:hover:not(:disabled){background:linear-gradient(180deg,#fffbe0,#efd96e);border-color:#a8820f}
@@ -1146,3 +1146,14 @@ html[data-gfx="pes6"] .brand:hover .bline{animation:pesLogoLine 2.8s ease-in-out
 @keyframes pesLogoEcho{0%,100%{scale:1.1;opacity:.85}50%{scale:1.02;opacity:.35}}
 @keyframes pesLogoLine{0%{scale:1;opacity:1}75%{scale:1.2;opacity:0}100%{scale:1.2;opacity:0}}
 html[data-gfx="pes6"][data-q="low"] .brand:hover :is(.brandlogo,.bfill,.bline){animation:none}
+/* ---- plantel: jugadores más grandes y bandera al lado de la nación ---- */
+.face.pl{width:3.4em;height:3.4em}
+.dt.d-compact .face.pl{width:2.3em;height:2.3em}.dt.d-comfy .face.pl{width:4.4em;height:4.4em}
+.dt .pn{font-size:.98rem;font-weight:600}
+.dt .natw{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.dt .natc{max-width:130px}
+.crest.flagmini{width:22px;height:15px;border-radius:2px;font-size:.5rem;box-shadow:0 0 0 1px #0003}
+/* ---- PES 6: bordes rectos, como los menús de la época ---- */
+html[data-gfx="pes6"] :is(.card,.btn,.tab,.item,.seg,.seg button,.fchips button,input,select,.chip,.uitiles button,.uigrp,.uihi,.uipanel,.dtbar,.tablebox,.popmenu,.gres,.bulkbar,.warnbox,.crest,.tabbar .uibtn,.stside,.stchoice button,.qt,.advt,.hero,.uiprev,.uifontprev,.mpfull,.list,.gfxpanel){border-radius:0!important}
+html[data-gfx="pes6"] .face.pl{border-radius:2px}
+.crest.flagmini i{display:none}

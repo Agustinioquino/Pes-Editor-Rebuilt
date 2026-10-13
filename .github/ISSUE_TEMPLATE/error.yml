@@ -1,0 +1,46 @@
+name: 🐛 Algo no anda
+description: Contá un error del editor para poder arreglarlo
+title: "[Error] "
+labels: ["error"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Gracias por avisar! Cuanto más detalle, más rápido se arregla. ⚽
+        **No subas tu EDIT00000000 acá** si no querés que sea público.
+  - type: input
+    id: version
+    attributes:
+      label: Versión de PES Editor
+      description: La ves en la pestaña Novedades o arriba al lado del buscador.
+      placeholder: v0.010 alpha
+    validations:
+      required: true
+  - type: dropdown
+    id: navegador
+    attributes:
+      label: Navegador
+      options: [Chrome, Edge, Brave, Opera, Otro]
+    validations:
+      required: true
+  - type: dropdown
+    id: parche
+    attributes:
+      label: ¿Usás parche?
+      options: [Dream Patch con Sider, Otro parche, Juego sin parche]
+  - type: textarea
+    id: que-paso
+    attributes:
+      label: ¿Qué pasó?
+      description: Qué hiciste, qué esperabas que pasara y qué pasó en realidad.
+      placeholder: |
+        1. Abrí Boca Juniors
+        2. Toqué Guardar en el juego
+        3. Apareció un error que dice…
+    validations:
+      required: true
+  - type: textarea
+    id: capturas
+    attributes:
+      label: Capturas o video
+      description: Arrastrá imágenes acá si ayudan a entender el problema.

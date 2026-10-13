@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Cómo usar PES Editor
+    url: https://github.com/Agustinioquino/pes-editor#-cómo-usarlo
+    about: Antes de abrir un issue, mirá los pasos en el README.

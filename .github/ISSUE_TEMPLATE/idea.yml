@@ -1,0 +1,24 @@
+name: 💡 Tengo una idea
+description: Proponé una función nueva o una mejora
+title: "[Idea] "
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: Toda idea es bienvenida, desde un botón más hasta un modo nuevo. 🧉
+  - type: textarea
+    id: idea
+    attributes:
+      label: ¿Qué te gustaría que haga el editor?
+    validations:
+      required: true
+  - type: textarea
+    id: para-que
+    attributes:
+      label: ¿Para qué te serviría?
+      description: Contá en qué momento lo usarías. Ayuda a entender qué es lo más importante.
+  - type: dropdown
+    id: seccion
+    attributes:
+      label: Sección
+      options: [Equipos y plantel, Formación, Estudio de kits, Selecciones, Archivo / WEPES, Música, Apariencia, Otra]

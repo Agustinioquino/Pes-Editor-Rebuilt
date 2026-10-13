@@ -8,6 +8,8 @@
 
 ### Un PES Editor renovado
 
+*Hecho por un fanático del PES para los que todavía arman su Liga Master a mano.* ⚽
+
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y Sider), directo en el navegador.
 
 ![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.010%20alpha-16d98a)
@@ -20,12 +22,16 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 
 ![Pantalla de inicio](docs/capturas/01-intro.png)
 
+## 🧉 ¿Por qué existe?
+
+Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el dorsal de tu ídolo, armar la camiseta del club del barrio. Las herramientas de siempre hacen el trabajo, pero se quedaron en el tiempo. **PES Editor** junta todo en un solo lugar, con una interfaz moderna, un estudio de kits en 3D y, para los nostálgicos, música de menú de fondo mientras editás.
+
 > [!WARNING]
 > **Versión alpha.** Funciona y guarda en el juego, pero todavía puede tener errores. El editor hace una copia de respaldo del EDIT cada vez que guardás. Igual, conviene tener tu propia copia antes de empezar.
 
-## Características
+## ✨ Características
 
-### Archivo y carpeta del juego
+### 📁 Archivo y carpeta del juego
 - **Encuentra el EDIT solo.** Busca `KONAMI\eFootball PES 2021 SEASON UPDATE` en tu carpeta Documentos y abre el `EDIT00000000` más reciente (primero el del Dream Patch, `drmp`).
 - **Elegís la carpeta una sola vez.** Con "Permitir en cada visita", las veces siguientes entra directo.
 - **Varios EDIT.** En *Archivo* se ven todos los EDIT encontrados (`drmp`, `save`, otras cuentas de Steam) y podés cambiar de uno a otro.
@@ -34,7 +40,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 - **Deshacer y rehacer** (Ctrl+Z / Ctrl+Y) para cualquier cambio.
 - **Pestaña WEPES.** Muestra los archivos de esa carpeta con miniaturas (png, jpg, dds, ftex), deja entrar a subcarpetas, ver en grande y copiar archivos nuevos.
 
-### Equipos, plantel y formación
+### 📋 Equipos, plantel y formación
 - **Lista de equipos.** Búsqueda, filtros (editados, sin guardar), orden, valoración y valor estimado.
 - **Buscador global** para encontrar cualquier equipo o jugador (tecla `/`).
 - **Plantel como tabla de datos:**
@@ -52,7 +58,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 - **Selecciones nacionales.** Convocatorias con los jugadores de cada país.
 - **Datos, colores, estadio, rivales y banderas** de cada equipo.
 
-### Estudio de kits (kit-server de Sider)
+### 👕 Estudio de kits (kit-server de Sider)
 - **Visor 3D con los modelos reales:**
   - camisetas, mangas, más de 100 cuellos, 16 shorts y medias;
   - iluminación tipo estadio y fondo HDRI propio;
@@ -65,7 +71,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 - **Tela y relieve.** Ocho tipos de tela y un generador de normal map que el juego aplica.
 - **Generador de fuentes** para nombres y números, con bordes y sombra, respetando las plantillas del juego.
 
-### Interfaz
+### 🎨 Interfaz
 - **Apariencia:**
   - modo claro u oscuro;
   - paletas, con mezcla de colores con los del equipo abierto;
@@ -79,7 +85,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 - **Novedades.** Cada cambio con fecha, explicación y pasos para usarlo.
 - **Instalable como app** desde Chrome o Edge, con su ícono y funcionamiento sin internet.
 
-## Capturas
+## 📸 Capturas
 
 | Plantel | Formación |
 |---|---|
@@ -89,7 +95,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 | **Apariencia (modo claro)** | |
 | ![Apariencia](docs/capturas/06-apariencia-modo-claro.png) | |
 
-## Cómo usarlo
+## 🚀 Cómo usarlo
 
 1. Abrí **[PES Editor](https://agustinioquino.github.io/pes-editor/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
@@ -101,11 +107,11 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y
 
 **Privacidad:** todo se procesa en tu PC. Tus archivos no se suben a ningún servidor.
 
-## Música
+## 🎵 Música
 
 Por derechos de autor, el repositorio **no incluye** música de los juegos. El reproductor funciona igual: tocá **＋ Agregar canciones** y sumá tus temas y carátulas. Quedan guardados en tu navegador.
 
-## Próximas actualizaciones
+## 🗺️ Próximas actualizaciones
 
 PES Editor sigue en desarrollo. Esto es lo que viene (puede cambiar):
 
@@ -116,18 +122,24 @@ PES Editor sigue en desarrollo. Esto es lo que viene (puede cambiar):
 
 Para enterarte de cada versión, tocá **Watch → Custom → Releases** arriba en este repositorio. Dentro del editor, la pestaña **Novedades** muestra un punto cuando hay algo nuevo.
 
-¿Encontraste un error o tenés una idea? Abrí un [issue](https://github.com/Agustinioquino/pes-editor/issues).
+¿Encontraste un error o se te ocurrió algo? Abrí un [issue](https://github.com/Agustinioquino/pes-editor/issues/new/choose): hay una plantilla para **🐛 Algo no anda** y otra para **💡 Tengo una idea**. Todo suma, como un buen pase al vacío.
 
-## Créditos e inspiración
+## 🙌 Créditos e inspiración
 
 Este proyecto toma inspiración de **PES 2020 Editor**, la herramienta original creada por **[ejogc327](https://ejogc327.blogspot.com/2022/10/pes-2020-editor-v0-12.html)**. Gracias por abrir el camino.
 
 Los modelos 3D de los kits se basan en el *CometKIT previewer*. Las plantillas de fuentes siguen el formato del juego.
 
-## Licencia
+## 📄 Licencia
 
 Código bajo licencia [BSD 3-Clause](LICENSE).
 
 ---
+
+<div align="center">
+
+Hecho con ❤️ y mate en Argentina 🇦🇷
+
+</div>
 
 <sub>PES Editor es un proyecto de fans sin relación con Konami. *eFootball* y *Pro Evolution Soccer* son marcas de Konami Digital Entertainment. Usalo bajo tu responsabilidad y guardá copias de tus archivos.</sub>

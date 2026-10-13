@@ -1233,3 +1233,6 @@ html[data-q="low"] .tab[aria-selected="true"]::after,html[data-q="low"] .tab[ari
 .mp .mptv{transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s,opacity .45s,transform .45s,visibility 0s}
 .mp.ytmin .mptv{opacity:0;visibility:hidden;pointer-events:none;transform:scale(.25);transform-origin:0 100%;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s,opacity .45s,transform .45s,visibility 0s .45s}
 .mp.ytmin .mpcov::before{content:"\25B6";position:absolute;right:-5px;bottom:-5px;z-index:2;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:var(--mpc,#c00);color:#fff;font-size:.6rem;box-shadow:0 2px 6px #0008;pointer-events:none;animation:popIn .4s both}
+.mptvx{position:absolute;top:6px;right:6px;z-index:5;width:26px;height:26px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#000b;color:#fff;font:700 .8rem/1 var(--body);cursor:pointer;opacity:.75;transition:opacity .2s,background .2s}
+.mptvx:hover,.mptvx:focus-visible{opacity:1;background:var(--mpc,#c00)}
+.mp.ytmin .mptvx{display:none}

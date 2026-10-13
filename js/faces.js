@@ -168,6 +168,8 @@ function faceHtml(pid, kit, cls = '') {
 const BADGE_LS = 'edit21-online-badges-v1';
 const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: false, count: 0 };
 try { BADGES.online = new Map(JSON.parse(localStorage.getItem(BADGE_LS) || '[]')); } catch { }
+// los escudos que TheSportsDB no encontró se vuelven a buscar una vez, ahora también en Wikipedia
+try { if (!localStorage.getItem('edit21-badges-wiki')) { for (const [k, v] of BADGES.online) if (!v) BADGES.online.delete(k); localStorage.setItem(BADGE_LS, JSON.stringify([...BADGES.online])); localStorage.setItem('edit21-badges-wiki', '1'); } } catch { }
 const saveOnlineBadges = () => { try { localStorage.setItem(BADGE_LS, JSON.stringify([...BADGES.online])); } catch { } };
 // lower number = better candidate for a small crest (emblemLc/emb_XXXX are competition logos, not team badges)
 const BADGE_RANK = [[/^e_(\d{6})_r\.png$/i, 0], [/^e_(\d{6})_r_l\.png$/i, 1], [/^e_(\d{6})_r_ll\.png$/i, 2], [/^e_(\d{6})_f\.png$/i, 3], [/^e_(\d{6})_\w+\.png$/i, 4]];
@@ -236,9 +238,30 @@ async function onlineBadge(t) {
     if (!(x.strBadge || x.strTeamBadge)) s -= 10;
     if (s > bs) { bs = s; best = x; }
   }
-  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return null; }
+  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return wikiBadge(t).catch(() => null); }
   STADS.set(t.id, best.strStadium || ''); saveStads(); stadPaint(t);
-  return best.strBadge || best.strTeamBadge || null;
+  return best.strBadge || best.strTeamBadge || wikiBadge(t).catch(() => null);
+}
+// escudo desde Wikipedia: la imagen del cuadro de la página del club (o de la selección)
+async function wikiBadge(t) {
+  const name = tget(t, 'name'); if (!name) return null;
+  const nat = isNat(t), nn = normTxt(name), words = nn.split(' ').filter(w => w.length > 2 && !/^(fc|cf|sc|ac|cd|ca|afc|club|the)$/.test(w));
+  const api = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*';
+  const r = await fetch(`${api}&generator=search&gsrsearch=${encodeURIComponent(name + (nat ? ' national football team' : ' football club'))}&gsrlimit=5&prop=pageprops%7Cdescription&ppprop=page_image`);
+  if (!r.ok) return null;
+  const pages = Object.values(((await r.json()).query || {}).pages || {}).sort((a, b) => a.index - b.index);
+  const pick = pages.find(p => {
+    const img = p.pageprops && p.pageprops.page_image, d = normTxt(p.description), tt = normTxt(p.title.replace(/\(.*?\)/g, ''));
+    if (!img || !/\.(svg|png)$/i.test(img)) return false; // los escudos son svg o png; las fotos de estadios, jpg
+    if (!/football|soccer/.test(d + ' ' + tt) || /season|league|stadium|player|footballer|manager|cup$/.test(d)) return false;
+    if (nat !== /national/.test(d + ' ' + tt)) return false;
+    return !words.length || words.some(w => tt.includes(w));
+  });
+  if (!pick) return null;
+  const r2 = await fetch(`${api}&titles=${encodeURIComponent('File:' + pick.pageprops.page_image)}&prop=imageinfo&iiprop=url&iiurlwidth=128`);
+  if (!r2.ok) return null;
+  const f = Object.values(((await r2.json()).query || {}).pages || {})[0], ii = f && f.imageinfo && f.imageinfo[0];
+  return ii ? ii.thumburl || ii.url : null;
 }
 
 // ---- nombre real del estadio (TheSportsDB, la misma búsqueda que el escudo) ----

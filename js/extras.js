@@ -225,13 +225,13 @@ function tacticsCard(t) {
   ${setPieceCard(t)}`;
 }
 // ---- capitán y lanzadores de balón parado: 9 bytes antes del capitán, en el orden del menú del juego (verificado en PES 2021) ----
-// [nombre, puntaje para elegir automáticamente, sin confirmar]; los 3 "ofensivos" son los que suben al área en las jugadas de balón parado
+// [nombre, puntaje para elegir automáticamente]; los 3 "ofensivos" son los que suben al área en las jugadas de balón parado
 const SP_ROLES = [
   ['Tiro libre largo', a => a('place_kick') * 2 + a('kick_pwr') * 2 + a('swerve')],
   ['Tiro libre corto', a => a('place_kick') * 2 + a('swerve') * 2],
   ['Tirador 2 (tiro libre corto)', a => a('place_kick') * 2 + a('swerve') * 2],
-  ['Córner izquierdo', a => a('swerve') * 2 + a('loftpass') + a('place_kick'), true],
-  ['Córner derecho', a => a('swerve') * 2 + a('loftpass') + a('place_kick'), true],
+  ['Córner izquierdo', a => a('swerve') * 2 + a('loftpass') + a('place_kick')],
+  ['Córner derecho', a => a('swerve') * 2 + a('loftpass') + a('place_kick')],
   ['Penales', a => a('finish') * 2 + a('place_kick') + a('kick_pwr') + (a('sk36') ? 20 : 0)],
   ['Jugador ofensivo 1', a => a('header') * 2 + a('jump') + a('phys_cont')],
   ['Jugador ofensivo 2', a => a('header') * 2 + a('jump') + a('phys_cont')],
@@ -252,17 +252,17 @@ function autoTakers(t) {
 function setPieceCard(t) {
   const roster = PD.roster(S.d, t), bySlot = new Map(roster.map(x => [x.slot, x])), xi = getOrder(t).slice(0, 11).filter(s => bySlot.has(s));
   const opt = (x, cur) => `<option value="${x.slot}" ${x.slot === cur ? 'selected' : ''}>#${x.number} ${esc(playerName(x.pid) || 'ID ' + x.pid)}</option>`;
-  const sel = (off, label, chip) => {
+  const sel = (off, label) => {
     const cur = S.d[t.tacticsBase + off], rest = roster.filter(x => !xi.includes(x.slot));
-    return `<div class="f"><label for="sp${off}">${label}${chip ? ' <span class="chip" title="Se deduce del orden del menú del juego: probalo con dos jugadores distintos">probable</span>' : ''}</label><select id="sp${off}" data-sp="${off}">
+    return `<div class="f"><label for="sp${off}">${label}</label><select id="sp${off}" data-sp="${off}">
       ${cur === 255 || !bySlot.has(cur) ? `<option value="${cur}" selected>${cur === 255 ? 'Ninguno' : 'Lugar ' + cur + ' (vacío)'}</option>` : ''}
       <optgroup label="Titulares">${xi.map(s => opt(bySlot.get(s), cur)).join('')}</optgroup>
       ${rest.length ? `<optgroup label="Suplentes y reserva">${rest.map(x => opt(x, cur)).join('')}</optgroup>` : ''}</select></div>`;
   };
   return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Capitán y balón parado</h3>
     <button class="btn small" type="button" id="spAuto" title="Elige para cada jugada al titular con las mejores habilidades para ella">Elegir automáticamente</button></div>
-    <div class="grid wide">${sel(CAPT, 'Capitán')}${SP_ROLES.map(([n, , unsure], k) => sel(TAKERS + k, n, unsure)).join('')}</div>
-    <p class="note">Es lo mismo que "Opciones del jugador" en el Plan de juego. Los jugadores ofensivos son los que suben al área en tiros libres y córners. Que el córner izquierdo vaya antes que el derecho sale del orden del menú: si en el juego te aparecen al revés, avisame.</p></div>`;
+    <div class="grid wide">${sel(CAPT, 'Capitán')}${SP_ROLES.map(([n], k) => sel(TAKERS + k, n)).join('')}</div>
+    <p class="note">Es lo mismo que "Opciones del jugador" en el Plan de juego. Los jugadores ofensivos son los que suben al área en tiros libres y córners.</p></div>`;
 }
 function seg2(id, labels, v) { return `<div class="seg" data-seg2="${id}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
 function bindTactics(t, m) {

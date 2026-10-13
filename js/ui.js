@@ -152,37 +152,45 @@ function uiTheme(force) {
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => uiTheme(true));
 // --- panel ---
+// botones grandes con dibujo: se entiende qué hace cada uno sin leer
+const uiTiles = (id, items, v) => `<div class="uitiles" id="${id}">${items.map(([k, n, ic]) => `<button type="button" data-v="${k}" aria-pressed="${String(v) === String(k)}"><span class="uiic" aria-hidden="true">${ic}</span><span>${n}</span></button>`).join('')}</div>`;
+const UI_FS_TILES = [[13, 'Chica', '<span style="font-size:.8rem">Aa</span>'], [14, 'Normal', '<span style="font-size:1rem">Aa</span>'], [15, 'Grande', '<span style="font-size:1.2rem">Aa</span>'], [16, 'Muy grande', '<span style="font-size:1.4rem">Aa</span>']];
 function uiPanelHtml() {
   const u = UI(), t = uiTeam(), P = uiPalette(), cur = S.ix && S.team != null ? S.ix.teamById.get(S.team) : null;
-  const seg = (id, items, v) => `<div class="seg" id="${id}">${items.map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${String(v) === String(k)}">${n}</button>`).join('')}</div>`;
   // con los estilos Clásico, Retro o PES 6 los colores los pone el estilo: solo se ajusta el tamaño de letra y los efectos
   const gm = typeof GFX === 'function' ? GFX() : { mode: 'moderno' };
   if (gm.mode !== 'moderno') {
     const nm = (GFX_MODES.find(m => m.k === gm.mode) || {}).n || gm.mode;
-    return `<div class="uihead"><h3>Apariencia</h3><button class="btn ghost small" type="button" id="uiClose" aria-label="Cerrar">✕</button></div>
+    return `<div class="uihead"><h3>🎨 Apariencia</h3><button class="btn ghost small" type="button" id="uiClose" aria-label="Cerrar">✕</button></div>
       <div class="uisec"><p class="note" style="margin:0">Estás usando el estilo <b>${esc(nm)}</b>, que trae sus propios colores, fondo y bordes. Acá podés cambiar el tamaño de la letra, la fuente y la cantidad de efectos.</p>
         <button class="btn small" type="button" id="uiToModern">Volver al estilo Moderno para cambiar colores</button></div>
-      <div class="uisec"><span class="lab">Tamaño de letra</span>${seg('uiFs', [[13, 'Chica'], [14, 'Normal'], [15, 'Grande'], [16, 'Muy grande']], u.fs)}</div>
+      <div class="uisec"><span class="lab">🔤 Tamaño de letra</span>${uiTiles('uiFs', UI_FS_TILES, u.fs)}</div>
       ${uiFontHtml(false)}
-      <div class="uisec"><span class="lab">Efectos</span>${seg('uiQ', [['low', 'Pocos (más rápido)'], ['mid', 'Normales'], ['high', 'Todos']], gm.q)}
+      <div class="uisec"><span class="lab">✨ Efectos</span>${uiTiles('uiQ', [['low', 'Pocos (más rápido)', '🐢'], ['mid', 'Normales', '⚖️'], ['high', 'Todos', '🚀']], gm.q)}
         <p class="note" style="margin:0">Es la misma "Calidad gráfica" del botón 🖥️ Gráficos.</p></div>`;
   }
   const sw = (c, n) => `<span class="uisw" style="background:${c}" title="${n}: ${c}"></span>`;
-  return `<div class="uihead"><h3>Apariencia</h3><button class="btn ghost small" type="button" id="uiClose" aria-label="Cerrar">✕</button></div>
-    <div class="uisec"><span class="lab">Modo</span>${seg('uiMode', [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']], u.mode)}</div>
-    <div class="uisec"><span class="lab">Paleta del editor</span><div class="uibases" id="uiBase">${Object.entries(UI_BASES).map(([k, b]) => `<button type="button" data-v="${k}" aria-pressed="${u.base === k}"><span class="uibd" style="--a:${P.dark ? b.ad : b.al};--b:${hslHex(b.h, b.s * 1.4, P.dark ? .12 : .9)}"></span>${b.n}</button>`).join('')}</div></div>
-    <div class="uisec uiteam">${t ? `${crest(t, 'mini')}<span><b>${esc(tget(t, 'name'))}</b><span class="sub">${u.follow ? 'Cambia solo cuando abrís otro equipo' : 'Fijado: no cambia al abrir otros equipos'}</span></span>` : `<span class="sub">Abrí un equipo en la pestaña Equipos o Selecciones para mezclar sus colores.</span>`}
+  // botones grandes con dibujo: se entiende qué hace cada uno sin leer
+  const tiles = uiTiles;
+  const grp = (ic, title, body, note) => `<section class="uigrp"><h4 class="uih"><span class="uihi" aria-hidden="true">${ic}</span>${title}</h4>${note ? `<p class="note uinote">${note}</p>` : ''}${body}</section>`;
+  const mock = (bg, pn, ac) => `<span class="uimock" aria-hidden="true" style="--mb:${bg};--mp:${pn};--ma:${ac}"><i></i><b></b><em></em></span>`;
+  const base = ([k, b]) => { const h = b.h, sa = b.s, bg = P.dark ? hslHex(h, sa * 1.1, .062) : hslHex(h, sa, .925), pn = P.dark ? hslHex(h, sa, .097) : hslHex(h, sa * .5, .993);
+    return `<button type="button" data-v="${k}" aria-pressed="${u.base === k}" title="Paleta ${esc(b.n)}">${mock(bg, pn, P.dark ? b.ad : b.al)}<span class="uibn">${b.n}</span><span class="uick" aria-hidden="true">✓</span></button>`; };
+  const tc = P.tc || {}, dot = c => c ? `<i class="uidot" style="background:${c}"></i>` : '<i class="uidot uidot0"></i>';
+  return `<div class="uihead"><h3>🎨 Apariencia</h3><button class="btn ghost small" type="button" id="uiClose" aria-label="Cerrar">✕</button></div>
+    ${grp('🌓', 'Modo', tiles('uiMode', [['auto', 'Automático', '🖥️'], ['light', 'Claro', '☀️'], ['dark', 'Oscuro', '🌙']], u.mode), 'Automático sigue al modo de Windows.')}
+    ${grp('🖌️', 'Paleta del editor', `<div class="uibases" id="uiBase">${Object.entries(UI_BASES).map(base).join('')}</div>`)}
+    ${grp('🛡️', 'Colores del equipo', `<div class="uiteam">${t ? `${crest(t, 'mini')}<span><b>${esc(tget(t, 'name'))}</b><span class="sub">${u.follow ? 'Cambia solo cuando abrís otro equipo' : 'Fijado: no cambia al abrir otros equipos'}</span></span>` : `<span class="sub">Abrí un equipo en la pestaña Equipos o Selecciones para mezclar sus colores.</span>`}
       <label class="chk"><input type="checkbox" id="uiFollow" ${u.follow ? 'checked' : ''}> Seguir al equipo que abrís</label>${!u.follow && cur && cur !== t ? `<button class="btn small" type="button" id="uiPinCur">Usar ${esc(tget(cur, 'name'))}</button>` : ''}</div>
-    <div class="uisec"><span class="lab">Color del equipo que manda</span>${seg('uiSrc', [['auto', 'Automático'], ['c1', 'Principal'], ['c2', 'Secundario'], ['kit', 'Kit local']], u.src)}
-      ${P.tc ? `<div class="row" style="gap:6px">${sw(P.tc.c1, 'Principal')}${sw(P.tc.c2, 'Secundario')}<span class="note">Si el color no se lee bien sobre el fondo, se aclara u oscurece solo.</span></div>` : ''}</div>
-    <div class="uisec"><label class="lab" for="uiMix">Mezcla con el equipo <b id="uiMixV">${u.mix}%</b></label><input type="range" id="uiMix" min="0" max="100" step="5" value="${u.mix}">
-      <div class="uiscale"><span>Editor</span><span>Equipo</span></div></div>
-    <div class="uisec"><label class="lab" for="uiTint">Fondos teñidos <b id="uiTintV">${u.tint}%</b></label><input type="range" id="uiTint" min="0" max="100" step="5" value="${u.tint}"></div>
-    <div class="uisec"><span class="lab">Resultado</span><div class="uiprev" id="uiPrev">${uiPrevHtml(P)}</div></div>
-    ${uiFontHtml(true)}
-    <div class="uisec two"><div><span class="lab">Esquinas</span>${seg('uiR', [['recto', 'Rectas'], ['normal', 'Normales'], ['redondo', 'Redondas']], u.r)}</div>
-      <div><span class="lab">Letra</span>${seg('uiFs', [[13, 'Chica'], [14, 'Normal'], [15, 'Grande'], [16, 'Muy grande']], u.fs)}</div></div>
-    <div class="row" style="justify-content:space-between"><button class="btn small" type="button" id="uiTry" ${t ? '' : 'disabled'}>Probar mezcla sugerida</button><button class="btn small ghost" type="button" id="uiReset">Volver a lo original</button></div>`;
+      <span class="lab">Color que manda</span>${tiles('uiSrc', [['auto', 'Automático', '✨'], ['c1', 'Principal', dot(tc.c1)], ['c2', 'Secundario', dot(tc.c2)], ['kit', 'Kit local', '👕']], u.src)}
+      <label class="lab" for="uiMix">Mezcla con el equipo <b id="uiMixV">${u.mix}%</b></label><input type="range" id="uiMix" min="0" max="100" step="5" value="${u.mix}">
+      <div class="uiscale"><span>Solo el editor</span><span>Solo el equipo</span></div>
+      <label class="lab" for="uiTint">Fondos teñidos <b id="uiTintV">${u.tint}%</b></label><input type="range" id="uiTint" min="0" max="100" step="5" value="${u.tint}">
+      <span class="lab">Así queda</span><div class="uiprev" id="uiPrev">${uiPrevHtml(P)}</div>
+      <button class="btn small" type="button" id="uiTry" ${t ? '' : 'disabled'}>✨ Probar mezcla sugerida</button>`, 'Si un color no se lee bien sobre el fondo, se aclara u oscurece solo.')}
+    ${grp('🔤', 'Letra', `${uiFontHtml(true)}<span class="lab">Tamaño</span>${tiles('uiFs', UI_FS_TILES, u.fs)}`)}
+    ${grp('⬜', 'Esquinas', tiles('uiR', [['recto', 'Rectas', '<i class="uicorner" style="border-radius:0"></i>'], ['normal', 'Normales', '<i class="uicorner" style="border-radius:5px"></i>'], ['redondo', 'Redondas', '<i class="uicorner" style="border-radius:11px"></i>']], u.r))}
+    <button class="btn small ghost uireset" type="button" id="uiReset">↺ Volver a lo original</button>`;
 }
 function uiPrevHtml(P) {
   const sw = (c, n) => `<span class="uisw" style="background:${c}" title="${n}: ${c}"></span>`;

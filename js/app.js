@@ -644,7 +644,7 @@ function filialOf(t) { return S.ix.teams.find(x => x.id !== t.id && PD.roster(S.
 function parentOf(t) { const b = filialBase(t); return b ? S.ix.teams.find(x => x.id !== t.id && sameTeamName(tget(x, 'name'), b) && PD.roster(S.d, x).length) || null : null; }
 // ===== Plantel como tabla de datos: columnas a elección, filtros, orden por encabezado, selección múltiple, exportar =====
 const RCOLS = [
-  ['sel', '', 'Seleccionar'], ['xi', 'XI', 'Titular (1-11), suplente en el banco (S1-S7) o reserva'], ['num', 'Dorsal', 'Dorsal'], ['player', 'Jugador', 'Jugador'], ['id', 'ID', 'ID del jugador'],
+  ['sel', '', 'Seleccionar'], ['xi', 'XI', 'Titular (1-11), suplente en el banco (S1-S7) o reserva'], ['num', 'Dorsal', 'Dorsal'], ['player', 'Nombre del jugador', 'Nombre del jugador'], ['id', 'ID', 'ID del jugador'],
   ['pos', 'Pos.', 'Posición'], ['val', 'Val.', 'Valoración general'], ['age', 'Edad', 'Edad'], ['h', 'Altura', 'Altura en cm'], ['nat', 'Nac.', 'Nacionalidad'], ['foot', 'Pie', 'Pie hábil'],
   ['mv', 'Valor', 'Valor de mercado estimado. Tocalo para poner el valor real (por ejemplo, el de Transfermarkt).'], ['act', 'Acciones', 'Acciones: editar, hacer capitán, hacer titular, pasar a otro equipo o quitar']];
 const RCOL_FIXED = new Set(['sel', 'player']);
@@ -802,7 +802,7 @@ function rosterSelSync() {
 }
 function rosterExport(t, kind) {
   const hide = rHide(), tb = $('rtable'), vis = new Set([...tb.querySelectorAll('tr.prow:not([hidden])')].map(tr => +tr.dataset.pid));
-  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => POS[w.pos] || ''], ['val', 'Valoración', w => w.r || ''],
+  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Nombre del jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => POS[w.pos] || ''], ['val', 'Valoración', w => w.r || ''],
     ['age', 'Edad', w => w.age || ''], ['h', 'Altura', w => w.h || ''], ['nat', 'Nacionalidad', w => w.natName], ['foot', 'Pie', w => w.foot], ['mv', 'Valor (M€)', w => w.mv ? String(w.mv).replace('.', ',') : ''], ['cap', 'Capitán', w => w.cap ? 'Sí' : '']].filter(([k]) => !hide.has(k));
   const rows = S._rrows.filter(w => vis.has(w.pid)), sep = kind === 'csv' ? ';' : '\t';
   const cell = v => { v = String(v ?? ''); return kind === 'csv' && /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v.replace(/\t/g, ' '); };

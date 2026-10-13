@@ -4,6 +4,10 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, net } = require('electron');
 const path = require('path'), fs = require('fs'), fsp = fs.promises;
 
+// La app se presenta ante cada sitio igual que Chrome: sin "Electron" ni el nombre de la app (que tiene espacios).
+// Algunos sitios de fotos y escudos frenan a los programas que no se ven como un navegador común.
+app.userAgentFallback = app.userAgentFallback.replace(/\) [^()]*?Chrome\//, ') Chrome/').replace(/ Electron\/\S+/, '');
+
 const SITE = process.env.PES_EDITOR_URL || 'https://agustinioquino.github.io/Pes-Editor-Rebuilt/';
 const ORIGIN = new URL(SITE).origin;
 

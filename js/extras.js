@@ -221,7 +221,25 @@ function tacticsCard(t) {
         <p class="note">${fluid ? 'Con formación fluida el equipo cambia de forma: "Ataque" es cómo se para con la pelota y "Defensa" sin ella (orden de variantes deducido; verificalo en el juego).' : 'Sin formación fluida el equipo usa siempre esta formación (el editor la guarda igual en las 3 variantes).'}</p>
       </div>
     </div></div>
-  ${strategyCard(t)}`;
+  ${strategyCard(t)}
+  ${setPieceCard(t)}`;
+}
+// ---- capitán y lanzadores de balón parado (9 bytes antes del capitán; qué jugada es cada uno no está confirmado) ----
+const kickScore = pid => { const a = abilOf(pid); return a ? a('place_kick') * 2 + a('swerve') + a('kick_pwr') : 0; };
+function setPieceCard(t) {
+  const roster = PD.roster(S.d, t), bySlot = new Map(roster.map(x => [x.slot, x])), xi = getOrder(t).slice(0, 11).filter(s => bySlot.has(s));
+  const opt = (x, cur) => `<option value="${x.slot}" ${x.slot === cur ? 'selected' : ''}>#${x.number} ${esc(playerName(x.pid) || 'ID ' + x.pid)}</option>`;
+  const sel = (off, label, chip) => {
+    const cur = S.d[t.tacticsBase + off], rest = roster.filter(x => !xi.includes(x.slot));
+    return `<div class="f"><label for="sp${off}">${label}${chip ? ' <span class="chip">sin confirmar</span>' : ''}</label><select id="sp${off}" data-sp="${off}">
+      ${cur === 255 || !bySlot.has(cur) ? `<option value="${cur}" selected>${cur === 255 ? 'Ninguno' : 'Lugar ' + cur + ' (vacío)'}</option>` : ''}
+      <optgroup label="Titulares">${xi.map(s => opt(bySlot.get(s), cur)).join('')}</optgroup>
+      ${rest.length ? `<optgroup label="Suplentes y reserva">${rest.map(x => opt(x, cur)).join('')}</optgroup>` : ''}</select></div>`;
+  };
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Capitán y balón parado</h3>
+    <button class="btn small" type="button" id="spAuto" title="Pone en cada lanzamiento usado al titular con mejor tiro libre, efecto y potencia">Elegir automáticamente</button></div>
+    <div class="grid wide">${sel(CAPT, 'Capitán')}${Array.from({ length: NTAKERS }, (_, k) => sel(TAKERS + k, 'Lanzador ' + (k + 1), true)).join('')}</div>
+    <p class="note">El capitán es seguro. Los 9 lanzadores son los datos que el juego guarda para tiros libres, córners y penales, pero todavía no sé cuál es cuál: cambiá uno, guardá y miralo en el juego, o usá "Comparar con otro EDIT" en la pestaña Archivo.</p></div>`;
 }
 function seg2(id, labels, v) { return `<div class="seg" data-seg2="${id}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
 function bindTactics(t, m) {
@@ -258,6 +276,14 @@ function bindTactics(t, m) {
     edit('Formación ' + b.dataset.preset + ' en ' + tn, 't' + t.id, regT(t), () => { for (const v of formVariants()) { const f = readForm(t, S.fplan, v); pr.forEach(([r, y, x], i) => { f.roles[i + 1] = r; f.pos[i + 1] = [y, x]; }); f.pos[0] = [3, 52]; writeForm(t, S.fplan, v, f); } });
     toast('Formación ' + b.dataset.preset + ' aplicada.', 4000, ['Deshacer', undo]); rer();
   });
+  sh.querySelectorAll('[data-sp]').forEach(s2 => s2.onchange = () => { const o = +s2.dataset.sp; edit((o === CAPT ? 'Capitán' : 'Lanzador') + ' de ' + tn, 't' + t.id, regT(t), () => { S.d[t.tacticsBase + o] = +s2.value; }); rer(); });
+  const spa = $('spAuto'); if (spa) spa.onclick = () => {
+    const roster = PD.roster(S.d, t), xi = getOrder(t).slice(1, 11).filter(s => roster.some(x => x.slot === s));
+    const best = xi.map(s => roster.find(x => x.slot === s)).sort((a, b) => kickScore(b.pid) - kickScore(a.pid))[0];
+    if (!best || !kickScore(best.pid)) { toast('No tengo las habilidades de los titulares: conectá la carpeta Sider o agregalos a tu EDIT.', 5000); return; }
+    edit('Lanzadores de ' + tn, 't' + t.id, regT(t), () => { for (let k = 0; k < NTAKERS; k++) if (S.d[t.tacticsBase + TAKERS + k] !== 255) S.d[t.tacticsBase + TAKERS + k] = best.slot; });
+    toast('Todos los lanzamientos para ' + (playerName(best.pid) || 'ID ' + best.pid) + '.', 4000, ['Deshacer', undo]); rer();
+  };
   const pitch = $('fpitch'); if (!pitch) return;
   const markerAt = (x, y, not) => document.elementsFromPoint(x, y).map(el => el.closest && el.closest('.fm')).find(el => el && el !== not);
   const doSub = (fi, slot, label) => { edit(label + ' en ' + tn, 't' + t.id, regT(t), () => swapInOrder(t, fi, slot)); S.fbench = null; toast('Cambio hecho.', 3500, ['Deshacer', undo]); rer(); };

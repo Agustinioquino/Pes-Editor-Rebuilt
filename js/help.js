@@ -13,7 +13,8 @@ const HELP = {
       ['Capitán', 'marcá el círculo de la columna Cap.'],
       ['Titular / pasar…', 'en un suplente, elegí por qué titular entra. En cualquier jugador, elegí otro equipo para transferirlo: se suma con un dorsal libre.'],
       ['Quitar (✕)', 'lo saca del plantel. Si era titular entra el primer suplente; si era capitán, la cinta pasa a otro titular.'],
-      ['Varios a la vez', 'marcá las casillas de la izquierda y usá la barra que aparece: Proteger, Pasar a… o Quitar del plantel.'],
+      ['Varios a la vez', 'marcá las casillas de la izquierda y usá la barra que aparece: Proteger, Equipación…, Pasar a… o Quitar del plantel.'],
+      ['Equipación…', 'cambia mangas, medias, calzas, camiseta interior, guantes o botines de todos los seleccionados de una vez. Lo que dejes en "Sin cambiar" queda como estaba.'],
       ['Valor', 'es una estimación por valoración, edad, potencial y liga. Tocalo para poner el valor real (por ejemplo el de Transfermarkt).']]],
     ['Para tener en cuenta', [
       ['🔒 Protección', 'el candadito al lado del nombre avisa que ese jugador no está protegido: el Parche puede pisar sus datos. "Proteger" lo marca como editado.'],
@@ -32,7 +33,11 @@ const HELP = {
     ['Últimos partidos reales', [
       ['Buscar', 'trae la formación, el 11 y los puntajes de los últimos partidos de verdad (ESPN no necesita clave).'],
       ['Ver en cancha', 'muestra ese partido sobre tu cancha y marca qué cambiaría.'],
-      ['Usar esta formación', 'pregunta antes de tocar nada: podés poner solo el 11 y la formación, o también aplicar los cambios de valoración al juego.']]]] },
+      ['Usar esta formación', 'pregunta antes de tocar nada: podés poner solo el 11 y la formación, o también aplicar los cambios de valoración al juego.']]],
+    ['Capitán y balón parado', [
+      ['Capitán', 'elegilo de la lista: titulares arriba, suplentes abajo.'],
+      ['Lanzadores', 'son los 9 lugares que el juego guarda para tiros libres, córners y penales. Todavía no está confirmado cuál es cuál, por eso dicen "sin confirmar".'],
+      ['Elegir automáticamente', 'pone en todos los lanzamientos al titular con mejor tiro libre, efecto y potencia. Los lugares que estaban en "Ninguno" quedan así.']]]] },
   data: { t: 'los datos del equipo', intro: 'Nombre, abreviatura, colores, país y entrenador. Son los datos que el juego muestra en menús, marcadores y radar.', groups: [
     ['Qué hace cada cosa', [
       ['Nombre y abreviatura', 'se ven en menús y en el marcador. Al cambiarlos se activa "Proteger nombre" para que el Parche no los vuelva a pisar.'],

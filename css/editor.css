@@ -512,6 +512,11 @@ html.uifade body,html.uifade .card,html.uifade .list,html.uifade .item,html.uifa
 .popmenu .btn.ghost:hover{background:var(--sel)}
 .bulkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:7px 10px;border-radius:var(--r,8px);background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);font-size:.86rem;animation:popIn .2s cubic-bezier(.2,.8,.2,1) both}
 .bulkbar[hidden]{display:none}
+.bulkbar:has(.popmenu:not([hidden])){position:relative;z-index:8}
+.popmenu.kitmenu{left:0;right:auto;width:min(420px,calc(100vw - 32px));grid-template-columns:1fr 1fr;gap:8px 10px;max-height:min(70vh,560px);overflow:auto}
+.popmenu.kitmenu .f{margin:0}
+.popmenu.kitmenu .f select{max-width:none;width:100%}
+.popmenu.kitmenu > .btn,.popmenu.kitmenu > .note{grid-column:1/-1}
 .bulkbar b{font-family:var(--display);font-size:1.15rem}
 .tablebox.dtbox{max-height:min(74vh,980px);overflow:auto;border:1px solid var(--line);border-radius:var(--r,8px);overscroll-behavior:contain}
 .dt thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:inset 0 -1.5px var(--line);white-space:nowrap}

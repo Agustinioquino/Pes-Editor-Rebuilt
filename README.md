@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y Sider), directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.010%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.012%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
@@ -77,11 +77,17 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
   - paletas, con mezcla de colores con los del equipo abierto;
   - esquinas y tamaño de letra;
   - fuente propia para toda la página.
+- **Fuente QuickExpress** de estilo deportivo en toda la página (se puede cambiar por cualquier otra).
+- **🖥️ Gráficos:**
+  - modos *Moderno*, *Clásico* (editor de escritorio de antes), *Retro* (menús de PS2) y **PES 6 Editar**, inspirado en el modo Editar de PES 6;
+  - sonidos de menú al moverte y tocar (sintetizados, no sacados del juego);
+  - calidad *Baja* (sin animaciones ni efectos, para PCs lentas), *Media* o *Alta* (3D con supermuestreo y efectos al máximo), con medidor de cuadros por segundo.
 - **Intro animada** con el logo y brillo neón mientras carga el EDIT.
 - **Reproductor de música** abajo a la izquierda:
   - carátula, aleatorio, repetir y volumen;
   - pases entre canciones *Corte*, *Suave* o *Remix* (filtros y eco estilo DJ);
-  - agregás tus propias canciones y carátulas.
+  - agregás tus canciones y el editor lee **título, artista y carátula** de sus etiquetas (MP3, FLAC, M4A);
+  - **listas y videos de YouTube** pegando el link.
 - **Novedades.** Cada cambio con fecha, explicación y pasos para usarlo.
 - **Instalable como app** desde Chrome o Edge, con su ícono y funcionamiento sin internet.
 
@@ -92,16 +98,21 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 | ![Plantel](docs/capturas/02-plantel.png) | ![Formación](docs/capturas/03-formacion.png) |
 | **Estudio de kits** | **Novedades** |
 | ![Estudio de kits](docs/capturas/04-estudio-kits.png) | ![Novedades](docs/capturas/05-novedades.png) |
-| **Apariencia (modo claro)** | |
-| ![Apariencia](docs/capturas/06-apariencia-modo-claro.png) | |
+| **Apariencia (modo claro)** | **Gráficos** |
+| ![Apariencia](docs/capturas/06-apariencia-modo-claro.png) | ![Gráficos](docs/capturas/07-graficos.png) |
+| **Estilo PES 6 Editar** | **Estilo Retro** |
+| ![Estilo PES 6 Editar](docs/capturas/08-estilo-pes6.png) | ![Estilo Retro](docs/capturas/09-estilo-retro.png) |
 
 ## 🚀 Cómo usarlo
 
 1. Abrí **[PES Editor](https://agustinioquino.github.io/pes-editor/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
 3. En el aviso del navegador elegí **"Permitir en cada visita"** para no repetir el paso.
-4. Para kits, caras, escudos y nombres de jugadores, tocá **"Conectar carpeta Sider"** y elegí la carpeta de Sider del Dream Patch.
+4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del Dream Patch (la que tiene `sider.exe`, por ejemplo `eFootball PES 2021\Dream Patch Sider`). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
 5. Editá y tocá **"Guardar en el juego"**. Cerrá el juego antes de guardar.
+
+> [!TIP]
+> **¿No ves nombres de jugadores ni valoraciones?** Si en el plantel aparece *"sin nombre · conectá la carpeta Sider"* o las columnas de valoración y valor están vacías, falta el paso 4: tocá **"Conectar carpeta Sider"** arriba y elegí la carpeta de Sider. El EDIT solo guarda tus cambios; los datos completos de cada jugador vienen de la base del Dream Patch. Si ya la habías conectado y el navegador te pide permiso de nuevo, tocá **"Permitir"**.
 
 **Instalarlo como app:** en Chrome o Edge tocá el ícono de instalar en la barra de direcciones (o menú ⋮ → *Instalar PES Editor*).
 
@@ -109,13 +120,17 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 
 ## 🎵 Música
 
-Por derechos de autor, el repositorio **no incluye** música de los juegos. El reproductor funciona igual: tocá **＋ Agregar canciones** y sumá tus temas y carátulas. Quedan guardados en tu navegador.
+Por derechos de autor, el repositorio **no incluye** música de los juegos. El reproductor funciona igual:
+
+- **＋ Agregar canciones:** elegís archivos de tu PC y se suman con su carátula.
+- **▶ YouTube:** pegás el link de una lista o un video. YouTube no permite ocultar sus videos, así que se ven en una ventanita al lado del reproductor.
+
+Todo queda guardado en tu navegador.
 
 ## 🗺️ Próximas actualizaciones
 
 PES Editor sigue en desarrollo. Esto es lo que viene (puede cambiar):
 
-- Fuente propia del proyecto para toda la interfaz.
 - Más opciones en el estudio de kits y en la edición de estadios.
 - Mejoras en la versión instalable (accesos directos, funcionamiento sin conexión más completo).
 - Correcciones a partir de lo que reporten los usuarios.
@@ -128,7 +143,7 @@ Para enterarte de cada versión, tocá **Watch → Custom → Releases** arriba 
 
 Este proyecto toma inspiración de **PES 2020 Editor**, la herramienta original creada por **[ejogc327](https://ejogc327.blogspot.com/2022/10/pes-2020-editor-v0-12.html)**. Gracias por abrir el camino.
 
-Los modelos 3D de los kits se basan en el *CometKIT previewer*. Las plantillas de fuentes siguen el formato del juego.
+Los modelos 3D de los kits se basan en el *CometKIT previewer*. Las plantillas de fuentes siguen el formato del juego. La fuente de la interfaz es *QuickExpress*, reparada y ampliada con letras del español. El estilo *PES 6 Editar* es un homenaje: está hecho a mano y no usa imágenes ni sonidos del juego.
 
 ## 📄 Licencia
 

@@ -2,7 +2,44 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
-## v0.010 (alpha) · Primera versión pública (alpha)
+## v0.012 alpha · Estilo PES 6 Editar y sonidos de menú
+
+*13 de octubre de 2026, 03:30 (hora de Argentina)*
+
+Un modo gráfico nuevo inspirado en el modo Editar de PES 6, con sonidos al moverte por los menús.
+
+- **Modo gráfico "PES 6 Editar"** (Interfaz). Inspirado en el modo Editar de PES 6: fondo azul acero con brillos diagonales, barras y botones plateados, línea naranja arriba de cada panel, y la selección (pestaña, equipo o jugador elegido) resaltada con una barra naranja y dorada inclinada. Los títulos van en cursiva.
+  1. Tocá "🖥️ Gráficos".
+  2. En "Modo gráfico" elegí "PES 6 Editar".
+- **Sonidos de menú** (Interfaz). Pitidos cortos como los de los juegos de esa época: uno suave al pasar el mouse por pestañas, equipos y opciones, otro al tocar, uno de confirmación al guardar y otro para volver o cerrar (también con Esc). Se generan en la página, no son sonidos sacados del juego.
+  1. En "🖥️ Gráficos", "Sonidos de menú": "Solo en PES 6" (lo normal), "Siempre" o "Nunca".
+  2. Ajustá "Volumen de los sonidos" a tu gusto.
+
+## v0.011 alpha · Fuente nueva, gráficos y YouTube
+
+*13 de octubre de 2026, 03:05 (hora de Argentina)*
+
+La página estrena fuente, se pueden elegir modos y calidad gráfica, y el reproductor suma carátulas automáticas y listas de YouTube.
+
+- **Fuente QuickExpress en toda la página** (Interfaz). La fuente de estilo PES pasó a ser la de toda la página. Se reparó (Chrome la rechazaba por un error interno del archivo), se le agregaron las letras que faltaban para el español y para nombres de jugadores (á, é, í, ó, ú, ñ, ü, ö, à, ã, ç, ¿, ¡, comillas, coma) y se angostó al 80 % para que entre bien en botones y pestañas. Se puede seguir cambiando.
+  1. Tocá "🎨 Apariencia".
+  2. En "Fuente de la página" elegí "QuickExpress (PES Editor)", "QuickExpress con estela en títulos" (la versión original, con la línea de velocidad en las minúsculas), "Saira (la anterior)", otra fuente de tu PC o "Cargar…" para usar un archivo.
+  3. Con Títulos, Texto y Números y datos elegís dónde se aplica.
+- **Botón Gráficos** (Interfaz). Al lado de Apariencia hay un botón 🖥️ Gráficos con el modo gráfico y la calidad. También muestra cuántos cuadros por segundo está dibujando la página y sugiere qué calidad usar.
+  1. Tocá "🖥️ Gráficos".
+  2. Elegí un modo: Moderno, Clásico o Retro.
+  3. Elegí la calidad: Baja, Media o Alta.
+- **Modos Clásico y Retro** (Interfaz). Clásico imita a los editores de escritorio de antes: grises, botones en relieve, sin brillos ni transparencias (tiene versión clara y oscura). Retro está inspirado en los menús de PES de PS2: azul profundo, amarillo, pestañas inclinadas y líneas de TV vieja. Los dos se combinan con la fuente elegida.
+- **Calidad gráfica Baja, Media y Alta** (Velocidad). Baja saca animaciones, desenfoques, sombras y efectos, simplifica la intro y dibuja el 3D a resolución normal: la página anda más liviana en PCs lentas. Media es lo de siempre. Alta sube todo al máximo: el 3D se dibuja con más resolución que la pantalla (supermuestreo), desenfoques y brillos más intensos y más chispas en la intro.
+- **Guardar a la altura del logo** (Interfaz). El botón "Guardar en el juego" quedó centrado con el logo, a la derecha de la barra de arriba.
+- **Canciones con su carátula** (Música). Al agregar canciones, el editor lee las etiquetas del archivo (MP3, FLAC y M4A): título, artista, año y la carátula que traen adentro. Si una canción no tiene carátula, se arma una con colores propios, una nota musical y sus iniciales.
+- **Arreglo del diseño del reproductor** (Música). Los nombres largos ya no desarman la lista y las canciones sin carátula ya no muestran una imagen rota.
+- **Listas de YouTube** (Música). Se puede pegar el link de una lista o de un video de YouTube y se suman al reproductor con sus títulos y miniaturas. YouTube no permite ocultar sus videos ni sacarles el audio, así que se ven en una ventanita al lado del reproductor. Funcionan los controles, el volumen y los pases suaves entre temas (el Remix con filtros solo funciona con canciones propias). Hace falta internet y funciona en la versión web; abierto como archivo en la PC, YouTube suele bloquear la reproducción.
+  1. Abrí el reproductor y tocá "▶ YouTube".
+  2. Pegá el link (por ejemplo youtube.com/playlist?list=…) y tocá "Cargar".
+  3. Para quitar un video, tocá la ✕ al lado en la lista.
+
+## v0.010 alpha · Primera versión pública (alpha)
 
 *13 de octubre de 2026, 02:40 (hora de Argentina)*
 
@@ -20,7 +57,7 @@ PES Editor se publica en GitHub como versión alpha: se puede usar desde cualqui
   1. Usá los botones de arriba para ver solo un tema (Kits, Plantel, Música…).
   2. Escribí en el buscador para encontrar un cambio por palabra, por ejemplo "brillo" o "WEPES".
 
-## v0.009 · Reproductor de música
+## v0.009 alpha · Reproductor de música
 
 *13 de octubre de 2026, 02:07 (hora de Argentina)*
 
@@ -43,7 +80,7 @@ La música pasó a tener su propio reproductor fijo abajo a la izquierda, con ci
   3. Para cambiar una carátula, poné ese tema y tocá "🖼 Carátula". Tocándolo otra vez podés volver a la original.
 - **Versión web para GitHub Pages** (Archivo). Además del archivo único, hay una versión separada (index.html + carpeta music) pensada para publicarse en internet. Si la carpeta music no está, el reproductor funciona igual y cada uno agrega sus canciones.
 
-## v0.008 · Música, logo vectorial y fotos en el plantel
+## v0.008 alpha · Música, logo vectorial y fotos en el plantel
 
 *13 de octubre de 2026, 00:07 (hora de Argentina)*
 
@@ -56,7 +93,7 @@ Primera versión con música, el logo nítido a cualquier tamaño y las fotos de
   1. Tocá "Conectar carpeta Sider" para que el editor encuentre las minicaras del Dream Patch.
   2. Abrí un equipo: las fotos aparecen solas en la pestaña Plantel.
 
-## v0.007 · Intro con neón y sección Novedades
+## v0.007 alpha · Intro con neón y sección Novedades
 
 *12 de octubre de 2026, 23:50 (hora de Argentina)*
 
@@ -67,7 +104,7 @@ La pantalla de carga se volvió más llamativa y se agregó esta sección.
 - **Pestaña Novedades** (Interfaz). Al lado de Archivo. Cuando hay una versión que todavía no viste aparece un punto que titila en la pestaña; se apaga cuando entrás.
 - **Botón "Conectar carpeta Sider"** (Kits). El botón que antes decía "Conectar Dream Patch" ahora se llama "Conectar carpeta Sider" y tiene el ícono del martillo y la llave. Hace lo mismo: elegís la carpeta de Sider del Dream Patch y el editor lee kits, caras, escudos y nombres de jugadores.
 
-## v0.006 · El EDIT se encuentra solo
+## v0.006 alpha · El EDIT se encuentra solo
 
 *12 de octubre de 2026, 22:52 (hora de Argentina)*
 
@@ -84,7 +121,7 @@ Ya no hace falta buscar el archivo a mano: el editor lo encuentra en tu carpeta 
   3. Tocá un archivo para verlo en grande.
 - **Botones quitados** (Archivo). Se sacaron "Abrir carpeta" y "Abrir archivo" de la barra. Si el navegador no permite leer carpetas (Firefox o Safari), la pantalla de carga ofrece elegir el EDIT a mano.
 
-## v0.005 · Logo, cabecera nueva y fuente propia
+## v0.005 alpha · Logo, cabecera nueva y fuente propia
 
 *12 de octubre de 2026, 22:26 (hora de Argentina)*
 
@@ -99,7 +136,7 @@ El editor estrena logo, se ordenó la barra de arriba y se puede usar cualquier 
   3. Con los botones Títulos, Texto y Números y datos elegís dónde se usa. Abajo ves una vista previa.
 - **Barra de arriba ordenada** (Interfaz). El buscador quedó al lado del logo, con "Editor EDIT 21 · eFootball PES 2021" a su derecha; los botones quedaron debajo y "Guardar en el juego" a la derecha.
 
-## v0.004 · Brillo, cámara, tela y fondo HDRI
+## v0.004 alpha · Brillo, cámara, tela y fondo HDRI
 
 *12 de octubre de 2026, 22:11 (hora de Argentina)*
 
@@ -116,7 +153,7 @@ El estudio de kits se acercó a cómo se ve la camiseta en el juego.
 - **Elegir cuello y short** (Kits). Los selectores muestran cada modelo en una vista previa que gira; "Usar este cuello" cambia el config.txt del kit.
 - **Luz y fondo HDRI** (Kits). Los controles de luz se rediseñaron, hay una esfera para mover la dirección del sol y se puede cargar un fondo HDRI propio que también ilumina la camiseta.
 
-## v0.003 · Estudio de kits estilo PES Master
+## v0.003 alpha · Estudio de kits estilo PES Master
 
 *12 de octubre de 2026, 21:28 (hora de Argentina)*
 
@@ -130,7 +167,7 @@ Se armó un estudio para ver y editar los kits del kit-server del Dream Patch.
   3. En cada casillero de textura tocá cargar y elegí una imagen.
 - **Generador de fuentes** (Kits). Arma la textura de letras o números con la fuente, los colores, los bordes y la sombra que elijas, respetando las casillas de las plantillas del juego.
 
-## v0.002 · Más rápido y visor 3D
+## v0.002 alpha · Más rápido y visor 3D
 
 *12 de octubre de 2026, 20:51 (hora de Argentina)*
 
@@ -140,7 +177,7 @@ Optimización general sin quitar animaciones.
 - **Maqueta del kit y visor 3D** (Kits). La maqueta plana del kit se corrigió y se sumó el visor 3D.
 - **Ayudas más claras** (Interfaz). Cada sección tiene un recuadro de ayuda que se abre y se cierra, con explicaciones más largas. El editor recuerda cuáles dejaste abiertos.
 
-## v0.001 · Plantel como tabla, Apariencia y valoración animada
+## v0.001 alpha · Plantel como tabla, Apariencia y valoración animada
 
 *12 de octubre de 2026, 19:11 (hora de Argentina)*
 

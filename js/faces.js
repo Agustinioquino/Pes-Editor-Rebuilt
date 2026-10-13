@@ -90,14 +90,22 @@ async function faceTimed(k, fn) {
   const s = FACES.src[k]; s.n++; s.ms += performance.now() - t; if (r) s.hit++; saveFaceSrc();
   return r ? Object.assign(r, { src: k }) : null;
 }
+// recortadas: solo TheSportsDB (fotos sin fondo) · mezcla: TheSportsDB primero y, si no tiene, la foto de Wikipedia
+async function tsdbTurn() { let w; while ((w = tsdbNext - Date.now()) > 0) await new Promise(ok => setTimeout(ok, w)); tsdbNext = Date.now() + 2100; }
 async function findOnlineFace(pid) {
-  const jobs = [faceTimed('wiki', () => wikiFace(pid))];
-  if (Date.now() >= tsdbNext) { tsdbNext = Date.now() + 2100; jobs.push(faceTimed('tsdb', () => onlineFace(pid))); }
-  let r = await new Promise(res => { let left = jobs.length; jobs.forEach(j => j.then(x => x ? res(x) : --left || res(null))); });
-  // Wikipedia no la encontró y TheSportsDB estaba ocupada: esperar su turno y probar ahí
-  if (!r && jobs.length === 1) { let w; while ((w = tsdbNext - Date.now()) > 0) await new Promise(ok => setTimeout(ok, w)); tsdbNext = Date.now() + 2100; r = await faceTimed('tsdb', () => onlineFace(pid)); }
+  const wiki = PREFS.photoSrc === 'mix' ? faceTimed('wiki', () => wikiFace(pid)) : null; // arranca ya, mientras espera su turno TheSportsDB
+  await tsdbTurn();
+  let r = await faceTimed('tsdb', () => onlineFace(pid));
+  if (!r && wiki) r = await wiki;
   if (r) { FACES.src[r.src].win++; saveFaceSrc(); }
   return r;
+}
+const PHOTO_SRC = { tsdb: 'Recortadas', mix: 'Mezcla', off: 'No' };
+function setPhotoSrc(v) {
+  PREFS.photoSrc = v; PREFS.online = v !== 'off'; savePrefs();
+  // volver a buscar a los que no se encontraron; con "recortadas" se sacan las fotos de Wikipedia
+  for (const [k, e] of FACES.online) if (!e.m && (!e.u || (v === 'tsdb' && e.s === 'wiki'))) { FACES.online.delete(k); FACES.loading.delete(k); }
+  saveOnline();
 }
 function faceSrcStats() {
   const f = k => { const s = FACES.src[k]; return s.n ? `${FACE_SRC[k]}: ${(s.ms / s.n / 1000).toFixed(1).replace('.', ',')} s por búsqueda, ${s.win} foto${s.win === 1 ? '' : 's'}` : ''; };

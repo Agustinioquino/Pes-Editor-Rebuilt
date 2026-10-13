@@ -159,6 +159,14 @@ async function introSider(t0) {
     await Promise.race([FACES.ready || Promise.resolve(), introWait(12000)]);
     introStep(`Sider listo: ${(FACES.count || 0).toLocaleString('es-AR')} caras y ${(BADGES.count || 0).toLocaleString('es-AR')} escudos.`);
   } else introStep('Sin Sider por ahora: podés conectarlo después con el botón de arriba.');
+  // fotos de internet para los que no tienen miniface: se elige una vez
+  if (!PREFS.photoSrc) {
+    introStep('¿Qué fotos querés para los jugadores sin miniface del Parche?', 'wait');
+    const a = await introAsk(`<div class="introchoice"><button class="btn primary big" type="button" data-a="tsdb">✂️ Recortadas<small>Fotos sin fondo de TheSportsDB. Las que no estén, quedan con la camiseta.</small></button><button class="btn big" type="button" data-a="mix">🧩 Mezcla<small>Recortadas de TheSportsDB y, si no hay, la foto real de Wikipedia.</small></button></div>
+      <button class="btn ghost" type="button" data-a="off">Sin fotos de internet</button><p class="note">Lo podés cambiar cuando quieras en la Formación de cualquier equipo (vista Fotos).</p>`);
+    setPhotoSrc(a); introActions(''); INTRO.el && INTRO.el.classList.add('busy');
+    introStep({ tsdb: 'Fotos: recortadas de TheSportsDB.', mix: 'Fotos: recortadas y, si faltan, de Wikipedia.', off: 'Fotos: solo las del Parche.' }[a]);
+  }
   // un momento más para que terminen de cargar las fuentes, el logo y las primeras caras
   introStep('Preparando la pantalla…');
   await Promise.race([Promise.all([document.fonts ? document.fonts.ready : null, introWait(Math.max(0, t0 + 2600 - Date.now()))]), introWait(8000)]);

@@ -1190,3 +1190,6 @@ html.tking .tk{font-family:"PES Express",var(--body);color:#fff}
 #rlook button{padding-inline:.6rem;font-size:.76rem}
 .intro.dk .introsteps li[data-s="run"],.intro.dk .introsteps li[data-s="wait"]{color:#f1ece0}.intro.dk .introact .btn.ghost{color:#e9dfc4}.intro.dk .introact .btn.ghost:hover{color:#fff}
 .intro.dk .introact p{color:#c9c0aa}
+.introchoice{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}.introchoice .btn{display:grid;gap:4px;justify-items:center;padding:12px 14px;white-space:normal;height:auto}.introchoice small{font-size:.74rem;font-weight:400;opacity:.85;line-height:1.35;text-transform:none}@media (max-width:520px){.introchoice{grid-template-columns:1fr}}
+#fsrc button{padding:3px 10px}
+.introsteps li:nth-last-child(n+4){display:none}

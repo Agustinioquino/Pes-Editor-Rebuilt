@@ -1345,7 +1345,7 @@ function renderFile(m) {
         <tr><td>Equipos</td><td class="mono">${S.ix.teams.length}</td></tr>
         <tr><td>Jugadores editados</td><td class="mono">${edited} (${locked} protegidos)</td></tr>
         <tr><td>Kits</td><td class="mono">${KITS.map.size ? KITS.map.size + ' equipos de ' + esc(KITS.from) + ' · ' + new Date(KITS.when).toLocaleDateString('es-AR') : 'sin conectar · se usan los colores del equipo'}</td></tr>
-        <tr><td>Nombres cargados</td><td class="mono">${S.names.size ? S.names.size.toLocaleString('es-AR') + ' de ' + esc(S.namesFrom) : 'ninguno · usá "Cargar nombres" con un Player.bin'}</td></tr>
+        <tr><td>Nombres cargados</td><td class="mono">${S.names.size ? S.names.size.toLocaleString('es-AR') + ' de ' + esc(S.namesFrom) : 'ninguno · usá "Conectar Player.bin"'}</td></tr>
       </tbody></table></div>
       ${S.dir ? '<p class="note">Guardás directo sobre el archivo del juego. En el primer guardado de cada sesión se crea <code>EDIT00000000.respaldo-fecha</code> en la misma carpeta.</p>' : '<div class="warnbox">Modo copia: al guardar se descarga un archivo nuevo que tenés que copiar a mano. Para guardar directo, usá "Abrir carpeta del juego" en Chrome o Edge.</div>'}
       <div class="row"><button class="btn" id="discard" type="button" ${S.hist.length ? '' : 'disabled'}>Descartar todos los cambios</button>

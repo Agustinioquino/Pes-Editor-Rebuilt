@@ -1147,8 +1147,8 @@ html[data-gfx="pes6"] .brand:hover .brandlogo{animation:pesLogoBreath 2.8s ease-
 html[data-gfx="pes6"] .brand:hover .bfill{opacity:.55;animation:pesLogoEcho 2.8s ease-in-out infinite}
 html[data-gfx="pes6"] .brand:hover .bline{animation:pesLogoLine 2.8s ease-in-out infinite}
 @keyframes pesLogoBreath{0%,100%{scale:1}50%{scale:1.05}}
-@keyframes pesLogoEcho{0%,100%{scale:1.1;opacity:.85}50%{scale:1.02;opacity:.35}}
-@keyframes pesLogoLine{0%{scale:1;opacity:1}75%{scale:1.2;opacity:0}100%{scale:1.2;opacity:0}}
+@keyframes pesLogoEcho{0%{scale:.92;opacity:.85}100%{scale:1.14;opacity:0}}
+@keyframes pesLogoLine{0%{scale:.94;opacity:0}15%{opacity:1}80%{scale:1.22;opacity:0}100%{scale:1.22;opacity:0}}
 html[data-gfx="pes6"][data-q="low"] .brand:hover :is(.brandlogo,.bfill,.bline){animation:none}
 /* ---- plantel: jugadores más grandes y bandera al lado de la nación ---- */
 .face.pl{width:3.4em;height:3.4em}
@@ -1205,3 +1205,26 @@ html[data-gfx="pes6"] .dt tr[data-g] .face.pl{background:radial-gradient(circle 
 .rsumnote{flex-basis:100%;font-size:.8rem;color:var(--muted);font-style:italic}
 .thstad b{font-weight:700;color:var(--ink)}
 html[data-gfx="pes6"],html[data-gfx="clasico"]:not(.cdark){color-scheme:light!important}
+/* pestaña elegida: una animación con la personalidad de cada modo gráfico */
+@property --tkA{syntax:'<angle>';inherits:false;initial-value:0deg}
+.tab{position:relative}
+.tab[aria-selected="true"]::after{content:"";position:absolute;pointer-events:none}
+/* Moderno: un brillo que recorre la línea de abajo */
+html:not([data-gfx]) .tab[aria-selected="true"]::after{left:0;right:0;bottom:-3px;height:3px;background:linear-gradient(90deg,transparent 0 35%,color-mix(in srgb,#fff 75%,var(--accent)) 50%,transparent 65% 100%) no-repeat;background-size:250% 100%;animation:tabShine 2.4s ease-in-out infinite}
+@keyframes tabShine{0%{background-position:100% 0}100%{background-position:0 0}}
+/* Clásico: la franja naranja de arriba, como las pestañas de Windows XP, que late */
+html[data-gfx="clasico"] .tab[aria-selected="true"]::after{left:-1px;right:-1px;top:-1px;height:3px;background:linear-gradient(90deg,#e68b2c,#ffc76b,#e68b2c);border-radius:2px 2px 0 0;animation:tabXp 1.6s ease-in-out infinite alternate}
+@keyframes tabXp{from{opacity:.55}to{opacity:1}}
+/* Retro: la flechita de menú de PlayStation que titila */
+html[data-gfx="retro"] .tab[aria-selected="true"]::before{content:"▶";font-size:.62em;margin-right:.4em;vertical-align:.12em;animation:tabBlink .9s steps(2,jump-none) infinite}
+@keyframes tabBlink{50%{opacity:0}}
+/* PES 6: un trazado de otro color que da vueltas detrás del borde dorado */
+html[data-gfx="pes6"] .tab[aria-selected="true"]::after{inset:-1px;padding:3px;border-radius:7px;background:conic-gradient(from var(--tkA),transparent 0 45%,#b3200f 60%,#ff5a1f 75%,#ffb37a 84%,#fff 87%,transparent 89% 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:tabTrace 2.6s linear infinite}
+@keyframes tabTrace{to{--tkA:360deg}}
+html[data-q="low"] .tab[aria-selected="true"]::after,html[data-q="low"] .tab[aria-selected="true"]::before{animation:none}
+@media (prefers-reduced-motion:reduce){.tab[aria-selected="true"]::after,.tab[aria-selected="true"]::before{animation:none}}
+/* PES 6: estática de tele vieja cuando cambia lo que se ve en pantalla */
+.tvstatic{position:fixed;z-index:60;pointer-events:none;background-repeat:repeat;background-size:240px 180px;image-rendering:pixelated;mix-blend-mode:normal;animation:tvStatic .36s steps(6) forwards}
+.tvstatic::after{content:"";position:absolute;left:0;right:0;top:50%;height:3px;background:#fff;box-shadow:0 0 12px 4px #fffa;animation:tvLine .36s ease-out forwards}
+@keyframes tvStatic{0%{opacity:.55;background-position:0 0}30%{opacity:.4;background-position:-37px 61px}60%{opacity:.2;background-position:83px -29px}100%{opacity:0;background-position:-120px 90px}}
+@keyframes tvLine{0%{opacity:0;scale:1 1}35%{opacity:.9}100%{opacity:0;scale:.2 .5}}

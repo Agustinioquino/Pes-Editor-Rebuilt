@@ -1,6 +1,26 @@
 # Novedades
 
-Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
+Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
+
+## v0.044 alpha · PES Editor Rebuilt llega a Windows como .exe
+
+*13 de octubre de 2026, 20:15 (hora de Argentina)*
+
+¡El editor ahora también es un programa para Windows! Descargás un .exe, lo abrís y conecta tu carpeta Sider aunque esté dentro de Archivos de programa, con permiso para guardar en el Parche. Y estrenamos nombre: PES Editor Rebuilt.
+
+- **PES Editor Rebuilt para Windows** (Archivo). El editor ahora también se descarga como programa para Windows (.exe). Es exactamente el mismo editor de la página, en su propia ventana, con su logo y su acceso directo en el escritorio y en el menú Inicio. Hay un instalador y una versión portátil, que no se instala.
+  1. Abrí la release v0.044 en GitHub y descargá PES-Editor-Rebuilt-Setup.exe (o PES-Editor-Rebuilt-Portable.exe).
+  2. Si aparece "Windows protegió tu PC", tocá Más información › Ejecutar de todas formas.
+  3. Abrí PES Editor Rebuilt desde el escritorio o el menú Inicio.
+- **Sider en Archivos de programa, con permiso para guardar** (Archivo). Chrome y Edge no dejan que una página escriba en C:\Program Files (x86), que es donde Steam instala PES 2021 y donde muchos Parches tienen su carpeta Sider. La app sí puede: conecta tu carpeta Sider donde está, sin moverla, y guarda kits, escudos y el módulo edit21_db como siempre.
+  1. Abrí la app y elegí tu carpeta Documentos.
+  2. Tocá Conectar carpeta Sider.
+  3. Elegí tu carpeta Sider en el selector de Windows: queda conectada para la próxima.
+- **Siempre la última versión** (Velocidad). La app carga el editor desde GitHub cada vez que la abrís, así que cada versión nueva llega sola, sin reinstalar nada. Tiene su propio caché: guarda fotos, escudos, tus ajustes y el trabajo sin guardar, y después de la primera vez abre también sin internet.
+- **Solo las carpetas que elegís** (Archivo). La app solo puede leer y escribir dentro de las carpetas que elegís con el selector de Windows (Documentos y tu carpeta Sider), y las recuerda para la próxima. Si Windows no deja escribir en alguna, te avisa que la abras como administrador; si el juego tiene un archivo abierto, te pide que lo cierres.
+- **Nuevo nombre: PES Editor Rebuilt** (Interfaz). El editor pasa a llamarse PES Editor Rebuilt: en la pestaña del navegador, al instalarlo desde Chrome y en la app. La app estrena su propio logo.
+- **Qué hacer si Chrome no abre tu carpeta Sider** (Archivo). Si Chrome dice "Esta carpeta no se puede abrir… contiene archivos del sistema", la pantalla de carga y la ayuda explican por qué pasa y te ofrecen descargar la app para Windows. También están los pasos para sacar solo la carpeta Sider de Archivos de programa (dentro del mismo disco tarda un segundo, aunque pese muchos GB) y la opción de abrirla solo para ver.
+- **sider.ini se arregla solo** (Archivo). Si movés la carpeta Sider y tu sider.ini tenía rutas completas a la carpeta vieja (cpk.root = "C:\Program Files…\livecpk\…"), al conectarla el editor las cambia por rutas relativas (.\livecpk\…) para que Sider las siga encontrando. Antes guarda una copia en sider.ini.bak-pes-editor.
 
 ## v0.043 alpha · Ficha hexagonal, media desde el plantel y tu trabajo a salvo
 

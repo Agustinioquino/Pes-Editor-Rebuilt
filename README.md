@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo-oscuro.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/logo-claro.svg">
-  <img alt="PES Editor" src="assets/logo-claro.svg" width="560">
+  <img alt="PES Editor Rebuilt" src="assets/logo-claro.svg" width="560">
 </picture>
 
 ### Un PES Editor renovado
@@ -12,11 +12,11 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.043%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.044%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
-![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
+![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-o%20app%20para%20Windows-555)
 
-**[▶ Abrir PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)**
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Descargar para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)**
 
 </div>
 
@@ -24,7 +24,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , direct
 
 ## 🧉 ¿Por qué existe?
 
-Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el dorsal de tu ídolo, armar la camiseta del club del barrio. Las herramientas de siempre hacen el trabajo, pero se quedaron en el tiempo. **PES Editor** junta todo en un solo lugar, con una interfaz moderna, un estudio de kits en 3D y, para los nostálgicos, música de menú de fondo mientras editás.
+Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el dorsal de tu ídolo, armar la camiseta del club del barrio. Las herramientas de siempre hacen el trabajo, pero se quedaron en el tiempo. **PES Editor Rebuilt** junta todo en un solo lugar, con una interfaz moderna, un estudio de kits en 3D y, para los nostálgicos, música de menú de fondo mientras editás.
 
 > [!WARNING]
 > **Versión alpha.** Funciona y guarda en el juego, pero todavía puede tener errores. El editor hace una copia de respaldo del EDIT cada vez que guardás. Igual, conviene tener tu propia copia antes de empezar.
@@ -33,6 +33,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 
 ### 📁 Archivo y carpeta del juego
 - **Encuentra el EDIT solo.** Busca `KONAMI\eFootball PES 2021 SEASON UPDATE` en tu carpeta Documentos y abre el `EDIT00000000` más reciente (primero el del Parche, `drmp`).
+- **También como programa para Windows.** [PES Editor Rebuilt para Windows](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe) es el mismo editor en su propia ventana, y conecta la carpeta Sider aunque esté dentro de `C:\Program Files (x86)`, donde Chrome y Edge no dejan escribir. Se actualiza solo, igual que la página.
 - **Elegís la carpeta una sola vez.** Con "Permitir en cada visita", las veces siguientes entra directo.
 - **Varios EDIT.** En *Archivo* se ven todos los EDIT encontrados (`drmp`, `save`, otras cuentas de Steam) y podés cambiar de uno a otro.
 - **Guarda directo en el juego.** Hace una copia de respaldo del archivo anterior antes de cada guardado.

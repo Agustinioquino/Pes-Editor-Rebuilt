@@ -1,8 +1,8 @@
 {
   "name": "pes-editor-desktop",
-  "productName": "PES Editor",
-  "version": "0.1.0",
-  "description": "PES Editor para Windows: el mismo editor de la web, con acceso a la carpeta Sider aunque esté en Archivos de programa.",
+  "productName": "PES Editor Rebuilt",
+  "version": "0.44.0",
+  "description": "PES Editor Rebuilt para Windows: el mismo editor de la web, con acceso a la carpeta Sider aunque esté en Archivos de programa.",
   "author": "Agustinioquino",
   "license": "MIT",
   "private": true,
@@ -16,19 +16,30 @@
     "electron-builder": "26.16.1"
   },
   "build": {
-    "appId": "io.github.agustinioquino.peseditor",
-    "productName": "PES Editor",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "offline.html", "icon.png"],
-    "win": { "icon": "icon.png" },
+    "appId": "io.github.agustinioquino.peseditorrebuilt",
+    "productName": "PES Editor Rebuilt",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "icon.png"
+    ],
+    "win": {
+      "icon": "icon.png"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "PES Editor",
-      "artifactName": "PES-Editor-Setup-${version}.exe"
+      "shortcutName": "PES Editor Rebuilt",
+      "artifactName": "PES-Editor-Rebuilt-Setup.exe"
     },
-    "portable": { "artifactName": "PES-Editor-${version}-portable.exe" }
+    "portable": {
+      "artifactName": "PES-Editor-Rebuilt-Portable.exe"
+    }
   }
 }

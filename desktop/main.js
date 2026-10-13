@@ -1,4 +1,4 @@
-// PES Editor para Windows: abre el editor de la web en una ventana propia y le da acceso de verdad a las carpetas
+// PES Editor Rebuilt para Windows: abre el editor de la web en una ventana propia y le da acceso de verdad a las carpetas
 // que elegís (por ejemplo la carpeta Sider dentro de Archivos de programa, que Chrome y Edge no dejan tocar).
 // El editor se carga siempre desde GitHub Pages, así cada versión nueva llega sola, sin reinstalar la app.
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
@@ -72,7 +72,7 @@ handle('info', () => ({ app: app.getVersion(), electron: process.versions.electr
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1360, height: 860, minWidth: 900, minHeight: 600, backgroundColor: '#0b0d10', title: 'PES Editor',
+    width: 1360, height: 860, minWidth: 900, minHeight: 600, backgroundColor: '#0b0d10', title: 'PES Editor Rebuilt',
     icon: path.join(__dirname, 'icon.png'), autoHideMenuBar: true, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false }
   });

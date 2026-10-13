@@ -1,4 +1,4 @@
-# PES Editor para Windows
+# PES Editor Rebuilt para Windows
 
 Es el mismo editor de la web, en una ventana propia. La diferencia es que puede leer y escribir en las carpetas que
 elegís aunque estén dentro de `C:\Program Files (x86)`. Chrome y Edge no dejan que una página escriba ahí, y ahí es

@@ -1157,3 +1157,20 @@ html[data-gfx="pes6"][data-q="low"] .brand:hover :is(.brandlogo,.bfill,.bline){a
 html[data-gfx="pes6"] :is(.card,.btn,.tab,.item,.seg,.seg button,.fchips button,input,select,.chip,.uitiles button,.uigrp,.uihi,.uipanel,.dtbar,.tablebox,.popmenu,.gres,.bulkbar,.warnbox,.crest,.tabbar .uibtn,.stside,.stchoice button,.qt,.advt,.hero,.uiprev,.uifontprev,.mpfull,.list,.gfxpanel){border-radius:0!important}
 html[data-gfx="pes6"] .face.pl{border-radius:2px}
 .crest.flagmini i{display:none}
+/* ---- PES 6: barra de abajo con texto que corre (novedades, ideas, saga y ayuda del menú) ---- */
+.tk{display:none}
+html.tking .tk{position:fixed;left:0;right:0;bottom:0;z-index:44;display:flex;align-items:stretch;height:30px;background:linear-gradient(180deg,#5a5a5a,#2b2b2b);border-top:2px solid #1a1a1a;box-shadow:0 -1px 0 #ffffff22 inset,0 -6px 18px -8px #000a;color:#f2f2f0;font-size:.82rem;font-weight:600}
+.tktag{display:grid;place-items:center;flex:none;min-width:86px;padding:0 12px;background:linear-gradient(180deg,#fdf0a0,#e6c02e);color:#1c1c1a;font-weight:800;font-size:.72rem;letter-spacing:.08em;border-right:2px solid #1a1a1a;box-shadow:inset 0 1px #fff9}
+.tk[data-k="pes"] .tktag{background:linear-gradient(180deg,#fafaf8,#c9c8c2)}
+.tk[data-k="idea"] .tktag{background:linear-gradient(180deg,#d9f0ff,#7fb8e6)}
+.tk.helping .tktag{background:linear-gradient(180deg,#fff,#e6c02e)}
+.tkwin{position:relative;flex:1;min-width:0;overflow:hidden}
+.tkrun,.tkhelp{position:absolute;top:0;bottom:0;display:flex;align-items:center;white-space:nowrap;text-shadow:0 1px 0 #000}
+.tkrun{left:0;will-change:transform}
+.tkhelp{left:14px;right:14px;opacity:0;overflow:hidden;text-overflow:ellipsis;display:block;line-height:30px;color:#fdf0a0;transition:opacity .2s}
+.tk.helping .tkhelp{opacity:1}.tk.helping .tkrun{opacity:0}
+@keyframes tkRun{from{transform:translateX(var(--tkw,100vw))}to{transform:translateX(-100%)}}
+@keyframes tkHold{0%{opacity:0;transform:translateX(14px)}6%,94%{opacity:1;transform:translateX(14px)}100%{opacity:0;transform:translateX(14px)}}
+html.tking main{padding-bottom:86px}
+html.tking .mp{bottom:44px}
+html.tking .toast{bottom:44px}

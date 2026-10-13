@@ -10,13 +10,13 @@ const TICKER_IDEAS = [
 ];
 // lo nuevo de la última versión, contado para la barra
 const TICKER_NEW = [
-  'Novedad v0.030: este modo PES 6 Editar estrena fondo de estadio con efecto de tele vieja, como jugar en la PS2 del living.',
-  'Novedad v0.030: la tabla del plantel ahora es dorada, como la selección del modo Editar de PES 6.',
-  'Novedad v0.030: el logo de arriba respira despacio con una segunda capa, al estilo de los menús de PES.',
-  'Novedad v0.030: cada jugador muestra la bandera real de su país, y el borde de su foto dice si es arquero, defensa, medio o delantero.',
-  'Novedad v0.030: en la cabecera del equipo ves el nombre real del estadio y, entre paréntesis, el que usa tu EDIT.',
-  'Novedad v0.030: al cargar elegís fotos recortadas de TheSportsDB o una mezcla con Wikipedia para las que falten.',
-  'Novedad v0.030: el video de YouTube se guarda a los 15 segundos y queda la carátula; tocala y vuelve.'
+  'Novedad v0.040: el editor ahora también habla inglés; elegí el idioma con la bandera al lado de Recargar.',
+  'Novedad v0.040: en Formación podés elegir varios jugadores con Ctrl y moverlos todos juntos.',
+  'Novedad v0.040: la cabecera de Formación muestra el valor de Transfermarkt al lado del estimado.',
+  'Novedad v0.040: en este modo PES 6, cada cambio de pantalla trae un golpe de estática, como cambiar de canal.',
+  'Novedad v0.040: la pestaña elegida tiene su trazado rojo dando vueltas, y cada modo gráfico su propia animación.',
+  'Novedad v0.040: el panel de equipos es más ancho y filtra por liga o país.',
+  'Novedad v0.040: los escudos que faltan se buscan en Wikipedia, y la ✕ del video de YouTube lo saca de la pantalla.'
 ];
 const TICKER_SAGA = [
   'PES nació en 2001 en PlayStation 2. En Japón la saga se llamaba Winning Eleven.',

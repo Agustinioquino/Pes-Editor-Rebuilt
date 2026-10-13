@@ -1,88 +1,80 @@
 <div align="center">
 
-<img alt="El plantel en PES 6 Editar: tabla dorada, banderas reales, fondo de estadio y la barra de texto de abajo" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.030/portada.png" width="100%">
+<img alt="La Formación del Manchester United en PES 6 Editar, con el editor en inglés y el valor de Transfermarkt en la cabecera" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.040/portada.png" width="100%">
 
-**[▶ Abrir PES Editor](https://agustinioquino.github.io/pes-editor/)** · [📜 Todos los cambios](https://github.com/Agustinioquino/pes-editor/blob/main/CHANGELOG.md) · [🐛 Avisar un error](https://github.com/Agustinioquino/pes-editor/issues/new/choose)
+**[▶ Abrir PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · [📜 Todos los cambios](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/blob/main/CHANGELOG.md) · [🐛 Avisar un error](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose)
 
 </div>
 
 ## ⚽ De qué se trata
 
-La v0.020 fue para el técnico. Esta es para el utilero: **nada de tácticas nuevas, todo de cómo se ve**. El modo PES 6 Editar se pone nostálgico, el plantel te muestra más cosas de un vistazo y la pantalla de carga te lleva de la mano para conectar todo.
+El editor hizo la pretemporada en Inglaterra y volvió **hablando inglés**. Además la Formación se volvió más cómoda (mover varios jugadores a la vez, un banco más largo y el valor de Transfermarkt), el panel de equipos se ensanchó y cada modo gráfico tiene sus propias animaciones.
 
-Si alguna vez te quedaste mirando el menú de Editar de PES 6 con la música de fondo en vez de jugar, esta versión es para vos 📺.
+Y el video de YouTube, que se hacía el distraído y no se iba, por fin entendió el mensaje 📺👋.
 
 ---
 
-## 📺 PES 6 Editar, como en la PS2 del living
+## 🇬🇧 El editor en inglés
 
-- **Fondo de estadio** con un leve desenfoque y efecto de **tele vieja (CRT)**: líneas, un toque de color corrido y las esquinas más oscuras.
-- **Tabla del plantel dorada**, suave para que se lea bien, con los titulares resaltados.
-- **Bordes rectos** en todo, como los menús de esa época.
-- **El logo respira**: crece y se achica despacio, con una segunda capa con contorno que lo acompaña.
-- **Los botones Gráficos y Apariencia** se leen bien, plateados con letra oscura.
+- **Selector de idioma con banderita**, al lado de Recargar: 🇪🇸 Español o 🇬🇧 English. La página se recarga en el idioma elegido y se acuerda para la próxima.
+- **Se traduce todo lo que se ve**: pestañas, botones, ayudas, avisos, Novedades, la barra de texto de PES 6, países, posiciones y estilos de juego. Son unas **2.600 frases**.
+- **También desde la pantalla de carga**, arriba a la derecha junto a Música, así ni hace falta entrar para cambiarlo.
+- El español sigue siendo la versión original: si elegís Español, el editor queda exactamente como siempre.
 
-### 📜 La barra de texto de abajo
+<img alt="El selector de idioma abierto en español y en inglés" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.040/ingles.png" width="100%">
 
-El clásico de PES 6: una cinta que corre despacio, sin cortes, con letra blanca de PES. Va contando las novedades del editor, ideas a futuro y datos de la saga. Y si pasás el mouse por una pestaña o un botón, se queda quieta y te explica qué hace.
+## 🧠 Formación más cómoda
 
-<img alt="Toda la interfaz en PES 6 Editar" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.030/pes6-plantel.png" width="100%">
+- **Mover varios jugadores juntos.** Tocá jugadores con **Ctrl** apretado, o usá **"Elegir varios"**: quedan marcados y al arrastrar uno se mueven todos, manteniendo la distancia entre ellos. "Elegir a los 10 de campo" mueve todo el equipo menos el arquero, y **Deshacer** vuelve todo atrás de una.
+- **Banco de suplentes más largo.** Cuando no tenés un jugador elegido, la lista de suplentes se estira y ves muchos más sin bajar.
 
-## 📋 El plantel, de un vistazo
+<img alt="Dos delanteros elegidos a la vez en la cancha de Formación, con el banco de suplentes largo al lado" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.040/formacion.png" width="100%">
 
-- **Banderas reales** al lado de la nación. Inglaterra, Escocia, Gales e Irlanda del Norte con la suya, como corresponde. Sin internet, queda el escudo de la selección.
-- **Fotos más grandes**, con **borde y fondo según la posición**: arquero en dorado, defensa en azul, medio en verde y delantero en rojo.
-- **Fotos o Camisetas**: un selector para ver las caras o solo la camiseta del equipo.
-- **La columna se llama "Nombre del jugador"**, también en la exportación.
-- **Los promedios explicados**: abajo dice que media, edad y altura son promedios del plantel, y que el valor es la suma de todos.
-- **El estadio real en la cabecera**: arriba se ve el nombre de verdad y, entre paréntesis, el que tiene elegido tu EDIT. Por ejemplo, *Anfield (Rose Park Stadium)*.
+### 💶 Valor de Transfermarkt
 
-<img alt="El plantel en Moderno, Clásico, Retro y PES 6 Editar" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.030/modos-graficos.png" width="100%">
+La cabecera de Formación muestra, al lado del **valor estimado**, el **valor de Transfermarkt**. Lo cargás tocándolo, la **↗** abre la búsqueda del equipo en Transfermarkt y abajo te dice **cuánto difiere** del estimado.
 
-## 📸 Fotos de dos lugares
+Y se viste según el modo: en **Retro** es una caja de menú de PS2 con bordes de píxel, y en **PES 6 Editar** una placa plateada con el número en dorado.
 
-Para los jugadores que no tienen miniface en el Parche, ahora elegís de dónde salen las fotos:
+<img alt="La cabecera de Formación en PES 6 Editar, Retro, Moderno y Clásico" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.040/transfermarkt.png" width="100%">
 
-| Opción | Qué hace |
-|---|---|
-| ✂️ **Recortadas** | Solo fotos sin fondo de TheSportsDB. Las que no estén, quedan con la camiseta. |
-| 🧩 **Mezcla** | Primero la recortada de TheSportsDB y, si no la tiene, la foto real de Wikipedia. |
-| 🚫 **Sin fotos de internet** | Solo las minifaces del Parche. |
+## 🗂️ Panel de equipos más ancho
 
-Se elige una vez al cargar y se cambia cuando quieras en **Formación**, con la vista Fotos. Al lado vas a ver cuánto tarda cada base y cuántas fotos trajo.
+- **Más espacio** para los nombres largos.
+- **Ordenar** quedó al lado de Todos, Editados y Sin guardar.
+- **Selector de Liga o país**, con cuántos clubes tiene cada uno. Por ejemplo, *Inglaterra (45)*.
+- Nuevo orden **por País**.
 
-## 🚪 Una carga que te acompaña
+<img alt="El panel de equipos filtrado por Inglaterra" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.040/equipos.png" width="100%">
 
-Después de abrir el EDIT, la pantalla de carga **te pide conectar la carpeta Sider**. Si ya estaba conectada y el navegador perdió el permiso, te ofrece volver a darlo. Recién entra cuando terminaron de cargar las caras, los escudos y las fuentes, así no ves la página a medio armar.
+## 🛡️ Escudos de Wikipedia
 
-<img alt="La pantalla de carga pide conectar Sider y elegir las fotos" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.030/carga.png" width="100%">
+Si TheSportsDB no tiene el escudo de un club, ahora se busca en **su página de Wikipedia**. Los clubes que habían quedado con el cuadradito vacío se buscan otra vez solos.
 
-El botón para cargar nombres ahora se llama **"Conectar Player.bin"**, que es lo que hace.
+## ✨ Cada modo con su personalidad
 
-## 🖥️ Toda la pantalla
+- **Pestañas animadas**: brillo en Moderno, franja naranja en Clásico, flechita que titila en Retro y un trazado rojo que da vueltas en PES 6.
+- **Estática de tele en PES 6 Editar**: al cambiar de pestaña, equipo o sección hay un golpe de estática, como cuando cambiabas de canal para jugar.
+- **El eco del logo** ahora sale de adentro hacia afuera.
 
-- En la PC el editor ocupa **todo el ancho**, barra de arriba incluida.
-- La **cabecera entra en una sola fila**.
-- **Apariencia** tiene íconos y vistas previas de cada paleta, agrupadas por tema.
-- Las acciones de cada jugador (capitán, pasar a otro equipo…) están en el botón **⋯**.
-- En **Archivo**, con pantalla ancha, todo se acomoda en dos columnas.
+## 🎵 El video se va de verdad
 
-<img alt="El panel de Apariencia con íconos" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.030/apariencia.png" width="100%">
+- A los **15 segundos** el cuadro de YouTube **desaparece entero** y queda la carátula chica del reproductor con un ▶. Tocándola, vuelve.
+- Nueva **✕** en el video: lo saca para todos los temas que vengan, y la música sigue sonando.
 
-## 🎵 Música más discreta
-
-- Cuando no suena nada, el reproductor queda como **un círculo**.
-- A los **15 segundos** de empezar un video de YouTube queda **solo la carátula**. Tocándola, vuelve el video.
+<img alt="El video de YouTube con su ✕, y el editor con el video ya escondido" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.040/musica.png" width="100%">
 
 ## 🔧 Arreglos
 
-- En PES 6 Editar y Clásico, con **Windows en modo oscuro**, el dorsal repetido y las casillas quedaban en negro. Ya no.
-- En Retro, el número de la pestaña activa se lee bien.
+- **El video de YouTube a veces no se escondía** a los 15 segundos, porque dependía de avisos de YouTube que no siempre llegaban. Ahora se mide con el tiempo real del video.
+- **Cuando se escondía, el cuadro seguía ocupando lugar** con la carátula adentro. Ahora se va del todo.
+- **Clubes sin escudo para siempre**: si TheSportsDB no los encontraba una vez, no se volvían a buscar. Ahora se reintentan, con Wikipedia de respaldo.
+- **Los links al editor** de la página del proyecto apuntan a la dirección nueva.
 
 ---
 
 <div align="center">
 
-**¿Algo se ve raro en tu pantalla?** Mandá una captura en [Avisar un error](https://github.com/Agustinioquino/pes-editor/issues/new/choose) y lo vemos. ⚽
+**¿Encontraste algo que quedó en español en la versión en inglés, o algo raro en tu pantalla?** Mandá una captura en [Avisar un error](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose) y lo arreglamos. ⚽
 
 </div>

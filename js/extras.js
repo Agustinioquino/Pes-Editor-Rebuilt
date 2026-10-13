@@ -51,7 +51,7 @@ async function connectKits() {
     } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, true); } catch { } }
-  toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render();
+  toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
 }
 function teamKits(t) {
   const k = KITS.map.get(t.id); if (k && (k.k.length || k.g.length)) return k;
@@ -230,8 +230,8 @@ function tacticsCard(t) {
       <div class="row"><span class="lab">Valoración</span><div class="seg" id="fRate" title="Qué número se ve en cada jugador y en la valoración del equipo">${[['base', '🎮 Del juego'], ['form', '📈 Por rendimiento'], ['cmp', '⚖ Comparar']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${PREFS.rateMode === k}">${n}</button>`).join('')}</div>
         ${PD.roster(S.d, t).some(x => LM.adj.has(x.pid)) ? '' : '<span class="note">Para ver la forma, buscá los últimos partidos reales abajo.</span>'}</div>
       ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del Parche</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del Parche</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
-        <label class="chk"><input type="checkbox" id="fonline" ${PREFS.online ? 'checked' : ''}> Buscar en internet las que falten</label>
-        ${PREFS.online ? '<span class="note">Fuente: TheSportsDB (por nombre y club). Se guardan para no volver a buscarlas.</span>' : ''}</div>` : ''}
+        <span class="lab">Fotos de internet:</span><div class="seg mini" id="fsrc" role="group" aria-label="Fotos de internet">${Object.entries(PHOTO_SRC).map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${(PREFS.online ? PREFS.photoSrc || 'tsdb' : 'off') === k}" title="${{ tsdb: 'Solo fotos recortadas, sin fondo (TheSportsDB)', mix: 'Recortadas de TheSportsDB y, si no hay, la foto de Wikipedia', off: 'Solo las minifaces del Parche' }[k]}">${l}</button>`).join('')}</div>
+        ${PREFS.online ? `<span class="note">${PREFS.photoSrc === 'mix' ? 'Primero busca la foto recortada en TheSportsDB; si no la tiene, usa la de Wikipedia.' : 'Fotos recortadas de TheSportsDB (por nombre y club).'} Se guardan para no volver a buscarlas.${faceSrcStats() ? '<br>' + faceSrcStats() + '.' : ''}</span>` : ''}</div>` : ''}
       <div class="row"><span class="lab">Plantillas:</span>${Object.keys(FORM_PRESETS).map(k => `<button class="btn small" type="button" data-preset="${k}">${k}</button>`).join('')}</div>
     </div>
     ${lastMatchCard(t)}
@@ -306,7 +306,7 @@ function bindTactics(t, m) {
   const fl2 = $('flook'); if (fl2) fl2.onclick = ev => { const b = ev.target.closest('[data-v]'); if (!b) return; PREFS.look = b.dataset.v; savePrefs(); renderTeams(m); };
   const fth = $('ftheme'); if (fth) fth.onchange = () => { PREFS.theme = fth.value; savePrefs(); renderTeams(m); };
   const fid = $('fids'); if (fid) fid.onchange = () => { PREFS.showIds = fid.checked; savePrefs(); renderTeams(m); };
-  const fon = $('fonline'); if (fon) fon.onchange = () => { PREFS.online = fon.checked; savePrefs(); if (fon.checked) toast('Se buscarán en internet las fotos que no estén en el Parche (por nombre y club).', 5000); renderTeams(m); };
+  const fsrc = $('fsrc'); if (fsrc) fsrc.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; setPhotoSrc(b.dataset.v); renderTeams(m); };
   const fgr = $('fgrant'); if (fgr) fgr.onclick = grantFaces;
   const frt = $('fRate'); if (frt) frt.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; PREFS.rateMode = b.dataset.v; savePrefs(); RATE_GEN++; renderTeams(m); };
   bindLastMatch(t, m);

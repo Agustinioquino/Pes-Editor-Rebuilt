@@ -3,7 +3,7 @@ const PREF_LS = 'edit21-prefs-v1';
 const PREFS = (() => { try { return Object.assign({ look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }, JSON.parse(localStorage.getItem(PREF_LS) || '{}')); } catch { return { look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }; } })();
 function savePrefs() { try { localStorage.setItem(PREF_LS, JSON.stringify(PREFS)); } catch { } }
 const ONLINE_LS = 'edit21-online-faces-v1';
-const FACES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: false, dir: null, count: 0 };
+const FACES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: 0, dir: null, count: 0 };
 // online photo entries: { u: url, k: 'c' club kit | 'n' national-team kit | 'x' neutral headshot | '?' unknown, m: manual }
 try { FACES.online = new Map(JSON.parse(localStorage.getItem(ONLINE_LS) || '[]').map(([id, v]) => [id, typeof v === 'string' ? { u: v, k: '?' } : v])); } catch { }
 const FACE_CTX = { nat: false }; // set while rendering a club or a national team
@@ -44,7 +44,8 @@ async function grantFaces() {
   const h = FACES.needsPerm; if (!h) return;
   try { if ((await h.requestPermission({ mode: 'read' })) === 'granted') { FACES.needsPerm = null; const n = await indexFaces(h); await indexBadges(h); toast(n.toLocaleString('es-AR') + ' minifaces disponibles.'); render(); } } catch { }
 }
-function paintFace(pid, url) { document.querySelectorAll(`img[data-face="${pid}"]`).forEach(i => { i.src = url; i.closest('.face')?.classList.add('has'); }); }
+const isPhoto = pid => !FACES.url.has(pid) && (FACES.online.get(pid) || {}).s === 'wiki'; // foto rectangular (no recortada): va en círculo
+function paintFace(pid, url) { const ph = isPhoto(pid); document.querySelectorAll(`img[data-face="${pid}"]`).forEach(i => { i.src = url; const f = i.closest('.face'); if (f) { f.classList.add('has'); f.classList.toggle('ph', ph); } }); }
 function onlineFor(pid) {
   const e = FACES.online.get(pid); if (!e || !e.u) return null;
   if (e.k === 'n' && !FACE_CTX.nat) return null;   // foto con la camiseta de la selección: nunca en un club
@@ -58,8 +59,9 @@ function faceUrl(pid) {
   if (!FACES.loading.has(pid) && (FACES.idx.has(pid) || (PREFS.online && !FACES.online.has(pid)))) { FACES.loading.add(pid); FACES.queue.push(pid); pumpFaces(); }
   return null;
 }
+// varias búsquedas a la vez: las caras del Parche se leen al toque y las de internet no se esperan entre sí
 async function pumpFaces() {
-  if (FACES.busy) return; FACES.busy = true;
+  if (FACES.busy >= 3) return; FACES.busy = (FACES.busy || 0) + 1;
   while (FACES.queue.length) {
     const pid = FACES.queue.shift();
     try {
@@ -67,14 +69,71 @@ async function pumpFaces() {
         const buf = new Uint8Array(await (await FACES.idx.get(pid).getFile()).arrayBuffer());
         const url = DDS.toDataURL(buf, 128, true); FACES.url.set(pid, url); paintFace(pid, url);
       } else if (PREFS.online) {
-        const res = await onlineFace(pid);
+        const res = await findOnlineFace(pid);
         if (!res) { FACES.online.set(pid, { u: '', k: '?' }); saveOnline(); }
-        else { const k = await classifyPhoto(pid, res.u); FACES.online.set(pid, { u: res.u, k, tm: res.tm }); saveOnline(); const u = onlineFor(pid); if (u) paintFace(pid, u); }
-        await new Promise(r => setTimeout(r, 2100)); // free API: ~30 requests per minute
+        else { const k = await classifyPhoto(pid, res.u); FACES.online.set(pid, { u: res.u, k, tm: res.tm, s: res.src }); saveOnline(); const u = onlineFor(pid); if (u) paintFace(pid, u); }
       }
     } catch { }
   }
-  FACES.busy = false;
+  FACES.busy--;
+}
+// ---- fotos de internet: dos bases (Wikipedia y TheSportsDB) compiten y gana la que contesta primero con una foto confiable ----
+const FACE_SRC_LS = 'edit21-face-src-v1';
+const FACE_SRC = { wiki: 'Wikipedia', tsdb: 'TheSportsDB' };
+FACES.src = (() => { const z = () => ({ n: 0, ms: 0, hit: 0, win: 0 }); try { const j = JSON.parse(localStorage.getItem(FACE_SRC_LS) || '{}'); return { wiki: Object.assign(z(), j.wiki), tsdb: Object.assign(z(), j.tsdb) }; } catch { return { wiki: z(), tsdb: z() }; } })();
+// la primera vez con dos bases: volver a buscar a los que TheSportsDB sola no encontró
+try { if (!localStorage.getItem(FACE_SRC_LS)) { for (const [k, v] of FACES.online) if (!v.u && !v.m) FACES.online.delete(k); saveOnline(); } } catch { }
+const saveFaceSrc = () => { try { localStorage.setItem(FACE_SRC_LS, JSON.stringify(FACES.src)); } catch { } };
+let tsdbNext = 0; // TheSportsDB gratis: una búsqueda cada ~2 segundos
+async function faceTimed(k, fn) {
+  const t = performance.now(); let r = null; try { r = await fn(); } catch { }
+  const s = FACES.src[k]; s.n++; s.ms += performance.now() - t; if (r) s.hit++; saveFaceSrc();
+  return r ? Object.assign(r, { src: k }) : null;
+}
+// recortadas: solo TheSportsDB (fotos sin fondo) · mezcla: TheSportsDB primero y, si no tiene, la foto de Wikipedia
+async function tsdbTurn() { let w; while ((w = tsdbNext - Date.now()) > 0) await new Promise(ok => setTimeout(ok, w)); tsdbNext = Date.now() + 2100; }
+async function findOnlineFace(pid) {
+  const wiki = PREFS.photoSrc === 'mix' ? faceTimed('wiki', () => wikiFace(pid)) : null; // arranca ya, mientras espera su turno TheSportsDB
+  await tsdbTurn();
+  let r = await faceTimed('tsdb', () => onlineFace(pid));
+  if (!r && wiki) r = await wiki;
+  if (r) { FACES.src[r.src].win++; saveFaceSrc(); }
+  return r;
+}
+const PHOTO_SRC = { tsdb: 'Recortadas', mix: 'Mezcla', off: 'No' };
+function setPhotoSrc(v) {
+  PREFS.photoSrc = v; PREFS.online = v !== 'off'; savePrefs();
+  // volver a buscar a los que no se encontraron; con "recortadas" se sacan las fotos de Wikipedia
+  for (const [k, e] of FACES.online) if (!e.m && (!e.u || (v === 'tsdb' && e.s === 'wiki'))) { FACES.online.delete(k); FACES.loading.delete(k); }
+  saveOnline();
+}
+function faceSrcStats() {
+  const f = k => { const s = FACES.src[k]; return s.n ? `${FACE_SRC[k]}: ${(s.ms / s.n / 1000).toFixed(1).replace('.', ',')} s por búsqueda, ${s.win} foto${s.win === 1 ? '' : 's'}` : ''; };
+  return ['wiki', 'tsdb'].map(f).filter(Boolean).join(' · ');
+}
+async function wikiFace(pid) {
+  const full = playerName(pid); if (!full) return null;
+  const parts = full.replace(/\./g, '. ').split(/\s+/).filter(Boolean);
+  const initial = parts.length > 1 && /\.$/.test(parts[0]) ? normTxt(parts[0])[0] : '';
+  const surname = parts.filter(p => !/\.$/.test(p)).join(' '), last = normTxt(surname).split(' ').slice(-1)[0];
+  const club = clubOf(pid), clubName = club ? normTxt(tget(club, 'name')) : '';
+  const q = `${surname} footballer${clubName ? ' ' + clubName : ''}`;
+  const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=6&prop=pageimages%7Cdescription&piprop=thumbnail&pithumbsize=240`);
+  if (!r.ok) return null;
+  const j = await r.json(), pages = Object.values((j.query && j.query.pages) || {}).sort((a, b) => a.index - b.index);
+  let best = null, bestScore = -1;
+  for (const p of pages) {
+    const t = normTxt(p.title.replace(/\(.*?\)/g, '')), d = normTxt(p.description);
+    if (!p.thumbnail || !/football|soccer/.test(d) || /club|team|league|season|stadium|manager|coach/.test(d)) continue;
+    let s = 0;
+    if (t.split(' ').includes(last)) s += 3;
+    if (initial && t.startsWith(initial)) s += 1;
+    if (/footballer|soccer player/.test(d)) s += 1;
+    s -= p.index * .2; // el primero de la búsqueda suele ser el correcto
+    if (s > bestScore) { bestScore = s; best = p; }
+  }
+  if (!best || bestScore < 3.5) return null;
+  return { u: best.thumbnail.source, tm: best.description || '' };
 }
 const normTxt = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 async function onlineFace(pid) {
@@ -102,7 +161,7 @@ async function onlineFace(pid) {
 function faceHtml(pid, kit, cls = '') {
   const url = pid ? faceUrl(pid) : null;
   const glow = kit ? `--g1:${kit.c1};--g2:${kit.c2}` : '';
-  return `<span class="face ${url ? 'has' : ''} ${cls}" style="${glow}"><img data-face="${pid || ''}" alt="" ${url ? `src="${url}"` : ''}>${shirtSvg(kit, '86%')}</span>`;
+  return `<span class="face ${url ? 'has' : ''}${url && isPhoto(pid) ? ' ph' : ''} ${cls}" style="${glow}"><img data-face="${pid || ''}" alt="" ${url ? `src="${url}"` : ''}>${shirtSvg(kit, '86%')}</span>`;
 }
 
 // ===================== Team badges: Parche flag/emblem PNGs + optional online fallback =====================

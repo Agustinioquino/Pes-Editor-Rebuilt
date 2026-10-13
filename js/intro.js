@@ -101,7 +101,7 @@ async function pesPick() {
   pesOpen(root);
 }
 async function pesOpen(root) {
-  introShow().classList.add('busy'); PESLOC.root = root;
+  introShow().classList.add('busy'); PESLOC.root = root; const t0 = Date.now();
   introStep('Revisando ' + root.name + '…');
   let f; try { f = await pesFind(root); } catch (e) { introStep('No se pudo recorrer la carpeta: ' + e.message, 'err'); return; }
   Object.assign(PESLOC, f);
@@ -119,9 +119,57 @@ async function pesOpen(root) {
     S.dir = e.dir; S.editHandle = e.handle; S.mtime = file.lastModified;
     openBytes(bytes, e.path + '\\EDIT00000000');
     if (typeof wepesCount === 'function') wepesCount();
+    await introSider(t0);
     introDone(`Listo: ${S.ix.teams.length} equipos y ${S.ix.players.length} jugadores editados.`);
     if (f.edits.length > 1) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'Parche' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
   } catch (er) { introStep('No se pudo abrir el EDIT: ' + er.message, 'err'); introActions(`<button class="btn" type="button" id="introOther">Elegir otra carpeta</button>`, a => a.querySelector('#introOther').onclick = () => pesPick()); }
+}
+// ---- Sider: pedir la carpeta (o el permiso) y esperar a que carguen caras, escudos y nombres ----
+const introWait = ms => new Promise(r => setTimeout(r, ms));
+function introAsk(html) { return new Promise(res => introActions(html, a => a.querySelectorAll('[data-a]').forEach(b => b.onclick = () => res(b.dataset.a)))); }
+async function introSider(t0) {
+  let h = await idbGet('sider').catch(() => null), ready = false;
+  if (h) {
+    let perm = 'granted'; try { perm = h.queryPermission ? await h.queryPermission({ mode: 'read' }) : 'granted'; } catch { }
+    if (perm === 'granted') ready = true;
+    else {
+      introStep('Sider: hace falta tu permiso para volver a leer ' + h.name + '.', 'wait');
+      for (;;) {
+        const a = await introAsk(`<button class="btn primary big" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Permitir leer Sider</button><button class="btn ghost" type="button" data-a="new">Elegir otra carpeta Sider</button><button class="btn ghost" type="button" data-a="no">Seguir sin Sider</button>
+          <p class="note">De Sider salen las caras, los kits, los escudos y los nombres de todos los jugadores del Parche.</p>`);
+        if (a === 'no') break;
+        if (a === 'new') { if (await connectKits()) { ready = true; break; } continue; }
+        try { if ((await h.requestPermission({ mode: 'read' })) === 'granted') { FACES.needsPerm = null; FACES.ready = restoreFaces(); ready = true; break; } } catch { }
+      }
+    }
+  } else {
+    introStep('Conectá tu carpeta Sider para ver caras, kits, escudos y nombres del Parche.', 'wait');
+    for (;;) {
+      const a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button><button class="btn ghost" type="button" data-a="no">Ahora no</button>
+        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>). Se hace una sola vez: después el editor la recuerda.</p>`);
+      if (a === 'no') break;
+      introActions(''); introStep('Leyendo tu carpeta Sider…');
+      if (await connectKits()) { ready = true; break; }
+      introStep('No se conectó Sider. Probá de nuevo con la carpeta que tiene sider.exe.', 'wait');
+    }
+  }
+  introActions(''); INTRO.el && INTRO.el.classList.add('busy');
+  if (ready) {
+    introStep('Cargando caras, escudos y la base del juego desde Sider…');
+    await Promise.race([FACES.ready || Promise.resolve(), introWait(12000)]);
+    introStep(`Sider listo: ${(FACES.count || 0).toLocaleString('es-AR')} caras y ${(BADGES.count || 0).toLocaleString('es-AR')} escudos.`);
+  } else introStep('Sin Sider por ahora: podés conectarlo después con el botón de arriba.');
+  // fotos de internet para los que no tienen miniface: se elige una vez
+  if (!PREFS.photoSrc) {
+    introStep('¿Qué fotos querés para los jugadores sin miniface del Parche?', 'wait');
+    const a = await introAsk(`<div class="introchoice"><button class="btn primary big" type="button" data-a="tsdb">✂️ Recortadas<small>Fotos sin fondo de TheSportsDB. Las que no estén, quedan con la camiseta.</small></button><button class="btn big" type="button" data-a="mix">🧩 Mezcla<small>Recortadas de TheSportsDB y, si no hay, la foto real de Wikipedia.</small></button></div>
+      <button class="btn ghost" type="button" data-a="off">Sin fotos de internet</button><p class="note">Lo podés cambiar cuando quieras en la Formación de cualquier equipo (vista Fotos).</p>`);
+    setPhotoSrc(a); introActions(''); INTRO.el && INTRO.el.classList.add('busy');
+    introStep({ tsdb: 'Fotos: recortadas de TheSportsDB.', mix: 'Fotos: recortadas y, si faltan, de Wikipedia.', off: 'Fotos: solo las del Parche.' }[a]);
+  }
+  // un momento más para que terminen de cargar las fuentes, el logo y las primeras caras
+  introStep('Preparando la pantalla…');
+  await Promise.race([Promise.all([document.fonts ? document.fonts.ready : null, introWait(Math.max(0, t0 + 2600 - Date.now()))]), introWait(8000)]);
 }
 // cambiar entre EDITs encontrados (drmp / save / otra cuenta de Steam)
 async function pesSwitch(i) {

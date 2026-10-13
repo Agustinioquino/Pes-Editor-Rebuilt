@@ -53,8 +53,9 @@ async function connectKits(dirIn) {
       namesMsg = ` y ${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
+  if (!sider.readOnly) { try { const n = await siderFixPaths(sider); if (n) setTimeout(() => toast(`Arreglé ${n} rutas de sider.ini que apuntaban a la carpeta vieja de Sider: ahora son relativas (copia en sider.ini.bak-pes-editor).`, 9000), 7400); } catch { } }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, !sider.readOnly); } catch { } }
-  if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa.', 9000, ['Ver qué hacer', siderBlockedHelp]), 7200);
+  if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
   toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
 }
 // el botón de arriba dice "Reconectar" cuando la carpeta Sider ya está conectada (en la carga o antes)

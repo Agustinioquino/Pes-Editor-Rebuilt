@@ -2,9 +2,10 @@
 // Chrome y Edge no dejan elegir con permiso de escritura una carpeta que esté dentro de C:\Program Files o
 // C:\Program Files (x86) ("contiene archivos del sistema"). Ahí está Steam por defecto, y muchos Parches ponen su
 // carpeta Sider dentro del juego. Plan B: el selector de carpetas "para subir archivos", que sí la deja leer.
-// Así se ven kits, caras, escudos y nombres; para guardar en el Parche hay que mover el juego (o la carpeta Sider).
+// Así se ven kits, caras, escudos y nombres. Para guardar en el Parche alcanza con mover la carpeta Sider fuera de
+// Archivos de programa: Sider funciona desde cualquier carpeta (se engancha al juego por el nombre del .exe).
 var SIDER_RO = null;
-const RO_MSG = 'Abriste la carpeta Sider solo para ver (está dentro de Archivos de programa). Para guardar en el Parche, mové el juego a otra biblioteca de Steam.';
+const RO_MSG = 'Abriste la carpeta Sider solo para ver (está dentro de Archivos de programa). Para guardar en el Parche, mové la carpeta Sider a otro lugar, por ejemplo C:\\PES2021.';
 const roErr = () => Object.assign(new Error(RO_MSG), { name: 'NotAllowedError' });
 class RoFile { constructor(f) { this.kind = 'file'; this.name = f.name; this.f = f; } async getFile() { return this.f; } async createWritable() { throw roErr(); } async queryPermission(o) { return o && o.mode === 'readwrite' ? 'denied' : 'granted'; } async requestPermission(o) { if (o && o.mode === 'readwrite') throw roErr(); return 'granted'; } }
 class RoDir {
@@ -41,10 +42,37 @@ async function connectSiderRO() {
   toast('Leyendo la carpeta Sider…', 60000);
   SIDER_RO = dir; return connectKits(dir);
 }
+// los pasos para sacar la carpeta Sider de Archivos de programa (en esta ventana y en la pantalla de carga)
+function siderMoveSteps(name, btn) {
+  return `<ol class="note siderhow"><li>Cerrá el juego y Sider.</li><li>En el Explorador de archivos, cortá ${name ? `la carpeta <b>${name}</b>` : 'tu carpeta Sider'} (clic derecho › Cortar).</li><li>Pegala en una carpeta tuya fuera de Archivos de programa, por ejemplo <b>C:\\PES2021</b>. Si Windows pide permiso de administrador, aceptá.</li><li>Desde ahora abrí <b>sider.exe</b> desde ese lugar nuevo (podés crear un acceso directo en el escritorio).</li><li>Acá tocá <b>${btn}</b> y elegí la carpeta en su lugar nuevo. Si tu sider.ini tiene rutas completas a la carpeta vieja, el editor las arregla solo (con copia de seguridad).</li></ol>`;
+}
+const siderRoName = () => (SIDER_RO && SIDER_RO.name ? esc(SIDER_RO.name) : '');
 function siderBlockedHelp() {
-  ksModal('¿Chrome no te dejó abrir la carpeta Sider?', `<p>Si te apareció <b>"Esta carpeta no se puede abrir… contiene archivos del sistema"</b>, es porque tu carpeta Sider está dentro de <code>C:\\Program Files (x86)</code> (por ejemplo en <code>Steam\\steamapps\\common\\eFootball PES 2021</code>). Chrome y Edge no dejan que ninguna página escriba ahí.</p>
-    <p><b>Opción 1, para ver ya:</b> abrila solo para ver. Vas a tener kits, caras, escudos y nombres, pero el editor no puede guardar en el Parche (kits, escudos, módulo).</p>
-    <p><b>Opción 2, para poder guardar:</b> mové el juego a otra biblioteca de Steam fuera de Archivos de programa (por ejemplo <code>D:\\SteamLibrary</code>): en Steam, clic derecho en PES 2021 › Propiedades › Archivos instalados › Mover carpeta de instalación. Después conectá la carpeta Sider desde su lugar nuevo.</p>
-    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn ghost" type="button" data-x>Cerrar</button><button class="btn" type="button" id="roRetry">Elegir otra carpeta</button><button class="btn primary" type="button" id="roOpen">📂 Abrir solo para ver</button></div>`,
+  const name = siderRoName();
+  ksModal('¿Chrome no te dejó abrir la carpeta Sider?', `<p>Si te apareció <b>"Esta carpeta no se puede abrir… contiene archivos del sistema"</b>, es porque tu carpeta Sider está dentro de <code>C:\\Program Files (x86)</code> (por ejemplo en <code>Steam\\steamapps\\common\\eFootball PES 2021</code>). Chrome y Edge no dejan que ninguna página escriba ahí, y no hay forma de saltearlo desde el editor.</p>
+    <p><b>La solución: sacá la carpeta Sider de Archivos de programa.</b> Sider funciona desde cualquier carpeta, no hace falta que esté junto al juego, y el juego queda donde está.</p>
+    ${siderMoveSteps(name, 'Elegir otra carpeta')}
+    <p><b>Si no querés moverla todavía:</b> abrila solo para ver. Vas a tener kits, caras, escudos y nombres, pero el editor no puede guardar en el Parche (kits, escudos, módulo).</p>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn ghost" type="button" data-x>Cerrar</button><button class="btn" type="button" id="roOpen">📂 Abrir solo para ver</button><button class="btn primary" type="button" id="roRetry">Elegir otra carpeta</button></div>`,
     (box, close) => { box.querySelector('#roOpen').onclick = () => { close(); connectSiderRO(); }; box.querySelector('#roRetry').onclick = () => { close(); connectKits(); }; });
+}
+// Después de mover la carpeta Sider: las líneas cpk.root con la ruta completa a la carpeta vieja (C:\Program Files…\<Sider>\livecpk\X)
+// dejarían de andar. Si en la carpeta nueva está ese mismo livecpk\X, se pasa a ruta relativa (.\livecpk\X), que Sider toma
+// desde su propia carpeta. Copia de seguridad en sider.ini.bak-pes-editor la primera vez.
+async function siderFixPaths(sider) {
+  const f = await sdbFile(sider, 'sider.ini'); if (!f) return 0;
+  let live = null; try { live = await sider.getDirectoryHandle('livecpk'); } catch { return 0; }
+  const orig = await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), me = sider.name.toLowerCase();
+  let n = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*cpk\.root\s*=\s*)"?([A-Za-z]:[\\/][^"\r\n]*?|\\\\[^"\r\n]*?)"?\s*(;.*)?$/i); if (!m) continue;
+    const k = m[2].match(/^(.*?)[\\/]livecpk[\\/]([^\\/]+)([\\/].*)?$/i); if (!k) continue;
+    const prev = k[1].split(/[\\/]/).filter(Boolean).pop() || '';
+    if (prev.toLowerCase() !== me && !/program files/i.test(k[1])) continue; // es de otra carpeta, no de esta Sider movida
+    try { await live.getDirectoryHandle(k[2]); } catch { continue; }
+    lines[i] = `${m[1]}".\\livecpk\\${k[2]}${(k[3] || '').replace(/[\\/]+$/, '').replace(/\//g, '\\')}"${m[3] ? ' ' + m[3] : ''}`; n++;
+  }
+  if (!n) return 0;
+  if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
+  await sdbWrite(sider, 'sider.ini', lines.join(nl)); return n;
 }

@@ -2,6 +2,8 @@
 // Un cartel abajo a la derecha, una vez por versión, cuando termina la pantalla de carga. También queda arriba de
 // todo en Novedades. "Beta" = ya está en el editor pero en prueba; "Próximamente" = en camino, puede cambiar.
 const DEV_ITEMS = [
+  ['beta', '⬡', 'Ficha hexagonal y media rápida', 'Cambiar la media y cada área de un jugador arrastrando el hexágono o desde el plantel. Está en prueba: si una media no queda como esperabas, avisá.'],
+  ['beta', '🗂', 'Tu trabajo en el caché', 'Al actualizar el editor, tus cambios sin guardar quedan en el navegador y vuelven solos. Está en prueba: guardá en el juego igual cuando termines.'],
   ['beta', '📈', 'Valoración dinámica con datos reales', 'La forma de cada jugador ahora usa toda la temporada, los goleadores, las lesiones y el historial de ESPN. Está en prueba: si ves un dato raro, avisá.'],
   ['soon', '🎮', 'Más estilos gráficos', 'Modos inspirados en los menús de otras ediciones de PES, como el de PES 5.'],
   ['soon', '🛠️', 'Habilidades desde la ficha', 'Editar las habilidades de cada jugador desde su ficha, con los nombres del juego.'],

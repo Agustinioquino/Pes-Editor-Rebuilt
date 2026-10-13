@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.042%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.043%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 

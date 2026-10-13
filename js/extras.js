@@ -108,19 +108,25 @@ const STRAT_RANGE = [
   ['def', 0x90, 'Ajuste defensivo extra', 1, 3, '1', '3', '', true],
 ];
 // Advanced instructions: one shared code list; each plan has two attack slots and two defense slots.
-// ok = code verified in the game; false = deduced from real teams; codes not listed are still unmapped.
+// ok = code verified in the game. 15 shows "No" in the game, probably because Delantero liberado needs a target player.
 const ADV_SLOTS = [['att', 0x6C, 'Ataque 1'], ['att', 0x74, 'Ataque 2'], ['def', 0x7C, 'Defensa 1'], ['def', 0x84, 'Defensa 2']];
 const ADV_CODES = { att: [1, 2, 3, 4, 5, 6, 7, 9], def: [11, 12, 13, 14, 15, 16] };
 const ADV = {
   1: ['Ensanchar la cancha', true, 'Los jugadores de banda juegan pegados a la línea lateral para abrir la defensa rival.'],
   2: ['Falso nueve', true, 'El delantero centro baja a recibir y deja espacio para que lleguen los de segunda línea.'],
+  3: ['Falsos laterales', true, 'Los laterales se cierran hacia el medio para ayudar en la creación.'],
   4: ['Laterales ofensivos', true, 'Los laterales suben con frecuencia para sumarse al ataque.'],
-  6: ['Tiqui-taca', false, 'Pases cortos y movimiento constante para tener la pelota y desordenar al rival.'],
+  5: ['Rotación en banda', true, 'Los jugadores de banda intercambian posiciones para desordenar la marca.'],
+  6: ['Tiqui-taca', true, 'Pases cortos y movimiento constante para tener la pelota y desordenar al rival.'],
+  7: ['Centros al área', true, 'Varios jugadores entran al área cuando se centra desde la banda.'],
   9: ['Falso extremo', true, 'El extremo se cierra hacia el medio y deja la banda libre para el lateral.'],
   11: ['Poblar el área', true, 'Cuando el rival centra, varios jugadores vuelven a defender dentro del área.'],
-  13: ['Presión alta', false, 'Se presiona en campo rival para recuperar la pelota rápido. Exige mucha resistencia.'],
+  12: ['Defensiva atrasada', true, 'La línea defensiva se queda atrás para cubrir el espacio a su espalda.'],
+  13: ['Presión alta', true, 'Se presiona en campo rival para recuperar la pelota rápido. Exige mucha resistencia.'],
+  14: ['Marcaje estrecho', true, 'Se marca muy de cerca al rival que recibe la pelota.'],
+  15: ['Delantero liberado', false, 'Un delantero no baja a defender y espera arriba para salir de contraataque. En el juego aparece como "No" si no tiene un delantero asignado.'],
+  16: ['Carrilero', true, 'Los de banda bajan a defender su costado como carrileros.'],
 };
-// Still to map: Rotación en banda, Centros al área, Falsos laterales (ataque); Carrilero, Marcaje estrecho, Defensiva atrasada, Delantero liberado (defensa).
 const advName = c => !c ? 'No' : ADV[c] ? ADV[c][0] + (ADV[c][1] ? '' : ' (probable)') : 'Código ' + c + ' (sin confirmar)';
 const MARK = 0x91, NMARK = 11; // Config. marcaje: one byte per formation slot, 0xff = automático
 // Same names as "Opciones tácticas rápidas" in the game. The EDIT doesn't store the game's exact values, so these approximate them.
@@ -152,7 +158,7 @@ function strategyCard(t) {
         <div class="f"><span class="lab">Config. marcaje</span>${marks ? `<div class="row"><span>${marks} ${marks === 1 ? 'jugador marca' : 'jugadores marcan'} a un rival fijo.</span><button class="btn small" type="button" id="unmark">Volver a automático</button></div>` : '<span>Automático en todos los jugadores.</span>'}<span class="sdesc">El marcaje individual se elige en el juego; acá podés devolverlo a automático si quedó mal.</span></div></div>
     </div>
     <div class="row"><span class="lab">Copiar este plan (formación y estrategia) a:</span>${[0, 1, 2].filter(p => p !== S.fplan).map(p => `<button class="btn small" type="button" data-copyplan="${p}">Plan ${p + 1}</button>`).join('')}</div>
-    <p class="note">Los nombres son los del juego y están comprobados en PES 2021. Las instrucciones marcadas "probable" o "sin confirmar" todavía no están verificadas; las opciones tácticas rápidas son aproximadas, porque el juego no guarda sus valores exactos en el EDIT.</p>
+    <p class="note">Los nombres son los del juego y están comprobados en PES 2021. Todas las instrucciones avanzadas están comprobadas salvo Delantero liberado; las opciones tácticas rápidas son aproximadas, porque el juego no guarda sus valores exactos en el EDIT.</p>
   </div>`;
 }
 const FORM_PRESETS = {

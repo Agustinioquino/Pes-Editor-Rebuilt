@@ -12,6 +12,8 @@ function uiLogo() {
   const img = $('brandLogo'); if (!img) return;
   const dark = isDarkUi() || /^(retro|pes6)$/.test(document.documentElement.dataset.gfx || ''), src = typeof LOGO_SVG !== 'undefined' ? LOGO_SVG[dark ? 'dark' : 'light'] : typeof LOGO_SRC !== 'undefined' ? LOGO_SRC[dark ? 'dark' : 'light'] : null;
   if (!src || img.dataset.k === (dark ? 'd' : 'l')) return; img.dataset.k = dark ? 'd' : 'l';
+  // capas del efecto del logo en PES 6: la silueta y el contorno del mismo logo
+  const br = $('bHome'); if (br) { br.style.setProperty('--lm', `url("${src}")`); if (typeof LOGO_SRC !== 'undefined' && LOGO_SRC.neon) br.style.setProperty('--nm', `url("${LOGO_SRC.neon}")`); }
   if (img.getAttribute('src') && !ANIM.reduce.matches) { img.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140 }).onfinish = () => { img.src = src; img.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'none' }], { duration: 260 }); }; }
   else img.src = src;
 }

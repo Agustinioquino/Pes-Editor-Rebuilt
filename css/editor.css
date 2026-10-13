@@ -959,7 +959,7 @@ html[data-gfx="pes6"] .tab[aria-selected="true"]{color:#1c1c1a;background:linear
 html[data-gfx="pes6"] .tab .count{color:#5a4a10}
 html[data-gfx="pes6"] .tabbar .status .chip{background:#f2f1ec;color:#2b2b2b;border-color:#8f8c84}
 html[data-gfx="pes6"] .tabbar .uibtn{color:#1c1c1a}
-@media (max-width:1440px){html[data-gfx="pes6"] .tabbar .ublab{display:none}}
+@media (max-width:1300px){html[data-gfx="pes6"] .tabbar .ublab{display:none}}
 html[data-gfx="pes6"] .card{background:linear-gradient(180deg,#f6f5f1f2,#e7e6e0f2);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 10px 24px -14px #5a2a00cc}
 html[data-gfx="pes6"] .btn{background:linear-gradient(180deg,#fafaf8,#cfcdc7);color:#1c1c1a;border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 1px 2px #0003}
 html[data-gfx="pes6"] .btn:hover:not(:disabled){background:linear-gradient(180deg,#fffbe0,#efd96e);border-color:#a8820f}
@@ -1120,3 +1120,29 @@ html[data-gfx="pes6"] :is(.stchoice button,.qt,.advt)[aria-pressed="true"] small
 .uireset{justify-self:center}
 html[data-gfx="clasico"] .uitiles button{border-radius:0}
 html[data-gfx="retro"] .uitiles button,html[data-gfx="retro"] .uigrp{border-radius:0}
+/* ---- PES 6: tabla del plantel dorada, botones de la barra legibles y logo que "respira" ---- */
+html[data-gfx="pes6"] .dt thead th{background:linear-gradient(180deg,#f3d25a,#c99a12);color:#2a2000;border-bottom:1px solid #8a6a08;text-shadow:0 1px #fff6}
+html[data-gfx="pes6"] .dt thead th.on,html[data-gfx="pes6"] .dt thead th .sarr{color:#1c1c1a}
+html[data-gfx="pes6"] .dt tbody tr.prow td{background:linear-gradient(180deg,#fffbea,#f6ecc4);border-bottom-color:#d9c27a}
+html[data-gfx="pes6"] .dt tbody tr.prow:nth-child(even) td{background:linear-gradient(180deg,#fdf3cf,#efdea0)}
+html[data-gfx="pes6"] .dt tbody tr.prow.starter td{background:linear-gradient(180deg,#fdeb9a,#ecc94a)}
+html[data-gfx="pes6"] .dt tbody tr.prow:hover td{background:linear-gradient(180deg,#fff4b8,#f0cf4c)}
+html[data-gfx="pes6"] .dt tbody tr.prow.sel td{background:linear-gradient(180deg,#ffe680,#e6b81e)}
+html[data-gfx="pes6"] .dt tr.starter td:first-child{box-shadow:inset 4px 0 0 #a8820f}
+html[data-gfx="pes6"] .dt .stno{color:#6b5000}
+html[data-gfx="pes6"] .tabbar .uibtn{color:#1c1c1a;background:linear-gradient(180deg,#fafaf8,#c9c8c2);border:1px solid #6f6c64;border-radius:6px;box-shadow:inset 0 1px #fff,0 2px 4px #0005;font-weight:700}
+html[data-gfx="pes6"] .tabbar .uibtn:hover,html[data-gfx="pes6"] .tabbar .uibtn[aria-expanded="true"]{background:linear-gradient(180deg,#fdf0a0,#e6c02e);border-color:#a8820f}
+.brand{position:relative}
+.brandfx{display:none}
+html[data-gfx="pes6"] .brandfx{display:block;position:absolute;inset:0;pointer-events:none}
+html[data-gfx="pes6"] .brandfx i{position:absolute;inset:0;opacity:0;transition:opacity .4s}
+html[data-gfx="pes6"] .bfill{background:linear-gradient(180deg,#fdf0a0,#e6c02e 55%,#a8820f);-webkit-mask:var(--lm) center/contain no-repeat;mask:var(--lm) center/contain no-repeat;z-index:-1}
+html[data-gfx="pes6"] .bline{background:#ffe25a;-webkit-mask:var(--nm) center/contain no-repeat;mask:var(--nm) center/contain no-repeat;filter:drop-shadow(0 0 1px #ffd23a) drop-shadow(0 0 3px #e6a800)}
+html[data-gfx="pes6"] .brand:hover{scale:1;filter:none}
+html[data-gfx="pes6"] .brand:hover .brandlogo{animation:pesLogoBreath 2.8s ease-in-out infinite}
+html[data-gfx="pes6"] .brand:hover .bfill{opacity:.55;animation:pesLogoEcho 2.8s ease-in-out infinite}
+html[data-gfx="pes6"] .brand:hover .bline{animation:pesLogoLine 2.8s ease-in-out infinite}
+@keyframes pesLogoBreath{0%,100%{scale:1}50%{scale:1.05}}
+@keyframes pesLogoEcho{0%,100%{scale:1.1;opacity:.85}50%{scale:1.02;opacity:.35}}
+@keyframes pesLogoLine{0%{scale:1;opacity:1}75%{scale:1.2;opacity:0}100%{scale:1.2;opacity:0}}
+html[data-gfx="pes6"][data-q="low"] .brand:hover :is(.brandlogo,.bfill,.bline){animation:none}

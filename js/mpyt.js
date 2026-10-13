@@ -27,15 +27,15 @@ function ytPlayers() {
       events: { onReady: () => res(p), onStateChange: e => ytState(n, e.data), onError: e => ytError(n, e.data) } });
   })))).then(ps => { YT_ST.p = ps; return ps; }).catch(e => { YT_ST.made = null; throw e; }));
 }
-// a los 15 segundos de sonar, el video se esconde y queda la carátula; tocándola vuelve el video
-function ytMinArm() {
-  clearTimeout(YT_ST.minT); const el = MP.el; if (!el) return; el.classList.remove('ytmin');
-  const c = el.querySelector('#mpTvCov'); if (c && !c.__on) { c.__on = 1; c.onclick = ytMinArm; }
-  YT_ST.minT = setTimeout(() => { if (MP.kind !== 'yt' || !MP.playing) { YT_ST.minT = 0; return; } const img = el.querySelector('#mpTvCov img'); if (img) img.src = mpCover(MP.list[MP.i]); el.classList.add('ytmin'); }, 15000);
+// a los 15 segundos de video queda solo la carátula; tocándola vuelve el video por otros 15 segundos
+// (lo mide ytTick con el tiempo real del video, así funciona aunque YouTube no avise cuándo empezó)
+function ytMinOn() { const el = MP.el; if (!el) return; const img = el.querySelector('#mpTvCov img'), tr = MP.list[MP.i]; if (img && tr) img.src = mpCover(tr); el.classList.add('ytmin'); }
+function ytMinOff() {
+  const el = MP.el; if (!el) return; el.classList.remove('ytmin');
+  const p = YT_ST.p[YT_ST.cur]; let t = 0; try { t = p ? p.getCurrentTime() : 0; } catch { } YT_ST.shownAt = t;
 }
 function ytState(n, s) {
   if (n !== YT_ST.cur || MP.kind !== 'yt') return;
-  if (s === 1 && !YT_ST.minT) ytMinArm();
   if (s === 1) { // sonando: sin silencio, con el volumen del reproductor, y completa el título si faltaba
     const p = YT_ST.p[n]; try { if (p.isMuted && p.isMuted()) p.unMute(); if (!p.__iv) p.setVolume(ytVol()); } catch { }
     if (typeof mpYtMobile === 'function' && mpIsPhone() && !MP.st.open) mpYtMobile();
@@ -60,7 +60,8 @@ function ytRamp(p, to, dur) {
 const ytVol = () => Math.round((MP.st.mute ? 0 : MP.st.vol) * 100);
 function ytShow(n) {
   const el = MP.el; if (!el) return; el.classList.toggle('yt', MP.kind === 'yt'); mpTvPlace();
-  clearTimeout(YT_ST.minT); YT_ST.minT = 0; el.classList.remove('ytmin'); // cada video nuevo se ve de nuevo 15 segundos
+  YT_ST.shownAt = 0; el.classList.remove('ytmin'); // cada video nuevo se ve de nuevo 15 segundos
+  const c = el.querySelector('#mpTvCov'); if (c && !c.__on) { c.__on = 1; c.onclick = ytMinOff; }
   el.querySelectorAll('.mptvp').forEach(w => w.classList.toggle('on', +w.dataset.n === n));
 }
 function ytTick() {
@@ -70,6 +71,7 @@ function ytTick() {
     mpUiTime();
     const p = YT_ST.p[YT_ST.cur]; if (!p || !MP.playing || MP.trans || MP.going) return;
     let t = 0, d = 0; try { t = p.getCurrentTime(); d = p.getDuration(); } catch { }
+    if (t - (YT_ST.shownAt || 0) >= 15 && MP.el && !MP.el.classList.contains('ytmin')) ytMinOn();
     if (MP.st.repeat === 'one') { if (d && d - t < .6) p.seekTo(0, true); return; }
     const D = MP.st.mode === 'corte' ? .3 : MP.st.fade;
     if (d > 5 && d - t <= D + .4 && MP.list.length > 1) mpNext('auto');

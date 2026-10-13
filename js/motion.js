@@ -20,6 +20,7 @@ function motion() {
   };
   const L = ANIM.last;
   if (k.page !== L.page) { m.classList.remove('enter'); void m.offsetWidth; m.classList.add('enter'); }
+  if (document.documentElement.dataset.gfx === 'pes6' && S.f && (k.page !== L.page || k.sheet !== L.sheet)) tvStatic(k.page !== L.page ? m : m.querySelector('.sheet') || m);
   if (k.list !== L.list) cascade([...m.querySelectorAll('.list-body > .item')].slice(0, 22));
   if (k.sheet !== L.sheet) {
     const sheet = m.querySelector('.sheet') || m;
@@ -31,6 +32,21 @@ function motion() {
   }
   ANIM.last = k;
   if (typeof REVEAL !== 'undefined' && REVEAL.size) setTimeout(revealRatings, 450);
+}
+// PES 6: un golpe de estática (como cambiar de canal en una tele vieja) sobre lo que se acaba de cargar
+let TV_NOISE = null;
+function tvNoise() {
+  if (TV_NOISE) return TV_NOISE;
+  const c = document.createElement('canvas'); c.width = 120; c.height = 90; const g = c.getContext('2d'), d = g.createImageData(120, 90);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255 | 0, row = (i / 480 | 0) % 3 === 0 ? .7 : 1; d.data[i] = d.data[i + 1] = d.data[i + 2] = v * row; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0); return (TV_NOISE = c.toDataURL());
+}
+function tvStatic(el) {
+  if (!el || ANIM.reduce.matches) return;
+  const r = el.getBoundingClientRect(), top = Math.max(0, r.top), bot = Math.min(innerHeight, r.bottom); if (bot - top < 40 || r.width < 40) return;
+  const s = document.createElement('div'); s.className = 'tvstatic'; s.setAttribute('aria-hidden', 'true');
+  Object.assign(s.style, { left: r.left + 'px', top: top + 'px', width: r.width + 'px', height: (bot - top) + 'px', backgroundImage: `url(${tvNoise()})` });
+  document.body.appendChild(s); s.addEventListener('animationend', e => { if (e.target === s) s.remove(); }); setTimeout(() => s.remove(), 900);
 }
 // play a short exit animation on el, then run fn (the re-render)
 function leave(el, fn) {

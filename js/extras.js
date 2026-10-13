@@ -143,22 +143,25 @@ const STRAT_PRESETS = {
 };
 function strategyCard(t) {
   const b = planOff(t, S.fplan), v = o => S.d[b + o];
-  const knob = '<span class="knob" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><path d="M12 3v8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M7.1 6.6a7 7 0 1 0 9.8 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span>';
-  const bin = side => STRAT_BIN.filter(x => x[0] === side).map(([, o, n, opts, desc]) => `<div class="f"><span class="lab">${n}</span><div class="pswitch" data-st="${o}" data-on="${v(o) ? 1 : 0}" role="group" aria-label="${esc(n)}">${opts.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${v(o) === i}" title="${esc(desc[i])}">${l}</button>`).join('')}${knob}</div><span class="sdesc">${esc(desc[v(o)] || '')}</span></div>`).join('');
-  const rng = side => STRAT_RANGE.filter(x => x[0] === side).map(([, o, n, min, max, lo, hi, desc, unsure]) => `<div class="f"><span class="lab">${n}${unsure ? ' <span class="chip">sin confirmar</span>' : ''}</span><div class="srange"><span>${lo}</span><input type="range" min="${min}" max="${max}" value="${v(o)}" data-sr="${o}" aria-label="${n}"><span>${hi}</span><output>${v(o)}</output></div>${desc ? `<span class="sdesc">${esc(desc)}</span>` : ''}</div>`).join('');
-  const adv = side => { const slots = ADV_SLOTS.filter(x => x[0] === side); return slots.map(([, o, n]) => {
-    const cur = v(o), other = v(slots.find(x => x[1] !== o)[1]), codes = [0, ...ADV_CODES[side]]; if (!codes.includes(cur)) codes.push(cur);
-    return `<div class="f"><span class="lab">${n}</span><select data-adv="${o}" aria-label="Instrucción avanzada ${n}">${codes.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''} ${c && c === other ? 'disabled' : ''}>${esc(advName(c))}</option>`).join('')}</select>${cur && ADV[cur] ? `<span class="sdesc">${esc(ADV[cur][2])}</span>` : ''}</div>`; }).join(''); };
+  const bin = side => STRAT_BIN.filter(x => x[0] === side).map(([, o, n, opts, desc]) => `<div class="stopt"><span class="lab">${n}</span><div class="stchoice" data-st="${o}" role="group" aria-label="${esc(n)}">${opts.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${v(o) === i}"><b>${l}</b><small>${esc(desc[i])}</small></button>`).join('')}</div></div>`).join('');
+  const rng = side => STRAT_RANGE.filter(x => x[0] === side).map(([, o, n, min, max, lo, hi, desc, unsure]) => `<div class="stopt"><span class="lab">${n}${unsure ? ' <span class="chip">sin confirmar</span>' : ''}</span><div class="srange"><span>${lo}</span><input type="range" min="${min}" max="${max}" value="${v(o)}" data-sr="${o}" aria-label="${n}"><span>${hi}</span><output>${v(o)}</output></div>${desc ? `<small class="sdesc">${esc(desc)}</small>` : ''}</div>`).join('');
+  const adv = side => {
+    const [s1, s2] = ADV_SLOTS.filter(x => x[0] === side), cur = [v(s1[1]), v(s2[1])], codes = [...ADV_CODES[side]];
+    cur.forEach(c => { if (c && !codes.includes(c)) codes.push(c); });
+    const tiles = codes.map(c => { const k = cur.indexOf(c), a = ADV[c]; return `<button type="button" class="advt" data-advpick="${c}" data-side="${side}" aria-pressed="${k >= 0}" title="${esc(a ? a[2] : 'Código desconocido')}">${k >= 0 ? `<span class="advn">${side === 'att' ? 'Ataque' : 'Defensa'} ${k + 1}</span>` : ''}<b>${esc(a ? a[0] : 'Código ' + c)}${a && !a[1] ? ' <span class="chip">probable</span>' : ''}</b><small>${esc(a ? a[2] : 'El juego lo muestra como "No".')}</small></button>`; }).join('');
+    return `<div class="stopt"><span class="lab">Instrucciones avanzadas <span class="stcount">${cur.filter(Boolean).length} de 2</span></span><div class="advgrid">${tiles}</div></div>`;
+  };
   const marks = Array.from({ length: NMARK }, (_, i) => v(MARK + i)).filter(x => x !== 0xff).length;
-  return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Estrategia · plan ${S.fplan + 1}</h3>
-    <label class="row"><span class="lab">Opciones tácticas rápidas</span><select id="spreset" style="width:auto"><option value="">Elegir…</option>${Object.entries(STRAT_PRESETS).map(([k, [d]]) => `<option value="${esc(k)}" title="${esc(d)}">${esc(k)}</option>`).join('')}</select></label></div>
+  const isOn = pr => Object.entries(pr).every(([o, val]) => v(+o) === val);
+  return `<div class="card stratcard"><div class="row" style="justify-content:space-between"><h3>Estrategia · plan ${S.fplan + 1}</h3>
+      <div class="row"><span class="lab">Copiar este plan a:</span>${[0, 1, 2].filter(p => p !== S.fplan).map(p => `<button class="btn small" type="button" data-copyplan="${p}">Plan ${p + 1}</button>`).join('')}</div></div>
+    <div class="stopt"><span class="lab">Opciones tácticas rápidas: cambian varias opciones de una vez</span><div class="qtgrid">${Object.entries(STRAT_PRESETS).map(([k, [d, pr]]) => `<button type="button" class="qt" data-qt="${esc(k)}" aria-pressed="${isOn(pr)}"><b>${esc(k)}</b><small>${esc(d)}</small></button>`).join('')}</div></div>
     <div class="stratgrid">
-      <div class="group"><h4>Ataque</h4>${bin('att')}${rng('att')}<h4>Instrucciones avanzadas de ataque</h4>${adv('att')}</div>
-      <div class="group"><h4>Defensa</h4>${bin('def')}${rng('def')}<h4>Instrucciones avanzadas de defensa</h4>${adv('def')}
-        <div class="f"><span class="lab">Config. marcaje</span>${marks ? `<div class="row"><span>${marks} ${marks === 1 ? 'jugador marca' : 'jugadores marcan'} a un rival fijo.</span><button class="btn small" type="button" id="unmark">Volver a automático</button></div>` : '<span>Automático en todos los jugadores.</span>'}<span class="sdesc">El marcaje individual se elige en el juego; acá podés devolverlo a automático si quedó mal.</span></div></div>
+      <section class="stside att"><h4>Ataque</h4>${bin('att')}${rng('att')}${adv('att')}</section>
+      <section class="stside def"><h4>Defensa</h4>${bin('def')}${rng('def')}${adv('def')}
+        <div class="stopt"><span class="lab">Config. marcaje</span><div class="stmark">${marks ? `<span>${marks} ${marks === 1 ? 'jugador marca' : 'jugadores marcan'} a un rival fijo.</span><button class="btn small" type="button" id="unmark">Volver a automático</button>` : '<span>Automático en todos los jugadores.</span>'}</div><small class="sdesc">El marcaje individual se elige en el juego; acá podés devolverlo a automático si quedó mal.</small></div></section>
     </div>
-    <div class="row"><span class="lab">Copiar este plan (formación y estrategia) a:</span>${[0, 1, 2].filter(p => p !== S.fplan).map(p => `<button class="btn small" type="button" data-copyplan="${p}">Plan ${p + 1}</button>`).join('')}</div>
-    <p class="note">Los nombres son los del juego y están comprobados en PES 2021. Todas las instrucciones avanzadas están comprobadas salvo Delantero liberado; las opciones tácticas rápidas son aproximadas, porque el juego no guarda sus valores exactos en el EDIT.</p>
+    <p class="note">Todo usa los nombres del juego y está comprobado en PES 2021, salvo lo marcado "probable" o "sin confirmar". Las opciones tácticas rápidas son aproximadas, porque el juego no guarda sus valores exactos en el EDIT.</p>
   </div>`;
 }
 const FORM_PRESETS = {
@@ -322,9 +325,16 @@ function bindTactics(t, m) {
     setTimeout(apply, 420);
   });
   sh.querySelectorAll('[data-sr]').forEach(r => { r.oninput = () => { r.parentElement.querySelector('output').textContent = r.value; }; r.onchange = () => { const o = +r.dataset.sr; edit('Estrategia de ' + tn, 't' + t.id, regT(t), () => { S.d[planOff(t, S.fplan) + o] = +r.value; }); }; });
-  sh.querySelectorAll('[data-adv]').forEach(s2 => s2.onchange = () => { edit('Instrucción avanzada de ' + tn, 't' + t.id, regT(t), () => { S.d[planOff(t, S.fplan) + +s2.dataset.adv] = +s2.value; }); rer(); });
+  sh.querySelectorAll('[data-advpick]').forEach(btn => btn.onclick = () => {
+    const c = +btn.dataset.advpick, [s1, s2] = ADV_SLOTS.filter(x => x[0] === btn.dataset.side).map(x => planOff(t, S.fplan) + x[1]);
+    edit('Instrucción avanzada de ' + tn, 't' + t.id, regT(t), () => {
+      const a = S.d[s1], b2 = S.d[s2];
+      if (a === c) { S.d[s1] = b2; S.d[s2] = 0; } else if (b2 === c) S.d[s2] = 0;
+      else if (!a) S.d[s1] = c; else if (!b2) S.d[s2] = c;
+      else { S.d[s2] = c; toast('Ya había 2: reemplacé la segunda.', 4000, ['Deshacer', undo]); }
+    }); rer(); });
   const um = $('unmark'); if (um) um.onclick = () => { edit('Marcaje automático en ' + tn, 't' + t.id, regT(t), () => { S.d.fill(0xff, planOff(t, S.fplan) + MARK, planOff(t, S.fplan) + MARK + NMARK); }); toast('Marcaje automático en todos los jugadores del plan ' + (S.fplan + 1) + '.', 4000, ['Deshacer', undo]); rer(); };
-  const sp = $('spreset'); if (sp) sp.onchange = () => { const k = sp.value; if (!k) return; const pr = STRAT_PRESETS[k][1]; edit('Táctica rápida "' + k + '" en ' + tn, 't' + t.id, regT(t), () => { for (const [o, val] of Object.entries(pr)) S.d[planOff(t, S.fplan) + +o] = val; }); toast('"' + k + '" aplicada al plan ' + (S.fplan + 1) + '.', 4000, ['Deshacer', undo]); rer(); };
+  sh.querySelectorAll('[data-qt]').forEach(btn => btn.onclick = () => { const k = btn.dataset.qt, pr = STRAT_PRESETS[k][1]; edit('Táctica rápida "' + k + '" en ' + tn, 't' + t.id, regT(t), () => { for (const [o, val] of Object.entries(pr)) S.d[planOff(t, S.fplan) + +o] = val; }); toast('"' + k + '" aplicada al plan ' + (S.fplan + 1) + '.', 4000, ['Deshacer', undo]); rer(); });
   sh.querySelectorAll('[data-copyplan]').forEach(b => b.onclick = () => { const to = +b.dataset.copyplan; edit('Copiar plan ' + (S.fplan + 1) + ' al ' + (to + 1) + ' en ' + tn, 't' + t.id, regT(t), () => { S.d.copyWithin(planOff(t, to), planOff(t, S.fplan), planOff(t, S.fplan) + PLAN_SZ); }); FLUID.delete(t.id + ':' + to); toast('Plan copiado.', 4000, ['Deshacer', undo]); rer(); });
   sh.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
     const pr = FORM_PRESETS[b.dataset.preset];
@@ -405,7 +415,7 @@ function compareEdits(other) {
       for (let k = 0; k < NTAKERS + 1; k++) { const o = TAKERS + k; const va = A[sa + o], vb = B[sb + o]; const na = va === 255 ? '—' : pidName(at(va)), nb = vb === 255 ? '—' : pidName(bt(vb)); if (na !== nb) li.push(`${o === CAPT ? 'Capitán' : SP_ROLES[k][0]}: ${esc(na)} → ${esc(nb)}`); }
       for (let p = 0; p < 3; p++) {
         for (let v = 0; v < 3; v++) { const oa = sa + 4 + p * PLAN_SZ + v * ENT_SZ, ob = sb + 4 + p * PLAN_SZ + v * ENT_SZ; if (!A.subarray(oa, oa + ENT_SZ).every((x, i) => x === B[ob + i])) li.push(`Plan ${p + 1}, variante ${['Base', 'Ataque', 'Defensa'][v]}: cambió la formación`); }
-        for (let o = 0x63; o < PLAN_SZ; o++) { const va = A[sa + 4 + p * PLAN_SZ + o], vb = B[sb + 4 + p * PLAN_SZ + o]; if (va !== vb) li.push(`Plan ${p + 1}, ${esc(label(o))}: ${va} → ${vb}`); }
+        for (let o = 0x63; o < PLAN_SZ; o++) { const va = A[sa + 4 + p * PLAN_SZ + o], vb = B[sb + 4 + p * PLAN_SZ + o]; if (va !== vb) { const nm = x => ADV_SLOTS.some(a => a[1] === o) ? advName(x) : x; li.push(`Plan ${p + 1}, ${esc(label(o))}: ${esc(nm(va))} → ${esc(nm(vb))}`); }; }
       }
       for (let o = 0x1E4 + 40 + 11; o < 0x274; o++) if (o !== CAPT && A[sa + o] !== B[sb + o]) li.push(`Táctica, dato +0x${o.toString(16)}: ${A[sa + o]} → ${B[sb + o]}`);
     }

@@ -40,8 +40,8 @@ const HELP = {
       ['Jugadores ofensivos', 'los 3 que suben al área en tiros libres y córners.'],
       ['Elegir automáticamente', 'elige un titular para cada jugada según sus habilidades: tiro libre y potencia, efecto, definición, cabezazo. Los lugares que estaban en "Ninguno" quedan así.']]],
     ['Estrategia', [
-      ['Ataque y defensa', 'las mismas opciones que "Estrategia de equipo" en el juego, con su explicación debajo de cada una.'],
-      ['Instrucciones avanzadas', 'dos de ataque y dos de defensa por plan, como en el juego. No se puede repetir la misma en los dos lugares.'],
+      ['Ataque y defensa', 'las mismas opciones que "Estrategia de equipo" en el juego. Tocá la opción que querés: cada una explica qué hace.'],
+      ['Instrucciones avanzadas', 'tocá hasta 2 de ataque y 2 de defensa, como en el juego. Tocá una marcada para quitarla.'],
       ['Opciones tácticas rápidas', 'cambian varias opciones de una vez, con los mismos nombres que en el juego.'],
       ['Config. marcaje', 'si algún jugador quedó marcando a un rival fijo, "Volver a automático" lo deja como viene.']]]] },
   data: { t: 'los datos del equipo', intro: 'Nombre, abreviatura, colores, país y entrenador. Son los datos que el juego muestra en menús, marcadores y radar.', groups: [

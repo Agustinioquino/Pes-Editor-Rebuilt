@@ -10,7 +10,7 @@
 
 *Hecho por un fanático del PES para los que todavía arman su Liga Master a mano.* ⚽
 
-Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y Sider), directo en el navegador.
+Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
 ![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.014%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)

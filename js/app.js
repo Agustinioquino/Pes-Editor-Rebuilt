@@ -72,6 +72,11 @@ const COUNTRY = new Map(T_.countries.map(c => [c[0], c[1]]));
 const BOOTS = new Map(T_.boots.map(c => [c[0], c[1]]));
 const GLOVES = new Map(T_.gloves.map(c => [c[0], c[1]]));
 const STADIUM = new Map(T_.stadiums.map(c => [c[0], c[1]]));
+// nombre real del estadio (el propio que le pusiste o el de internet) y, entre paréntesis, el que tiene elegido el EDIT
+function stadLabel(t) {
+  const game = STADIUM.get(tget(t, 'stadium_id')) || 'Estadio ' + tget(t, 'stadium_id'), real = (tget(t, 'stadium_name') || '').trim() || (typeof realStadium === 'function' ? realStadium(t) : '');
+  return real && normTxt(real) !== normTxt(game) ? `<b>${esc(real)}</b> (${esc(game)})` : `<b>${esc(game)}</b>`;
+}
 const COACH = new Map(T_.coaches.map(c => [c[0], c[1]]));
 
 // ---------- state ----------
@@ -592,7 +597,7 @@ function teamSheet(t) {
   const coach = tget(t, 'manager_id');
   return `<div class="card tcard" style="--t1:${teamColor(t, 1)};--t2:${teamColor(t, 2)}">
     <div class="head">${crest(t, '', true)}${shirtSvg(kitFor(t, false), '2.6em')}<div style="min-width:0"><h2>${esc(tget(t, 'name'))}</h2>
-      <div class="sub">ID ${t.id} · ${isNat(t) ? 'Selección' : 'Club'} · ${r.length}/40 jugadores${(() => { const tr = teamRating(t), l = leagueOf(t); return (l ? ' · ' + esc(LEAGUE_NAME[l] || l) : '') + (tr ? ' · valor ' + fmtMoney(tr.value) : ''); })()} · DT ${esc(COACH.get(coach) || 'ID ' + coach)} · ${esc(STADIUM.get(tget(t, 'stadium_id')) || 'Estadio ' + tget(t, 'stadium_id'))}</div></div></div>
+      <div class="sub">ID ${t.id} · ${isNat(t) ? 'Selección' : 'Club'} · ${r.length}/40 jugadores${(() => { const tr = teamRating(t), l = leagueOf(t); return (l ? ' · ' + esc(LEAGUE_NAME[l] || l) : '') + (tr ? ' · valor ' + fmtMoney(tr.value) : ''); })()} · DT ${esc(COACH.get(coach) || 'ID ' + coach)} · <span class="thstad" data-stad="${t.id}">🏟️ ${stadLabel(t)}</span></div></div></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ttab="${k}" aria-selected="${S.ttab === k}">${n}</button>`).join('')}</div>
   </div>
   ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) : stadiumCard(t)}
@@ -803,7 +808,7 @@ function rosterFilter() {
   });
   tb.querySelector('tr.nores').hidden = n > 0;
   const f1 = v => v.toFixed(1).replace('.', ',');
-  $('rsum').innerHTML = `<span>${n === tot ? `<b>${n}</b> jugadores` : `Mostrando <b>${n}</b> de ${tot}`}</span>${nr ? `<span>Media <b class="${vcls(Math.round(sr / nr))}">${f1(sr / nr)}</b></span>` : ''}${na ? `<span>Edad <b>${f1(sa / na)}</b></span>` : ''}${nh ? `<span>Altura <b>${Math.round(sh / nh)} cm</b></span>` : ''}${mv ? `<span>Valor <b>${fmtMoney(mv)}</b></span>` : ''}`;
+  $('rsum').innerHTML = `<span>${n === tot ? `<b>${n}</b> jugadores` : `Mostrando <b>${n}</b> de ${tot}`}</span>${nr ? `<span>Media <b class="${vcls(Math.round(sr / nr))}">${f1(sr / nr)}</b></span>` : ''}${na ? `<span>Edad <b>${f1(sa / na)}</b></span>` : ''}${nh ? `<span>Altura <b>${Math.round(sh / nh)} cm</b></span>` : ''}${mv ? `<span>Valor <b>${fmtMoney(mv)}</b></span>` : ''}${nr || na || nh ? `<span class="rsumnote">Media, edad y altura son promedios de ${n === tot ? 'todo el plantel' : 'los jugadores que se ven'}${mv ? '; el valor es la suma de todos' : ''}.</span>` : ''}`;
   rosterSelSync();
 }
 function rosterSelSync() {

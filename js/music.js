@@ -191,7 +191,7 @@ function mpMount() {
       <div class="mpyt" id="mpYtF" hidden><label for="mpYtU">Link de una lista o un video de YouTube</label><div class="row" style="flex-wrap:nowrap;gap:6px"><input type="url" id="mpYtU" placeholder="https://www.youtube.com/playlist?list=…"><button type="button" class="btn small primary" id="mpYtGo">Cargar</button></div>
         <p class="mpnote" id="mpYtNote">Los videos se ven chiquitos arriba del reproductor (YouTube no permite ocultarlos ni sacarles el audio). Necesita internet${location.protocol === 'file:' ? ' y funciona en la versión web del editor: abierto como archivo en tu PC, YouTube suele bloquear la reproducción' : ''}.</p></div>
     </div>
-    <div class="mptv" id="mpTv" aria-label="Video de YouTube"><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div></div>
+    <div class="mptv" id="mpTv" aria-label="Video de YouTube"><button type="button" class="mptvcov" id="mpTvCov" title="Ver el video otra vez"><img alt=""><span>▶ Ver video</span></button><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div></div>
     <div class="mpbar"><button type="button" class="mpcov" id="mpCov" title="Abrir el reproductor"><img id="mpArtS" alt=""><span class="mpring"></span></button>
       <button type="button" class="mpmeta" id="mpMeta" title="Abrir el reproductor"><b class="mpt"><span id="mpT"></span></b><small id="mpG"></small></button>
       <button type="button" class="mpb mpmain sm" id="mpPlay" title="Reproducir o pausar">${mpIco('play', 20)}</button><button type="button" class="mpb" id="mpNext" title="Siguiente">${mpIco('next', 18)}</button>

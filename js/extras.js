@@ -189,6 +189,30 @@ function formName(f) {
   return `${lines.d}-${lines.m}-${lines.a}`;
 }
 function variantsEqual(t, plan) { const a = S.d.subarray(formOff(t, plan, 0), formOff(t, plan, 0) + ENT_SZ); return [1, 2].every(v => S.d.subarray(formOff(t, plan, v), formOff(t, plan, v) + ENT_SZ).every((x, i) => x === a[i])); }
+// ---- valor real de Transfermarkt: se carga a mano (Transfermarkt no deja leerlo desde otra página) y queda guardado por equipo ----
+const TM_LS = 'edit21-tm-values-v1';
+const TM_VAL = (() => { try { return new Map(JSON.parse(localStorage.getItem(TM_LS) || '[]')); } catch { return new Map(); } })();
+const saveTm = () => { try { localStorage.setItem(TM_LS, JSON.stringify([...TM_VAL])); } catch { } };
+const tmUrl = t => 'https://www.transfermarkt.es/schnellsuche/ergebnis/schnellsuche?query=' + encodeURIComponent(tget(t, 'name'));
+function frateHtml(t) {
+  const tr = teamRating(t), tm = TM_VAL.get(t.id);
+  const diff = tr && tm ? Math.round((tm / tr.value - 1) * 100) : null;
+  const vals = `<div class="frvals">
+      <span class="frv est"><small>Valor estimado</small><b>${tr ? fmtMoney(tr.value) : '—'}</b></span>
+      <span class="frv tm"><small>Transfermarkt</small><span class="frtmrow"><button type="button" class="frtm${tm ? '' : ' empty'}" id="frTm" title="Tocá para cargar el valor de mercado real del plantel (millones de euros)">${tm ? fmtMoney(tm) : 'Cargar valor'}</button><a class="frtmgo" href="${tmUrl(t)}" target="_blank" rel="noopener" title="Buscar ${esc(tget(t, 'name'))} en Transfermarkt">↗</a></span>${diff != null ? `<em class="frdiff ${diff >= 0 ? 'up' : 'dn'}">${diff >= 0 ? '+' : ''}${diff}% vs. estimado</em>` : ''}</span></div>`;
+  return tr ? `<div class="frate"><span class="frnum">${tr.score}</span><div class="frbox">${starsHtml(tr.stars)}<span class="frl">Valoración del equipo${PREFS.rateMode !== 'base' ? ' · por rendimiento' : ''}</span>${vals}</div></div>`
+    : `<div class="frate"><div class="frbox"><span class="frl">Valoración</span><span class="frv">Conectá la carpeta Sider para calcularla</span>${vals}</div></div>`;
+}
+function bindTm(t, m) {
+  const b = $('frTm'); if (!b) return;
+  b.onclick = () => {
+    const cur = TM_VAL.get(t.id), sp = b.parentNode;
+    sp.innerHTML = `<input type="text" inputmode="decimal" class="valin frtmin" value="${cur ? String(cur).replace('.', ',') : ''}" placeholder="ej. 850" aria-label="Valor de Transfermarkt en millones de euros" title="Millones de euros (ej. 850 o 1200). Vacío = borrar.">`;
+    const inp = sp.querySelector('input'); inp.focus();
+    inp.onblur = () => { const v = parseFloat(inp.value.replace(/\./g, '').replace(',', '.')); if (inp.value.trim() === '' || !(v > 0)) TM_VAL.delete(t.id); else TM_VAL.set(t.id, Math.round(v * 100) / 100); saveTm(); later(() => renderTeams(m)); };
+    inp.onkeydown = ev => { if (ev.key === 'Enter') inp.blur(); if (ev.key === 'Escape') { inp.onblur = null; later(() => renderTeams(m)); } };
+  };
+}
 function tacticsCard(t) {
   if (t.tacticsBase == null) return '<div class="card empty">Este equipo no tiene tácticas en el archivo.</div>';
   CUR_T = t; const fluid = isFluid(t); if (!fluid) S.fvar = 0;
@@ -196,7 +220,7 @@ function tacticsCard(t) {
   const f = readForm(t, S.fplan, S.fvar), order = getOrder(t), roster = PD.roster(S.d, t);
   const bySlot = new Map(roster.map(x => [x.slot, x]));
   const kitP = kitFor(t, false), kitG = kitFor(t, true) || kitP;
-  const sel = S.fsel;
+  const sel = S.fsel, multi = S.fmulti || [];
   const photos = PREFS.look === 'photos';
   const lineCls = r => ['gk', 'df', 'df', 'df', 'mf', 'mf', 'mf', 'mf', 'mf', 'fw', 'fw', 'fw', 'fw'][r];
   const marker = i => {
@@ -204,7 +228,7 @@ function tacticsCard(t) {
     const full = x ? playerName(x.pid) : '', short = full ? full.split(' ').slice(-1)[0] : '';
     const [y, lx] = f.pos[i];
     const avatar = photos ? faceHtml(x && x.pid, kit, 'big') : `<span class="shirtwrap">${shirtSvg(kit, '100%')}</span>`;
-    return `<button type="button" class="fm ln-${lineCls(role)} ${sel === i ? 'on' : ''} ${i ? '' : 'gk'} ${photos ? 'ph' : ''}" data-fi="${i}" style="left:${Math.max(5, Math.min(95, lx))}%;bottom:${3 + y / 50 * 94}%" title="${esc(full || 'ID ' + (x ? x.pid : ''))} · ${POS_LONG[role]}${x ? ' · ID ' + x.pid : ''}">
+    return `<button type="button" class="fm ln-${lineCls(role)} ${sel === i ? 'on' : ''} ${multi.includes(i) ? 'multi' : ''} ${i ? '' : 'gk'} ${photos ? 'ph' : ''}" data-fi="${i}" style="left:${Math.max(5, Math.min(95, lx))}%;bottom:${3 + y / 50 * 94}%" title="${esc(full || 'ID ' + (x ? x.pid : ''))} · ${POS_LONG[role]}${x ? ' · ID ' + x.pid : ''}">
       <span class="fav">${avatar}<span class="fnum">${x ? x.number : ''}</span></span>
       <span class="fname">${esc(short || (x ? 'ID ' + x.pid : '—'))}</span>
       <span class="fmeta"><span class="posb ${POS_GRP[role]}">${POS[role]}</span>${(() => { const pi = x && pInfoAt(x.pid, role); return rateHtml(pi); })()}${PREFS.showIds && x ? `<span class="fid">${x.pid}</span>` : ''}</span></button>`;
@@ -217,7 +241,7 @@ function tacticsCard(t) {
   return `<div class="card fcard ${PV ? 'pvmode' : ''}">
     <div class="fbanner" style="--k1:${c1};--k2:${c2}">
       <div class="fbteam">${crest(t, '', true)}<div class="fbt"><span class="fbig">${esc(PV ? (PV.fx.formation || formName(f)) : formName(f))}</span><span class="fsub">${esc(tget(t, 'name'))} · plan ${S.fplan + 1}${fluid ? ' · fluida · ' + ['Base', 'Ataque', 'Defensa'][S.fvar] : ''}</span></div></div>
-      ${(() => { const tr = teamRating(t); return tr ? `<div class="frate"><span class="frnum">${tr.score}</span><div class="frbox">${starsHtml(tr.stars)}<span class="frl">Valoración del equipo${PREFS.rateMode !== 'base' ? ' · por rendimiento' : ''}</span><span class="frv">Valor estimado ${fmtMoney(tr.value)}</span></div></div>` : `<div class="frate"><div class="frbox"><span class="frl">Valoración</span><span class="frv">Conectá la carpeta Sider para calcularla</span></div></div>`; })()}
+      ${frateHtml(t)}
       <div class="flines"><span class="ln-df">${lines.d}<small>DEF</small></span><span class="ln-mf">${lines.m}<small>MED</small></span><span class="ln-fw">${lines.a}<small>ATA</small></span></div>
     </div>
     <div class="ftools">
@@ -239,9 +263,12 @@ function tacticsCard(t) {
       <div class="fpitch th-${PREFS.theme} ${PV ? 'pv' : ''}" id="${PV ? 'fpitchPv' : 'fpitch'}" style="--k1:${c1};--k2:${c2};background-image:url(${pitchTexture(PREFS.theme, c1, c2)})">
         ${PV ? PV.ents.map((e, i) => pvMarker(t, PV, e, i, kitP, kitG, photos)).join('') : Array.from({ length: 11 }, (_, i) => marker(i)).join('')}
         <span class="fdir">ATAQUE ↑</span>${PV ? `<span class="fpvtag">📺 ${esc(PV.fx.home ? 'vs' : '@')} ${esc(PV.fx.opp)} ${PV.fx.gf}-${PV.fx.ga} · ${fmtDate(PV.fx.date)}</span>` : ''}</div>
-      <div class="fside">
+      <div class="fside${!PV && sel == null && !multi.length ? ' nosel' : ''}">
         ${PV ? pvSide(t, PV) : ''}
-        ${PV ? '' : sel == null ? '<div class="hint-card"><b>Cómo se usa</b><span>Arrastrá a cada jugador para moverlo. Soltalo encima de otro titular para intercambiarlos de lugar. Tocalo para cambiarle el rol.</span></div>' : `
+        ${PV ? '' : multi.length ? `<div class="selcard multi"><b>${multi.length} jugador${multi.length > 1 ? 'es' : ''} elegido${multi.length > 1 ? 's' : ''}</b><span class="sub">${multi.map(i => { const x = bySlot.get(order[i]); return esc(x ? (playerName(x.pid) || 'ID ' + x.pid).split(' ').slice(-1)[0] : '—'); }).join(', ')}</span></div>
+          <p class="note">Arrastrá cualquiera de ellos y se mueven todos juntos. Tocá otro jugador para sumarlo o sacarlo.</p>
+          <div class="row"><button class="btn small" type="button" id="fmall">Elegir a los 10 de campo</button><button class="btn small" type="button" id="fmdone">Listo</button></div>`
+        : sel == null ? `<div class="hint-card"><b>Cómo se usa</b><span>Arrastrá a cada jugador para moverlo. Soltalo encima de otro titular para intercambiarlos de lugar. Tocalo para cambiarle el rol.</span><span>Para mover varios juntos, tocalos con <kbd>Ctrl</kbd> apretado o usá <b>Elegir varios</b>.</span><button class="btn small" type="button" id="fmmode" aria-pressed="${!!S.fmultiMode}">☑ Elegir varios</button></div>` : `
           <div class="selcard" style="--k1:${c1};--k2:${c2}">${photos ? faceHtml(selX && selX.pid, sel ? kitP : kitG, 'mid') : shirtSvg(sel ? kitP : kitG, '3em')}
             <div><b>${esc(selX ? playerName(selX.pid) || 'ID ' + selX.pid : '—')}</b><span class="sub">#${selX ? selX.number : ''} · ${POS_LONG[sel ? f.roles[sel] : 0]}${selX ? ' · ID ' + selX.pid : ''}</span></div></div>
           ${photos && selX ? faceTools(selX.pid) : ''}
@@ -309,7 +336,7 @@ function bindTactics(t, m) {
   const fsrc = $('fsrc'); if (fsrc) fsrc.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; setPhotoSrc(b.dataset.v); renderTeams(m); };
   const fgr = $('fgrant'); if (fgr) fgr.onclick = grantFaces;
   const frt = $('fRate'); if (frt) frt.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; PREFS.rateMode = b.dataset.v; savePrefs(); RATE_GEN++; renderTeams(m); };
-  bindLastMatch(t, m);
+  bindLastMatch(t, m); bindTm(t, m);
   sh.querySelectorAll('[data-fk]').forEach(b => b.onclick = () => { setFaceKind(+b.dataset.pid, b.dataset.fk); toast(b.dataset.fk === 'del' ? 'Foto quitada: no se vuelve a buscar.' : b.dataset.fk === 'n' ? 'Marcada como foto de selección: no se mostrará en clubes.' : 'Marcada como foto de club.'); renderTeams(m); });
   const fz = $('fluid'); if (fz) fz.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const on = b.dataset.v === '1';
     if (on) { FLUID.set(fluidKey(t), true); S.fvar = 1; toast('Formación fluida activada: ajustá "Ataque" y "Defensa" por separado.'); }
@@ -352,15 +379,38 @@ function bindTactics(t, m) {
   const markerAt = (x, y, not) => document.elementsFromPoint(x, y).map(el => el.closest && el.closest('.fm')).find(el => el && el !== not);
   const doSub = (fi, slot, label) => { edit(label + ' en ' + tn, 't' + t.id, regT(t), () => swapInOrder(t, fi, slot)); S.fbench = null; toast('Cambio hecho.', 3500, ['Deshacer', undo]); rer(); };
   let drag = null;
-  pitch.addEventListener('pointerdown', e => { const b = e.target.closest('.fm'); if (!b) return; drag = { i: +b.dataset.fi, el: b, x0: e.clientX, y0: e.clientY, moved: false }; b.setPointerCapture(e.pointerId); });
+  // varios jugadores elegidos (Ctrl/Shift/⌘ + clic, o "Elegir varios"): se arrastran juntos; el arquero no se mueve
+  const multi = () => S.fmulti || (S.fmulti = []);
+  const fmm = $('fmmode'); if (fmm) fmm.onclick = () => { S.fmultiMode = !S.fmultiMode; fmm.setAttribute('aria-pressed', String(S.fmultiMode)); toast(S.fmultiMode ? 'Tocá a los jugadores que querés mover juntos.' : 'Elegir varios: apagado.', 3000); };
+  const fmd = $('fmdone'); if (fmd) fmd.onclick = () => { S.fmulti = []; S.fmultiMode = false; renderTeams(m); };
+  const fma = $('fmall'); if (fma) fma.onclick = () => { S.fmulti = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; renderTeams(m); };
+  const pct = el => [parseFloat(el.style.left), parseFloat(el.style.bottom)];
+  pitch.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.fm'); if (!b) return; const i = +b.dataset.fi;
+    const group = multi().length > 1 && multi().includes(i) ? multi().filter(j => j).map(j => { const el = pitch.querySelector(`.fm[data-fi="${j}"]`); return { j, el, p0: pct(el) }; }) : null;
+    drag = { i, el: b, x0: e.clientX, y0: e.clientY, moved: false, group, add: e.ctrlKey || e.metaKey || e.shiftKey || S.fmultiMode }; b.setPointerCapture(e.pointerId);
+  });
   pitch.addEventListener('pointermove', e => {
     if (!drag) return; if (Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) > 5) drag.moved = true; if (!drag.moved) return;
-    const r = pitch.getBoundingClientRect(); const lx = Math.max(4, Math.min(96, (e.clientX - r.left) / r.width * 100)); const bt = Math.max(6, Math.min(94, (r.bottom - e.clientY) / r.height * 100));
+    const r = pitch.getBoundingClientRect();
+    if (drag.group) { // mueve a todo el grupo la misma distancia, sin salirse de la cancha
+      let dx = (e.clientX - drag.x0) / r.width * 100, dy = (drag.y0 - e.clientY) / r.height * 100;
+      for (const g of drag.group) { dx = Math.max(4 - g.p0[0], Math.min(96 - g.p0[0], dx)); dy = Math.max(6 - g.p0[1], Math.min(94 - g.p0[1], dy)); }
+      for (const g of drag.group) { const lx = g.p0[0] + dx, bt = g.p0[1] + dy; g.el.style.left = lx + '%'; g.el.style.bottom = bt + '%'; g.el.classList.add('dragging'); g.nx = Math.round(lx); g.ny = Math.max(5, Math.min(48, Math.round((bt - 3) / 94 * 50))); }
+      return;
+    }
+    const lx = Math.max(4, Math.min(96, (e.clientX - r.left) / r.width * 100)); const bt = Math.max(6, Math.min(94, (r.bottom - e.clientY) / r.height * 100));
     drag.el.style.left = lx + '%'; drag.el.style.bottom = bt + '%'; drag.el.classList.add('dragging'); drag.nx = Math.round(lx); drag.ny = Math.max(5, Math.min(48, Math.round((bt - 3) / 94 * 50)));
     pitch.querySelectorAll('.fm.drop').forEach(x => x.classList.remove('drop')); const over = markerAt(e.clientX, e.clientY, drag.el); if (over) over.classList.add('drop');
   });
   pitch.addEventListener('pointerup', e => {
     if (!drag) return; const d0 = drag; drag = null;
+    if (d0.group && d0.moved) { edit('Mover ' + d0.group.length + ' jugadores en la formación de ' + tn, 't' + t.id, regT(t), () => { for (const v of formVariants()) { const f = readForm(t, S.fplan, v); for (const g of d0.group) if (g.nx != null) f.pos[g.j] = [g.ny, g.nx]; writeForm(t, S.fplan, v, f); } }); toast(d0.group.length + ' jugadores movidos.', 3500, ['Deshacer', undo]); rer(); return; }
+    if (!d0.moved && (d0.add || multi().length)) { // sumar o sacar del grupo
+      const l = multi(); if (!l.length && S.fsel != null && S.fsel !== d0.i) l.push(S.fsel);
+      const k = l.indexOf(d0.i); if (k >= 0) l.splice(k, 1); else l.push(d0.i);
+      S.fsel = null; S.fbench = null; renderTeams(m); return;
+    }
     const over = d0.moved ? markerAt(e.clientX, e.clientY, d0.el) : null;
     if (over) { const j = +over.dataset.fi; edit('Intercambio de puestos en ' + tn, 't' + t.id, regT(t), () => { const o = getOrder(t); [o[d0.i], o[j]] = [o[j], o[d0.i]]; setOrder(t, o); }); toast('Jugadores intercambiados.', 3500, ['Deshacer', undo]); rer(); return; }
     if (d0.moved && d0.i && d0.nx != null) { edit('Mover jugador en la formación de ' + tn, 't' + t.id, regT(t), () => { for (const v of formVariants()) { const f = readForm(t, S.fplan, v); f.pos[d0.i] = [d0.ny, d0.nx]; writeForm(t, S.fplan, v, f); } }); rer(); }

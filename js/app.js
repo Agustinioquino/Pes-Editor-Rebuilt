@@ -86,7 +86,7 @@ const S = {
   hist: [], hp: 0, savedHp: 0,
   names: new Map(), namesFrom: '',
   tab: 'teams', team: null, teamByTab: {}, natSeen: false, player: null, ttab: 'roster', ptab: 'profile',
-  qTeam: '', tSort: 'name', tFilter: 'all', tLeague: '', qPlayer: '', pSrc: 'edit', dbPlayer: null, showEmpty: false, autoLock: true, pFilter: 'all', rosterSort: 'xi', fplan: 0, fvar: 0, flink: true, fsel: null, fbench: null,
+  qTeam: '', tSort: 'name', tFilter: 'all', tLeague: '', qPlayer: '', pSrc: 'edit', dbPlayer: null, showEmpty: false, autoLock: true, pFilter: 'all', rosterSort: 'xi', fplan: 0, fvar: 0, flink: true, fsel: null, fbench: null, fmulti: [], fmultiMode: false,
 };
 const LAYOUT = { '2021': 0x24C, '2020': 0x210 };
 
@@ -605,7 +605,7 @@ function renderTeams(m) {
   $('tSort').onchange = e => { S.tSort = e.target.value; later(() => { flipRender(m, () => renderTeams(m)); const sel = $('tSort'); sel && sel.classList.add('kick'); }); };
   { const lg = $('tLeague'); if (lg) lg.onchange = e => { S.tLeague = e.target.value; later(() => { flipRender(m, () => renderTeams(m)); const sel = $('tLeague'); sel && sel.classList.add('kick'); }); }; }
   $('tFilter').onclick = e => { const b = e.target.closest('[data-tf]'); if (b) { S.tFilter = b.dataset.tf; renderTeams(m); } };
-  $('teamItems').onclick = e => { const b = e.target.closest('[data-t]'); if (b && +b.dataset.t !== S.team) { S.team = +b.dataset.t; S.fsel = null; S.fbench = null; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); leave($('teamSheet'), () => renderTeams(m)); } };
+  $('teamItems').onclick = e => { const b = e.target.closest('[data-t]'); if (b && +b.dataset.t !== S.team) { S.team = +b.dataset.t; S.fsel = null; S.fbench = null; S.fmulti = []; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); leave($('teamSheet'), () => renderTeams(m)); } };
   if (t) bindTeam(t, m);
 }
 function teamSheet(t) {
@@ -960,7 +960,7 @@ function addSearch(q) {
 }
 function bindTeam(t, m) {
   const sh = $('teamSheet'), rer = () => later(() => renderTeams(m)), tn = () => tget(t, 'name');
-  sh.querySelectorAll('[data-ttab]').forEach(b => b.onclick = () => { if (S.ttab === b.dataset.ttab) return; S.ttab = b.dataset.ttab; S.fsel = null; const rest = [...sh.children].slice(1); if (ANIM.reduce.matches || !rest.length) { renderTeams(m); return; } rest.forEach(c => c.classList.add('leave')); setTimeout(() => renderTeams(m), 130); });
+  sh.querySelectorAll('[data-ttab]').forEach(b => b.onclick = () => { if (S.ttab === b.dataset.ttab) return; S.ttab = b.dataset.ttab; S.fsel = null; S.fmulti = []; const rest = [...sh.children].slice(1); if (ANIM.reduce.matches || !rest.length) { renderTeams(m); return; } rest.forEach(c => c.classList.add('leave')); setTimeout(() => renderTeams(m), 130); });
   if (S.ttab === 'tactics') { bindTactics(t, m); return; }
   if (S.ttab === 'data') {
     $('tName').onchange = e => { setT(t, [['name', e.target.value], ['e_name', 1]], 'Nombre de ' + tn()); rer(); };

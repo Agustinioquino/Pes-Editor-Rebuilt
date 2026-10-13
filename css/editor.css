@@ -1317,3 +1317,8 @@ html[data-gfx="pes6"] .langmenu,html[data-gfx="retro"] .langmenu{border-radius:0
 html[data-gfx="pes6"] .langmenu{background:linear-gradient(180deg,#fafaf8,#d5d3cb);border-color:#6f6c64}
 html[data-gfx="retro"] .langmenu{border:2px solid #fff;box-shadow:4px 4px 0 #000}
 html[data-gfx="pes6"] .langmenu button,html[data-gfx="retro"] .langmenu button{border-radius:0}
+.introlang{position:absolute;top:16px;right:132px;z-index:3;display:flex;gap:2px;padding:3px;border-radius:99px;border:1.5px solid var(--line);background:color-mix(in srgb,var(--panel) 80%,transparent)}
+.introlang button{all:unset;display:inline-flex;align-items:center;gap:6px;padding:.25rem .6rem;border-radius:99px;cursor:pointer;font:600 .78rem var(--mono);color:var(--muted)}
+.introlang button svg{display:block;border-radius:2px;box-shadow:0 0 0 1px #0004}
+.introlang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.introlang button:hover{color:var(--ink)}

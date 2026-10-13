@@ -33,8 +33,12 @@ function trCore(s) {
   }
   // frases armadas con " · ": se traduce cada parte
   if (s.includes(' · ')) { const parts = s.split(' · '), t = parts.map(x => tr(x)); if (t.some((x, k) => x !== parts[k])) return t.join(' · '); }
+  // la barra de texto de PES 6: "Novedad v0.030: …"
+  const nv = s.match(/^Novedad (v[\d.]+): (.+)$/); if (nv) return 'New in ' + nv[1] + ': ' + tr(nv[2]);
   // "Inglaterra (45)": se traduce lo de antes del número entre paréntesis
   const cnt = s.match(/^(.+?) (\(\d[\d.,]*\))$/); if (cnt) { const t = tr(cnt[1]); if (t !== cnt[1]) return t + ' ' + cnt[2]; }
+  // "del 13 oct 2026 · 09:55." (fecha de la versión)
+  const dl = s.match(/^del (\d{1,2} \w{3} \d{4}.*)$/); if (dl) return 'from ' + tr(dl[1]);
   // fechas cortas: "13 oct 2026"
   if (/\b\d{1,2} (ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b/.test(s)) return s.replace(/\b(\d{1,2}) (ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b/g, (_, d, mo) => d + ' ' + { ene: 'Jan', feb: 'Feb', mar: 'Mar', abr: 'Apr', may: 'May', jun: 'Jun', jul: 'Jul', ago: 'Aug', sep: 'Sep', oct: 'Oct', nov: 'Nov', dic: 'Dec' }[mo]);
   return null;
@@ -96,4 +100,13 @@ function langPicker() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 }
 langPicker();
+// en la pantalla de carga también se puede elegir, arriba a la derecha junto a Música
+function introLang(el) {
+  if (el.querySelector('.introlang')) return;
+  const w = document.createElement('div'); w.className = 'introlang'; w.setAttribute('role', 'group'); w.setAttribute('aria-label', LANG === 'en' ? 'Language' : 'Idioma'); w.dataset.noi18n = '';
+  w.innerHTML = Object.keys(LANGS).map(k => `<button type="button" data-lang="${k}" aria-pressed="${k === LANG}" title="${LANGS[k]}">${FLAG_SVG[k]}<span>${k.toUpperCase()}</span></button>`).join('');
+  w.onclick = e => { const b = e.target.closest('[data-lang]'); if (b && b.dataset.lang !== LANG) setLang(b.dataset.lang); };
+  el.appendChild(w);
+}
+new MutationObserver(ms => { for (const m of ms) m.addedNodes.forEach(n => { if (n.nodeType === 1 && n.classList.contains('intro')) introLang(n); }); }).observe(document.body || document.documentElement, { childList: true });
 document.addEventListener('DOMContentLoaded', i18nStart);

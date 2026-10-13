@@ -1,6 +1,6 @@
 <div align="center">
 
-<img alt="La sección Escudo en PES 6 Editar con el escudo de C. A. La Mafia Animal ya guardado en el Parche" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.041/portada.png" width="100%">
+<img alt="El detalle de la forma de un jugador de ejemplo en PES 6 Editar: cada parte con sus puntos, la edad y el resultado" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.042/portada.png" width="100%">
 
 **[▶ Abrir PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · [📜 Todos los cambios](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/blob/main/CHANGELOG.md) · [🐛 Avisar un error](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose)
 
@@ -8,53 +8,59 @@
 
 ## ⚽ De qué se trata
 
-Llegó el momento de que **tu club tenga su escudo**. Subís una imagen y el editor se encarga del resto: los 11 archivos, los tamaños, el ID y hasta la carpeta en Sider si no existía.
+¿Tu delantero viene metiendo goles todos los fines de semana? Ahora **la valoración se entera**. La forma ya no sale solo de los últimos 6 partidos: mira **toda la temporada**, quién la está rompiendo en la tabla de goleadores, **quién está lesionado** y cómo le fue a cada jugador en las temporadas anteriores.
 
-Además el editor ya no se queda con la versión de ayer: **se actualiza solo** y guarda las fotos para que carguen al toque. Y si tu Sider vive en *Archivos de programa*, ahora tenés por dónde entrar 🔑.
-
----
-
-## 🛡️ Subí tus propios escudos
-
-- En **Datos y colores** hay una sección nueva, **Escudo**. Subís un PNG (o lo arrastrás) y tocás **Guardar escudo en el Parche**.
-- El editor arma los **11 archivos** que usa el juego (`f`, `f_l`, `f_ll`, `r`, `r_l`, `r_ll`, `r_b_l`, `r_b_ll`, `r_w`, `r_w_l`, `r_w_ll`), **cada uno achicado a su tamaño** y siempre con el **ID de 6 cifras** del equipo, por ejemplo `e_002689_f.png`.
-- ¿Ya tenés tus archivos armados? Subilos todos juntos: cada uno va a su lugar y, si traen otro ID, **se corrige solo**.
-- Se guardan en `livecpk\…\common\render\symbol\flag`, en la carpeta que ya tenía el escudo de ese equipo. Lo que había queda como `.bak-edit21`, por las dudas.
-- El escudo nuevo aparece enseguida en el editor. En el juego, después de abrirlo de nuevo.
-
-### 📂 Si tu Sider no tenía carpeta de escudos
-
-El editor crea `livecpk\PESEditor-Escudos` y la agrega en `sider.ini` **antes de las otras**, para que tus escudos manden. El `sider.ini` original queda guardado como `sider.ini.bak-pes-editor`.
-
-<img alt="La sección Escudo avisando que va a crear la carpeta de escudos y agregarla a sider.ini" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.041/carpeta-escudos.png" width="100%">
-
-## 🔄 Siempre la última versión
-
-- El editor **revisa sus archivos contra GitHub cada vez que abre**: se acabó lo de ver la versión vieja después de una actualización.
-- Si se publica algo nuevo **con la página abierta**, aparece arriba **"Hay una versión nueva del editor"** con *Actualizar ahora* o *Más tarde*. Si tenés cambios sin guardar, te avisa antes.
-- Debajo de la versión, arriba a la izquierda, se ve **la fecha de la versión** que estás usando.
-
-<img alt="La barra de versión nueva en PES 6 Editar" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.041/version-nueva.png" width="100%">
-
-## 📸 Fotos y escudos que cargan al instante
-
-Las fotos y escudos de internet **se descargan una sola vez** y después salen del editor, al toque y **también sin conexión**.
-
-### 🧹 Borrar caché
-
-En **🎨 Apariencia** hay una sección **Caché** (en los 4 modos gráficos) con la versión, cuántas fotos hay guardadas y el espacio usado. Si algo se ve raro, **Borrar caché** recarga todo con la última versión, sin tocar tus ajustes ni tu EDIT.
-
-<img alt="La sección Caché en Apariencia de PES 6 Editar" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.041/borrar-cache.png" width="100%">
-
-## 🔑 Sider dentro de Archivos de programa
-
-Si tu juego está en `C:\Program Files (x86)\Steam\…`, Chrome y Edge muestran **"Esta carpeta no se puede abrir… contiene archivos del sistema"** y no dejan que ninguna página escriba ahí. Ahora la pantalla de carga lo explica desde el principio y ofrece:
-
-- **📂 Abrir solo para ver**: kits, caras, escudos y nombres del Parche funcionan. Chrome te pregunta si querés "subir" los archivos, pero no se sube nada.
-- **Para poder guardar** en el Parche (kits, escudos, módulo), mové el juego a otra biblioteca de Steam: clic derecho en PES 2021 › Propiedades › Archivos instalados › Mover carpeta de instalación.
-
-<img alt="La pantalla de carga con el botón Abrir solo para ver y la explicación de Archivos de programa" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.041/sider-solo-para-ver.png" width="100%">
+Y lo mejor: ya no es una caja negra. Cada jugador tiene un botón **ⓘ** que te cuenta **de dónde sale cada punto** 🔍.
 
 ---
 
-🌎 Todo esto también está **en inglés**, con la bandera al lado de Recargar.
+## 🔎 La búsqueda encuentra a tu equipo
+
+Tu EDIT dice **Como 1907**, pero en ESPN es **Como** a secas. Antes no lo encontraba; ahora el editor prueba el nombre sin el año, sin siglas (FC, Club, Calcio…) y con la palabra más importante, y usa el **país del equipo en tu EDIT** para no confundirse con Comoras o con el equipo femenino.
+
+<img alt="Búsqueda de Como 1907 con Como (Italian Serie A) como primer resultado" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.042/busqueda.png" width="100%">
+
+## 🗓 Toda la temporada, goleadores y lesionados
+
+- Con la fuente **ESPN**, el editor analiza **en segundo plano** todos los partidos de la temporada: goles, asistencias, minutos y el puntaje de cada jugador.
+- Arriba aparecen los **⚽ goleadores** y las **🅰 asistencias** de la temporada, la campaña anterior con su tendencia y cuántos **🤕 lesionados** hay.
+- Si no lo querés, desmarcás **"Analizar toda la temporada"** y vuelve a usar solo los últimos partidos.
+
+<img alt="La tarjeta de últimos partidos con la temporada, la campaña anterior, los lesionados y los goleadores" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.042/temporada.png" width="100%">
+
+## 📊 La forma, con todo lo que pasa en la cancha
+
+La forma ahora suma seis partes, cada una en puntos de valoración:
+
+| | Qué mira |
+|---|---|
+| 📈 **Últimos partidos** | El puntaje de cada partido contra lo que se le exige (pesan más el último y los minutos). |
+| 🗓 **Temporada** | Su puntaje promedio en toda la temporada y qué parte de los minutos juega. |
+| ⚽ **Goles y asistencias** | Cada 90 minutos, contra lo normal para su puesto. |
+| 🏟 **Equipo** | Los puntos por partido y si el equipo mejoró respecto del año pasado. |
+| 📚 **Historial** | Sus temporadas anteriores: una racha corta no lo vuelve crack. |
+| 🤕 **Lesiones** | Lesionado −1 (−1,5 si lleva más de dos meses), en duda −0,5, el habitual que no aparece −1. |
+
+Después la **edad** multiplica (los jóvenes suben más rápido, los veteranos bajan más rápido) y se aplican los **topes** de siempre: hasta +4 en jóvenes y hasta −3 (−4 en veteranos).
+
+<img alt="Forma del plantel en PES 6 Editar con la temporada de cada jugador, etiquetas de lesionado y el botón ⓘ" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.042/forma.png" width="100%">
+
+## ⓘ De dónde sale cada punto
+
+En **📊 Forma del plantel** tocá **ⓘ** al lado de cualquier jugador: se abre el detalle con cada parte, sus números, la edad y el resultado. Así se ve un lesionado:
+
+<img alt="El detalle de la forma de un defensor lesionado de la rodilla que baja un punto" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.042/lesionado.png" width="100%">
+
+## 🚧 En desarrollo
+
+Un cartel nuevo cuenta **qué está en prueba y qué viene**: más estilos gráficos inspirados en otros PES, habilidades desde la ficha, formaciones como plantillas y comparar planteles. También queda arriba de todo en **Novedades**.
+
+<img alt="El cartel En desarrollo en PES 6 Editar" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.042/en-desarrollo.png" width="60%">
+
+---
+
+> 🧪 **Está en beta.** Los datos de toda la temporada, las lesiones y el historial salen de ESPN y se prueban por primera vez en esta versión. Si ves un goleador que no cuadra o un lesionado que ya volvió, [avisanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose).
+
+*Las capturas usan un plantel de prueba con jugadores de ejemplo.*
+
+**Todo en español e inglés**, como siempre 🇦🇷🇬🇧

@@ -10,11 +10,10 @@ const TICKER_IDEAS = [
 ];
 // lo nuevo de la última versión, contado para la barra
 const TICKER_NEW = [
-  'Novedad v0.041: en Datos y colores podés subir tu propio escudo y el editor lo guarda en el Parche con todos sus tamaños.',
-  'Novedad v0.041: si tu Sider no tiene carpeta de escudos, el editor la crea y la agrega a sider.ini.',
-  'Novedad v0.041: el editor avisa cuando hay una versión nueva y se actualiza con un toque.',
-  'Novedad v0.041: las fotos y escudos de internet se guardan y cargan al instante, también sin conexión.',
-  'Novedad v0.041: si tu Sider está dentro de Archivos de programa, podés abrirlo solo para ver.'
+  "Novedad v0.042: \"Como 1907\" ya encuentra a \"Como\" en ESPN.",
+  'Novedad v0.042: la forma de cada jugador mira toda la temporada, las lesiones y su historial.',
+  'Novedad v0.042: tocá ⓘ en Forma del plantel para ver de dónde sale cada punto.',
+  'Novedad v0.042: un cartel muestra lo que está en desarrollo.'
 ];
 const TICKER_SAGA = [
   'PES nació en 2001 en PlayStation 2. En Japón la saga se llamaba Winning Eleven.',

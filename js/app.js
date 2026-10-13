@@ -485,7 +485,7 @@ function updateTop() {
   const st = $('status');
   if (!S.f) { st.textContent = ''; $('bSave').disabled = true; return; }
   const n = Math.abs(S.hp - S.savedHp);
-  st.innerHTML = `${S.dir ? '' : '<span class="chip warn">Modo copia</span>'} ${pending() ? `<span class="chip warn">${S.savedHp < 0 ? 'Cambios' : n + ' cambio' + (n > 1 ? 's' : '')} sin guardar</span>` : '<span class="chip">Todo guardado</span>'}`;
+  st.innerHTML = `${S.dir ? '' : '<span class="chip warn copy">Modo copia</span>'} ${pending() ? `<span class="chip warn">${S.savedHp < 0 ? 'Cambios' : n + ' cambio' + (n > 1 ? 's' : '')} sin guardar</span>` : '<span class="chip">Todo guardado</span>'}`;
   $('bSave').disabled = !pending();
   $('bSave').textContent = S.dir ? 'Guardar en el juego' : 'Guardar copia';
   $('bUndo').disabled = !S.hp; $('bRedo').disabled = S.hp >= S.hist.length;

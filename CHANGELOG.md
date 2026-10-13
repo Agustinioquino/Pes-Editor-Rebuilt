@@ -2,6 +2,38 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.043 alpha · Ficha hexagonal, media desde el plantel y tu trabajo a salvo
+
+*13 de octubre de 2026, 18:30 (hora de Argentina)*
+
+Cambiar la media de un jugador ahora es visual: un hexágono que se arrastra y una ventana que se abre desde el plantel. Y al actualizar el editor ya no perdés nada: te pregunta si guardar y tu trabajo queda en el caché.
+
+- **Ficha hexagonal del jugador** (Plantel). Arriba de la pestaña Habilidades hay un hexágono con seis áreas: Ataque, Técnica, Pase, Velocidad, Físico y Defensa. Cada punta es el promedio de las habilidades de esa área y se colorea según el valor. Los arqueros tienen su propio hexágono: Portero, Atajar, Despejar, Reflejos, Alcance y Físico.
+  1. Abrí un jugador de tu EDIT en la pestaña Jugadores.
+  2. Entrá en Habilidades.
+  3. Arrastrá una punta hacia afuera para subir esa área o hacia adentro para bajarla.
+- **Mover un área sin desarmar al jugador** (Plantel). Al mover una punta, todas las habilidades de esa área suben o bajan lo mismo, así se mantienen las diferencias entre ellas (un buen cabeceador sigue cabeceando mejor de lo que patea). Mientras arrastrás, la valoración aproximada se actualiza en vivo con el +/− que suma o resta. Cada movimiento es un solo paso de Deshacer.
+- **Cómo estaba antes** (Plantel). Una línea punteada dentro del hexágono muestra cómo estaba el jugador al abrir el archivo, y al lado de cada área aparece cuánto cambió (+5, −3). Así ves de un vistazo qué tocaste.
+- **Hexágono también con el teclado** (Plantel). Tocá una punta (o llegá con Tab) y usá las flechas: arriba o derecha suben 1, abajo o izquierda bajan 1, y RePág o AvPág mueven 5 de una.
+- **Hexágono de los jugadores del Parche** (Plantel). La ficha de un jugador que está en la base del Parche pero no en tu EDIT también muestra su hexágono, solo para ver.
+- **Editar la media desde el plantel** (Plantel). En la tabla del plantel, la valoración (columna Val.) de cada jugador ahora es un botón con un lápiz ✎. Al tocarlo se abre una ventana encima de la página con la media en grande, botones −5, −1, +1 y +5, una barra para elegirla entre 40 y 99 y el hexágono del jugador para ajustar cada área.
+  1. Abrí un equipo: aparece en Plantel.
+  2. Tocá el número de la columna Val. de un jugador.
+  3. Usá los botones, la barra o el hexágono.
+  4. Tocá Listo (o Esc) y el plantel se actualiza.
+- **Qué toca la media rápida** (Plantel). En los jugadores de campo, cambiar la media sube o baja por igual todas las habilidades de juego; las de arquero no se tocan. En los arqueros se mueven las habilidades de arquero y el salto. El editor busca el cambio que deja la media lo más cerca posible de la que elegiste y, si las habilidades ya están en el tope (99) o en el piso (40), te avisa.
+- **Volver atrás sin miedo** (Plantel). La ventana muestra cuánto cambió la media desde que la abriste. "Volver a como estaba" deshace todo lo de esa ventana (queda en Rehacer), Ctrl+Z y Ctrl+Y funcionan adentro y "Abrir ficha completa" te lleva a la pestaña Habilidades del jugador. Si el jugador es del Parche y no está en tu EDIT, la ventana ofrece agregarlo para poder editarlo.
+- **El aviso de versión nueva, más rápido y seguro** (Velocidad). Con la pestaña a la vista, el editor revisa cada 3 minutos si hay una versión nueva (antes cada 10), y también apenas volvés a la pestaña. Además mira el último cambio publicado en GitHub: cuando aparece uno, revisa cada 30 segundos hasta que la página nueva está lista. Las revisiones piden los archivos con una marca única, así ni el navegador ni GitHub pueden contestar con una copia vieja. El aviso muestra el título del cambio.
+- **Actualizar trae todo de nuevo** (Velocidad). "Actualizar ahora" recarga la página pidiendo cada archivo otra vez a GitHub, así no queda ninguna parte de la versión anterior.
+- **Antes de recargar, te pregunta** (Archivo). Si tocás "Actualizar ahora" o "Borrar caché" con cambios sin guardar, aparece un cuadro con tus opciones: Guardar en el caché y recargar, Guardar en el juego y recargar (o Guardar copia, si abriste el archivo a mano), Actualizar sin guardar o Cancelar. Si al guardar en el juego algo falla, no recarga.
+- **Tu trabajo, guardado en el caché** (Archivo). Al recargar, el EDIT con tus cambios queda guardado en este navegador junto con el historial de Deshacer y la pantalla donde estabas. Cuando el editor vuelve a abrir ese mismo EDIT, todo vuelve solo y te avisa cuántos cambios recuperó. Funciona con la carpeta del juego y con un archivo abierto a mano, y lo guardado dura un día.
+  1. Hacé cambios en un jugador o un equipo.
+  2. Cuando aparezca "Hay una versión nueva del editor", tocá Actualizar ahora.
+  3. Elegí "Guardar en el caché y recargar".
+  4. Al volver a cargar, seguís donde estabas, con Deshacer.
+- **Si el juego guardó mientras tanto** (Archivo). Si el juego modificó el EDIT entre que guardaste en el caché y volviste, el editor lo nota: sin cambios pendientes abre el del juego; con cambios pendientes los recupera y te ofrece recargar el del juego, y al guardar te vuelve a avisar antes de pisarlo.
+- **Arreglo: "cambios sin guardar" a la vista** (Interfaz). En pantallas de 1366 px de ancho o menos, con la carpeta del juego abierta, el aviso "N cambios sin guardar" de la barra de pestañas quedaba escondido. Ahora siempre se ve; solo se esconde la etiqueta "Modo copia".
+
 ## v0.042 alpha · Valoración dinámica con datos reales
 
 *13 de octubre de 2026, 15:45 (hora de Argentina)*

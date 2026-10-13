@@ -10,10 +10,10 @@ const TICKER_IDEAS = [
 ];
 // lo nuevo de la última versión, contado para la barra
 const TICKER_NEW = [
-  "Novedad v0.042: \"Como 1907\" ya encuentra a \"Como\" en ESPN.",
-  'Novedad v0.042: la forma de cada jugador mira toda la temporada, las lesiones y su historial.',
-  'Novedad v0.042: tocá ⓘ en Forma del plantel para ver de dónde sale cada punto.',
-  'Novedad v0.042: un cartel muestra lo que está en desarrollo.'
+  'Novedad v0.043: en Habilidades hay una ficha hexagonal que se arrastra para subir o bajar cada área.',
+  'Novedad v0.043: tocá la media de un jugador en el plantel y cambiala en una ventana, sin salir del equipo.',
+  'Novedad v0.043: antes de actualizar el editor te pregunta si guardar, y tu trabajo queda en el caché.',
+  'Novedad v0.043: el aviso de versión nueva aparece a los pocos minutos de publicarse.'
 ];
 const TICKER_SAGA = [
   'PES nació en 2001 en PlayStation 2. En Japón la saga se llamaba Winning Eleven.',

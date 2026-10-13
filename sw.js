@@ -1,6 +1,7 @@
 // PES Editor: permite instalarlo como app y abrirlo sin internet.
 // Archivos del editor: siempre pregunta a GitHub si hay una versión más nueva (sin usar la copia de 10 minutos
-// del navegador); si no hay conexión, usa la última guardada.
+// del navegador); si no hay conexión, usa la última guardada. Después de "Actualizar ahora" (?fresh=) los pide con
+// una marca única para saltear también las copias de la red de GitHub.
 // Fotos y escudos de internet: se guardan la primera vez y después salen de acá, al instante y también sin conexión.
 importScripts('js/files.js');
 const CACHE = 'pes-editor-v' + APP_VER, IMG = 'pes-editor-img', IMG_MAX = 6000;
@@ -25,8 +26,14 @@ self.addEventListener('fetch', e => {
   if (u.origin !== location.origin) { if (req.destination === 'image') e.respondWith(img(e)); return; }
   if (u.pathname.includes('/music/') || req.headers.has('range')) return;
   const nav = req.mode === 'navigate';
-  e.respondWith(fetch(req.url, { cache: 'no-cache', credentials: 'same-origin', redirect: nav ? 'manual' : 'follow' })
-    .then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(k => k.put(req, c)); } return r; })
+  // "Actualizar ahora" recarga con ?fresh=: esa página y todo lo que pide se trae con una marca única,
+  // así tampoco la red de GitHub (que guarda copias unos minutos) puede devolver la versión anterior
+  const fresh = /[?&]fresh=/.test(nav ? u.search : req.referrer || '');
+  let url = req.url, key = req;
+  if (fresh && nav) { const k = new URL(req.url); k.searchParams.delete('fresh'); key = k.href; }
+  else if (fresh) url += (u.search ? '&' : '?') + '_=' + Date.now();
+  e.respondWith(fetch(url, { cache: fresh ? 'no-store' : 'no-cache', credentials: 'same-origin', redirect: nav ? 'manual' : 'follow' })
+    .then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(k => k.put(key, c)); } return r; })
     .catch(() => caches.match(req).then(r => r || caches.match('./index.html'))));
 });
 // "Borrar caché" desde la página

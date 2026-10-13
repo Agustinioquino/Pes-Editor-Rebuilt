@@ -72,6 +72,8 @@ function introDone(msg) {
 }
 // ---- flujo de inicio ----
 async function pesStart(force) {
+  // el trabajo que quedó en el caché al recargar (si era un archivo abierto a mano, se recupera sin buscar la carpeta)
+  if (!force && typeof sessResume === 'function' && await sessResume()) return;
   introShow();
   if (!window.showDirectoryPicker) {
     introStep('Tu navegador no permite leer carpetas (hace falta Chrome o Edge).', 'err');
@@ -111,17 +113,20 @@ async function pesOpen(root) {
     introActions(`<button class="btn primary" type="button" id="introOther">Elegir otra carpeta</button><p class="note">Tiene que estar en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\&lt;número&gt;\\drmp (o \\save). Si nunca guardaste en el modo Editar del juego, el archivo todavía no existe.</p>`, a => a.querySelector('#introOther').onclick = () => pesPick());
     return;
   }
-  const e = f.edits[0]; PESLOC.chosen = e;
+  if (typeof sessPeek === 'function') await sessPeek();
+  // si antes de recargar había un EDIT abierto (y quedó guardado en el caché), se abre ese mismo
+  const e = (typeof sessWants === 'function' && sessWants(f.edits)) || f.edits[0]; PESLOC.chosen = e;
   introStep(`Leyendo ${e.path}\\EDIT00000000 (${(e.size / 1048576).toFixed(1).replace('.', ',')} MB)…`);
   try {
     const file = await e.handle.getFile(), bytes = new Uint8Array(await file.arrayBuffer());
     introStep('Descifrando y armando equipos y jugadores…'); await new Promise(r => setTimeout(r, 30));
     S.dir = e.dir; S.editHandle = e.handle; S.mtime = file.lastModified;
     openBytes(bytes, e.path + '\\EDIT00000000');
+    { const r = typeof sessAfterOpen === 'function' && sessAfterOpen(file.lastModified); if (r) introStep(r); }
     if (typeof wepesCount === 'function') wepesCount();
     await introSider(t0);
     introDone(`Listo: ${S.ix.teams.length} equipos y ${S.ix.players.length} jugadores editados.`);
-    if (f.edits.length > 1) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'Parche' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
+    if (f.edits.length > 1 && e === f.edits[0]) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'Parche' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
   } catch (er) { introStep('No se pudo abrir el EDIT: ' + er.message, 'err'); introActions(`<button class="btn" type="button" id="introOther">Elegir otra carpeta</button>`, a => a.querySelector('#introOther').onclick = () => pesPick()); }
 }
 // ---- Sider: pedir la carpeta (o el permiso) y esperar a que carguen caras, escudos y nombres ----

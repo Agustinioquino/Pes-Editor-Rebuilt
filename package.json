@@ -1,0 +1,8 @@
+{
+  "name": "pes-editor",
+  "private": true,
+  "description": "Solo para correr las pruebas: el editor no necesita instalar nada.",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}

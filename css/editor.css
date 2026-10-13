@@ -1178,3 +1178,7 @@ html.tking .tk{position:fixed;left:0;right:0;bottom:0;z-index:44;display:flex;al
 html.tking main{padding-bottom:86px}
 html.tking .mp{bottom:44px}
 html.tking .toast{bottom:44px}
+/* texto de la barra de abajo: blanco y con la fuente de PES, como el resto del estilo */
+html.tking .tk{font-family:"PES Express",var(--body);color:#fff}
+.tki,.tkhelp{color:#fff;font-family:inherit;text-shadow:0 1px 0 #000,0 0 6px #0008}
+.tki b,.tktag{font-family:inherit}

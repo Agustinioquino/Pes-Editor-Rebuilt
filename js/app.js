@@ -725,8 +725,8 @@ function rosterCard(t) {
       <div class="row"><span class="note">Orden:</span><div class="seg" id="rsort">${[['xi', 'Titulares'], ['bench', 'Suplentes'], ['num', 'Dorsal'], ['pos', 'Posición'], ['val', 'Valoración'], ['mv', 'Valor'], ['filial', fil ? 'Filial' : parent ? 'Primer equipo' : 'Filial']].map(([k, n]) => `<button type="button" data-sort="${k}" aria-pressed="${S.rosterSort === k}">${n}</button>`).join('')}</div></div></div>
     <div class="dtbar">
       <input type="search" id="rq" placeholder="Filtrar: nombre, ID, dorsal o país…" value="${esc(S.rq || '')}" aria-label="Filtrar el plantel" autocomplete="off">
-      <div class="fchips" id="rgrp" aria-label="Línea">${grp.map(([k, n]) => `<button type="button" data-g="${k}" aria-pressed="${(S.rgrp || 'all') === k}">${n}</button>`).join('')}</div>
-      <div class="fchips" id="rst" aria-label="Situación">${sts.map(([k, n]) => `<button type="button" data-st="${k}" aria-pressed="${(S.rst || 'all') === k}">${n}</button>`).join('')}</div>
+      <div class="fgroups"><div class="fgrp"><span class="flab" aria-hidden="true">Posición</span><div class="fchips" id="rgrp" aria-label="Posición">${grp.map(([k, n]) => `<button type="button" data-g="${k}" aria-pressed="${(S.rgrp || 'all') === k}">${n}</button>`).join('')}</div>
+      </div><div class="fgrp"><span class="flab" aria-hidden="true">Estado</span><div class="fchips" id="rst" aria-label="Estado">${sts.map(([k, n]) => `<button type="button" data-st="${k}" aria-pressed="${(S.rst || 'all') === k}">${n}</button>`).join('')}</div></div></div>
       <div class="dttools">
         <div class="seg mini" id="rdens" title="Densidad de filas">${[['compact', '▤', 'Compacta'], ['normal', '☰', 'Normal'], ['comfy', '≡', 'Cómoda']].map(([k, ic, n]) => `<button type="button" data-d="${k}" aria-pressed="${dens === k}" title="${n}" aria-label="Filas: ${n}">${ic}</button>`).join('')}</div>
         <div class="pop"><button class="btn small" type="button" id="rcolsBtn" aria-expanded="false">Columnas</button>
@@ -760,7 +760,7 @@ function rosterCard(t) {
           <td class="mono c-val">${i && i.r ? `<b class="${vcls(i.r)}">${i.r}</b>${adjHtml(i.adj, i.form)}` : ''}</td>
           ${ageValCells(w.pid)}
           <td class="c-act"><div class="acts">${p ? `<button class="btn small icon" data-edit="${w.pid}" type="button" title="Editar jugador" aria-label="Editar">✎</button>` : ''}
-            <select data-act="${w.slot}" data-cap="${w.cap ? 1 : 0}" data-lazy="${w.si < 0 && st.length ? 'sm' : 'm'}" aria-label="Acciones: capitán, titular o pasar a otro equipo" class="mini"><option value="">${w.si < 0 && st.length ? 'Acciones…' : 'Capitán / pasar…'}</option></select>
+            <select data-act="${w.slot}" data-cap="${w.cap ? 1 : 0}" data-lazy="${w.si < 0 && st.length ? 'sm' : 'm'}" aria-label="Acciones: capitán, titular o pasar a otro equipo" title="${w.si < 0 && st.length ? 'Titular, capitán o pasar a otro equipo' : 'Capitán o pasar a otro equipo'}" class="mini actsel"><option value="">⋯</option></select>
             <button class="btn small icon danger" data-del="${w.slot}" type="button" title="Quitar del plantel" aria-label="Quitar">✕</button></div></td>
         </tr>`; }).join('')}${S.rosterSort === 'filial' ? filialRows(t, fil, parent) : ''}
         <tr class="nores" hidden><td colspan="20" class="empty">Ningún jugador coincide con el filtro.</td></tr></tbody>

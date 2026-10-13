@@ -94,7 +94,7 @@ async function pesStart(force) {
   }
   introStep('Para encontrar el EDIT, elegí tu carpeta Documentos (una sola vez).', 'wait');
   introActions(`<button class="btn primary big" type="button" id="introGo">📂 Elegir mi carpeta Documentos</button>
-    <p class="note">El navegador no deja que una página lea tus archivos sin permiso. La ventana se abre en Documentos: tocá "Seleccionar carpeta" y listo. El editor busca solo <b>KONAMI\\eFootball PES 2021 SEASON UPDATE</b>, el EDIT00000000 y la carpeta WEPES, y lo recuerda para la próxima.</p>`, a => a.querySelector('#introGo').onclick = () => pesPick());
+    <p class="note">${window.pesNative ? 'Se abre el selector de carpetas de Windows en Documentos: elegí Documentos y listo.' : 'El navegador no deja que una página lea tus archivos sin permiso. La ventana se abre en Documentos: tocá "Seleccionar carpeta" y listo.'} El editor busca solo <b>KONAMI\\eFootball PES 2021 SEASON UPDATE</b>, el EDIT00000000 y la carpeta WEPES, y lo recuerda para la próxima.</p>`, a => a.querySelector('#introGo').onclick = () => pesPick());
 }
 async function pesPick() {
   let root; try { root = await window.showDirectoryPicker({ id: 'pesdocs', mode: 'readwrite', startIn: 'documents' }); }

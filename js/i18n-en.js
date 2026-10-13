@@ -2838,4 +2838,6 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "lesión: {x}":"injury: {x}",
 "ausente en las últimas {x} citaciones":"absent from the last {x} squads",
 "ⓘ en Forma del plantel para ver el detalle":"ⓘ in Squad form for the breakdown",
-"Lesionados":"Injured"};
+"Lesionados":"Injured",
+"PJ":"MP",
+"📈 {x} pts/PJ":"📈 {x} pts/MP"};

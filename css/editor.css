@@ -1367,3 +1367,4 @@ html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
 .whytable td:first-child{white-space:nowrap;font-weight:600}.whytable td:last-child{text-align:right;font-family:var(--mono);white-space:nowrap}.whytable .tot td{font-weight:700;background:var(--sunk)}.whytable .pos{color:#0f9d48}.whytable .neg{color:#d32f2f}
 .lmhelp ul{margin:6px 0;padding-left:1.1em}.lmhelp li{margin:3px 0}.lmhelp .note p{margin:.4em 0}
 .lmform > .note{margin:4px 0 6px}
+.lmform .frow .cnm small{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}

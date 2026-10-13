@@ -438,7 +438,7 @@ function lastMatchCard(t) {
   return `<div class="lmcard"><div class="row" style="justify-content:space-between"><h3>⚽ Últimos partidos reales</h3><span class="row"><button class="btn ghost small" type="button" id="lmClose">✕ Cerrar</button></span></div>
     ${body}
     <details class="lmhelp" ${LM.helpOpen ? 'open' : ''}><summary>ℹ️ Cómo se calcula la forma</summary><div class="note">
-      <p>La <b>forma</b> compara lo que se espera de cada jugador con lo que está haciendo en la realidad. Cada parte suma o resta puntos de valoración; el total se redondea y tiene tope. Con ⓘ se ve el detalle de cada jugador con sus números.</p>
+      <p><b>Forma:</b> compara lo que se espera de cada jugador con lo que está haciendo en la realidad. Cada parte suma o resta puntos de valoración; el total se redondea y tiene tope. Con ⓘ se ve el detalle de cada jugador con sus números.</p>
       <ul>
         <li><b>📈 Últimos partidos:</b> el puntaje de cada partido (lo calcula el editor con goles, asistencias, tiros, atajadas, tarjetas y resultado) contra lo que se le exige. Pesan más el partido más reciente y los minutos jugados.</li>
         <li><b>🗓 Temporada completa:</b> su puntaje promedio en todos los partidos analizados y qué parte de los minutos posibles juega: el titular fijo suma, el que casi no juega resta.</li>
@@ -446,10 +446,11 @@ function lastMatchCard(t) {
         <li><b>🏟 Equipo:</b> los puntos por partido de la campaña y si el equipo mejoró o empeoró respecto de la temporada anterior.</li>
         <li><b>📚 Historial:</b> sus temporadas anteriores moderan la actual (una racha de tres partidos no lo vuelve crack, ni un mal mes lo hunde) y premian al titular de siempre.</li>
         <li><b>🤕 Lesiones y ausencias:</b> lesionado −1 (−1,5 si lleva más de dos meses), en duda −0,5; el habitual que faltó a las últimas tres citaciones, −1.</li>
-        <li><b>🎂 Edad:</b> multiplica el total: hasta 21 años sube ×1,3 y baja ×0,9; de 30 a 32 sube ×0,8 y baja ×1,15; de 33 sube ×0,6 y baja ×1,3. Topes: hasta <b>+4</b> en jóvenes, +3 en general, +2 en mayores de 33; hasta <b>-3</b> (-4 en veteranos).</li>
+        <li><b>🎂 Edad:</b> multiplica el total: hasta 21 años sube ×1,3 y baja ×0,9; de 30 a 32 sube ×0,8 y baja ×1,15; de 33 sube ×0,6 y baja ×1,3. Topes: hasta +4 en jóvenes, +3 en general, +2 en mayores de 33; hasta -3 (-4 en veteranos).</li>
         <li><b>⭐ Exigencia:</b> a los cracks se les pide más: el puntaje esperado sube con la valoración del parche y con el valor de mercado.</li>
       </ul>
-      <p>Fuentes: con <b>ESPN</b> entran los últimos 6 partidos, toda la temporada, el plantel con sus lesionados, la campaña anterior y el historial de cada jugador (se guarda 7 días). Con API-Football solo entran los últimos partidos. Flechas: ${adjHtml(3, null)} muy en alza · ${adjHtml(1, null)} en alza · ${adjHtml(0, {})} estable · ${adjHtml(-1, null)} en baja · ${adjHtml(-3, null)} muy en baja. "Por rendimiento" aplica ese ajuste a la valoración en todo el editor; no cambia las habilidades guardadas en el juego hasta que tocás "Usar esta formación y este 11".</p>
+      <p><b>Fuentes:</b> con ESPN entran los últimos 6 partidos, toda la temporada, el plantel con sus lesionados, la campaña anterior y el historial de cada jugador (se guarda 7 días). Con API-Football solo entran los últimos partidos.</p>
+      <p><b>Flechas:</b> ${adjHtml(3, null)} <span>muy en alza</span> · ${adjHtml(1, null)} <span>en alza</span> · ${adjHtml(0, {})} <span>estable</span> · ${adjHtml(-1, null)} <span>en baja</span> · ${adjHtml(-3, null)} <span>muy en baja</span>. <span>"Por rendimiento" aplica ese ajuste a la valoración en todo el editor; no cambia las habilidades guardadas en el juego hasta que tocás "Usar esta formación y este 11".</span></p>
     </div></details></div>`;
 }
 // una fila de "Forma del plantel": últimos partidos, temporada, goles, lesión y el botón ⓘ con el detalle
@@ -467,8 +468,8 @@ function lmFormRow(x, f) {
 const GRP_LONG = { gk: 'arquero', df: 'defensor', mf: 'mediocampista', fw: 'delantero' };
 function lmWhy(t, pid) {
   const f = LM.adj.get(pid), i = pInfoBase(pid); if (!f) return;
-  const P = f.parts, pts = v => `<b class="${v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : ''}">${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}</b>`;
-  const dec = v => v == null ? '?' : (+v).toFixed(2).replace('.', ',');
+  const sep = typeof LANG !== 'undefined' && LANG === 'en' ? '.' : ',', dec = v => v == null ? '?' : (+v).toFixed(2).replace('.', sep);
+  const P = f.parts, pts = v => `<b class="${v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : ''}" data-noi18n>${v > 0 ? '+' : v < 0 ? '−' : ''}${dec(Math.abs(v))}</b>`;
   const row = (ic, name, data, v) => `<tr><td>${ic} <span>${name}</span></td><td>${data}</td><td>${pts(v)}</td></tr>`;
   const s = f.s, lastTxt = f.last.length ? f.last.map(r => `<b class="lrt ${rtCls(r)}" data-noi18n>${r.toFixed(1)}</b>`).join(' ') : '';
   const rows = [
@@ -476,7 +477,7 @@ function lmWhy(t, pid) {
     row('🗓', 'Temporada', s ? `<span>${s.app} PJ (${s.st} de titular)</span> · <span>${s.min}′ = ${s.share == null ? '?' : s.share}% de los minutos posibles</span>${s.avg != null ? ` · <span>puntaje promedio ${s.avg}</span>` : ''}${s.games < 5 ? ' · <span>pocos partidos analizados todavía</span>' : ''}` : f.deep ? '<span>Sin partidos en la temporada analizada.</span>' : '<span>Temporada sin analizar (fuente ESPN con "Analizar toda la temporada").</span>', P.season),
     row('⚽', 'Goles y asistencias', f.grp === 'gk' ? '<span>No aplica a arqueros.</span>' : `<span>${f.useS ? s.g : f.g} G y ${f.useS ? s.a : f.as} A en ${f.useS ? s.min : f.min}′</span> (<span>${f.useS ? 'temporada' : 'últimos partidos'}</span>) · <span>${dec(f.ga90)} por 90′</span> · <span>lo normal para un ${GRP_LONG[f.grp]} es ${dec(f.gaExp)}</span>`, P.goals),
     row('🏟', 'Equipo', f.ppg == null ? '<span>Sin campaña.</span>' : `<span>${dec(f.ppg)} pts/PJ esta temporada</span>${f.prevPpg != null ? ` · <span>anterior ${dec(f.prevPpg)}</span>` : ''}`, P.team),
-    row('📚', 'Historial', f.hist.length ? `${f.hist.map(h => `<span data-noi18n>${esc(h.n)}: ${h.app} PJ · ${h.g} G · ${h.a} A${h.min ? ' · ' + h.min + '′' : ''}</span>`).join('<br>')}<br><span>${dec(f.hGa90)} por 90′ en sus últimas ${f.hist.length} temporadas</span>${f.hApp != null ? ` · <span>${f.hApp} partidos por temporada</span>` : ''}` : f.deep ? '<span>Sin historial en la web.</span>' : '<span>Solo con la temporada analizada.</span>', P.hist),
+    row('📚', 'Historial', f.hist.length ? `${f.hist.map(h => `<b data-noi18n>${esc(h.n)}</b> <span>${h.app} PJ · ${h.g} G · ${h.a} A${h.min ? ' · ' + h.min + '′' : ''}</span>`).join('<br>')}<br><span>${dec(f.hGa90)} por 90′ en sus últimas ${f.hist.length} temporadas</span>${f.hApp != null ? ` · <span>${f.hApp} partidos por temporada</span>` : ''}` : f.deep ? '<span>Sin historial en la web.</span>' : '<span>Solo con la temporada analizada.</span>', P.hist),
     row('🤕', 'Lesión o ausencia', f.injury ? `<span data-noi18n>${esc((f.injury.t ? f.injury.t + ' · ' : '') + f.injury.st)}</span>${f.injury.d ? ` · <span data-noi18n>${esc(f.injury.d)}</span>` : ''}${f.injury.date ? ` · <span>desde ${fmtDate(f.injury.date)} (${typeof seasInjDays === 'function' ? seasInjDays(f.injury) : '?'} días)</span>` : ''}` : f.absent >= 3 && P.inj ? `<span>Era habitual y faltó a las últimas ${f.absent} citaciones.</span>` : f.deep ? '<span>Sin lesiones informadas.</span>' : '<span>Solo con la temporada analizada.</span>', P.inj),
   ];
   const sum = P.perf + P.season + P.goals + P.team + P.hist + P.inj, base = i ? i.r : '?', r0 = S.names.get(pid), rb = r0 && r0.r ? r0.r : base;
@@ -484,7 +485,7 @@ function lmWhy(t, pid) {
     <p class="note">Más valoración y más valor de mercado = más exigencia. Cada parte suma o resta puntos de valoración.</p>
     <table class="whytable"><tr><th>Parte</th><th>Datos</th><th>Puntos</th></tr>${rows.join('')}
       <tr class="tot"><td><span>Suma</span></td><td></td><td>${pts(sum)}</td></tr>
-      <tr><td>🎂 <span>Edad</span></td><td><span>${f.age} años</span>: <span>${f.age <= 21 ? 'joven: sube más rápido y baja menos' : f.age >= 33 ? 'veterano: sube menos y baja más rápido' : f.age >= 30 ? 'sube algo menos y baja algo más' : 'edad normal'}</span></td><td data-noi18n>×${P.mul}</td></tr>
+      <tr><td>🎂 <span>Edad</span></td><td><span>${f.age} años</span> · <span>${f.age <= 21 ? 'joven: sube más rápido y baja menos' : f.age >= 33 ? 'veterano: sube menos y baja más rápido' : f.age >= 30 ? 'sube algo menos y baja algo más' : 'edad normal'}</span></td><td data-noi18n>×${P.mul}</td></tr>
       <tr class="tot"><td><span>Forma</span></td><td><span>${dec(P.raw)} redondeado, con tope ${P.capUp > 0 ? '+' : ''}${P.capUp} / ${P.capDown}</span></td><td>${adjHtml(f.adj, null) || adjHtml(0, {})}</td></tr></table>
     <p class="note">${i ? `<span>Valoración</span> <b class="${vcls(rb)}" data-noi18n>${rb}</b> → <b class="${vcls(Math.max(40, Math.min(99, rb + f.adj)))}" data-noi18n>${Math.max(40, Math.min(99, rb + f.adj))}</b> <span>en el modo "Por rendimiento". En el juego se guarda solo al tocar "Usar esta formación y este 11".</span>` : ''}</p></div>`;
   ksModal(tr('Cómo se calcula la forma de ') + (playerName(pid) || ''), html, () => { });

@@ -38,7 +38,12 @@ const HELP = {
       ['Capitán', 'elegilo de la lista: titulares arriba, suplentes abajo.'],
       ['Lanzadores', 'tiro libre largo, tiro libre corto y su segundo tirador, córner izquierdo y derecho, y penales. Es lo mismo que "Opciones del jugador" en el Plan de juego.'],
       ['Jugadores ofensivos', 'los 3 que suben al área en tiros libres y córners.'],
-      ['Elegir automáticamente', 'elige un titular para cada jugada según sus habilidades: tiro libre y potencia, efecto, definición, cabezazo. Los lugares que estaban en "Ninguno" quedan así.']]]] },
+      ['Elegir automáticamente', 'elige un titular para cada jugada según sus habilidades: tiro libre y potencia, efecto, definición, cabezazo. Los lugares que estaban en "Ninguno" quedan así.']]],
+    ['Estrategia', [
+      ['Ataque y defensa', 'las mismas opciones que "Estrategia de equipo" en el juego, con su explicación debajo de cada una.'],
+      ['Instrucciones avanzadas', 'dos de ataque y dos de defensa por plan, como en el juego. No se puede repetir la misma en los dos lugares.'],
+      ['Opciones tácticas rápidas', 'cambian varias opciones de una vez, con los mismos nombres que en el juego.'],
+      ['Config. marcaje', 'si algún jugador quedó marcando a un rival fijo, "Volver a automático" lo deja como viene.']]]] },
   data: { t: 'los datos del equipo', intro: 'Nombre, abreviatura, colores, país y entrenador. Son los datos que el juego muestra en menús, marcadores y radar.', groups: [
     ['Qué hace cada cosa', [
       ['Nombre y abreviatura', 'se ven en menús y en el marcador. Al cambiarlos se activa "Proteger nombre" para que el Parche no los vuelva a pisar.'],

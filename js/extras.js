@@ -90,44 +90,69 @@ function kitStrip(t) {
 // ===================== Formations / tactics =====================
 const PLAN_SZ = 0xA0, ENT_SZ = 0x21;
 const planOff = (t, plan) => t.tacticsBase + 4 + plan * PLAN_SZ;
+// Names and descriptions as the game shows them (PES 2021, Spanish). Offsets verified in-game with Agustin's EDIT.
 const STRAT_BIN = [
-  ['att', 0x63, 'Estilo de ataque', ['Contraataque', 'Posesión']],
-  ['att', 0x64, 'Construcción', ['Pase largo', 'Pase corto']],
-  ['att', 0x65, 'Zona de ataque', ['Por las bandas', 'Por el centro']],
-  ['att', 0x66, 'Posicionamiento', ['Mantener formación', 'Flexible']],
-  ['def', 0x67, 'Estilo defensivo', ['Presión arriba', 'Defensa total']],
-  ['def', 0x68, 'Zona de contención', ['Opción 1', 'Opción 2'], true],
-  ['def', 0x69, 'Presión', ['Agresiva', 'Conservadora']],
+  ['att', 0x63, 'Estilo de ataque', ['Contraataque', 'Juego de posesión'], ['Tras recuperar la pelota, el equipo busca llegar rápido al arco rival.', 'El equipo mueve la pelota con paciencia y construye el ataque desde atrás.']],
+  ['att', 0x64, 'Creación', ['Pase largo', 'Pase corto'], ['Se busca a los de arriba con pases largos para avanzar rápido.', 'Se avanza con pases cortos y los jugadores se acercan para ofrecer opciones.']],
+  ['att', 0x65, 'Zona de ataque', ['Por las bandas', 'Centro'], ['El ataque se arma sobre todo por los costados.', 'El ataque se arma sobre todo por el medio.']],
+  ['att', 0x66, 'Posicionamiento', ['Mantener formación', 'Flexible'], ['Cada jugador respeta su puesto en la formación.', 'Los jugadores se mueven con libertad según la jugada.']],
+  ['def', 0x67, 'Estilo de defensa', ['Presión en la frontal', 'Defensa total'], ['Los delanteros presionan desde arriba para recuperar la pelota cuanto antes.', 'Todo el equipo vuelve rápido a su campo para defender.']],
+  ['def', 0x68, 'Zona de contención', ['Centro', 'Por las bandas'], ['Se cierra el medio y se empuja al rival hacia las bandas.', 'Se cierran las bandas y se empuja al rival hacia el medio.']],
+  ['def', 0x69, 'Presión', ['Agresivo', 'Conservador'], ['Los jugadores salen con decisión a quitarle la pelota al rival.', 'Los jugadores esperan, cubren espacios y no se arriesgan a quedar desparramados.']],
 ];
 const STRAT_RANGE = [
-  ['att', 0x8C, 'Rango de apoyo', 1, 10, 'Cerca', 'Lejos'],
-  ['att', 0x8D, 'Jugadores que llegan al área', 1, 3, 'Menos', 'Más', true],
-  ['def', 0x8E, 'Línea defensiva', 1, 10, 'Baja', 'Alta'],
-  ['def', 0x8F, 'Compactación', 1, 10, 'Abierta', 'Compacta'],
-  ['def', 0x90, 'Ajuste defensivo extra', 1, 3, '1', '3', true],
+  ['att', 0x8C, 'Zona de apoyo', 1, 10, 'Cerca', 'Lejos', 'Cuanto mayor sea el nivel, los jugadores tendrán más tendencia a abrirse para recibir pases.'],
+  ['att', 0x8D, 'Jugadores que llegan al área', 1, 3, 'Menos', 'Más', '', true],
+  ['def', 0x8E, 'Línea defensiva', 1, 10, 'Baja', 'Alta', 'Cuanto mayor sea el nivel, más adelantada estará la línea defensiva.'],
+  ['def', 0x8F, 'Distancia al jugador con balón', 1, 10, 'Abierta', 'Compacta', 'Cuanto mayor sea el nivel, más compacto será el esquema general del equipo al defender.'],
+  ['def', 0x90, 'Ajuste defensivo extra', 1, 3, '1', '3', '', true],
 ];
-const ADV_ATT = { 0: 'Ninguna', 1: 'Anclaje (probable)', 3: 'Falso 9 (probable)', 4: 'Laterales ofensivos (probable)', 6: 'Tiki-taka (probable)', 7: 'Centros al área (probable)' };
-const ADV_DEF = { 0: 'Ninguna', 13: 'Gegenpress (probable)' };
+// Advanced instructions: one shared code list; each plan has two attack slots and two defense slots.
+// ok = code verified in the game; false = deduced from real teams; codes not listed are still unmapped.
+const ADV_SLOTS = [['att', 0x6C, 'Ataque 1'], ['att', 0x74, 'Ataque 2'], ['def', 0x7C, 'Defensa 1'], ['def', 0x84, 'Defensa 2']];
+const ADV_CODES = { att: [1, 2, 3, 4, 5, 6, 7, 9], def: [11, 12, 13, 14, 15, 16] };
+const ADV = {
+  1: ['Ensanchar la cancha', true, 'Los jugadores de banda juegan pegados a la línea lateral para abrir la defensa rival.'],
+  2: ['Falso nueve', true, 'El delantero centro baja a recibir y deja espacio para que lleguen los de segunda línea.'],
+  4: ['Laterales ofensivos', true, 'Los laterales suben con frecuencia para sumarse al ataque.'],
+  6: ['Tiqui-taca', false, 'Pases cortos y movimiento constante para tener la pelota y desordenar al rival.'],
+  9: ['Falso extremo', true, 'El extremo se cierra hacia el medio y deja la banda libre para el lateral.'],
+  11: ['Poblar el área', true, 'Cuando el rival centra, varios jugadores vuelven a defender dentro del área.'],
+  13: ['Presión alta', false, 'Se presiona en campo rival para recuperar la pelota rápido. Exige mucha resistencia.'],
+};
+// Still to map: Rotación en banda, Centros al área, Falsos laterales (ataque); Carrilero, Marcaje estrecho, Defensiva atrasada, Delantero liberado (defensa).
+const advName = c => !c ? 'No' : ADV[c] ? ADV[c][0] + (ADV[c][1] ? '' : ' (probable)') : 'Código ' + c + ' (sin confirmar)';
+const MARK = 0x91, NMARK = 11; // Config. marcaje: one byte per formation slot, 0xff = automático
+// Same names as "Opciones tácticas rápidas" in the game. The EDIT doesn't store the game's exact values, so these approximate them.
 const STRAT_PRESETS = {
-  'Posesión': { 0x63: 1, 0x64: 1, 0x65: 1, 0x66: 1, 0x67: 0, 0x69: 0, 0x8C: 2, 0x8E: 9, 0x8F: 2 },
-  'Contraataque': { 0x63: 0, 0x64: 0, 0x66: 0, 0x67: 1, 0x69: 1, 0x8C: 7, 0x8E: 4, 0x8F: 7 },
-  'Presión alta': { 0x63: 1, 0x66: 1, 0x67: 0, 0x69: 0, 0x8C: 4, 0x8E: 10, 0x8F: 3 },
-  'Bloque bajo': { 0x63: 0, 0x64: 0, 0x66: 0, 0x67: 1, 0x69: 1, 0x8C: 8, 0x8E: 2, 0x8F: 10 },
-  'Equilibrado': { 0x63: 1, 0x64: 1, 0x66: 0, 0x67: 0, 0x69: 0, 0x8C: 5, 0x8E: 5, 0x8F: 5 },
+  'Balones largos a la contra': ['Se defiende atrás y se sale con pelotazos al espacio.', { 0x63: 0, 0x64: 0, 0x66: 0, 0x67: 1, 0x69: 1, 0x8C: 8, 0x8E: 3, 0x8F: 7 }],
+  'Contraataques rápidos': ['Se recupera y se sale rápido con pases cortos.', { 0x63: 0, 0x64: 1, 0x66: 1, 0x67: 0, 0x69: 0, 0x8C: 5, 0x8E: 5, 0x8F: 6 }],
+  'Juego de posesión': ['Pelota al pie, línea alta y presión al perderla.', { 0x63: 1, 0x64: 1, 0x65: 1, 0x66: 1, 0x67: 0, 0x69: 0, 0x8C: 3, 0x8E: 8, 0x8F: 4 }],
+  'Defensa total': ['Todo el equipo atrás y bien junto.', { 0x63: 0, 0x64: 0, 0x66: 0, 0x67: 1, 0x69: 1, 0x8C: 7, 0x8E: 2, 0x8F: 10 }],
+  'Todos adelante': ['Todos al ataque con la línea muy adelantada.', { 0x63: 1, 0x66: 1, 0x67: 0, 0x69: 0, 0x8C: 6, 0x8E: 10, 0x8F: 3 }],
+  'Por las bandas (ofensiva)': ['Ataque por los costados y presión arriba.', { 0x65: 0, 0x67: 0, 0x68: 1, 0x8C: 7, 0x8E: 7 }],
+  'Por las bandas (defensiva)': ['Ataque por los costados, defensa atrás.', { 0x65: 0, 0x67: 1, 0x68: 1, 0x8C: 7, 0x8E: 3, 0x8F: 8 }],
+  'Por el centro (ofensiva)': ['Ataque por el medio y presión arriba.', { 0x65: 1, 0x67: 0, 0x68: 0, 0x8C: 3, 0x8E: 7 }],
+  'Por el centro (defensiva)': ['Ataque por el medio, defensa atrás.', { 0x65: 1, 0x67: 1, 0x68: 0, 0x8C: 3, 0x8E: 3, 0x8F: 8 }],
 };
 function strategyCard(t) {
   const b = planOff(t, S.fplan), v = o => S.d[b + o];
-  const bin = side => STRAT_BIN.filter(x => x[0] === side).map(([, o, n, opts, unsure]) => `<div class="f"><span class="lab">${n}${unsure ? ' <span class="chip">sin confirmar</span>' : ''}</span>${opts.length === 2 ? `<div class="pswitch" data-st="${o}" data-on="${v(o) ? 1 : 0}" role="group" aria-label="${esc(n)}">${opts.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${v(o) === i}">${l}</button>`).join('')}<span class="knob" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><path d="M12 3v8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M7.1 6.6a7 7 0 1 0 9.8 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span></div>` : `<div class="seg" data-st="${o}">${opts.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${v(o) === i}">${l}</button>`).join('')}</div>`}</div>`).join('');
-  const rng = side => STRAT_RANGE.filter(x => x[0] === side).map(([, o, n, min, max, lo, hi, unsure]) => `<div class="f"><span class="lab">${n}${unsure ? ' <span class="chip">sin confirmar</span>' : ''}</span><div class="srange"><span>${lo}</span><input type="range" min="${min}" max="${max}" value="${v(o)}" data-sr="${o}" aria-label="${n}"><span>${hi}</span><output>${v(o)}</output></div></div>`).join('');
-  const adv = (o, map, lo, hi) => { const cur = v(o); const opts = []; for (let i = lo; i <= hi; i++) opts.push(i); if (!opts.includes(cur)) opts.push(cur); return `<select data-adv="${o}">${[0, ...opts.filter(x => x)].map(i => `<option value="${i}" ${i === cur ? 'selected' : ''}>${map[i] || 'Instrucción código ' + i}</option>`).join('')}</select>`; };
+  const knob = '<span class="knob" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><path d="M12 3v8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M7.1 6.6a7 7 0 1 0 9.8 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span>';
+  const bin = side => STRAT_BIN.filter(x => x[0] === side).map(([, o, n, opts, desc]) => `<div class="f"><span class="lab">${n}</span><div class="pswitch" data-st="${o}" data-on="${v(o) ? 1 : 0}" role="group" aria-label="${esc(n)}">${opts.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${v(o) === i}" title="${esc(desc[i])}">${l}</button>`).join('')}${knob}</div><span class="sdesc">${esc(desc[v(o)] || '')}</span></div>`).join('');
+  const rng = side => STRAT_RANGE.filter(x => x[0] === side).map(([, o, n, min, max, lo, hi, desc, unsure]) => `<div class="f"><span class="lab">${n}${unsure ? ' <span class="chip">sin confirmar</span>' : ''}</span><div class="srange"><span>${lo}</span><input type="range" min="${min}" max="${max}" value="${v(o)}" data-sr="${o}" aria-label="${n}"><span>${hi}</span><output>${v(o)}</output></div>${desc ? `<span class="sdesc">${esc(desc)}</span>` : ''}</div>`).join('');
+  const adv = side => { const slots = ADV_SLOTS.filter(x => x[0] === side); return slots.map(([, o, n]) => {
+    const cur = v(o), other = v(slots.find(x => x[1] !== o)[1]), codes = [0, ...ADV_CODES[side]]; if (!codes.includes(cur)) codes.push(cur);
+    return `<div class="f"><span class="lab">${n}</span><select data-adv="${o}" aria-label="Instrucción avanzada ${n}">${codes.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''} ${c && c === other ? 'disabled' : ''}>${esc(advName(c))}</option>`).join('')}</select>${cur && ADV[cur] ? `<span class="sdesc">${esc(ADV[cur][2])}</span>` : ''}</div>`; }).join(''); };
+  const marks = Array.from({ length: NMARK }, (_, i) => v(MARK + i)).filter(x => x !== 0xff).length;
   return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Estrategia · plan ${S.fplan + 1}</h3>
-    <div class="row"><span class="lab">Rápido:</span>${Object.keys(STRAT_PRESETS).map(k => `<button class="btn small" type="button" data-spreset="${k}">${k}</button>`).join('')}</div></div>
+    <label class="row"><span class="lab">Opciones tácticas rápidas</span><select id="spreset" style="width:auto"><option value="">Elegir…</option>${Object.entries(STRAT_PRESETS).map(([k, [d]]) => `<option value="${esc(k)}" title="${esc(d)}">${esc(k)}</option>`).join('')}</select></label></div>
     <div class="stratgrid">
-      <div class="group"><h4>Con la pelota</h4>${bin('att')}${rng('att')}<div class="f"><span class="lab">Instrucción avanzada ofensiva</span>${adv(0x6C, ADV_ATT, 1, 9)}</div></div>
-      <div class="group"><h4>Sin la pelota</h4>${bin('def')}${rng('def')}<div class="f"><span class="lab">Instrucción avanzada defensiva</span>${adv(0x7C, ADV_DEF, 10, 17)}</div></div>
+      <div class="group"><h4>Ataque</h4>${bin('att')}${rng('att')}<h4>Instrucciones avanzadas de ataque</h4>${adv('att')}</div>
+      <div class="group"><h4>Defensa</h4>${bin('def')}${rng('def')}<h4>Instrucciones avanzadas de defensa</h4>${adv('def')}
+        <div class="f"><span class="lab">Config. marcaje</span>${marks ? `<div class="row"><span>${marks} ${marks === 1 ? 'jugador marca' : 'jugadores marcan'} a un rival fijo.</span><button class="btn small" type="button" id="unmark">Volver a automático</button></div>` : '<span>Automático en todos los jugadores.</span>'}<span class="sdesc">El marcaje individual se elige en el juego; acá podés devolverlo a automático si quedó mal.</span></div></div>
     </div>
     <div class="row"><span class="lab">Copiar este plan (formación y estrategia) a:</span>${[0, 1, 2].filter(p => p !== S.fplan).map(p => `<button class="btn small" type="button" data-copyplan="${p}">Plan ${p + 1}</button>`).join('')}</div>
-    <p class="note">Los nombres los deduje comparando equipos conocidos (Barcelona, City y PSG: posesión, pase corto y línea alta; Getafe, Stoke e Islandia: contraataque y bloque compacto). Lo marcado "sin confirmar" o "probable" conviene verificarlo con "Comparar con otro EDIT" en la pestaña Archivo.</p>
+    <p class="note">Los nombres son los del juego y están comprobados en PES 2021. Las instrucciones marcadas "probable" o "sin confirmar" todavía no están verificadas; las opciones tácticas rápidas son aproximadas, porque el juego no guarda sus valores exactos en el EDIT.</p>
   </div>`;
 }
 const FORM_PRESETS = {
@@ -291,8 +316,9 @@ function bindTactics(t, m) {
     setTimeout(apply, 420);
   });
   sh.querySelectorAll('[data-sr]').forEach(r => { r.oninput = () => { r.parentElement.querySelector('output').textContent = r.value; }; r.onchange = () => { const o = +r.dataset.sr; edit('Estrategia de ' + tn, 't' + t.id, regT(t), () => { S.d[planOff(t, S.fplan) + o] = +r.value; }); }; });
-  sh.querySelectorAll('[data-adv]').forEach(s2 => s2.onchange = () => { edit('Instrucción avanzada de ' + tn, 't' + t.id, regT(t), () => { S.d[planOff(t, S.fplan) + +s2.dataset.adv] = +s2.value; }); });
-  sh.querySelectorAll('[data-spreset]').forEach(b => b.onclick = () => { const pr = STRAT_PRESETS[b.dataset.spreset]; edit('Estrategia "' + b.dataset.spreset + '" en ' + tn, 't' + t.id, regT(t), () => { for (const [o, val] of Object.entries(pr)) S.d[planOff(t, S.fplan) + +o] = val; }); toast('Estrategia "' + b.dataset.spreset + '" aplicada al plan ' + (S.fplan + 1) + '.', 4000, ['Deshacer', undo]); rer(); });
+  sh.querySelectorAll('[data-adv]').forEach(s2 => s2.onchange = () => { edit('Instrucción avanzada de ' + tn, 't' + t.id, regT(t), () => { S.d[planOff(t, S.fplan) + +s2.dataset.adv] = +s2.value; }); rer(); });
+  const um = $('unmark'); if (um) um.onclick = () => { edit('Marcaje automático en ' + tn, 't' + t.id, regT(t), () => { S.d.fill(0xff, planOff(t, S.fplan) + MARK, planOff(t, S.fplan) + MARK + NMARK); }); toast('Marcaje automático en todos los jugadores del plan ' + (S.fplan + 1) + '.', 4000, ['Deshacer', undo]); rer(); };
+  const sp = $('spreset'); if (sp) sp.onchange = () => { const k = sp.value; if (!k) return; const pr = STRAT_PRESETS[k][1]; edit('Táctica rápida "' + k + '" en ' + tn, 't' + t.id, regT(t), () => { for (const [o, val] of Object.entries(pr)) S.d[planOff(t, S.fplan) + +o] = val; }); toast('"' + k + '" aplicada al plan ' + (S.fplan + 1) + '.', 4000, ['Deshacer', undo]); rer(); };
   sh.querySelectorAll('[data-copyplan]').forEach(b => b.onclick = () => { const to = +b.dataset.copyplan; edit('Copiar plan ' + (S.fplan + 1) + ' al ' + (to + 1) + ' en ' + tn, 't' + t.id, regT(t), () => { S.d.copyWithin(planOff(t, to), planOff(t, S.fplan), planOff(t, S.fplan) + PLAN_SZ); }); FLUID.delete(t.id + ':' + to); toast('Plan copiado.', 4000, ['Deshacer', undo]); rer(); });
   sh.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
     const pr = FORM_PRESETS[b.dataset.preset];
@@ -357,7 +383,7 @@ function compareEdits(other) {
   const A = S.d, B = other.data, ib = PD.index(B, other.game), out = [];
   const tname = (d, t) => PD.team.get(d, t.base, 'name');
   const pidName = id => playerName(id) || 'ID ' + id;
-  const label = o => { const s = STRAT_BIN.find(x => x[1] === o) || STRAT_RANGE.find(x => x[1] === o); return s ? s[2] : o === 0x6C ? 'Instrucción avanzada ofensiva' : o === 0x7C ? 'Instrucción avanzada defensiva' : 'dato +0x' + o.toString(16); };
+  const label = o => { const s = STRAT_BIN.find(x => x[1] === o) || STRAT_RANGE.find(x => x[1] === o), a = ADV_SLOTS.find(x => x[1] === o); return s ? s[2] : a ? 'Instrucción avanzada ' + a[2] : o >= MARK && o < MARK + NMARK ? 'Config. marcaje, jugador ' + (o - MARK + 1) : 'dato +0x' + o.toString(16); };
   for (const ta of S.ix.teams) {
     const tb = ib.teamById.get(ta.id); if (!tb) continue;
     const li = [];

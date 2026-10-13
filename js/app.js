@@ -644,7 +644,7 @@ function filialOf(t) { return S.ix.teams.find(x => x.id !== t.id && PD.roster(S.
 function parentOf(t) { const b = filialBase(t); return b ? S.ix.teams.find(x => x.id !== t.id && sameTeamName(tget(x, 'name'), b) && PD.roster(S.d, x).length) || null : null; }
 // ===== Plantel como tabla de datos: columnas a elección, filtros, orden por encabezado, selección múltiple, exportar =====
 const RCOLS = [
-  ['sel', '', 'Seleccionar'], ['xi', 'XI', 'Titular (1-11), suplente en el banco (S1-S7) o reserva'], ['num', 'Dorsal', 'Dorsal'], ['player', 'Jugador', 'Jugador'], ['id', 'ID', 'ID del jugador'],
+  ['sel', '', 'Seleccionar'], ['xi', 'XI', 'Titular (1-11), suplente en el banco (S1-S7) o reserva'], ['num', 'Dorsal', 'Dorsal'], ['player', 'Nombre del jugador', 'Nombre del jugador'], ['id', 'ID', 'ID del jugador'],
   ['pos', 'Pos.', 'Posición'], ['val', 'Val.', 'Valoración general'], ['age', 'Edad', 'Edad'], ['h', 'Altura', 'Altura en cm'], ['nat', 'Nac.', 'Nacionalidad'], ['foot', 'Pie', 'Pie hábil'],
   ['mv', 'Valor', 'Valor de mercado estimado. Tocalo para poner el valor real (por ejemplo, el de Transfermarkt).'], ['act', 'Acciones', 'Acciones: editar, hacer capitán, hacer titular, pasar a otro equipo o quitar']];
 const RCOL_FIXED = new Set(['sel', 'player']);
@@ -725,8 +725,8 @@ function rosterCard(t) {
       <div class="row"><span class="note">Orden:</span><div class="seg" id="rsort">${[['xi', 'Titulares'], ['bench', 'Suplentes'], ['num', 'Dorsal'], ['pos', 'Posición'], ['val', 'Valoración'], ['mv', 'Valor'], ['filial', fil ? 'Filial' : parent ? 'Primer equipo' : 'Filial']].map(([k, n]) => `<button type="button" data-sort="${k}" aria-pressed="${S.rosterSort === k}">${n}</button>`).join('')}</div></div></div>
     <div class="dtbar">
       <input type="search" id="rq" placeholder="Filtrar: nombre, ID, dorsal o país…" value="${esc(S.rq || '')}" aria-label="Filtrar el plantel" autocomplete="off">
-      <div class="fchips" id="rgrp" aria-label="Línea">${grp.map(([k, n]) => `<button type="button" data-g="${k}" aria-pressed="${(S.rgrp || 'all') === k}">${n}</button>`).join('')}</div>
-      <div class="fchips" id="rst" aria-label="Situación">${sts.map(([k, n]) => `<button type="button" data-st="${k}" aria-pressed="${(S.rst || 'all') === k}">${n}</button>`).join('')}</div>
+      <div class="fgroups"><div class="fgrp"><span class="flab" aria-hidden="true">Posición</span><div class="fchips" id="rgrp" aria-label="Posición">${grp.map(([k, n]) => `<button type="button" data-g="${k}" aria-pressed="${(S.rgrp || 'all') === k}">${n}</button>`).join('')}</div>
+      </div><div class="fgrp"><span class="flab" aria-hidden="true">Estado</span><div class="fchips" id="rst" aria-label="Estado">${sts.map(([k, n]) => `<button type="button" data-st="${k}" aria-pressed="${(S.rst || 'all') === k}">${n}</button>`).join('')}</div></div></div>
       <div class="dttools">
         <div class="seg mini" id="rdens" title="Densidad de filas">${[['compact', '▤', 'Compacta'], ['normal', '☰', 'Normal'], ['comfy', '≡', 'Cómoda']].map(([k, ic, n]) => `<button type="button" data-d="${k}" aria-pressed="${dens === k}" title="${n}" aria-label="Filas: ${n}">${ic}</button>`).join('')}</div>
         <div class="pop"><button class="btn small" type="button" id="rcolsBtn" aria-expanded="false">Columnas</button>
@@ -760,7 +760,7 @@ function rosterCard(t) {
           <td class="mono c-val">${i && i.r ? `<b class="${vcls(i.r)}">${i.r}</b>${adjHtml(i.adj, i.form)}` : ''}</td>
           ${ageValCells(w.pid)}
           <td class="c-act"><div class="acts">${p ? `<button class="btn small icon" data-edit="${w.pid}" type="button" title="Editar jugador" aria-label="Editar">✎</button>` : ''}
-            <select data-act="${w.slot}" data-cap="${w.cap ? 1 : 0}" data-lazy="${w.si < 0 && st.length ? 'sm' : 'm'}" aria-label="Acciones: capitán, titular o pasar a otro equipo" class="mini"><option value="">${w.si < 0 && st.length ? 'Acciones…' : 'Capitán / pasar…'}</option></select>
+            <select data-act="${w.slot}" data-cap="${w.cap ? 1 : 0}" data-lazy="${w.si < 0 && st.length ? 'sm' : 'm'}" aria-label="Acciones: capitán, titular o pasar a otro equipo" title="${w.si < 0 && st.length ? 'Titular, capitán o pasar a otro equipo' : 'Capitán o pasar a otro equipo'}" class="mini actsel"><option value="">⋯</option></select>
             <button class="btn small icon danger" data-del="${w.slot}" type="button" title="Quitar del plantel" aria-label="Quitar">✕</button></div></td>
         </tr>`; }).join('')}${S.rosterSort === 'filial' ? filialRows(t, fil, parent) : ''}
         <tr class="nores" hidden><td colspan="20" class="empty">Ningún jugador coincide con el filtro.</td></tr></tbody>
@@ -802,7 +802,7 @@ function rosterSelSync() {
 }
 function rosterExport(t, kind) {
   const hide = rHide(), tb = $('rtable'), vis = new Set([...tb.querySelectorAll('tr.prow:not([hidden])')].map(tr => +tr.dataset.pid));
-  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => POS[w.pos] || ''], ['val', 'Valoración', w => w.r || ''],
+  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Nombre del jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => POS[w.pos] || ''], ['val', 'Valoración', w => w.r || ''],
     ['age', 'Edad', w => w.age || ''], ['h', 'Altura', w => w.h || ''], ['nat', 'Nacionalidad', w => w.natName], ['foot', 'Pie', w => w.foot], ['mv', 'Valor (M€)', w => w.mv ? String(w.mv).replace('.', ',') : ''], ['cap', 'Capitán', w => w.cap ? 'Sí' : '']].filter(([k]) => !hide.has(k));
   const rows = S._rrows.filter(w => vis.has(w.pid)), sep = kind === 'csv' ? ';' : '\t';
   const cell = v => { v = String(v ?? ''); return kind === 'csv' && /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v.replace(/\t/g, ' '); };

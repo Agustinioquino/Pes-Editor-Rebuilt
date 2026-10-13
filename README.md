@@ -12,11 +12,11 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.030%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.040%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
-**[▶ Abrir PES Editor](https://agustinioquino.github.io/pes-editor/)**
+**[▶ Abrir PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)**
 
 </div>
 
@@ -112,7 +112,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 
 ## 🚀 Cómo usarlo
 
-1. Abrí **[PES Editor](https://agustinioquino.github.io/pes-editor/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
+1. Abrí **[PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
 3. En el aviso del navegador elegí **"Permitir en cada visita"** para no repetir el paso.
 4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del Parche (la que tiene `sider.exe`, dentro de la carpeta del juego). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
@@ -147,7 +147,7 @@ PES Editor sigue en desarrollo. Esto es lo que viene (puede cambiar):
 
 Para enterarte de cada versión, tocá **Watch → Custom → Releases** arriba en este repositorio. Dentro del editor, la pestaña **Novedades** muestra un punto cuando hay algo nuevo.
 
-¿Encontraste un error o se te ocurrió algo? Abrí un [issue](https://github.com/Agustinioquino/pes-editor/issues/new/choose): hay una plantilla para **🐛 Algo no anda** y otra para **💡 Tengo una idea**. Todo suma, como un buen pase al vacío.
+¿Encontraste un error o se te ocurrió algo? Abrí un [issue](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose): hay una plantilla para **🐛 Algo no anda** y otra para **💡 Tengo una idea**. Todo suma, como un buen pase al vacío.
 
 ## 🧩 Cómo está armado el código
 

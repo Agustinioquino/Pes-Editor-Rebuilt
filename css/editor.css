@@ -1233,3 +1233,92 @@ html[data-q="low"] .tab[aria-selected="true"]::after,html[data-q="low"] .tab[ari
 .mp .mptv{transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s,opacity .45s,transform .45s,visibility 0s}
 .mp.ytmin .mptv{opacity:0;visibility:hidden;pointer-events:none;transform:scale(.25);transform-origin:0 100%;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s,opacity .45s,transform .45s,visibility 0s .45s}
 .mp.ytmin .mpcov::before{content:"\25B6";position:absolute;right:-5px;bottom:-5px;z-index:2;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:var(--mpc,#c00);color:#fff;font-size:.6rem;box-shadow:0 2px 6px #0008;pointer-events:none;animation:popIn .4s both}
+.mptvx{position:absolute;top:6px;right:6px;z-index:5;width:26px;height:26px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:#000b;color:#fff;font:700 .8rem/1 var(--body);cursor:pointer;opacity:.75;transition:opacity .2s,background .2s}
+.mptvx:hover,.mptvx:focus-visible{opacity:1;background:var(--mpc,#c00)}
+.mp.ytmin .mptvx{display:none}
+/* panel de equipos: más ancho, Ordenar al lado de los filtros y selector de liga o país */
+.split.wide{grid-template-columns:minmax(300px,410px) minmax(0,1fr)}
+@media (max-width:860px){.split.wide{grid-template-columns:1fr}}
+.tfrow{display:flex;flex-wrap:nowrap;align-items:center;gap:8px}
+.tfrow .fchips{flex:none;flex-wrap:nowrap;gap:4px}
+.tfrow .fchips button{padding-inline:7px;font-size:.84em;white-space:nowrap}
+.tsort,.tleague{display:flex;align-items:center;gap:8px;min-width:0}
+.tsort{flex:1 1 0;gap:6px;min-width:0}
+.tfrow .tsort select{min-width:118px}
+html[data-gfx="pes6"] .tfrow .fchips button{font-size:.74em;padding-inline:5px}
+html[data-gfx="pes6"] .tsort .lab{font-size:0}
+html[data-gfx="pes6"] .tsort .lab::before{content:"\21C5";font-size:15px}
+.tsort select{font-size:.86em;padding-inline:6px 22px}
+.tsort .lab,.tleague .lab{white-space:nowrap}
+.tsort select,.tleague select{flex:1;min-width:0}
+.tleague{flex-wrap:nowrap}
+/* Formación: banco más largo sin jugador elegido, varios jugadores elegidos y valor de Transfermarkt */
+.fside.nosel .bench{max-height:min(74vh,860px)}
+.hint-card{gap:6px}
+.hint-card kbd{font:600 .78em var(--mono);padding:0 4px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--sunk)}
+.hint-card .btn{justify-self:start}
+.hint-card .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.fm.multi{background:#37c6ff2e;outline:2px dashed #37c6ff;outline-offset:2px}
+.fm.multi .fav{box-shadow:0 0 0 3px #37c6ff99}
+.selcard.multi{display:grid;gap:4px}
+.frvals{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:4px}
+.frvals .frv{display:grid;gap:1px;font-size:.84rem}
+.frvals .frv small{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8;font-weight:500}
+.frvals .frv b{font-weight:700;font-size:1.02rem}
+.frtmrow{display:flex;align-items:center;gap:6px}
+.frtm{all:unset;cursor:pointer;font-weight:700;font-size:1.02rem;border-bottom:1px dashed #fff8}
+.frtm.empty{font-size:.8rem;font-weight:600;padding:2px 8px;border:1px solid #fff6;border-radius:99px;background:#fff1}
+.frtm:hover,.frtm:focus-visible{color:#ffd54a;border-color:#ffd54a}
+.frtmgo{color:inherit;text-decoration:none;opacity:.75;font-weight:700;font-size:.9rem}
+.frtmgo:hover{opacity:1;color:#ffd54a}
+.frtmin{width:90px;font-size:.9rem;padding:2px 6px}
+.frdiff{font-style:normal;font-family:var(--mono);font-size:.62rem;opacity:.9}
+.frdiff.up{color:#8ff0b0}.frdiff.dn{color:#ffb3a8}
+
+/* Retro: caja de menú de PS2, bordes de pixel y sombras duras */
+html[data-gfx="retro"] .fbanner{border-radius:0;border:3px solid #fff;box-shadow:6px 6px 0 #000,inset 0 0 0 3px #0b1c52}
+html[data-gfx="retro"] .fbanner::after{background:repeating-linear-gradient(0deg,#0003 0 2px,transparent 2px 4px)}
+html[data-gfx="retro"] .frate{border-radius:0;background:#0b1c52;border:2px solid #ffd400;box-shadow:4px 4px 0 #000}
+html[data-gfx="retro"] .frnum{color:#ffd400;text-shadow:3px 3px 0 #000;font-size:3.4rem}
+html[data-gfx="retro"] .frl::before{content:"▶ ";color:#ffd400;animation:tabBlink .9s steps(2,jump-none) infinite}
+html[data-gfx="retro"] .frvals .frv{padding:3px 8px;background:#030a24;border:2px solid #2a4fa8}
+html[data-gfx="retro"] .frvals .frv.tm{border-color:#37c6ff}
+html[data-gfx="retro"] .frvals .frv b,html[data-gfx="retro"] .frtm{color:#ffd400}
+html[data-gfx="retro"] .frtm.empty{border-radius:0;border:1px solid #37c6ff;color:#37c6ff}
+html[data-gfx="retro"] .flines span{border-radius:0;border:2px solid #fff;background:#0b1c52;box-shadow:3px 3px 0 #000}
+
+/* PES 6: placa plateada con números dorados, como los cuadros del menú Editar */
+html[data-gfx="pes6"] .fbanner{border-radius:0;border:1px solid #1a1a1a;box-shadow:inset 0 1px #fff4,0 3px 8px #0006}
+html[data-gfx="pes6"] .frate{border-radius:0;color:#1c1c1a;background:linear-gradient(180deg,#fafaf8,#c9c8c2);border:1px solid #6f6c64;box-shadow:inset 0 1px #fff,0 2px 6px #0007;padding:8px 16px}
+html[data-gfx="pes6"] .frnum{color:#1c1c1a;background:linear-gradient(180deg,#ffe57a,#d9a91c);padding:4px 10px;border:1px solid #8a6a0c;text-shadow:0 1px #fff8;box-shadow:inset 0 1px #fff9}
+html[data-gfx="pes6"] .frl{opacity:1;color:#56534b}
+html[data-gfx="pes6"] .frvals .frv{padding:3px 10px;background:#fff8;border:1px solid #a19d92;border-left:4px solid #d9a91c}
+html[data-gfx="pes6"] .frvals .frv.tm{border-left-color:#1d4fa0}
+html[data-gfx="pes6"] .frvals .frv small{opacity:1;color:#56534b}
+html[data-gfx="pes6"] .frtm{border-bottom-color:#1c1c1a80}
+html[data-gfx="pes6"] .frtm.empty{border-radius:0;border:1px solid #6f6c64;background:linear-gradient(180deg,#fff,#e2e1db)}
+html[data-gfx="pes6"] .frtm:hover,html[data-gfx="pes6"] .frtmgo:hover{color:#9a5800}
+html[data-gfx="pes6"] .frdiff.up{color:#1b7a3d}html[data-gfx="pes6"] .frdiff.dn{color:#b0281f}
+html[data-gfx="pes6"] .flines span{border-radius:0;color:#1c1c1a;background:linear-gradient(180deg,#fafaf8,#c9c8c2);border:1px solid #6f6c64;box-shadow:inset 0 1px #fff,0 2px 4px #0005}
+html[data-gfx="pes6"] .fm.multi{outline-color:#ffd23a;background:#ffd23a2e}
+html[data-gfx="pes6"] .fm.multi .fav{box-shadow:0 0 0 3px #ffd23a99}
+/* selector de idioma, al lado de Recargar */
+.langpick{position:relative;display:inline-flex}
+.langmenu[hidden]{display:none!important}
+#bLang{display:inline-flex;align-items:center;gap:6px;padding-inline:9px}
+#bLang svg,.langmenu svg{display:block;border-radius:2px;box-shadow:0 0 0 1px #0003;flex:none}
+.langcode{font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.04em}
+.langmenu{position:absolute;top:calc(100% + 6px);left:0;z-index:80;display:grid;gap:2px;min-width:150px;padding:5px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:var(--r,10px);box-shadow:0 14px 34px -12px #000a}
+.langmenu button{all:unset;display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:calc(var(--r,10px) - 3px);cursor:pointer;font-weight:600;font-size:.9rem}
+.langmenu button:hover,.langmenu button:focus-visible{background:var(--sel)}
+.langmenu button[aria-checked="true"]{background:var(--accent-soft)}
+.langmenu button[aria-checked="true"]::after{content:"✓";margin-left:auto;color:var(--accent)}
+html[data-gfx="pes6"] .langmenu,html[data-gfx="retro"] .langmenu{border-radius:0}
+html[data-gfx="pes6"] .langmenu{background:linear-gradient(180deg,#fafaf8,#d5d3cb);border-color:#6f6c64}
+html[data-gfx="retro"] .langmenu{border:2px solid #fff;box-shadow:4px 4px 0 #000}
+html[data-gfx="pes6"] .langmenu button,html[data-gfx="retro"] .langmenu button{border-radius:0}
+.introlang{position:absolute;top:16px;right:132px;z-index:3;display:flex;gap:2px;padding:3px;border-radius:99px;border:1.5px solid var(--line);background:color-mix(in srgb,var(--panel) 80%,transparent)}
+.introlang button{all:unset;display:inline-flex;align-items:center;gap:6px;padding:.25rem .6rem;border-radius:99px;cursor:pointer;font:600 .78rem var(--mono);color:var(--muted)}
+.introlang button svg{display:block;border-radius:2px;box-shadow:0 0 0 1px #0004}
+.introlang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.introlang button:hover{color:var(--ink)}

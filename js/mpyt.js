@@ -30,7 +30,10 @@ function ytPlayers() {
 // a los 15 segundos el video se esconde y queda la carátula del reproductor; tocándola vuelve el video por otros 15 segundos
 // (lo mide ytTick con el tiempo real del video, así funciona aunque YouTube no avise cuándo empezó)
 function ytMinOn() { const el = MP.el; if (!el) return; const img = el.querySelector('#mpTvCov img'), tr = MP.list[MP.i]; if (img && tr) img.src = mpCover(tr); el.classList.add('ytmin'); const c = el.querySelector('#mpCov'); if (c) c.title = 'Ver el video otra vez'; }
+// la ✕ del video lo saca de la pantalla para todos los temas que vengan; sigue sonando
+function ytHideAll() { MP.st.ytHide = true; mpSave(); ytMinOn(); }
 function ytMinOff() {
+  if (MP.st.ytHide) { MP.st.ytHide = false; mpSave(); }
   const el = MP.el; if (!el) return; el.classList.remove('ytmin'); const c = el.querySelector('#mpCov'); if (c) c.title = 'Abrir el reproductor';
   const p = YT_ST.p[YT_ST.cur]; let t = 0; try { t = p ? p.getCurrentTime() : 0; } catch { } YT_ST.shownAt = t;
 }
@@ -60,8 +63,10 @@ function ytRamp(p, to, dur) {
 const ytVol = () => Math.round((MP.st.mute ? 0 : MP.st.vol) * 100);
 function ytShow(n) {
   const el = MP.el; if (!el) return; el.classList.toggle('yt', MP.kind === 'yt'); mpTvPlace();
-  YT_ST.shownAt = 0; el.classList.remove('ytmin'); // cada video nuevo se ve de nuevo 15 segundos
+  YT_ST.shownAt = 0; if (!MP.st.ytHide) el.classList.remove('ytmin'); // cada video nuevo se ve de nuevo 15 segundos
   const c = el.querySelector('#mpTvCov'); if (c && !c.__on) { c.__on = 1; c.onclick = ytMinOff; }
+  const x = el.querySelector('#mpTvX'); if (x && !x.__on) { x.__on = 1; x.onclick = ytHideAll; }
+  if (MP.st.ytHide) ytMinOn(); // el video se sacó: solo suena, y la carátula del reproductor lo trae de vuelta
   el.querySelectorAll('.mptvp').forEach(w => w.classList.toggle('on', +w.dataset.n === n));
 }
 function ytTick() {

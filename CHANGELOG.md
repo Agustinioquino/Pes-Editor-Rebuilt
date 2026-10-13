@@ -2,6 +2,26 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.040 alpha · Ahora en inglés, y una Formación más cómoda
+
+*13 de octubre de 2026, 11:15 (hora de Argentina)*
+
+El editor aprende inglés, la Formación deja mover varios jugadores a la vez y muestra el valor de Transfermarkt, y cada modo gráfico gana animaciones propias.
+
+- **El editor en inglés** (Interfaz). Al lado de Recargar hay un selector con la bandera del idioma: Español o English. En inglés se traduce todo lo que se ve: pestañas, botones, ayudas, Novedades, la barra de PES 6, países y posiciones. También se elige en la pantalla de carga, junto a Música.
+  1. Tocá la bandera al lado de Recargar.
+  2. Elegí English: la página se recarga en inglés y queda guardado.
+- **Mover varios jugadores juntos** (Formación). Tocá jugadores con Ctrl apretado o usá "Elegir varios": quedan marcados y, al arrastrar uno, se mueven todos juntos. El arquero queda fijo y Deshacer vuelve todo atrás.
+- **Banco de suplentes más largo** (Formación). Sin un jugador elegido, la lista de suplentes se alarga y se ven muchos más de una vez.
+- **Valor de Transfermarkt** (Formación). La cabecera muestra el valor estimado y el de Transfermarkt, que cargás tocándolo. La ↗ abre la búsqueda del equipo en Transfermarkt y abajo dice cuánto difiere. En Retro es una caja de PS2 y en PES 6 una placa plateada con el número dorado.
+- **Panel de equipos más ancho** (Interfaz). Ordenar está al lado de Todos, Editados y Sin guardar, hay un selector de Liga o país que dice cuántos clubes tiene cada uno, y se puede ordenar por País.
+- **Escudos de Wikipedia** (Plantel). Si TheSportsDB no tiene el escudo de un club, se busca en su página de Wikipedia. Los clubes que habían quedado sin escudo se buscan otra vez.
+- **Pestañas con personalidad** (Interfaz). La pestaña elegida tiene una animación propia en cada modo gráfico: brillo en Moderno, franja naranja en Clásico, flechita que titila en Retro y un trazado rojo que da vueltas en PES 6.
+- **Estática de tele en PES 6** (Interfaz). Al cambiar de pestaña, equipo o sección aparece un golpe de estática, como al cambiar de canal. El eco del logo ahora sale de adentro hacia afuera.
+- **El video se va de verdad** (Música). A los 15 segundos el cuadro de YouTube desaparece y queda la carátula chica del reproductor con un ▶. La ✕ del video lo saca para todos los temas que vengan, y la música sigue sonando.
+- **Arreglo: el video no se escondía** (Música). El video de YouTube a veces no se escondía a los 15 segundos porque dependía de avisos de YouTube. Ahora se mide con el tiempo real del video, y cuando se esconde ya no queda el cuadro ocupando lugar.
+- **Arreglo: clubes sin escudo** (Plantel). Los clubes que TheSportsDB no encontraba quedaban sin escudo para siempre. Ahora se vuelven a buscar una vez, con Wikipedia como respaldo.
+
 ## v0.030 alpha · Lavada de cara: PES 6 Editar, plantel y carga
 
 *13 de octubre de 2026, 09:55 (hora de Argentina)*

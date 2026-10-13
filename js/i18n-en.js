@@ -2633,6 +2633,8 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "El video de YouTube a veces no se escondía a los 15 segundos porque dependía de avisos de YouTube. Ahora se mide con el tiempo real del video, y cuando se esconde ya no queda el cuadro ocupando lugar.":"The YouTube video sometimes didn't hide after 15 seconds because it relied on YouTube's events. Now it uses the video's real playing time, and once hidden, its box no longer takes up space.",
 "Arreglo: clubes sin escudo":"Fix: clubs without a crest",
 "Los clubes que TheSportsDB no encontraba quedaban sin escudo para siempre. Ahora se vuelven a buscar una vez, con Wikipedia como respaldo.":"Clubs that TheSportsDB couldn't find stayed without a crest forever. Now they are searched again once, with Wikipedia as a backup.",
+"Reconectar carpeta Sider":"Reconnect Sider folder",
+"Sider ya está conectado. Tocá para volver a leer la carpeta o elegir otra: kits, caras, escudos y nombres de jugadores":"Sider is already connected. Click to read the folder again or pick another one: kits, faces, crests and player names",
 "canción":"song",
 "canciones":"songs",
 "cuello":"collar"};

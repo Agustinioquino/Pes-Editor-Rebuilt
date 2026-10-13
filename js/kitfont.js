@@ -6,7 +6,7 @@ const KFONT = (() => {
     O: [18, 160], P: [190, 306], Q: [336, 480], R: [512, 642], S: [670, 786], T: [818, 944], U: [968, 1096], V: [1120, 1264], W: [1282, 1472], X: [1488, 1618], Y: [1648, 1776], Z: [1808, 1936], '.': [1960, 2014], ' ': [2022, 2048] };
   const ROW2 = new Set('OPQRSTUVWXYZ. ');
   const NUM = [[0, 160], [200, 300], [340, 500], [540, 700], [740, 900], [940, 1100], [1140, 1300], [1340, 1500], [1540, 1700], [1740, 1900]];
-  // tamaño de cada textura (el que usa el Dream Patch)
+  // tamaño de cada textura (el que usa el Parche)
   const SIZE = { name: [4096, 1024], back: [4096, 512], chest: [2048, 256], leg: [2048, 256] };
   // rectángulo de un carácter dentro de la textura (x, y, w, h en píxeles)
   function cell(kind, ch, W, H) {

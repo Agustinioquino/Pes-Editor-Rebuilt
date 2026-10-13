@@ -81,7 +81,7 @@ const S = {
   hist: [], hp: 0, savedHp: 0,
   names: new Map(), namesFrom: '',
   tab: 'teams', team: null, teamByTab: {}, natSeen: false, player: null, ttab: 'roster', ptab: 'profile',
-  qTeam: '', tSort: 'name', tFilter: 'all', qPlayer: '', showEmpty: false, autoLock: true, pFilter: 'all', rosterSort: 'xi', fplan: 0, fvar: 0, flink: true, fsel: null, fbench: null,
+  qTeam: '', tSort: 'name', tFilter: 'all', qPlayer: '', pSrc: 'edit', dbPlayer: null, showEmpty: false, autoLock: true, pFilter: 'all', rosterSort: 'xi', fplan: 0, fvar: 0, flink: true, fsel: null, fbench: null,
 };
 const LAYOUT = { '2021': 0x24C, '2020': 0x210 };
 
@@ -106,7 +106,7 @@ function playerName(id) {
   if (p) { const n = pget(p, 'name'); if (n) return n; }
   const n = S.names.get(id); return n ? n.name : '';
 }
-// cuánto de la forma ya está guardado en el EDIT: media del EDIT − media original del parche
+// cuánto de la forma ya está guardado en el EDIT: media del EDIT − media original del Parche
 function formDone(id) {
   const p = S.ix && S.ix.byId.get(id); if (!p) return 0;
   // si la media del EDIT sigue siendo la que dejó el editor al aplicar, ese ajuste ya está hecho (sirve aunque no esté cargada la base de datos)
@@ -313,14 +313,14 @@ async function openFile(file) {
     toast('Abierto en modo copia: al guardar se descarga el archivo nuevo.');
   } catch (e) { toast(e.message, 6000); }
 }
-// ---- base del juego (Player.bin del Dream Patch) → entradas del EDIT ----
+// ---- base del juego (Player.bin del Parche) → entradas del EDIT ----
 let DBRAW = null;
 // campos de la sección "Habilidad" del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
 const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0] });
 function dbBits(o, pos, n) { const b = DBRAW.b; let v = 0; for (let i = 0; i < n; i++) { const q = pos + i; if ((b[o + (q >> 3)] >> (q & 7)) & 1) v |= 1 << i; } return v; }
 function dbStr(o, l) { const s = DBRAW.b.subarray(o, o + l), z = s.indexOf(0); return new TextDecoder().decode(z < 0 ? s : s.subarray(0, z)); }
 const canMakeEditPlayer = id => !!(DBRAW && DBRAW.off.has(id));
-// agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, el resto lo sigue tomando el juego del parche
+// agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, el resto lo sigue tomando el juego del Parche
 function editPlayersRegion(extra) { const n = S.d[96] | S.d[97] << 8; return [[96, 2], [0x7C, (n + extra) * 0x138]]; }
 function insertEditPlayers(ids) {
   const made = [];
@@ -474,7 +474,7 @@ function updateTop() {
   $('bSave').textContent = S.dir ? 'Guardar en el juego' : 'Guardar copia';
   $('bUndo').disabled = !S.hp; $('bRedo').disabled = S.hp >= S.hist.length;
   $('bUndo').title = S.hp ? 'Deshacer: ' + S.hist[S.hp - 1].label + ' (Ctrl+Z)' : 'Deshacer (Ctrl+Z)';
-  $('cTeams').textContent = S.ix.teams.filter(t => !isNat(t)).length; $('cNats').textContent = S.ix.teams.filter(isNat).length; $('cPlayers').textContent = S.ix.players.length;
+  $('cTeams').textContent = S.ix.teams.filter(t => !isNat(t)).length; $('cNats').textContent = S.ix.teams.filter(isNat).length; setPlayerCount();
   $('cChanges').textContent = S.hp ? S.hp : '';
 }
 
@@ -485,13 +485,14 @@ function gsearch(q) {
   const out = [];
   for (const t of S.ix.teams) { const n = tget(t, 'name'); if (n.toLowerCase().includes(q) || tget(t, 'short').toLowerCase() === q) out.push(['t', t.id, n, 'Equipo · ' + PD.roster(S.d, t).length + ' jug.']); if (out.length > 8) break; }
   for (const p of S.ix.players) { const n = pget(p, 'name'); if (n.toLowerCase().includes(q) || String(p.id) === q) out.push(['p', p.id, n, 'Jugador editable · ' + POS[pget(p, 'reg_pos')]]); if (out.length > 16) break; }
-  if (S.names.size && out.length < 24) { let k = 0; for (const [id, v] of S.names) { if (S.ix.byId.has(id)) continue; if (v.name.toLowerCase().includes(q) && teamOf.has(id)) { const t = clubOf(id); out.push(['n', t.id, v.name, 'en ' + tget(t, 'name')]); if (++k > 8) break; } } }
+  if (S.names.size && out.length < 24) { let k = 0; for (const [id, v] of S.names) { if (S.ix.byId.has(id)) continue; if (!(v.name || '').toLowerCase().includes(q) && String(id) !== q) continue; if (teamOf.has(id)) { const t = clubOf(id); out.push(['n', t.id, v.name, 'en ' + tget(t, 'name')]); } else if (v.pos != null) { const c = dbClubOf(id); out.push(['d', id, v.name, 'Base del Parche · ' + POS[v.pos] + (c ? ' · ' + dbTeamName(c.tid) : '')]); } if (++k > 8) break; } }
   box.innerHTML = out.length ? out.map(([k, id, n, m], i) => `<button type="button" data-k="${k}" data-id="${id}" class="${i ? '' : 'on'}"><span>${esc(n)}</span><span class="k">${esc(m)}</span></button>`).join('') : '<div class="empty">Sin resultados.</div>';
   box.hidden = false;
 }
 function gpick(b) {
   $('gres').hidden = true; $('gq').value = '';
-  if (b.dataset.k === 'p') { S.player = +b.dataset.id; setTab('players'); }
+  if (b.dataset.k === 'p') { S.player = +b.dataset.id; S.pSrc = 'edit'; setTab('players'); }
+  if (b.dataset.k === 'd') { S.dbPlayer = +b.dataset.id; S.pSrc = 'db'; S.qPlayer = ''; S.pFilter = 'all'; setTab('players'); }
   else { const t = S.ix.teamById.get(+b.dataset.id), nat = t && isNat(t); S.teamByTab[nat ? 'nats' : 'teams'] = +b.dataset.id; if (S.tab === (nat ? 'nats' : 'teams')) S.team = +b.dataset.id; S.ttab = 'roster'; setTab(nat ? 'nats' : 'teams'); }
 }
 
@@ -511,7 +512,7 @@ function render() {
 function welcome() {
   return `<section class="hero">
     <h1>Editá tu EDIT sin perder los cambios</h1>
-    <p>El editor busca solo el archivo EDIT00000000 en <code>Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE</code> (primero el del Dream Patch, en <code>drmp</code>; si no, el de <code>save</code>) y también la carpeta WEPES. Guarda en el mismo lugar, con la firma de tu PC y un respaldo antes del primer guardado de cada sesión.</p>
+    <p>El editor busca solo el archivo EDIT00000000 en <code>Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE</code> (primero el del Parche, en <code>drmp</code>; si no, el de <code>save</code>) y también la carpeta WEPES. Guarda en el mismo lugar, con la firma de tu PC y un respaldo antes del primer guardado de cada sesión.</p>
     <div class="row"><button class="btn primary big" type="button" id="wFind">🔎 Buscar mi EDIT</button></div>
     <ol><li>Cerrá el juego (o salí del modo Editar) antes de guardar.</li><li>Editá y tocá <b>Guardar</b> (o Ctrl+S).</li><li>Abrí el juego con Sider.</li></ol>
     <p class="note">Atajos: <code>/</code> buscar · <code>Ctrl+Z</code> deshacer · <code>Ctrl+Y</code> rehacer · <code>Ctrl+S</code> guardar.</p>
@@ -551,7 +552,7 @@ function renderTeams(m) {
         <input type="search" id="qTeam" placeholder="${S.tab === 'nats' ? 'Buscar selección…' : 'Buscar equipo, sigla o ID…'}" value="${esc(S.qTeam)}" aria-label="Buscar equipos">
         <div class="fchips" id="tFilter">${[['all', S.tab === 'nats' ? 'Todas' : 'Todos'], ['custom', 'Editados'], ['dirty', 'Sin guardar']].map(([k, n]) => `<button type="button" data-tf="${k}" aria-pressed="${S.tFilter === k}">${n}</button>`).join('')}</div>
         <div class="row" style="flex-wrap:nowrap"><label class="lab" for="tSort" style="white-space:nowrap">Ordenar</label><select id="tSort">${[['name', 'Nombre (A-Z)'], ['rating', 'Valoración'], ['value', 'Valor de mercado del club'], ['count', 'Cantidad de jugadores'], ['id', 'ID del juego']].map(([k, n]) => `<option value="${k}" ${S.tSort === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-        <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="showEmpty" ${S.showEmpty ? 'checked' : ''}> Incluir sin plantel</label><label class="chk" title="Si el escudo no está en las carpetas del Dream Patch, se busca por nombre en TheSportsDB y queda guardado."><input type="checkbox" id="onBadge" ${PREFS.onlineBadges ? 'checked' : ''}> Escudos de internet</label><span class="sub">${list.length} ${S.tab === 'nats' ? 'selecciones' : 'equipos'}</span></div>
+        <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="showEmpty" ${S.showEmpty ? 'checked' : ''}> Incluir sin plantel</label><label class="chk" title="Si el escudo no está en las carpetas del Parche, se busca por nombre en TheSportsDB y queda guardado."><input type="checkbox" id="onBadge" ${PREFS.onlineBadges ? 'checked' : ''}> Escudos de internet</label><span class="sub">${list.length} ${S.tab === 'nats' ? 'selecciones' : 'equipos'}</span></div>
       </div>
       <div class="list-body" id="teamItems">${list.map(x => { const tr = teamRating(x), n = PD.roster(S.d, x).length; return `<button class="item" data-t="${x.id}" type="button">
         ${crest(x)}<span style="min-width:0"><span class="nm">${esc(tget(x, 'name') || '(sin nombre)')}${dk.has('t' + x.id) ? '<span class="dot" title="Con cambios sin guardar"></span>' : ''}</span>
@@ -598,12 +599,12 @@ function teamDataCard(t) {
       <div class="f"><label for="tShort">Abreviatura (3 letras)</label><input type="text" id="tShort" value="${esc(tget(t, 'short'))}" maxlength="3" style="text-transform:uppercase"></div>
       <div class="f"><span class="lab">Colores del equipo</span><div class="swatch"><input type="color" id="tC1" value="${teamColor(t, 1)}" aria-label="Color principal"><input type="color" id="tC2" value="${teamColor(t, 2)}" aria-label="Color secundario"><span class="note">Principal y secundario</span></div></div>
       <div class="f"><label for="tCountry">País del equipo</label><select id="tCountry">${COUNTRY.has(tget(t, 'country')) ? '' : `<option value="${tget(t, 'country')}" selected>Código ${tget(t, 'country')}</option>`}${[...COUNTRY].sort((a, b) => a[1].localeCompare(b[1], 'es')).map(([id, n]) => `<option value="${id}" ${id === tget(t, 'country') ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
-      <div class="f"><label for="tCoach">Entrenador</label><select id="tCoach">${COACH.has(coach) ? '' : `<option value="${coach}" selected>ID ${coach} (del parche)</option>`}${[...COACH].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === coach ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
+      <div class="f"><label for="tCoach">Entrenador</label><select id="tCoach">${COACH.has(coach) ? '' : `<option value="${coach}" selected>ID ${coach} (del Parche)</option>`}${[...COACH].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === coach ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
     </div>
     <h3>Kits</h3>${kitStrip(t)}
     ${KITS.map.has(t.id) ? '<div class="row"><button class="btn small" type="button" id="tUseKit">Usar los colores del kit local como colores del equipo</button></div>' : ''}
     <label class="lock ${tget(t, 'e_name') ? '' : 'off'}"><input type="checkbox" id="tLock" ${tget(t, 'e_name') ? 'checked' : ''}>
-      <div><b>Proteger nombre y abreviatura</b><span>El juego mantiene tu nombre aunque el parche traiga otro. Se activa solo al cambiarlo.</span></div></label>
+      <div><b>Proteger nombre y abreviatura</b><span>El juego mantiene tu nombre aunque el Parche traiga otro. Se activa solo al cambiarlo.</span></div></label>
   </div>`;
 }
 function stadiumCard(t) {
@@ -681,14 +682,14 @@ function rosterSorted(t, rows) {
   }[k] || xi;
   return [...rows].sort((a, b) => dir * cmp(a, b) || xi(a, b));
 }
-// plantel según la base del juego (Dream Patch) para equipos que en tu EDIT están vacíos
+// plantel según la base del juego (Parche) para equipos que en tu EDIT están vacíos
 function dbRosterCard(t) {
   if (typeof sdbRoster !== 'function' || PD.roster(S.d, t).length) return '';
   const db = sdbRoster(t); if (!db || !db.length) return '';
   const can = t.rosterBase != null;
-  return `<section class="card"><h3>Plantel según la base del juego</h3><p class="note">En tu EDIT este equipo está vacío. Esto es lo que trae el Dream Patch para él (${db.length} jugadores). ${can ? 'Podés copiarlo a tu EDIT para editarlo, o tocar un jugador para abrirlo.' : 'Tocá un jugador para abrirlo.'}</p>
+  return `<section class="card"><h3>Plantel según la base del juego</h3><p class="note">En tu EDIT este equipo está vacío. Esto es lo que trae el Parche para él (${db.length} jugadores). ${can ? 'Podés copiarlo a tu EDIT para editarlo, o tocar un jugador para abrirlo.' : 'Tocá un jugador para abrirlo.'}</p>
     <div class="dbroster">${db.map(x => { const i = pInfo(x.pid), n = playerName(x.pid) || 'ID ' + x.pid; return `<button type="button" class="dbp" data-dbp="${x.pid}"><b class="num">${x.num || '–'}</b>${faceHtml(x.pid, kitFor(t, i && i.pos === 0), 'pl')}<span class="pn">${esc(n)}</span>${i ? posBadge(i.pos) : ''}<span class="mono">${i && i.r ? i.r : ''}</span></button>`; }).join('')}</div>
-    ${can ? `<div class="row"><button class="btn primary" type="button" data-dbuse="${t.id}">Copiar este plantel a mi EDIT (${Math.min(40, db.length)} jugadores)</button><span class="note">Los que no estén en tu EDIT se agregan con sus habilidades; cara y nombre siguen saliendo del parche.</span></div>` : ''}</section>`;
+    ${can ? `<div class="row"><button class="btn primary" type="button" data-dbuse="${t.id}">Copiar este plantel a mi EDIT (${Math.min(40, db.length)} jugadores)</button><span class="note">Los que no estén en tu EDIT se agregan con sus habilidades; cara y nombre siguen saliendo del Parche.</span></div>` : ''}</section>`;
 }
 function rosterCard(t) {
   if (S.rselTeam !== t.id) { S.rsel = new Set(); S.rselTeam = t.id; S.rq = ''; }
@@ -710,7 +711,7 @@ function rosterCard(t) {
     const sk = RSORT_KEY[k], on = sk && sortCol === k, dir = on ? ((S.rosterDir === -1) !== RSORT_DESC.has(k) ? 'descending' : 'ascending') : null;
     return `<th class="c-${k}${sk ? ' sortable' : ''}${on ? ' on' : ''}" title="${esc(tip)}"${sk ? ` data-hsort="${k}" tabindex="0"` : ''}${dir ? ` aria-sort="${dir}"` : ''}>${n}${sk ? `<i class="sarr">${on ? (dir === 'descending' ? '▼' : '▲') : '↕'}</i>` : ''}</th>`;
   };
-  const lockIco = p => `<span class="lockico" title="${esc(lockWord(p).slice(3))}: el parche puede pisar sus datos">${LOCK_SVG}</span>`;
+  const lockIco = p => `<span class="lockico" title="${esc(lockWord(p).slice(3))}: el Parche puede pisar sus datos">${LOCK_SVG}</span>`;
   const grp = [['all', 'Todos'], ['gk', 'ARQ'], ['df', 'DEF'], ['mf', 'MED'], ['fw', 'DEL']], sts = [['all', 'Todos'], ['xi', 'Titulares'], ['bench', 'Banco'], ['res', 'Reserva'], ['unl', 'Sin proteger']];
   return `<div class="card rcard">
     <div class="row" style="justify-content:space-between"><h3>Plantel · <span id="rcount">${rows.length}</span> jugadores</h3>
@@ -976,7 +977,7 @@ function bindTeam(t, m) {
       edit('Plantel de la base en ' + tn(), 'players', [...editPlayersRegion(need.length), ...regT(t)], () => { insertEditPlayers(need); for (const x of db) { if (S.ix.byId.has(x.pid) && !rosterAddCheck(t, x.pid)) rosterAdd(t, x.pid, x.num); } });
       S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf(); toast('Plantel copiado desde la base del juego.', 4000, ['Deshacer', undo]); rer(); return;
     }
-    if (b.dataset.dbp != null) { const pid = +b.dataset.dbp; if (S.ix.byId.has(pid)) { S.player = pid; setTab('players'); } else if (await confirmBox(`${playerName(pid) || 'ID ' + pid} está en la base del juego pero no en tu EDIT. ¿Agregarlo a tu EDIT con sus habilidades para poder editarlo? (cara, nombre y lo demás siguen saliendo del parche)`)) { if (!canMakeEditPlayer(pid)) { toast('No se pudo agregar: el EDIT está lleno o falta la base.', 5000); return; } edit('Agregar ' + (playerName(pid) || pid) + ' al EDIT', 'players', editPlayersRegion(1), () => { insertEditPlayers([pid]); }); S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf(); S.player = pid; setTab('players'); } }
+    if (b.dataset.dbp != null) { const pid = +b.dataset.dbp; if (S.ix.byId.has(pid)) { S.player = pid; setTab('players'); } else await addDbPlayer(pid, true); }
     if (b.dataset.val != null) {
       const pid = +b.dataset.val, pv = playerValue(pid), td = b.parentNode;
       td.innerHTML = `<input type="text" inputmode="decimal" class="valin" value="${pv && pv.manual ? String(pv.v).replace('.', ',') : ''}" placeholder="${pv ? String(pv.est ?? '').replace('.', ',') : ''}" aria-label="Valor real en millones de euros" title="Millones de euros (ej. 12,5). Vacío = volver al estimado.">`;
@@ -1014,11 +1015,63 @@ function playerList() {
     return pget(p, 'name').toLowerCase().includes(q) || pget(p, 'shirt').toLowerCase().includes(q) || String(p.id) === q || (c && tget(c, 'name').toLowerCase().includes(q));
   });
 }
+// ---- jugadores de la base del Parche (Player.bin copiado por el módulo de Sider) ----
+async function addDbPlayer(pid, ask) {
+  if (ask && !await confirmBox(`${playerName(pid) || 'ID ' + pid} está en la base del juego pero no en tu EDIT. ¿Agregarlo a tu EDIT con sus habilidades para poder editarlo? (cara, nombre y lo demás siguen saliendo del Parche)`)) return false;
+  if (!canMakeEditPlayer(pid)) { toast('No se pudo agregar: el EDIT está lleno o falta la base.', 5000); return false; }
+  edit('Agregar ' + (playerName(pid) || pid) + ' al EDIT', 'players', editPlayersRegion(1), () => { insertEditPlayers([pid]); });
+  S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf();
+  S.player = pid; S.pSrc = 'edit'; setTab('players'); toast((playerName(pid) || 'ID ' + pid) + ' agregado a tu EDIT: ya lo podés editar. Ctrl+Z lo deshace.'); return true;
+}
+// equipo(s) y dorsal de cada jugador según PlayerAssignment.bin (se arma una vez por carga)
+const DBCLUB = { key: '', map: new Map() };
+function dbClubs(pid) {
+  const k = (typeof SDB !== 'undefined' && SDB.assign ? SDB.assign.size : 0) + ':' + S.names.size;
+  if (DBCLUB.key !== k) { DBCLUB.key = k; DBCLUB.map = new Map(); if (typeof SDB !== 'undefined' && SDB.assign) for (const [tid, arr] of SDB.assign) for (const x of arr) { let a = DBCLUB.map.get(x.pid); if (!a) DBCLUB.map.set(x.pid, a = []); a.push({ tid, num: x.num }); } }
+  return DBCLUB.map.get(pid) || [];
+}
+const dbTeamName = tid => { const t = S.ix && S.ix.teamById.get(tid); if (t) return tget(t, 'name'); const d = typeof SDB !== 'undefined' && SDB.teams && SDB.teams.get(tid); return d ? (d.es || d.name || d.en) : 'Equipo ' + tid; };
+// club (no selección) de un jugador de la base: el primer equipo que no sea selección nacional
+const dbClubOf = pid => { const cl = dbClubs(pid); return cl.find(c => !(S.ix && S.ix.teamById.get(c.tid) && typeof isNat === 'function' && isNat(S.ix.teamById.get(c.tid)))) || cl[0] || null; };
+function dbPlayerCount() { return DBRAW ? DBRAW.off.size : [...S.names.values()].filter(n => n.pos != null).length; }
+function dbPlayerList() {
+  const q = S.qPlayer.trim().toLowerCase(), ids = DBRAW ? [...DBRAW.off.keys()] : [...S.names.keys()];
+  const out = [];
+  for (const id of ids) {
+    const n = S.names.get(id); if (!n) continue;
+    if (S.pFilter === 'unlocked') { if (S.ix.byId.has(id)) continue; }
+    else if (S.pFilter !== 'all' && POS_GRP[n.pos] !== S.pFilter) continue;
+    if (q) { const c = dbClubOf(id); if (!((n.name || '').toLowerCase().includes(q) || String(id) === q || (c && dbTeamName(c.tid).toLowerCase().includes(q)))) continue; }
+    out.push(id);
+  }
+  return out.sort((a, b) => ((S.names.get(b).r || 0) - (S.names.get(a).r || 0)) || a - b);
+}
+function dbVal(id, key) { const o = DBRAW && DBRAW.off.get(id); if (o == null) return null; const m = DB_TO_EDIT()[key]; return m ? dbBits(o, m[0], m[1]) + m[2] : null; }
+function dbPlayerSheet(id) {
+  const n = S.names.get(id) || {}, o = DBRAW && DBRAW.off.get(id), cl = dbClubs(id), c0 = dbClubOf(id), ct = c0 && S.ix.teamById.get(c0.tid), inEdit = S.ix.byId.has(id);
+  const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, shirt = o != null ? dbStr(o + 0x81, 61) : '';
+  const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0;
+  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del Parche</h3><div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
+    <div class="grid" style="margin-top:12px">${[['Uso de pierna mala', 'weak_use', 1], ['Precisión de pierna mala', 'weak_acc', 1], ['Estado de forma', 'form', 1], ['Resistencia a lesiones', 'injury', 0]].map(([l, k, add]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="f"><span class="lab">${l}</span><b>${k === 'injury' ? ['C', 'B', 'A'][v] || v : v + add}</b></div>`; }).join('')}</div></div>` : '<div class="card"><p class="note">Las habilidades se ven cuando la copia de Player.bin está en la carpeta Sider.</p></div>';
+  return `<div class="card dbsheet">
+    <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
+      <div class="sub">${shirt ? esc(shirt) + ' · ' : ''}${nat != null ? esc(COUNTRY.get(nat) || 'País ' + nat) + ' · ' : ''}${age ? age + ' años · ' : ''}${h ? h + ' cm · ' : ''}ID ${id}</div></div>
+      <div class="rating"><b class="${vcls(r)}">${r || '–'}</b><span>Valoración aprox.</span></div></div>
+    <div class="dbteams">${cl.length ? cl.map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
+    <div class="dbnote"><span>${inEdit ? 'Este jugador también está en tu EDIT, con los datos que le cambiaste.' : 'Está en la base del Parche y todavía no en tu EDIT. Lo que ves acá es lo que usa el juego; para cambiarlo, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del Parche.'}</span>
+      ${inEdit ? `<button class="btn small" type="button" data-dbopen="${id}">Abrir en mi EDIT</button>` : `<button class="btn primary small" type="button" data-dbadd="${id}" ${canMakeEditPlayer(id) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button>`}</div>
+  </div>${abil}`;
+}
+function setPlayerCount() { if (!S.ix) return; const dn = dbPlayerCount(); $('cPlayers').textContent = dn ? (dn >= 1000 ? (dn / 1000).toFixed(1).replace('.', ',') + 'k' : dn) : S.ix.players.length; $('tPlayers').title = S.ix.players.length + ' en tu EDIT' + (dn ? ' · ' + dn.toLocaleString('es-AR') + ' en la base del Parche' : ''); }
 function renderPlayers(m) {
+  setPlayerCount();
   FACE_CTX.nat = false;
+  const dbN = dbPlayerCount();
+  if (!dbN) S.pSrc = 'edit'; else if (!S.ix.players.length) S.pSrc = 'db';
+  if (S.pSrc === 'db') return renderDbPlayers(m, dbN);
   if (!S.ix.players.length) {
     m.innerHTML = `<div class="hero"><h1>Todavía no hay jugadores editados</h1>
-      <p>En PES 2021 el EDIT solo guarda los jugadores que fueron editados alguna vez; el resto viene de la base del parche. Para sumar uno: en el juego entrá a Editar → Jugadores, cambiale cualquier dato (por ejemplo el nombre en camiseta), guardá y salí. Después volvé a abrir la carpeta acá y vas a poder cambiarle todo.</p>
+      <p>En PES 2021 el EDIT solo guarda los jugadores que fueron editados alguna vez; el resto viene de la base del Parche. Para sumar uno: en el juego entrá a Editar → Jugadores, cambiale cualquier dato (por ejemplo el nombre en camiseta), guardá y salí. Después volvé a abrir la carpeta acá y vas a poder cambiarle todo.</p>
       <p class="note">Planteles, titulares, dorsales, capitanes, colores, estadio y rivales se editan desde Equipos aunque el jugador no esté acá.</p></div>`;
     return;
   }
@@ -1029,6 +1082,7 @@ function renderPlayers(m) {
   m.innerHTML = `<div class="split">
     <aside class="list">
       <div class="list-head">
+        <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="${S.pSrc === 'edit'}">Mi EDIT <b>${S.ix.players.length}</b></button><button type="button" data-psrc="db" aria-pressed="${S.pSrc === 'db'}" ${dbN ? '' : 'disabled title="Conectá la carpeta Sider para ver la base del Parche"'}>Del Parche <b>${dbN ? dbN.toLocaleString('es-AR') : '–'}</b></button></div>
         <input type="search" id="qPlayer" placeholder="Filtrar por nombre, ID o equipo…" value="${esc(S.qPlayer)}" aria-label="Filtrar jugadores">
         <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Sin proteger']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="autoLock" ${S.autoLock ? 'checked' : ''}> Proteger al editar</label>
@@ -1044,12 +1098,43 @@ function renderPlayers(m) {
   $('pFilter').onchange = e => { S.pFilter = e.target.value; later(() => renderPlayers(m)); };
   $('plItems').onclick = e => { const b = e.target.closest('[data-p]'); if (b && +b.dataset.p !== S.player) { S.player = +b.dataset.p; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); const sh = m.querySelector('.sheet'); leave(sh, () => renderPlayers(m)); } };
   $('autoLock').onchange = e => { S.autoLock = e.target.checked; };
+  bindPSrc(m);
   $('lockAll').onclick = () => { const ps = S.ix.players.filter(x => !isLocked(x)); edit('Proteger todos los jugadores', 'all', ps.flatMap(regP), () => { for (const x of ps) for (const k of LOCK_FLAGS) PD.player.set(S.d, x.base, k, 1); }); toast(ps.length + ' jugadores protegidos.'); later(() => renderPlayers(m)); };
   if (p) bindPlayer(p, m);
 }
+function bindPSrc(m) { m.querySelectorAll('[data-psrc]').forEach(b => b.onclick = () => { if (S.pSrc === b.dataset.psrc) return; S.pSrc = b.dataset.psrc; later(() => renderPlayers(m)); }); }
+function renderDbPlayers(m, dbN) {
+  FACE_CTX.nat = false;
+  const all = dbPlayerList(), LIM = 250, list = all.slice(0, LIM);
+  if (S.dbPlayer == null || !S.names.has(S.dbPlayer)) S.dbPlayer = list[0] ?? null;
+  const sel = S.dbPlayer;
+  m.innerHTML = `<div class="split">
+    <aside class="list">
+      <div class="list-head">
+        <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="false" ${S.ix.players.length ? '' : 'disabled title="Todavía no hay jugadores en tu EDIT"'}>Mi EDIT <b>${S.ix.players.length}</b></button><button type="button" data-psrc="db" aria-pressed="true">Del Parche <b>${dbN.toLocaleString('es-AR')}</b></button></div>
+        <input type="search" id="qPlayer" placeholder="Buscar en la base: nombre, ID o equipo…" value="${esc(S.qPlayer)}" aria-label="Buscar jugadores de la base">
+        <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Solo los que no están en mi EDIT']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <p class="note" style="margin:0">${all.length.toLocaleString('es-AR')} jugador${all.length === 1 ? '' : 'es'}${all.length > LIM ? ` · se ven los ${LIM} de mejor valoración: buscá para encontrar el resto` : ''}</p>
+      </div>
+      <div class="list-body" id="plItems">${list.map(id => { const n = S.names.get(id), c = dbClubOf(id), ct = c && S.ix.teamById.get(c.tid); return `<button class="item ${id === sel ? 'on' : ''}" data-dbsel="${id}" type="button">
+        ${posBadge(n.pos)}<span style="min-width:0"><span class="nm">${ct ? shirtSvg(kitFor(ct, n.pos === 0), '1.05em', tget(ct, 'name')) + ' ' : ''}${esc(n.name || 'ID ' + id)}${S.ix.byId.has(id) ? ' <span class="chip ok tiny" title="También está en tu EDIT">EDIT</span>' : ''}</span>
+        <span class="sub2">${c ? esc(dbTeamName(c.tid)) + (c.num ? ' · ' + c.num : '') : 'Sin equipo'}${n.a ? ' · ' + n.a + ' años' : ''}</span></span><span class="meta"><b class="${vcls(n.r)}">${n.r || '–'}</b></span></button>`; }).join('') || '<div class="empty">Sin resultados.</div>'}</div>
+    </aside>
+    <section class="sheet" id="plSheet">${sel != null ? dbPlayerSheet(sel) : ''}</section>
+  </div>`;
+  bindPSrc(m);
+  $('qPlayer').oninput = e => { S.qPlayer = e.target.value; const pos = e.target.selectionStart; clearTimeout(S.dbQT); S.dbQT = setTimeout(() => { S.dbPlayer = null; renderPlayers(m); const el = $('qPlayer'); el.focus(); el.setSelectionRange(pos, pos); }, 180); };
+  $('pFilter').onchange = e => { S.pFilter = e.target.value; S.dbPlayer = null; later(() => renderPlayers(m)); };
+  $('plItems').onclick = e => { const b = e.target.closest('[data-dbsel]'); if (!b || +b.dataset.dbsel === S.dbPlayer) return; S.dbPlayer = +b.dataset.dbsel; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); const sh = m.querySelector('.sheet'); leave(sh, () => { sh.innerHTML = dbPlayerSheet(S.dbPlayer); }); };
+  m.querySelector('#plSheet').onclick = async e => {
+    const a = e.target.closest('[data-dbadd]'); if (a) { await addDbPlayer(+a.dataset.dbadd, false); return; }
+    const o = e.target.closest('[data-dbopen]'); if (o) { S.player = +o.dataset.dbopen; S.pSrc = 'edit'; renderPlayers(m); return; }
+    const t = e.target.closest('[data-dbteam]'); if (t) { const tid = +t.dataset.dbteam; if (S.ix.teamById.get(tid)) { S.team = tid; S.ttab = 'roster'; setTab('teams'); } else toast('Ese equipo no está en tu EDIT.'); }
+  };
+}
 const num = (k, v, min, max, extra = '') => `<input type="number" data-k="${k}" value="${v}" min="${min}" max="${max}" ${extra}>`;
 const selOpts = (arr, v) => arr.map((n, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${esc(n)}</option>`).join('');
-function mapSelect(k, map, v, label) { return `<select data-k="${k}" aria-label="${label}">${map.has(v) ? '' : `<option value="${v}" selected>${v ? 'ID ' + v + ' (del parche)' : 'Ninguno / predeterminado'}</option>`}${[...map].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
+function mapSelect(k, map, v, label) { return `<select data-k="${k}" aria-label="${label}">${map.has(v) ? '' : `<option value="${v}" selected>${v ? 'ID ' + v + ' (del Parche)' : 'Ninguno / predeterminado'}</option>`}${[...map].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
 function seg(k, labels, v) { return `<div class="seg" data-segk="${k}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
 function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} ${FLAG_NAMES[k]}</span>`).join(''); }
 function playerSheet(p) {
@@ -1061,7 +1146,7 @@ function playerSheet(p) {
       <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'}${all.length ? ' · ' + esc(all.join(', ')) : ''} · ID ${p.id}</div></div>
       <div class="rating"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración aprox.</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>
-      <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el parche cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
+      <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el Parche cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
     <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}
       <select id="pCopy" style="width:auto;max-width:260px" aria-label="Copiar de otro jugador"><option value="">Copiar de otro jugador…</option>${S.ix.players.filter(x => x.id !== p.id).map(x => `<option value="${x.id}">${esc(pget(x, 'name') || x.id)}</option>`).join('')}</select>
       <select id="pCopyWhat" style="width:auto" aria-label="Qué copiar"><option value="abil">habilidades</option><option value="skills">especiales y estilos</option><option value="pos">posiciones</option><option value="look">apariencia</option><option value="motion">movimientos</option></select>
@@ -1241,7 +1326,7 @@ function renderFile(m) {
     ${S.dir ? `<div class="card"><h3>Respaldos en esta carpeta</h3><div id="baks" class="note">Buscando…</div></div>` : ''}
   <div class="card"><h3>Carpeta del juego</h3>
       ${PESLOC.season || PESLOC.edits.length ? `<p class="note">Encontrada en ${esc((PESLOC.root ? PESLOC.root.name + ' › ' : ''))}${esc(PESLOC.season ? PESLOC.season.name : '')}. ${PESLOC.wepes ? 'Tiene carpeta WEPES.' : 'No tiene carpeta WEPES.'}</p>
-      <div class="pesedits">${PESLOC.edits.map((e, i) => `<div class="pesedit ${PESLOC.chosen === e ? 'on' : ''}"><b>${e.kind === 'drmp' ? 'Dream Patch (drmp)' : e.kind === 'save' ? 'Juego sin parche (save)' : esc(e.kind)}</b><span class="mono">${esc(e.path)}\\EDIT00000000</span><small>${new Date(e.mtime).toLocaleString('es-AR')} · ${(e.size / 1048576).toFixed(1).replace('.', ',')} MB</small>${PESLOC.chosen === e ? '<span class="chip ok">Abierto</span>' : `<button class="btn small" type="button" data-pesedit="${i}">Abrir este</button>`}</div>`).join('')}</div>`
+      <div class="pesedits">${PESLOC.edits.map((e, i) => `<div class="pesedit ${PESLOC.chosen === e ? 'on' : ''}"><b>${e.kind === 'drmp' ? 'Parche (drmp)' : e.kind === 'save' ? 'Juego sin parche (save)' : esc(e.kind)}</b><span class="mono">${esc(e.path)}\\EDIT00000000</span><small>${new Date(e.mtime).toLocaleString('es-AR')} · ${(e.size / 1048576).toFixed(1).replace('.', ',')} MB</small>${PESLOC.chosen === e ? '<span class="chip ok">Abierto</span>' : `<button class="btn small" type="button" data-pesedit="${i}">Abrir este</button>`}</div>`).join('')}</div>`
       : '<p class="note">El EDIT se abrió a mano: no hay una carpeta del juego conectada.</p>'}
       <div class="row"><button class="btn small" type="button" id="pesAgain">🔎 Buscar de nuevo</button><button class="btn small ghost" type="button" id="pesOther">Elegir otra carpeta…</button></div></div>
   ${helpCard('file')}

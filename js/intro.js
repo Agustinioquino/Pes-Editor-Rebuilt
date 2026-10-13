@@ -1,7 +1,7 @@
 // ===================== Inicio: busca el EDIT en Documentos (sin elegir el archivo) y muestra la introducción =====================
 // El navegador no deja que una página lea Documentos sin permiso: la primera vez se elige la carpeta una sola vez
 // (el selector ya se abre en Documentos) y después se recuerda. Desde ahí se busca
-// KONAMI\eFootball PES 2021 SEASON UPDATE\<número de Steam>\drmp (Dream Patch) o \save → EDIT00000000, y la carpeta WEPES.
+// KONAMI\eFootball PES 2021 SEASON UPDATE\<número de Steam>\drmp (Parche) o \save → EDIT00000000, y la carpeta WEPES.
 const PESLOC = { root: null, season: null, edits: [], wepes: null, chosen: null };
 const SEASON_RE = /^eFootball PES 20(21|20)( SEASON UPDATE)?$/i;
 async function pesFind(root) {
@@ -21,7 +21,7 @@ async function pesFind(root) {
   if (!season && !direct) { const q = [[root, 0]]; let seen = 0; while (q.length && !season && seen < 400) { const [d, depth] = q.shift(); for (const [n, h] of await dirs(d)) { seen++; if (SEASON_RE.test(n)) { season = h; break; } if (depth < 3 && !/^(\.|appdata|node_modules|\$)/i.test(n)) q.push([h, depth + 1]); } } }
   if (!season && !direct && /^(drmp|save)$/i.test(root.name) === false && /^\d{8,}$/.test(root.name)) { for (const kind of ['drmp', 'save']) { const d = await sub(root, kind), h = d && await has(d, 'EDIT00000000'); if (h) { const f = await h.getFile(); out.edits.push({ dir: d, handle: h, kind, steam: root.name, mtime: f.lastModified, size: f.size, path: root.name + '\\' + kind }); } } }
   if (season) { out.season = season; await addEdits(season, season.name); out.wepes = await sub(season, 'WEPES'); }
-  // el más reciente primero; a igual fecha, el del Dream Patch
+  // el más reciente primero; a igual fecha, el del Parche
   out.edits.sort((a, b) => (b.mtime - a.mtime) || ((a.kind === 'drmp') ? -1 : 1));
   return out;
 }
@@ -120,7 +120,7 @@ async function pesOpen(root) {
     openBytes(bytes, e.path + '\\EDIT00000000');
     if (typeof wepesCount === 'function') wepesCount();
     introDone(`Listo: ${S.ix.teams.length} equipos y ${S.ix.players.length} jugadores editados.`);
-    if (f.edits.length > 1) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'Dream Patch' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
+    if (f.edits.length > 1) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'Parche' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
   } catch (er) { introStep('No se pudo abrir el EDIT: ' + er.message, 'err'); introActions(`<button class="btn" type="button" id="introOther">Elegir otra carpeta</button>`, a => a.querySelector('#introOther').onclick = () => pesPick()); }
 }
 // cambiar entre EDITs encontrados (drmp / save / otra cuenta de Steam)

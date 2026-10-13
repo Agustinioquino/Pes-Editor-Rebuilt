@@ -18,7 +18,7 @@ async function connectKits() {
   try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'readwrite' }); } catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); return; }
   let root = null;
   for (const p of ['', 'kit-server', 'content/kit-server']) { try { const d = p ? await subDir(dir, p) : dir; if (await readText(d, 'map.txt') != null) { root = d; break; } } catch { } }
-  if (!root) { toast('No encontré content\\kit-server\\map.txt ahí. Elegí la carpeta "Dream Patch Sider" (la que tiene sider.exe).', 8000); return; }
+  if (!root) { toast('No encontré content\\kit-server\\map.txt ahí. Elegí la carpeta de Sider de tu Parche (la que tiene sider.exe).', 8000); return; }
   const map = lines(await readText(root, 'map.txt')).map(l => l.match(/^(\d+)\s*,\s*"([^"]+)"/)).filter(Boolean).map(m => [+m[1], m[2]]);
   const out = new Map(); let done = 0;
   const t = $('toast'); t.hidden = false; clearTimeout(toastT);
@@ -46,7 +46,7 @@ async function connectKits() {
     if (content) {
       const h = await (await content.getDirectoryHandle('edit21-db')).getFileHandle('Player.bin');
       const m = await namesFromBin(new Uint8Array(await (await h.getFile()).arrayBuffer()));
-      S.names = m; S.namesFrom = 'Dream Patch (base del juego)'; namesSave(); RATE_GEN++;
+      S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++;
       namesMsg = ` y ${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
@@ -84,7 +84,7 @@ function fullKitSvg(k, w = 54) {
 function kitStrip(t) {
   const k = teamKits(t), all = [...k.k, ...k.g];
   return `<div class="kitstrip">${all.map(x => `<figure>${fullKitSvg(x, 40)}<figcaption>${esc(KIT_LABEL(x.n))}</figcaption></figure>`).join('')}
-    ${k.fallback ? `<p class="note" style="align-self:center;max-width:32ch">Vista según los colores del equipo. <button class="btn small" type="button" data-kits>Conectar kits del parche</button></p>` : ''}</div>`;
+    ${k.fallback ? `<p class="note" style="align-self:center;max-width:32ch">Vista según los colores del equipo. <button class="btn small" type="button" data-kits>Conectar kits del Parche</button></p>` : ''}</div>`;
 }
 
 // ===================== Formations / tactics =====================
@@ -195,7 +195,7 @@ function tacticsCard(t) {
         <label class="chk"><input type="checkbox" id="fids" ${PREFS.showIds ? 'checked' : ''}> Mostrar IDs</label></div>
       <div class="row"><span class="lab">Valoración</span><div class="seg" id="fRate" title="Qué número se ve en cada jugador y en la valoración del equipo">${[['base', '🎮 Del juego'], ['form', '📈 Por rendimiento'], ['cmp', '⚖ Comparar']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${PREFS.rateMode === k}">${n}</button>`).join('')}</div>
         ${PD.roster(S.d, t).some(x => LM.adj.has(x.pid)) ? '' : '<span class="note">Para ver la forma, buscá los últimos partidos reales abajo.</span>'}</div>
-      ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del parche</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del parche</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
+      ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del Parche</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del Parche</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
         <label class="chk"><input type="checkbox" id="fonline" ${PREFS.online ? 'checked' : ''}> Buscar en internet las que falten</label>
         ${PREFS.online ? '<span class="note">Fuente: TheSportsDB (por nombre y club). Se guardan para no volver a buscarlas.</span>' : ''}</div>` : ''}
       <div class="row"><span class="lab">Plantillas:</span>${Object.keys(FORM_PRESETS).map(k => `<button class="btn small" type="button" data-preset="${k}">${k}</button>`).join('')}</div>
@@ -231,7 +231,7 @@ function bindTactics(t, m) {
   const fl2 = $('flook'); if (fl2) fl2.onclick = ev => { const b = ev.target.closest('[data-v]'); if (!b) return; PREFS.look = b.dataset.v; savePrefs(); renderTeams(m); };
   const fth = $('ftheme'); if (fth) fth.onchange = () => { PREFS.theme = fth.value; savePrefs(); renderTeams(m); };
   const fid = $('fids'); if (fid) fid.onchange = () => { PREFS.showIds = fid.checked; savePrefs(); renderTeams(m); };
-  const fon = $('fonline'); if (fon) fon.onchange = () => { PREFS.online = fon.checked; savePrefs(); if (fon.checked) toast('Se buscarán en internet las fotos que no estén en el parche (por nombre y club).', 5000); renderTeams(m); };
+  const fon = $('fonline'); if (fon) fon.onchange = () => { PREFS.online = fon.checked; savePrefs(); if (fon.checked) toast('Se buscarán en internet las fotos que no estén en el Parche (por nombre y club).', 5000); renderTeams(m); };
   const fgr = $('fgrant'); if (fgr) fgr.onclick = grantFaces;
   const frt = $('fRate'); if (frt) frt.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; PREFS.rateMode = b.dataset.v; savePrefs(); RATE_GEN++; renderTeams(m); };
   bindLastMatch(t, m);

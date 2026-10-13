@@ -27,7 +27,7 @@ body:
     id: parche
     attributes:
       label: ¿Usás parche?
-      options: [Dream Patch con Sider, Otro parche, Juego sin parche]
+      options: [Parche con Sider, Parche sin Sider, Juego sin parche]
   - type: textarea
     id: que-paso
     attributes:

@@ -3,7 +3,7 @@
     -------------------------------------------------------------------
     No modifica el juego. Cuando PES carga su base de datos (common\etc\pesdb\*.bin)
     guarda una copia de cada archivo tal como el juego lo usa (con todo lo que
-    agrega el Dream Patch) en:
+    agrega el Parche) en:
 
         <carpeta de sider>\content\edit21-db\
 
@@ -11,7 +11,7 @@
       - el io de Sider no deja escribir archivos en algunas instalaciones
         (io.open devuelve nil sin error, tambien a otros modulos). Si pasa eso,
         el modulo escribe con las funciones de Windows por medio de ffi
-        (necesita luajit.ext.enabled = 1 en sider.ini, que el Dream Patch ya trae)
+        (necesita luajit.ext.enabled = 1 en sider.ini, que el Parche ya trae)
       - crea la carpeta de salida si no existe
       - anota en sider.log que metodo de escritura uso
 

@@ -1,7 +1,7 @@
 {
   "name": "PES Editor",
   "short_name": "PES Editor",
-  "description": "Un PES Editor renovado: editor del EDIT00000000 de eFootball PES 2021 (Dream Patch + Sider).",
+  "description": "Un PES Editor renovado: editor del EDIT00000000 de eFootball PES 2021 (Parche + Sider).",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

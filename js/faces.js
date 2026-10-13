@@ -1,4 +1,4 @@
-// ===================== Faces: local minifaces (Dream Patch) + optional online photos =====================
+// ===================== Faces: local minifaces (Parche) + optional online photos =====================
 const PREF_LS = 'edit21-prefs-v1';
 const PREFS = (() => { try { return Object.assign({ look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }, JSON.parse(localStorage.getItem(PREF_LS) || '{}')); } catch { return { look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }; } })();
 function savePrefs() { try { localStorage.setItem(PREF_LS, JSON.stringify(PREFS)); } catch { } }
@@ -9,7 +9,7 @@ try { FACES.online = new Map(JSON.parse(localStorage.getItem(ONLINE_LS) || '[]')
 const FACE_CTX = { nat: false }; // set while rendering a club or a national team
 const saveOnline = () => { try { localStorage.setItem(ONLINE_LS, JSON.stringify([...FACES.online])); } catch { } };
 
-// handle persistence (IndexedDB) so the Dream Patch folder is remembered between sessions
+// handle persistence (IndexedDB) so the Parche folder is remembered between sessions
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open('edit21', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function idbSet(k, v) { try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch { } }
 async function idbGet(k) { try { const db = await idb(); return await new Promise((res, rej) => { const tx = db.transaction('kv'); const q = tx.objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch { return null; } }
@@ -105,7 +105,7 @@ function faceHtml(pid, kit, cls = '') {
   return `<span class="face ${url ? 'has' : ''} ${cls}" style="${glow}"><img data-face="${pid || ''}" alt="" ${url ? `src="${url}"` : ''}>${shirtSvg(kit, '86%')}</span>`;
 }
 
-// ===================== Team badges: Dream Patch flag/emblem PNGs + optional online fallback =====================
+// ===================== Team badges: Parche flag/emblem PNGs + optional online fallback =====================
 const BADGE_LS = 'edit21-online-badges-v1';
 const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: false, count: 0 };
 try { BADGES.online = new Map(JSON.parse(localStorage.getItem(BADGE_LS) || '[]')); } catch { }
@@ -223,7 +223,7 @@ function setFaceKind(pid, k) {
 }
 function faceTools(pid) {
   const e = FACES.online.get(pid);
-  if (FACES.url.has(pid)) return '<p class="note">Foto: miniface del Dream Patch.</p>';
+  if (FACES.url.has(pid)) return '<p class="note">Foto: miniface del Parche.</p>';
   if (!e || !e.u) return '';
   const lab = { c: 'con camiseta del club', n: 'con camiseta de la selección', x: 'neutral (sin camiseta)', '?': 'sin clasificar' }[e.k] || '';
   return `<div class="facetools"><span class="note">Foto de internet ${lab}${e.m ? ' (marcada a mano)' : ''}. ¿Es correcta?</span>
@@ -232,5 +232,5 @@ function faceTools(pid) {
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider) sin mostrar nada
 async function loadDbQuiet(sider, force) {
-  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force) { S.names = m; S.namesFrom = 'Dream Patch (base del juego)'; namesSave(); RATE_GEN++; } } catch { }
+  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force) { S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++; } } catch { }
 }

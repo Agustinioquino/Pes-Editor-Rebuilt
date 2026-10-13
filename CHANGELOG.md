@@ -2,18 +2,32 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.019 alpha · Todos los jugadores del Parche en Jugadores
+
+*13 de octubre de 2026, 06:55 (hora de Argentina)*
+
+La pestaña Jugadores ya no muestra solo los que están en tu EDIT: con la base del Parche copiada, se ven los más de 27.000 jugadores del Parche.
+
+- **Mi EDIT o la base del Parche** (Plantel). Arriba de la lista hay dos botones: "Mi EDIT" (los jugadores que el EDIT guarda y se editan como siempre) y "Del Parche" (todos los de la base del Parche). Si tu EDIT no tiene jugadores, arranca directo en la base. La pestaña muestra el total de la base, y al pasar el mouse dice cuántos hay en cada lado.
+  1. Conectá la carpeta Sider y dejá que el juego copie la base (si todavía no lo hiciste, el editor te avisa cómo).
+  2. Entrá en Jugadores y tocá "Del Parche".
+  3. Buscá por nombre, ID o equipo, o filtrá por posición o por "Solo los que no están en mi EDIT".
+- **Ficha de solo lectura con todo lo del Parche** (Plantel). Cada jugador de la base muestra su cara, posición, nacionalidad, edad, altura, valoración, sus equipos con el dorsal (tocá uno para ir al plantel) y todas las habilidades en barras, más pierna mala, estado de forma y resistencia a lesiones. Es lo que usa el juego.
+- **Agregar a mi EDIT para editarlo** (Plantel). El botón "Agregar a mi EDIT para editarlo" copia al jugador con todas sus habilidades y abre su ficha editable; la cara y el nombre siguen saliendo del Parche. Ctrl+Z lo deshace.
+- **El buscador de arriba también encuentra jugadores de la base** (Plantel). Con / o el buscador de arriba aparecen los jugadores del Parche que no están en ningún plantel de tu EDIT, marcados como "Base del Parche"; al elegir uno se abre su ficha.
+
 ## v0.018 alpha · La copia de la base ya se guarda y el video va arriba del reproductor
 
 *13 de octubre de 2026, 06:30 (hora de Argentina)*
 
-Arreglo del módulo edit21_db.lua (en algunas instalaciones Sider no deja que los módulos guarden archivos), planteles de la base verificados con los archivos reales del Dream Patch y un lugar mejor para el video de YouTube.
+Arreglo del módulo edit21_db.lua (en algunas instalaciones Sider no deja que los módulos guarden archivos), planteles de la base verificados con los archivos reales del Parche y un lugar mejor para el video de YouTube.
 
-- **Escritura con las funciones de Windows** (Archivo). En algunas instalaciones, el io de Sider no deja crear ni sobrescribir archivos: abrir un archivo para escribir devuelve vacío y sin error (en el sider.log se ve como "-> nil", y le pasa también a otros módulos, como PostProcessingEditor y UIColors). La v1.5 lo detecta y en ese caso escribe la copia con las funciones de Windows, por medio del ffi de LuaJIT que el Dream Patch ya deja activado (luajit.ext.enabled = 1 en sider.ini). En sider.log queda anotado qué método usó.
+- **Escritura con las funciones de Windows** (Archivo). En algunas instalaciones, el io de Sider no deja crear ni sobrescribir archivos: abrir un archivo para escribir devuelve vacío y sin error (en el sider.log se ve como "-> nil", y le pasa también a otros módulos, como PostProcessingEditor y UIColors). La v1.5 lo detecta y en ese caso escribe la copia con las funciones de Windows, por medio del ffi de LuaJIT que el Parche ya deja activado (luajit.ext.enabled = 1 en sider.ini). En sider.log queda anotado qué método usó.
   1. Tocá "Conectar carpeta Sider": el editor reemplaza el módulo viejo por la v1.5 (guarda el anterior como edit21_db.lua.anterior).
   2. Abrí el juego hasta el menú principal, entrá en Partido › Amistoso hasta la elección de equipos y cerralo.
   3. Volvé al editor y tocá "Ya lo hice: volver a leer".
 - **Nada de archivos al arrancar** (Archivo). El módulo ya no toca ningún archivo mientras Sider arranca: elige la carpeta recién cuando el juego carga el primer archivo de la base, la crea si no existe y, si algo falla, vuelve a probar con el siguiente.
-- **Planteles de la base verificados** (Plantel). Con la copia real de PlayerAssignment.bin se confirmó cómo guarda el juego cada fila (registro de 16 bytes: número de fila, jugador, equipo, dorsal y orden). El editor ahora lo reconoce directo, y el dorsal se calibra comparando con los planteles de tu EDIT: el juego lo guarda empezando desde 0, así que el 1 figura como 0. En la prueba con el Dream Patch coincidieron los 20.174 jugadores de los 748 equipos.
+- **Planteles de la base verificados** (Plantel). Con la copia real de PlayerAssignment.bin se confirmó cómo guarda el juego cada fila (registro de 16 bytes: número de fila, jugador, equipo, dorsal y orden). El editor ahora lo reconoce directo, y el dorsal se calibra comparando con los planteles de tu EDIT: el juego lo guarda empezando desde 0, así que el 1 figura como 0. En la prueba con el Parche coincidieron los 20.174 jugadores de los 748 equipos.
 - **Video de YouTube arriba del reproductor** (Música). Con el reproductor minimizado, el video ahora va arriba de la barra, en el espacio libre de la izquierda, y toma el ancho que haya (mínimo 200 × 200, lo que exige YouTube). Si la pantalla es angosta y no hay hueco, sigue al costado del reproductor para no tapar la lista de equipos.
 - **Aviso más preciso** (Archivo). Si el sider.log muestra el error de una versión anterior del módulo, el aviso ya no manda a revisar la protección contra ransomware de Windows: explica qué pasó y que alcanza con repetir los pasos. Las líneas de ayuda que el módulo deja en el registro ya no se confunden con un error de permisos.
 
@@ -28,7 +42,7 @@ Al conectar la carpeta Sider, el editor instala solo el módulo que copia la bas
   2. Si el editor te pide permiso para escribir en esa carpeta, aceptá: lo necesita para instalar el módulo.
 - **Aviso cuando la base no está cargada** (Archivo). Si es la primera vez, si el módulo se acaba de instalar o si en content\edit21-db faltan archivos, el editor muestra qué hacer: abrir PES 2021 con Sider hasta el menú principal, entrar en Partido › Amistoso hasta la elección de equipos y cerrar el juego. Después, "Ya lo hice" vuelve a leer la base. También avisa al arrancar si la copia está incompleta.
 - **Módulo v1.3: copia toda la base y avisa si algo falla** (Archivo). Si Windows no le deja escribir en content\edit21-db, el módulo prueba en content\pes-editor-db, anota el error exacto en sider.log y deja un estado.txt; el editor lee ese registro y te dice qué pasó y cómo arreglarlo (por ejemplo, el "Acceso controlado a carpetas" de Windows). Además copia todos los archivos de pesdb que el juego carga (Player, Team, PlayerAssignment, Coach, Stadium, Country, Competition, Tactics…), no solo una lista fija, y escribe index.txt con el nombre, tamaño y hora de cada uno. Los archivos de la elección de equipos (como PlayerAssignment.bin) recién se copian al entrar en el amistoso: por eso ese paso.
-- **Planteles de la base para equipos vacíos** (Plantel). Con PlayerAssignment.bin y Team.bin copiados, el editor sabe qué jugadores tiene cada equipo en el Dream Patch y el nombre y la sigla de los 750 equipos. Si un equipo está vacío en tu EDIT, la pestaña Plantel muestra el plantel que trae el parche, con dorsales, fotos y valoraciones.
+- **Planteles de la base para equipos vacíos** (Plantel). Con PlayerAssignment.bin y Team.bin copiados, el editor sabe qué jugadores tiene cada equipo en el Parche y el nombre y la sigla de los 750 equipos. Si un equipo está vacío en tu EDIT, la pestaña Plantel muestra el plantel que trae el Parche, con dorsales, fotos y valoraciones.
   1. Abrí un equipo sin plantel (activá "Incluir sin plantel" en la lista).
   2. Tocá un jugador para abrirlo; si no estaba en tu EDIT, el editor ofrece agregarlo con sus habilidades.
   3. Con "Copiar este plantel a mi EDIT" se agregan todos de una vez (hasta 40). Se puede deshacer con Ctrl+Z.
@@ -172,7 +186,7 @@ Primera versión con música, el logo nítido a cualquier tamaño y las fotos de
 - **Logo de la barra en vector (SVG)** (Interfaz). El logo de arriba usa los archivos vectoriales: plateado en modo oscuro y negro en modo claro. Se ve nítido con cualquier zoom y al cambiar de modo pasa de uno al otro con un fundido.
 - **Paso suave de la carga a la página** (Interfaz). Cuando termina de cargar el EDIT, el fondo de la introducción se agranda y se desenfoca mientras se desvanece, la página aparece de a poco y el logo vuela hasta su lugar en la barra.
 - **Fotos en la tabla del plantel** (Plantel). Cada jugador muestra su foto (la misma minicara que usa la Formación) dentro de un círculo con los colores del equipo. Antes solo aparecían si la Formación estaba en modo Fotos y eran muy chicas. Si un jugador no tiene foto, queda la camiseta. Al pasar el mouse por la fila, la foto se agranda un poco.
-  1. Tocá "Conectar carpeta Sider" para que el editor encuentre las minicaras del Dream Patch.
+  1. Tocá "Conectar carpeta Sider" para que el editor encuentre las minicaras del Parche.
   2. Abrí un equipo: las fotos aparecen solas en la pestaña Plantel.
 
 ## v0.007 alpha · Intro con neón y sección Novedades
@@ -184,7 +198,7 @@ La pantalla de carga se volvió más llamativa y se agregó esta sección.
 - **Intro con efectos** (Interfaz). El logo entra con un zoom, un destello de luz, rayos que giran detrás, chispas que suben, un piso con grilla tipo estadio de noche y un reflejo debajo.
 - **Brillo neón que se prende y se apaga** (Interfaz). El contorno de las letras, las barras y las estrellas se iluminan como un tubo de neón: se enciende con parpadeos, queda prendido, se apaga despacio y vuelve a prenderse. Mientras carga el EDIT late más rápido y al terminar queda fijo. Usa el color de acento de la página (cambia con los colores del equipo). Si Windows tiene activado "reducir animaciones", se muestra fijo y sin efectos.
 - **Pestaña Novedades** (Interfaz). Al lado de Archivo. Cuando hay una versión que todavía no viste aparece un punto que titila en la pestaña; se apaga cuando entrás.
-- **Botón "Conectar carpeta Sider"** (Kits). El botón que antes decía "Conectar Dream Patch" ahora se llama "Conectar carpeta Sider" y tiene el ícono del martillo y la llave. Hace lo mismo: elegís la carpeta de Sider del Dream Patch y el editor lee kits, caras, escudos y nombres de jugadores.
+- **Botón "Conectar carpeta Sider"** (Kits). El botón que antes decía "Conectar Parche" ahora se llama "Conectar carpeta Sider" y tiene el ícono del martillo y la llave. Hace lo mismo: elegís la carpeta de Sider del Parche y el editor lee kits, caras, escudos y nombres de jugadores.
 
 ## v0.006 alpha · El EDIT se encuentra solo
 
@@ -192,7 +206,7 @@ La pantalla de carga se volvió más llamativa y se agregó esta sección.
 
 Ya no hace falta buscar el archivo a mano: el editor lo encuentra en tu carpeta Documentos.
 
-- **Búsqueda automática del EDIT** (Archivo). El editor busca KONAMI\eFootball PES 2021 SEASON UPDATE dentro de Documentos (aunque esté en otra subcarpeta) y abre el EDIT00000000 más reciente. Si hay dos con la misma fecha, prefiere el del Dream Patch (carpeta drmp) antes que el del juego sin parche (save).
+- **Búsqueda automática del EDIT** (Archivo). El editor busca KONAMI\eFootball PES 2021 SEASON UPDATE dentro de Documentos (aunque esté en otra subcarpeta) y abre el EDIT00000000 más reciente. Si hay dos con la misma fecha, prefiere el del Parche (carpeta drmp) antes que el del juego sin parche (save).
   1. La primera vez tocá "📂 Elegir mi carpeta Documentos". La ventana ya se abre en Documentos: solo tocá "Seleccionar carpeta".
   2. En el aviso del navegador elegí "Permitir en cada visita" para que la próxima vez entre directo.
 - **Cambiar entre EDITs** (Archivo). En la pestaña Archivo, la tarjeta "Carpeta del juego" lista todos los EDIT encontrados (drmp, save u otras cuentas de Steam) con fecha y tamaño. "Abrir este" cambia al otro; si tenés cambios sin guardar, primero te pregunta.
@@ -239,7 +253,7 @@ El estudio de kits se acercó a cómo se ve la camiseta en el juego.
 
 *12 de octubre de 2026, 21:28 (hora de Argentina)*
 
-Se armó un estudio para ver y editar los kits del kit-server del Dream Patch.
+Se armó un estudio para ver y editar los kits del kit-server del Parche.
 
 - **Visor 3D con los modelos reales** (Kits). La camiseta, las mangas, más de 100 cuellos, los 16 shorts y las medias salen del CometKIT previewer, con iluminación tipo estadio.
 - **Editar el config.txt sin escribir** (Kits). Los valores del config del kit (cuello, short, colores y demás) se cambian con controles y el 3D se actualiza al instante.

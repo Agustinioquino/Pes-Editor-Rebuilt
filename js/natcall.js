@@ -1,5 +1,5 @@
 // ===================== Selecciones: convocatoria =====================
-let CALL_MAX = 26; // el Dream Patch usa listas de 26; se puede bajar a 23
+let CALL_MAX = 26; // el Parche usa listas de 26; se puede bajar a 23
 const CALL = { q: '', grp: 'all', sort: 'r', limit: 60 };
 function natCountry(t) { const c = tget(t, 'country'); if (COUNTRY.has(c)) return c; const n = normName(tget(t, 'name')); for (const [id, nm] of COUNTRY) if (normName(nm) === n) return id; return c; }
 function playerNation(pid) { const p = S.ix.byId.get(pid); if (p) return pget(p, 'nation'); const n = S.names.get(pid); return n ? n.n || 0 : 0; }

@@ -116,6 +116,12 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 .f label,.lab{font-size:.75rem;font-weight:600;color:var(--muted)}
 .span2{grid-column:span 2}
 @media (max-width:520px){.span2{grid-column:auto}}
+.psrc{display:flex;width:100%}.psrc button{flex:1;white-space:nowrap;font-size:.78rem;padding-inline:.4rem;display:inline-flex;justify-content:center;gap:6px;align-items:baseline}.psrc button b{font-family:var(--mono);font-size:.72rem;opacity:.75}
+.chip.tiny{font-size:.58rem;padding:0 .35rem;vertical-align:middle}
+.ab.ro{grid-template-columns:minmax(0,1fr) 34px}.abbar{display:block;height:6px;border-radius:99px;background:var(--sunk);overflow:hidden;margin-top:3px}.abbar b{display:block;height:100%;border-radius:inherit;background:var(--accent);opacity:.8}
+.abv{font-family:var(--mono);text-align:right;font-size:.86rem}
+.dbsheet .dbface{display:inline-flex}.dbteams{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}.dbteams .chip{cursor:pointer;font-size:.74rem;padding:.25rem .6rem}.dbteams .chip:hover{border-color:var(--accent);color:var(--ink)}
+.dbnote{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--sunk);font-size:.84rem;color:var(--muted)}.dbnote span{flex:1 1 280px}
 .groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .group{display:grid;gap:7px;align-content:start}
 .group h4{margin:0;font-family:var(--display);font-size:1.05rem;font-weight:600;letter-spacing:.02em}

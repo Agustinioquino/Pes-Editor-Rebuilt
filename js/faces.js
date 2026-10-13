@@ -327,5 +327,5 @@ function faceTools(pid) {
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider) sin mostrar nada
 async function loadDbQuiet(sider, force) {
-  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force) { S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++; } } catch { }
+  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++; } } catch { }
 }

@@ -19,18 +19,6 @@ const ABIL_GROUPS = [
   ['Portero', [['gk', 'Actitud de portero'], ['catching', 'Atajar'], ['clearing', 'Despejar'], ['reflex', 'Reflejos'], ['cover', 'Alcance']]],
 ];
 const ABIL = ABIL_GROUPS.flatMap(g => g[1]);
-const KEY_ABIL = {
-  gk: ['gk', 'catching', 'clearing', 'reflex', 'cover', 'jump'],
-  cb: ['def', 'ball_win', 'aggres', 'header', 'jump', 'phys_cont', 'speed'],
-  fb: ['def', 'ball_win', 'speed', 'stamina', 'lowpass', 'loftpass', 'exp_pwr'],
-  dmf: ['def', 'ball_win', 'aggres', 'lowpass', 'loftpass', 'stamina', 'phys_cont'],
-  cmf: ['lowpass', 'loftpass', 'ball_ctrl', 'stamina', 'def', 'drib', 'tight_pos'],
-  smf: ['speed', 'exp_pwr', 'drib', 'ball_ctrl', 'loftpass', 'stamina', 'lowpass'],
-  amf: ['atk', 'ball_ctrl', 'drib', 'tight_pos', 'lowpass', 'finish', 'exp_pwr'],
-  wf: ['atk', 'speed', 'exp_pwr', 'drib', 'ball_ctrl', 'finish', 'tight_pos'],
-  cf: ['atk', 'finish', 'header', 'kick_pwr', 'ball_ctrl', 'phys_cont', 'speed'],
-};
-const POS_KEY = ['gk', 'cb', 'fb', 'fb', 'dmf', 'cmf', 'smf', 'smf', 'amf', 'wf', 'wf', 'amf', 'cf'];
 const SKILLS = [
   ['Regate', [[0, 'Bicicleta'], [28, 'Doble toque'], [1, 'Elástica'], [2, 'Ruleta'], [3, 'Sombrero'], [29, 'Giro cruzado'], [4, 'Recorte y giro'], [5, 'Amago de tiro'], [30, 'Pisar el balón'], [10, 'Taconazo']]],
   ['Tiro', [[6, 'Cabezazo'], [7, 'Disparo potente lejano'], [31, 'Vaselina'], [39, 'Tiro lejano'], [8, 'Disparo sin rosca'], [32, 'Disparo con caída'], [33, 'Disparo ascendente'], [9, 'Remate acrobático'], [11, 'Disparo al primer toque']]],
@@ -126,7 +114,7 @@ function pInfo(id) {
   // la flecha de forma se ve siempre; la valoración solo cambia en el modo "Por rendimiento".
   // si el ajuste ya está guardado en el EDIT, "Del juego" ya lo incluye: solo se suma lo que falta
   const done = formDone(id), pend = a.adj - done;
-  return Object.assign({}, b, { adj: a.adj, form: a, r0: b.r, applied: done }, PREFS.rateMode !== 'base' ? { r: Math.max(40, Math.min(99, b.r + pend)) } : {});
+  return Object.assign({}, b, { adj: a.adj, form: a, r0: b.r, applied: done }, PREFS.rateMode !== 'base' ? { r: Math.max(40, Math.min(rateCap(b.pos), b.r + pend)) } : {});
 }
 // flechas de forma estilo PES: ⬆ verde, ↗ verde claro, ➡ neutral, ↘ naranja, ⬇ rojo
 function formLevel(a) { return a >= 3 ? 2 : a >= 1 ? 1 : a <= -3 ? -2 : a <= -1 ? -1 : 0; }
@@ -146,7 +134,7 @@ function formTip(f) {
 function rateHtml(pi, tag = 'span') {
   if (!pi || !pi.r) return '';
   const oop = pi.outpos ? `<span class="oop" title="Fuera de su puesto: en ${POS[pi.natPos]} tiene ${pi.nat} (${pi.outpos})">⚠</span>` : '';
-  const pend = pi.form ? pi.adj - (pi.applied || 0) : 0, base = pi.r0 != null ? pi.r0 : pi.r, target = Math.max(40, Math.min(99, base + pend));
+  const pend = pi.form ? pi.adj - (pi.applied || 0) : 0, base = pi.r0 != null ? pi.r0 : pi.r, target = Math.max(40, Math.min(rateCap(pi.pos), base + pend));
   // la flecha solo aparece mientras hay algo por aplicar; ya aplicado, se ve la media nueva y nada más
   const cls = pi.outpos ? ' op' : '', arrow = pend ? adjHtml(pend, pi.form) : '';
   const rv = typeof REVEAL !== 'undefined' && REVEAL.get(pi.id), rev = rv ? ` data-rev="${rv}"` : '';
@@ -227,11 +215,36 @@ function teamRating(t) {
 }
 const fmtMoney = v => v >= 1000 ? '€' + (v / 1000).toFixed(2).replace('.', ',') + ' mil M' : v >= 10 ? '€' + Math.round(v).toLocaleString('es-AR') + ' M' : v >= 1 ? '€' + v.toFixed(1).replace('.', ',') + ' M' : '€' + Math.round(v * 1000).toLocaleString('es-AR') + ' mil';
 function starsHtml(n) { let h = ''; for (let i = 1; i <= 5; i++) h += `<span class="st ${n >= i ? 'f' : n >= i - 0.5 ? 'h' : ''}">★</span>`; return `<span class="stars" aria-label="${n} estrellas">${h}</span>`; }
-// corrección por línea, calibrada con las medias que muestra el juego (arqueros y centrales salían altos)
-const RATING_BIAS = {gk: -6.59, cb: -4.23, fb: -0.48, dmf: -0.73, cmf: -2.46, smf: -2.5, amf: -0.87, wf: -1.71}; // calibrado con 90 medias reales del juego (Boca, Racing, Independiente, Barracas, Unión)
-const RATING_W = { cf: { w: {atk: 0.1386, ball_ctrl: 0.1407, drib: 0.0053, lowpass: 0.0063, loftpass: 0.0032, finish: 0.1511, header: 0.1165, swerve: 0.0125, speed: 0.1046, exp_pwr: 0.0352, kick_pwr: 0.1219, phys_cont: 0.1053, stamina: 0.0314, aggres: 0.025}, b: -2.18 } }; // delanteros: pesos ajustados (mejor que el promedio simple)
-function posFormula(g, ab) { const m = RATING_W[g]; if (m) { let r = m.b; for (const k in m.w) r += m.w[k] * ab(k); return r; } const ks = KEY_ABIL[g]; return ks.reduce((a, k) => a + ab(k), 0) / ks.length + (RATING_BIAS[g] || 0); }
-function rating(p) { return Math.round(posFormula(POS_KEY[pget(p, 'reg_pos')] || 'cmf', k => pget(p, k))); }
+// Media como la calcula el juego, un modelo por puesto (PT, DEC, LI, LD, MCD, MC, MI, MD, MO, EI, ED, SD, CD).
+// Ajustado con 14.000 jugadores de PES 2020 y 280 de PES 2021 con su media real, y con las pruebas en el juego
+// (todo en 99 da 109, el central 108 y el arquero 97). Primero un promedio ponderado de las habilidades (pesos en
+// milésimas); después una curva por tramos en 60, 70, 80, 90 y 99, que es empinada en el medio y se aplana arriba.
+// Acierta la media exacta en 2 de cada 3 jugadores y en el resto se va por 1.
+const RATE_MODEL = [
+  ['gk:208 catching:136 clearing:130 reflex:139 cover:212 jump:87 phys_cont:87', [49.9, 61.69, 73.65, 85.42, 97]], // GK
+  ['atk:29 ball_ctrl:42 drib:19 tight_pos:17 lowpass:23 loftpass:28 finish:36 header:98 place_kick:23 swerve:30 speed:60 exp_pwr:26 kick_pwr:19 jump:96 phys_cont:96 body_ctrl:28 stamina:68 def:118 ball_win:90 aggres:53', [50.86, 67.88, 84.87, 97.96, 108]], // CB
+  ['atk:46 ball_ctrl:65 drib:54 tight_pos:42 lowpass:29 loftpass:72 finish:33 header:22 place_kick:25 swerve:28 speed:76 exp_pwr:75 kick_pwr:21 jump:67 phys_cont:57 body_ctrl:40 stamina:75 def:80 ball_win:54 aggres:39', [52.91, 71.11, 87.41, 100.06, 109]], // LB
+  ['atk:46 ball_ctrl:74 drib:53 tight_pos:36 lowpass:24 loftpass:73 finish:34 header:32 place_kick:24 swerve:29 speed:80 exp_pwr:76 kick_pwr:20 jump:60 phys_cont:52 body_ctrl:40 stamina:76 def:73 ball_win:54 aggres:45', [52.87, 71.09, 87.78, 100.19, 109]], // RB
+  ['atk:57 ball_ctrl:91 drib:51 tight_pos:44 lowpass:86 loftpass:90 finish:28 header:20 place_kick:26 swerve:63 speed:38 exp_pwr:28 kick_pwr:27 jump:46 phys_cont:60 body_ctrl:45 stamina:79 def:53 ball_win:42 aggres:24', [52.61, 71.04, 87.38, 100.1, 109]], // DMF
+  ['atk:44 ball_ctrl:118 drib:72 tight_pos:47 lowpass:114 loftpass:90 finish:31 header:24 place_kick:26 swerve:31 speed:42 exp_pwr:44 kick_pwr:26 jump:31 phys_cont:39 body_ctrl:41 stamina:85 def:42 ball_win:26 aggres:26', [50.66, 68.68, 84.92, 98.08, 109]], // CMF
+  ['atk:53 ball_ctrl:78 drib:80 tight_pos:58 lowpass:59 loftpass:54 finish:34 header:21 place_kick:37 swerve:36 speed:97 exp_pwr:110 kick_pwr:29 jump:28 phys_cont:36 body_ctrl:30 stamina:74 def:34 ball_win:30 aggres:21', [50.65, 68.3, 84.98, 99.97, 109]], // LMF
+  ['atk:64 ball_ctrl:75 drib:91 tight_pos:47 lowpass:62 loftpass:64 finish:33 header:18 place_kick:29 swerve:38 speed:112 exp_pwr:88 kick_pwr:21 jump:35 phys_cont:31 body_ctrl:34 stamina:78 def:27 ball_win:28 aggres:26', [51, 68.04, 84.77, 99.74, 109]], // RMF
+  ['atk:77 ball_ctrl:123 drib:75 tight_pos:45 lowpass:101 loftpass:72 finish:86 header:22 place_kick:26 swerve:28 speed:55 exp_pwr:41 kick_pwr:24 jump:33 phys_cont:36 body_ctrl:40 stamina:37 def:31 ball_win:24 aggres:24', [51.02, 69.28, 85.82, 100.14, 109]], // AMF
+  ['atk:80 ball_ctrl:89 drib:87 tight_pos:52 lowpass:51 loftpass:56 finish:64 header:26 place_kick:23 swerve:28 speed:78 exp_pwr:77 kick_pwr:48 jump:30 phys_cont:34 body_ctrl:43 stamina:54 def:30 ball_win:27 aggres:24', [51.59, 69.61, 86.21, 101.03, 109]], // LWF
+  ['atk:89 ball_ctrl:88 drib:95 tight_pos:44 lowpass:34 loftpass:66 finish:76 header:27 place_kick:23 swerve:34 speed:70 exp_pwr:77 kick_pwr:40 jump:26 phys_cont:32 body_ctrl:42 stamina:49 def:34 ball_win:31 aggres:22', [51.88, 69.93, 86.47, 99.26, 109]], // RWF
+  ['atk:88 ball_ctrl:88 drib:71 tight_pos:47 lowpass:54 loftpass:68 finish:75 header:26 place_kick:26 swerve:18 speed:63 exp_pwr:91 kick_pwr:47 jump:34 phys_cont:33 body_ctrl:45 stamina:48 def:20 ball_win:29 aggres:30', [51.1, 69.49, 86.14, 99.11, 109]], // SS
+  ['atk:131 ball_ctrl:106 drib:60 tight_pos:40 lowpass:24 loftpass:30 finish:153 header:42 place_kick:25 swerve:26 speed:37 exp_pwr:45 kick_pwr:31 jump:37 phys_cont:57 body_ctrl:40 stamina:30 def:27 ball_win:33 aggres:25', [51.54, 69.4, 86.43, 99.8, 109]], // CF
+].map(([w, c]) => { const ws = w.split(' ').map(x => x.split(':')).map(([k, v]) => [k, +v]), t = ws.reduce((a, x) => a + x[1], 0); return { w: ws.map(([k, v]) => [k, v / t]), c }; });
+const RATE_KN = [60, 70, 80, 90, 99], RATING_V = 3;
+const rateCap = pos => (RATE_MODEL[pos] || RATE_MODEL[5]).c[4];
+function posFormula(pos, ab) {
+  const m = RATE_MODEL[pos] || RATE_MODEL[5], c = m.c; let s = 0; for (const [k, w] of m.w) s += w * ab(k);
+  if (s <= 60) return c[0] + (s - 60) * (c[1] - c[0]) / 10;
+  if (s >= 99) return c[4] + (s - 99) * (c[4] - c[3]) / 9;
+  let i = 0; while (s > RATE_KN[i + 1]) i++;
+  return c[i] + (s - RATE_KN[i]) * (c[i + 1] - c[i]) / (RATE_KN[i + 1] - RATE_KN[i]);
+}
+function rating(p) { return Math.round(posFormula(pget(p, 'reg_pos'), k => pget(p, k))); }
 // media en un puesto que no es el suyo (como la muestra el juego en la alineación): A sin castigo, B −6, C −7 (medido en el juego)
 const DB_POSFLAG = { 1: 468, 3: 474, 4: 414, 5: 456, 6: 466, 7: 460, 8: 464, 9: 472, 10: 476, 11: 478, 12: 470 };
 function abilOf(pid) { const p = S.ix && S.ix.byId.get(pid); if (p) return k => pget(p, k); if (DBRAW && DBRAW.off.has(pid)) { const o = DBRAW.off.get(pid); return k => dbBits(o, DB_ABIL[k], 6) + 40; } return null; }
@@ -239,7 +252,7 @@ function posFlag(pid, role) { const p = S.ix && S.ix.byId.get(pid); if (p) retur
 function slotRating(pid, role) {
   const b = pInfoBase(pid); if (!b || role == null || role === b.pos) return b ? b.r : null;
   const ab = abilOf(pid); if (!ab) return b.r;
-  let r = posFormula(POS_KEY[role], ab);
+  let r = posFormula(role, ab);
   const fl = posFlag(pid, role); r -= fl === 2 ? 0 : fl === 1 ? 6 : 7; if (role === 0 || b.pos === 0) r -= 15;
   return Math.max(40, Math.min(b.r, Math.round(r)));
 }
@@ -367,16 +380,15 @@ async function namesFromBin(bytes) {
     if (!id || !name) continue;
     const pos = bitsAt(o, 434, 4);
     const ab = k => bitsAt(o, DB_ABIL[k], 6) + 40;
-    const keys = KEY_ABIL[POS_KEY[pos] || 'cmf'];
-    const r = pos <= 12 ? Math.round(posFormula(POS_KEY[pos], ab)) : 0;
+    const r = pos <= 12 ? Math.round(posFormula(pos, ab)) : 0;
     out.set(id, { name, pos: pos <= 12 ? pos : null, r, h: b[o + 0x1B] + 100, a: bitsAt(o, 408, 6) + 15, n: bitsAt(o, 233, 9) });
   }
   DBRAW = { b, off: new Map([...Array(b.length / 0x138).keys()].map(i => [(b[i * 0x138 + 8] | b[i * 0x138 + 9] << 8 | b[i * 0x138 + 10] << 16 | b[i * 0x138 + 11] << 24) >>> 0, i * 0x138])) };
   return out;
 }
 const NAMES_LS = 'edit21-names-v5';
-function namesSave() { try { localStorage.setItem(NAMES_LS, JSON.stringify({ from: S.namesFrom, list: [...S.names].map(([id, v]) => [id, v.name, v.pos, v.r, v.a || 0, v.n || 0]) })); } catch { } }
-function namesLoadCache() { try { const j = JSON.parse(localStorage.getItem(NAMES_LS) || 'null'); if (j) { S.names = new Map(j.list.map(([id, n, pos, r, a, nat]) => [id, { name: n, pos: pos ?? null, r: r || 0, a: a || 0, n: nat || 0 }])); S.namesFrom = j.from; } } catch { } }
+function namesSave() { S.namesStale = false; try { localStorage.setItem(NAMES_LS, JSON.stringify({ rv: RATING_V, from: S.namesFrom, list: [...S.names].map(([id, v]) => [id, v.name, v.pos, v.r, v.a || 0, v.n || 0]) })); } catch { } }
+function namesLoadCache() { try { const j = JSON.parse(localStorage.getItem(NAMES_LS) || 'null'); if (j) { S.names = new Map(j.list.map(([id, n, pos, r, a, nat]) => [id, { name: n, pos: pos ?? null, r: r || 0, a: a || 0, n: nat || 0 }])); S.namesFrom = j.from; S.namesStale = j.rv !== RATING_V; } } catch { } }
 async function loadNames(file) {
   try {
     const m = await namesFromBin(new Uint8Array(await file.arrayBuffer()));
@@ -1118,7 +1130,7 @@ function dbPlayerSheet(id) {
   return `<div class="card dbsheet">
     <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
       <div class="sub">${shirt ? esc(shirt) + ' · ' : ''}${nat != null ? esc(COUNTRY.get(nat) || 'País ' + nat) + ' · ' : ''}${age ? age + ' años · ' : ''}${h ? h + ' cm · ' : ''}ID ${id}</div></div>
-      <div class="rating"><b class="${vcls(r)}">${r || '–'}</b><span>Valoración aprox.</span></div></div>
+      <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(r)}">${r || '–'}</b><span>Valoración</span></div></div>
     <div class="dbteams">${cl.length ? cl.map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
     <div class="dbnote"><span>${inEdit ? 'Este jugador también está en tu EDIT, con los datos que le cambiaste.' : 'Está en la base del Parche y todavía no en tu EDIT. Lo que ves acá es lo que usa el juego; para cambiarlo, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del Parche.'}</span>
       ${inEdit ? `<button class="btn small" type="button" data-dbopen="${id}">Abrir en mi EDIT</button>` : `<button class="btn primary small" type="button" data-dbadd="${id}" ${canMakeEditPlayer(id) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button>`}</div>
@@ -1206,7 +1218,7 @@ function playerSheet(p) {
   return `<div class="card">
     <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return c ? shirtSvg(kitFor(c, reg === 0), '2.4em', tget(c, 'name')) : ''; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
       <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'}${all.length ? ' · ' + esc(all.join(', ')) : ''} · ID ${p.id}</div></div>
-      <div class="rating"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración aprox.</span></div></div>
+      <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>
       <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el Parche cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
     <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}

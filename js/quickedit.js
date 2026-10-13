@@ -5,7 +5,7 @@
 const QE = { pid: null, start: null, close: null };
 const QE_GK = ['gk', 'catching', 'clearing', 'reflex', 'cover'];
 function qeKeys(p) { return pget(p, 'reg_pos') === 0 ? [...QE_GK, 'jump'] : ABIL.map(a => a[0]).filter(k => !QE_GK.includes(k)); }
-const qeRate = (p, get) => Math.round(posFormula(POS_KEY[pget(p, 'reg_pos')] || 'cmf', get));
+const qeRate = (p, get) => Math.round(posFormula(pget(p, 'reg_pos'), get));
 // el corrimiento d (igual para todas) que deja la media lo más cerca posible del objetivo
 function qeProposal(p, target) {
   const ks = qeKeys(p), cur = new Map(ks.map(k => [k, pget(p, k)]));
@@ -45,8 +45,8 @@ function qeHtml(pid) {
       <div class="qebig"><b id="hxRate" class="${vcls(r)}">${r}</b><span>Media</span><i id="hxRateD"></i></div>
       <div class="qesince ${d > 0 ? 'up' : d < 0 ? 'dn' : ''}" id="qeSince">${d ? `${d > 0 ? '▲ +' : '▼ −'}${Math.abs(d)} desde que abriste esta ventana` : 'Sin cambios todavía'}</div>
       <div class="qebtns" role="group" aria-label="Cambiar la media">${[-5, -1, 1, 5].map(n => `<button class="btn" type="button" data-qd="${n}">${n > 0 ? '+' : '−'}${Math.abs(n)}</button>`).join('')}</div>
-      <input type="range" class="qerange" id="qeRange" min="40" max="99" value="${r}" aria-label="Media">
-      <div class="qescale"><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>99</span></div>
+      <input type="range" class="qerange" id="qeRange" min="40" max="${rateCap(pos)}" value="${r}" aria-label="Media">
+      <div class="qescale">${[40, 50, 60, 70, 80, 90, 100].filter(v => v < rateCap(pos)).concat(rateCap(pos)).map(v => `<span>${v}</span>`).join('')}</div>
       <p class="note">${pos === 0 ? 'Cambiar la media sube o baja por igual las habilidades de arquero y el salto.' : 'Cambiar la media sube o baja por igual todas las habilidades de juego (las de arquero no se tocan).'} Ctrl+Z deshace.</p>
     </div>
     <div class="qehex">${hexaCard(p, true)}</div>
@@ -69,7 +69,7 @@ function qePaint() {
   rg.addEventListener('change', () => qeTo(p, +rg.value));
 }
 function qeTo(p, target) {
-  target = Math.max(40, Math.min(99, target));
+  target = Math.max(40, Math.min(rateCap(pget(p, 'reg_pos')), target));
   const r0 = rating(p), nm = pget(p, 'name') || 'ID ' + p.id;
   if (qeApply(p, qeProposal(p, target), nm + ': media ' + r0 + ' → ' + target)) QE.start.changed = true;
   else if (target !== r0) toast('No se puede llevar la media a ' + target + ': las habilidades ya están en el límite.');

@@ -54,7 +54,7 @@ function hexaCard(p, compact) {
     <div class="hxside">
       ${compact ? '' : '<h3>Ficha hexagonal</h3>'}
       <p class="note">Arrastrá una punta para subir o bajar todas las habilidades de esa área. También podés tocar una punta y usar las flechas del teclado.</p>
-      ${compact ? '' : `<div class="hxrate"><span>Valoración aprox.</span><b id="hxRate" class="${vcls(rating(p))}">${rating(p)}</b><i id="hxRateD"></i></div>`}
+      ${compact ? '' : `<div class="hxrate" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><span>Valoración</span><b id="hxRate" class="${vcls(rating(p))}">${rating(p)}</b><i id="hxRateD"></i></div>`}
       ${compact ? '' : `<ul class="hxlist">${axes.map(([n, ks]) => `<li><b>${esc(n)}</b> <span>${ks.map(k => esc(FIELD_LABEL[k] || (ABIL.find(a => a[0] === k) || [k, k])[1])).join(' · ')}</span></li>`).join('')}</ul>`}
       ${orig && orig.some((v, i) => v != null && Math.abs(v - vals[i]) >= .05) ? '<p class="note hxlegend"><i class="hxsw"></i>Línea punteada: cómo estaba al abrir el archivo.</p>' : ''}
     </div>
@@ -77,7 +77,7 @@ function hexaPaint(p, axes, prop, hot) {
   const vals = hexaVals(get, axes), orig = og ? hexaVals(og, axes) : null;
   const wrap = $('hxWrap'); if (!wrap) return;
   wrap.innerHTML = hexaSvg(axes, vals, { orig, edit: true, hot });
-  const r0 = rating(p), r1 = Math.round(posFormula(POS_KEY[pget(p, 'reg_pos')] || 'cmf', get)), rb = $('hxRate'), rd = $('hxRateD');
+  const r0 = rating(p), r1 = Math.round(posFormula(pget(p, 'reg_pos'), get)), rb = $('hxRate'), rd = $('hxRateD');
   if (rb) { rb.textContent = r1; rb.className = vcls(r1); }
   if (rd) { const d = r1 - r0; rd.textContent = d ? (d > 0 ? '+' : '−') + Math.abs(d) : ''; rd.className = d > 0 ? 'up' : d < 0 ? 'dn' : ''; }
   if (hot != null) { const h = wrap.querySelector(`[data-hx="${hot}"]`); if (h && HX.focus) h.focus({ preventScroll: true }); }

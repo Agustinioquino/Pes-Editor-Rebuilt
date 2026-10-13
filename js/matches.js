@@ -487,7 +487,7 @@ function lmWhy(t, pid) {
       <tr class="tot"><td><span>Suma</span></td><td></td><td>${pts(sum)}</td></tr>
       <tr><td>🎂 <span>Edad</span></td><td><span>${f.age} años</span> · <span>${f.age <= 21 ? 'joven: sube más rápido y baja menos' : f.age >= 33 ? 'veterano: sube menos y baja más rápido' : f.age >= 30 ? 'sube algo menos y baja algo más' : 'edad normal'}</span></td><td data-noi18n>×${P.mul}</td></tr>
       <tr class="tot"><td><span>Forma</span></td><td><span>${dec(P.raw)} redondeado, con tope ${P.capUp > 0 ? '+' : ''}${P.capUp} / ${P.capDown}</span></td><td>${adjHtml(f.adj, null) || adjHtml(0, {})}</td></tr></table>
-    <p class="note">${i ? `<span>Valoración</span> <b class="${vcls(rb)}" data-noi18n>${rb}</b> → <b class="${vcls(Math.max(40, Math.min(99, rb + f.adj)))}" data-noi18n>${Math.max(40, Math.min(99, rb + f.adj))}</b> <span>en el modo "Por rendimiento". En el juego se guarda solo al tocar "Usar esta formación y este 11".</span>` : ''}</p></div>`;
+    <p class="note">${i ? `<span>Valoración</span> <b class="${vcls(rb)}" data-noi18n>${rb}</b> → <b class="${vcls(Math.max(40, Math.min(rateCap(i.pos), rb + f.adj)))}" data-noi18n>${Math.max(40, Math.min(rateCap(i.pos), rb + f.adj))}</b> <span>en el modo "Por rendimiento". En el juego se guarda solo al tocar "Usar esta formación y este 11".</span>` : ''}</p></div>`;
   ksModal(tr('Cómo se calcula la forma de ') + (playerName(pid) || ''), html, () => { });
 }
 function bindLastMatch(t, m) {
@@ -694,7 +694,7 @@ function lmRatingChanges(t, P) {
     const f = LM.adj.get(x.pid), b = pInfoBase(x.pid); if (!f || !b) continue;
     // objetivo = media del parche + forma; si ya se aplicó antes, solo se corrige la diferencia (no se acumula)
     const done = formDone(x.pid), delta = f.adj - done; if (!delta) continue;
-    out.push({ pid: x.pid, name: playerName(x.pid) || 'ID ' + x.pid, from: b.r, to: Math.max(40, Math.min(99, b.r + delta)), adj: delta, total: f.adj, f, edit: S.ix.byId.has(x.pid) || canMakeEditPlayer(x.pid), isNew: !S.ix.byId.has(x.pid) });
+    out.push({ pid: x.pid, name: playerName(x.pid) || 'ID ' + x.pid, from: b.r, to: Math.max(40, Math.min(rateCap(b.pos), b.r + delta)), adj: delta, total: f.adj, f, edit: S.ix.byId.has(x.pid) || canMakeEditPlayer(x.pid), isNew: !S.ix.byId.has(x.pid) });
   }
   return out.sort((a, b) => b.adj - a.adj);
 }

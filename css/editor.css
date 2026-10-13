@@ -135,6 +135,9 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:calc(var(--r,8px) * .75);overflow:hidden;background:var(--sunk)}
 .seg button{font:inherit;font-family:var(--mono);font-size:.82rem;border:0;border-right:1px solid var(--line);background:transparent;color:var(--ink);padding:.3rem .6rem;cursor:pointer;min-width:34px}
 .seg button:last-child{border-right:0}
+/* en una columna angosta (Estado de forma tiene 8 opciones) los botones se achican en vez de quedar cortados */
+.f>.seg{display:flex;max-width:100%}
+.f>.seg button{flex:1 1 0;min-width:0;padding-inline:.2rem}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .pitch{background:var(--pitch);border-radius:10px;padding:14px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(7,auto);gap:8px;max-width:440px;position:relative;
   background-image:linear-gradient(var(--pitch-line),var(--pitch-line)),radial-gradient(circle at 50% 50%,transparent 38px,var(--pitch-line) 39px,transparent 40px);background-size:100% 1px,100% 100%;background-position:0 50%,0 0;background-repeat:no-repeat}

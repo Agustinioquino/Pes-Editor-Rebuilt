@@ -738,6 +738,9 @@ function rosterCard(t) {
     </div>
     <div class="bulkbar" id="rbulk" hidden><b id="rbN">0</b> seleccionados
       <button class="btn small" type="button" id="rbLock">Proteger</button>
+      <div class="pop"><button class="btn small" type="button" id="rbKitBtn" aria-expanded="false">Equipación…</button>
+        <div class="popmenu kitmenu" id="rbKit" hidden>${KIT_BULK.map(([k, n, opts]) => `<div class="f"><label for="rbk_${k}">${n}</label><select id="rbk_${k}" data-bk="${k}"><option value="">Sin cambiar</option>${opts().map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')}</select></div>`).join('')}
+          <button class="btn small primary" type="button" id="rbKitGo">Aplicar a los seleccionados</button><p class="note">Solo cambia lo que elijas. Sirve para jugadores de tu EDIT.</p></div></div>
       <select id="rbMove" data-lazy="t" aria-label="Pasar los seleccionados a otro equipo" style="width:auto;max-width:170px"><option value="">Pasar a…</option></select>
       <button class="btn small danger" type="button" id="rbDel">Quitar del plantel</button>
       <button class="btn small ghost" type="button" id="rbClear">Deseleccionar</button></div>
@@ -824,7 +827,7 @@ function bindRosterTable(t, m) {
   $('rst').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; S.rst = b.dataset.st; $('rst').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };
   $('rdens').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; PREFS.rDens = b.dataset.d; savePrefs(); tb.classList.remove('d-compact', 'd-normal', 'd-comfy'); tb.classList.add('d-' + b.dataset.d); $('rdens').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
   const pop = (btn, menu) => { btn.onclick = e => { e.stopPropagation(); const open = menu.hidden; sh.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); sh.querySelectorAll('.pop > .btn').forEach(x => x.setAttribute('aria-expanded', 'false')); menu.hidden = !open; btn.setAttribute('aria-expanded', open); }; };
-  pop($('rcolsBtn'), $('rcols')); pop($('rexpBtn'), $('rexp'));
+  pop($('rcolsBtn'), $('rcols')); pop($('rexpBtn'), $('rexp')); pop($('rbKitBtn'), $('rbKit'));
   if (!document.__popClose) { document.__popClose = true; document.addEventListener('click', e => { if (!e.target.closest('.pop')) document.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); }); document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); }); }
   $('rcols').onchange = e => { const c = e.target.dataset.col; if (!c) return; const h = rHide(); e.target.checked ? h.delete(c) : h.add(c); PREFS.rHide = [...h]; savePrefs(); tb.classList.toggle('h-' + c, !e.target.checked); };
   $('rcolsReset').onclick = () => { PREFS.rHide = ['h', 'nat', 'foot']; savePrefs(); renderTeams(m); };
@@ -840,6 +843,14 @@ function bindRosterTable(t, m) {
   const selected = () => PD.roster(S.d, t).filter(x => S.rsel.has(x.pid));
   $('rbClear').onclick = () => { S.rsel.clear(); tb.querySelectorAll('[data-sel]').forEach(x => { x.checked = false; x.closest('tr').classList.remove('sel'); }); rosterSelSync(); };
   $('rbLock').onclick = () => { const ps = selected().map(x => S.ix.byId.get(x.pid)).filter(Boolean); if (!ps.length) { toast('Ninguno de los seleccionados está en tu EDIT: se protegen al editarlos.'); return; } edit('Proteger ' + ps.length + ' jugadores de ' + tn(), 't' + t.id, ps.flatMap(regP), () => { for (const p of ps) for (const k of LOCK_FLAGS) PD.player.set(S.d, p.base, k, 1); }); toast(ps.length + ' jugadores protegidos.', 4000, ['Deshacer', undo]); rer(); };
+  $('rbKitGo').onclick = () => {
+    const vals = [...$('rbKit').querySelectorAll('[data-bk]')].filter(x => x.value !== '').map(x => [x.dataset.bk, +x.value]);
+    if (!vals.length) { toast('Elegí al menos una prenda para cambiar.'); return; }
+    const xs = selected(), ps = xs.map(x => S.ix.byId.get(x.pid)).filter(Boolean), miss = xs.length - ps.length;
+    if (!ps.length) { toast('Ninguno de los seleccionados está en tu EDIT. Agregalos desde Jugadores para cambiarles la equipación.', 5000); return; }
+    edit('Equipación de ' + ps.length + ' jugadores de ' + tn(), 't' + t.id, ps.flatMap(regP), () => { for (const p of ps) for (const [k, v] of vals) { PD.player.set(S.d, p.base, k, v); if (S.autoLock) for (const fl of [...LOCK_FLAGS, ...FIELD_FLAGS(k)]) PD.player.set(S.d, p.base, fl, 1); } });
+    $('rbKit').hidden = true; toast('Equipación aplicada a ' + ps.length + ' jugador' + (ps.length > 1 ? 'es' : '') + '.' + (miss ? ' ' + miss + ' no están en tu EDIT y quedaron igual.' : ''), 5000, ['Deshacer', undo]); rer();
+  };
   $('rbDel').onclick = async () => {
     const xs = selected(); if (!xs.length) return; const st = PD.starters(S.d, t), key = xs.filter(x => st.includes(x.slot) || PD.captainSlot(S.d, t) === x.slot).length;
     if (!await confirmBox(`¿Quitar ${xs.length} jugador${xs.length > 1 ? 'es' : ''} de ${tn()}?${key ? ` ${key} ${key > 1 ? 'son titulares o capitán' : 'es titular o capitán'}: entran suplentes en su lugar.` : ''}`)) return;
@@ -1246,6 +1257,13 @@ function tabMotion(p) {
   return `<div class="grid wide">${MOTION.map(([k, n, min, max, off]) => `<div class="f"><label>${n} (${min}-${max})</label>${num(k, g(k) + off, min, max, `data-off="${off}"`)}</div>`).join('')}</div>
   <p class="note">Los números corresponden a las animaciones del juego, igual que en el modo Editar de PES.</p>`;
 }
+const KIT_BULK = [
+  ['sleeve', 'Mangas', () => SLEEVE.map((n, i) => [i, n])], ['inners', 'Camiseta interior', () => INNER.map((n, i) => [i, n])],
+  ['socks', 'Medias', () => SOCKS.map((n, i) => [i, n])], ['undershorts', 'Calzas', () => UNDER.map((n, i) => [i, n])],
+  ['untucked', 'Camiseta', () => [[0, 'Adentro'], [1, 'Afuera']]], ['gloves', 'Guantes de jugador', () => [[0, 'No usa'], [1, 'Usa']]],
+  ['gloves_col', 'Color de guantes', () => COLORS8.map((n, i) => [i, n])],
+  ['boot_id', 'Botines', () => [...BOOTS].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => [id, n])],
+];
 const COPY_KEYS = {
   abil: [...ABIL.map(a => a[0]), 'weak_use', 'weak_acc', 'form', 'injury'],
   skills: [...SKILLS.flatMap(s => s[1]).map(([i]) => 'sk' + i), ...COM.map((_, i) => 'com' + i), 'play_style'],

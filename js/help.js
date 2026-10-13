@@ -13,7 +13,8 @@ const HELP = {
       ['Capitán', 'marcá el círculo de la columna Cap.'],
       ['Titular / pasar…', 'en un suplente, elegí por qué titular entra. En cualquier jugador, elegí otro equipo para transferirlo: se suma con un dorsal libre.'],
       ['Quitar (✕)', 'lo saca del plantel. Si era titular entra el primer suplente; si era capitán, la cinta pasa a otro titular.'],
-      ['Varios a la vez', 'marcá las casillas de la izquierda y usá la barra que aparece: Proteger, Pasar a… o Quitar del plantel.'],
+      ['Varios a la vez', 'marcá las casillas de la izquierda y usá la barra que aparece: Proteger, Equipación…, Pasar a… o Quitar del plantel.'],
+      ['Equipación…', 'cambia mangas, medias, calzas, camiseta interior, guantes o botines de todos los seleccionados de una vez. Lo que dejes en "Sin cambiar" queda como estaba.'],
       ['Valor', 'es una estimación por valoración, edad, potencial y liga. Tocalo para poner el valor real (por ejemplo el de Transfermarkt).']]],
     ['Para tener en cuenta', [
       ['🔒 Protección', 'el candadito al lado del nombre avisa que ese jugador no está protegido: el Parche puede pisar sus datos. "Proteger" lo marca como editado.'],
@@ -32,7 +33,17 @@ const HELP = {
     ['Últimos partidos reales', [
       ['Buscar', 'trae la formación, el 11 y los puntajes de los últimos partidos de verdad (ESPN no necesita clave).'],
       ['Ver en cancha', 'muestra ese partido sobre tu cancha y marca qué cambiaría.'],
-      ['Usar esta formación', 'pregunta antes de tocar nada: podés poner solo el 11 y la formación, o también aplicar los cambios de valoración al juego.']]]] },
+      ['Usar esta formación', 'pregunta antes de tocar nada: podés poner solo el 11 y la formación, o también aplicar los cambios de valoración al juego.']]],
+    ['Capitán y balón parado', [
+      ['Capitán', 'elegilo de la lista: titulares arriba, suplentes abajo.'],
+      ['Lanzadores', 'tiro libre largo, tiro libre corto y su segundo tirador, córner izquierdo y derecho, y penales. Es lo mismo que "Opciones del jugador" en el Plan de juego.'],
+      ['Jugadores ofensivos', 'los 3 que suben al área en tiros libres y córners.'],
+      ['Elegir automáticamente', 'elige un titular para cada jugada según sus habilidades: tiro libre y potencia, efecto, definición, cabezazo. Los lugares que estaban en "Ninguno" quedan así.']]],
+    ['Estrategia', [
+      ['Ataque y defensa', 'las mismas opciones que "Estrategia de equipo" en el juego. Tocá la opción que querés: cada una explica qué hace.'],
+      ['Instrucciones avanzadas', 'tocá hasta 2 de ataque y 2 de defensa, como en el juego. Tocá una marcada para quitarla.'],
+      ['Opciones tácticas rápidas', 'cambian varias opciones de una vez, con los mismos nombres que en el juego.'],
+      ['Config. marcaje', 'si algún jugador quedó marcando a un rival fijo, "Volver a automático" lo deja como viene.']]]] },
   data: { t: 'los datos del equipo', intro: 'Nombre, abreviatura, colores, país y entrenador. Son los datos que el juego muestra en menús, marcadores y radar.', groups: [
     ['Qué hace cada cosa', [
       ['Nombre y abreviatura', 'se ven en menús y en el marcador. Al cambiarlos se activa "Proteger nombre" para que el Parche no los vuelva a pisar.'],

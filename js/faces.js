@@ -33,7 +33,7 @@ async function indexFaces(sider) {
     const mf = await subDir(sider, 'content/miniface_server/MiniFaces');
     for await (const [, h] of mf.entries()) if (h.kind === 'directory') { try { await indexFaceDir(await subDir(h, 'common/render/symbol/player')); } catch { } }
   } catch { }
-  FACES.count = FACES.idx.size;
+  FACES.count = FACES.idx.size; if (typeof siderBtnLabel === 'function') siderBtnLabel();
   return FACES.count;
 }
 async function restoreFaces() {

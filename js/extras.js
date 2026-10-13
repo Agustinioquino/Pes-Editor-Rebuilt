@@ -53,6 +53,12 @@ async function connectKits() {
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, true); } catch { } }
   toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
 }
+// el botón de arriba dice "Reconectar" cuando la carpeta Sider ya está conectada (en la carga o antes)
+function siderBtnLabel() {
+  const b = $('bKits'); if (!b || b.dataset.on) return; b.dataset.on = '1';
+  const tx = [...b.childNodes].find(n => n.nodeType === 3 && n.data.trim()); if (tx) tx.data = 'Reconectar carpeta Sider';
+  b.title = 'Sider ya está conectado. Tocá para volver a leer la carpeta o elegir otra: kits, caras, escudos y nombres de jugadores';
+}
 function teamKits(t) {
   const k = KITS.map.get(t.id); if (k && (k.k.length || k.g.length)) return k;
   const a = teamColor(t, 1), b = teamColor(t, 2);

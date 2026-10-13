@@ -15,7 +15,7 @@ const GFX = () => (PREFS.gfx = Object.assign({ mode: 'moderno', q: 'mid', sfx: '
 function gfxDpr() { const d = devicePixelRatio || 1, q = GFX().q; return q === 'low' ? 1 : q === 'high' ? Math.min(3, Math.max(2, d * 1.5)) : Math.min(2, d); }
 function gfxApply(anim) {
   const g = GFX(), r = document.documentElement;
-  const go = () => { if (g.mode === 'moderno') delete r.dataset.gfx; else r.dataset.gfx = g.mode; r.dataset.q = g.q; if (typeof uiFontApply === 'function') uiFontApply(); if (typeof uiLogo === 'function') { const i = $('brandLogo'); if (i) delete i.dataset.k; uiLogo(); } };
+  const go = () => { if (g.mode === 'moderno') delete r.dataset.gfx; else r.dataset.gfx = g.mode; r.dataset.q = g.q; if (typeof uiFontApply === 'function') uiFontApply(); if (typeof uiLogo === 'function') { const i = $('brandLogo'); if (i) delete i.dataset.k; uiLogo(); } if (typeof tickerSync === 'function') tickerSync(); };
   if (anim && !ANIM.reduce.matches && document.startViewTransition) document.startViewTransition(go); else go();
   if (typeof K3 !== 'undefined' && K3.viewer && K3.viewer.paint) try { K3.viewer.paint(); } catch { }
 }

@@ -944,9 +944,10 @@ html[data-gfx="retro"] .mpbar,html[data-gfx="retro"] .mpfull{border-radius:0;bor
 .gp-pes6{background:radial-gradient(circle at 25% 20%,#ffe9a8,#e9962e 45%,#8a4a14)}.gp-pes6 i:nth-child(1){left:0;right:0;top:0;height:8px;background:#3a3a3a}.gp-pes6 i:nth-child(2){left:6px;top:14px;width:46px;height:9px;border-radius:3px;background:linear-gradient(180deg,#fdf0a0,#e6c02e);box-shadow:0 0 0 1px #b8901a}.gp-pes6 i:nth-child(3){left:10px;top:27px;width:42px;height:9px;border-radius:3px;background:linear-gradient(180deg,#fafaf8,#c9c8c2);box-shadow:0 0 0 1px #8f8c84}
 html[data-gfx="pes6"]{--bg:#c4782a!important;--panel:#efeee9!important;--sunk:#e2e1db!important;--ink:#1c1c1a!important;--muted:#56534b!important;--line:#a19d92!important;--accent:#d9a91c!important;--accent-ink:#1c1c1a!important;--accent-soft:#f6e9b0!important;--sel:#f7e795!important;--neon:#ffd23a!important;--bar-lo:#d5d3cb!important;--pitch:#2f7d4f!important;--warn:#9a5800!important;--bad:#b0281f!important;--r:7px!important;color-scheme:light}
 html[data-gfx="pes6"] body{background:#b8661e}
-/* fondo: luces ámbar desenfocadas, estelas y líneas de puntos como el menú */
-html[data-gfx="pes6"] body::before{content:"";position:fixed;inset:-80px;z-index:-1;pointer-events:none;background:radial-gradient(circle at 12% 8%,#fff6c8 0,#ffd36a 14%,transparent 38%),radial-gradient(circle at 85% 90%,#ffcf5a 0,#f39a2a 18%,transparent 45%),radial-gradient(ellipse at 70% 30%,#e98a22 0,transparent 55%),radial-gradient(circle at 30% 75%,#ffb347aa 0,transparent 30%),linear-gradient(160deg,#f2b04c,#c46a1c 55%,#7d3e10);filter:blur(28px) saturate(1.15)}
-html[data-gfx="pes6"] body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.55;background:radial-gradient(circle,#fff8 1.6px,transparent 2.2px) 0 22%/26px 100% repeat-x,radial-gradient(circle,#fff6 1.4px,transparent 2px) 13px 58%/22px 100% repeat-x,linear-gradient(180deg,transparent 21.6%,#fff3 21.8%,transparent 22.4%,transparent 57.6%,#fff2 57.8%,transparent 58.4%),repeating-linear-gradient(180deg,transparent 0 34px,#ffffff0d 34px 36px)}
+/* fondo: foto del estadio en sepia, apenas desenfocada y pixelada como una tele CRT */
+html[data-gfx="pes6"] body::before{content:"";position:fixed;inset:-12px;z-index:-1;pointer-events:none;background:#7d3e10 url("../assets/pes6-fondo.jpg") center/cover no-repeat;image-rendering:pixelated;filter:blur(1.2px) saturate(1.1) brightness(1.02)}
+/* CRT: líneas de barrido, rejilla de fósforo RGB y bordes más oscuros */
+html[data-gfx="pes6"] body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:repeating-linear-gradient(0deg,#0000002e 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,#ff00000d 0 1px,#00ff000d 1px 2px,#0000ff0d 2px 3px),radial-gradient(ellipse at center,transparent 55%,#0007 100%)}
 html[data-gfx="pes6"][data-q="low"] body::before{filter:none}
 html[data-gfx="pes6"] .top{background:linear-gradient(180deg,#4b4b4b,#2b2b2b);color:#f2f2f0;border-bottom:2px solid #1a1a1a}
 html[data-gfx="pes6"] .top .brandsub{border-left-color:#666}html[data-gfx="pes6"] .top .brandsub span{color:#bdbdb8}
@@ -959,7 +960,7 @@ html[data-gfx="pes6"] .tab[aria-selected="true"]{color:#1c1c1a;background:linear
 html[data-gfx="pes6"] .tab .count{color:#5a4a10}
 html[data-gfx="pes6"] .tabbar .status .chip{background:#f2f1ec;color:#2b2b2b;border-color:#8f8c84}
 html[data-gfx="pes6"] .tabbar .uibtn{color:#1c1c1a}
-@media (max-width:1440px){html[data-gfx="pes6"] .tabbar .ublab{display:none}}
+@media (max-width:1500px){html[data-gfx="pes6"] .tabbar .ublab{display:none}}
 html[data-gfx="pes6"] .card{background:linear-gradient(180deg,#f6f5f1f2,#e7e6e0f2);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 10px 24px -14px #5a2a00cc}
 html[data-gfx="pes6"] .btn{background:linear-gradient(180deg,#fafaf8,#cfcdc7);color:#1c1c1a;border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 1px 2px #0003}
 html[data-gfx="pes6"] .btn:hover:not(:disabled){background:linear-gradient(180deg,#fffbe0,#efd96e);border-color:#a8820f}
@@ -1120,3 +1121,65 @@ html[data-gfx="pes6"] :is(.stchoice button,.qt,.advt)[aria-pressed="true"] small
 .uireset{justify-self:center}
 html[data-gfx="clasico"] .uitiles button{border-radius:0}
 html[data-gfx="retro"] .uitiles button,html[data-gfx="retro"] .uigrp{border-radius:0}
+/* ---- PES 6: tabla del plantel dorada, botones de la barra legibles y logo que "respira" ---- */
+html[data-gfx="pes6"] .dt thead th{background:linear-gradient(180deg,#f3d25a,#c99a12);color:#2a2000;border-bottom:1px solid #8a6a08;text-shadow:0 1px #fff6}
+html[data-gfx="pes6"] .dt thead th.on,html[data-gfx="pes6"] .dt thead th .sarr{color:#1c1c1a}
+html[data-gfx="pes6"] .dt tbody tr.prow td{background:#fffaf0;color:#1c1c1a;border-bottom-color:#e6d6a4}
+html[data-gfx="pes6"] .dt tbody tr.prow:nth-child(even) td{background:#fbf3dc}
+html[data-gfx="pes6"] .dt tbody tr.prow.starter td{background:#fcecb6}
+html[data-gfx="pes6"] .dt tbody tr.prow.starter:nth-child(even) td{background:#f8e4a2}
+html[data-gfx="pes6"] .dt tbody tr.prow:hover td{background:#fff3c4}
+html[data-gfx="pes6"] .dt tbody tr.prow.sel td{background:#ffe48a}
+html[data-gfx="pes6"] .dt tbody td.mono,html[data-gfx="pes6"] .dt tbody .sub,html[data-gfx="pes6"] .dt tbody .idc{color:#4a4128}
+html[data-gfx="pes6"] .dt tr.starter td:first-child{box-shadow:inset 4px 0 0 #a8820f}
+html[data-gfx="pes6"] .dt .stno{color:#6b5000}
+html[data-gfx="pes6"] .tabbar .uibtn{color:#1c1c1a;background:linear-gradient(180deg,#fafaf8,#c9c8c2);border:1px solid #6f6c64;border-radius:6px;box-shadow:inset 0 1px #fff,0 2px 4px #0005;font-weight:700}
+html[data-gfx="pes6"] .tabbar .uibtn:hover,html[data-gfx="pes6"] .tabbar .uibtn[aria-expanded="true"]{background:linear-gradient(180deg,#fdf0a0,#e6c02e);border-color:#a8820f}
+.brand{position:relative}
+.brandfx{display:none}
+html[data-gfx="pes6"] .brandfx{display:block;position:absolute;inset:0;pointer-events:none}
+html[data-gfx="pes6"] .brandfx i{position:absolute;inset:0;opacity:0;transition:opacity .4s}
+html[data-gfx="pes6"] .bfill{background:linear-gradient(180deg,#fdf0a0,#e6c02e 55%,#a8820f);-webkit-mask:var(--lm) center/contain no-repeat;mask:var(--lm) center/contain no-repeat;z-index:-1}
+html[data-gfx="pes6"] .bline{background:#ffe25a;-webkit-mask:var(--nm) center/contain no-repeat;mask:var(--nm) center/contain no-repeat;filter:drop-shadow(0 0 1px #ffd23a) drop-shadow(0 0 3px #e6a800)}
+html[data-gfx="pes6"] .brand:hover{scale:1;filter:none}
+html[data-gfx="pes6"] .brand:hover .brandlogo{animation:pesLogoBreath 2.8s ease-in-out infinite}
+html[data-gfx="pes6"] .brand:hover .bfill{opacity:.55;animation:pesLogoEcho 2.8s ease-in-out infinite}
+html[data-gfx="pes6"] .brand:hover .bline{animation:pesLogoLine 2.8s ease-in-out infinite}
+@keyframes pesLogoBreath{0%,100%{scale:1}50%{scale:1.05}}
+@keyframes pesLogoEcho{0%,100%{scale:1.1;opacity:.85}50%{scale:1.02;opacity:.35}}
+@keyframes pesLogoLine{0%{scale:1;opacity:1}75%{scale:1.2;opacity:0}100%{scale:1.2;opacity:0}}
+html[data-gfx="pes6"][data-q="low"] .brand:hover :is(.brandlogo,.bfill,.bline){animation:none}
+/* ---- plantel: jugadores más grandes y bandera al lado de la nación ---- */
+.face.pl{width:3.4em;height:3.4em}
+.dt.d-compact .face.pl{width:2.3em;height:2.3em}.dt.d-comfy .face.pl{width:4.4em;height:4.4em}
+.dt .pn{font-size:.98rem;font-weight:600}
+.dt .natw{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.dt .natc{max-width:130px}
+.crest.flagmini{width:22px;height:15px;border-radius:2px;font-size:.5rem;box-shadow:0 0 0 1px #0003}
+/* ---- PES 6: bordes rectos, como los menús de la época ---- */
+html[data-gfx="pes6"] :is(.card,.btn,.tab,.item,.seg,.seg button,.fchips button,input,select,.chip,.uitiles button,.uigrp,.uihi,.uipanel,.dtbar,.tablebox,.popmenu,.gres,.bulkbar,.warnbox,.crest,.tabbar .uibtn,.stside,.stchoice button,.qt,.advt,.hero,.uiprev,.uifontprev,.mpfull,.list,.gfxpanel){border-radius:0!important}
+html[data-gfx="pes6"] .face.pl{border-radius:2px}
+.crest.flagmini i{display:none}
+/* ---- PES 6: barra de abajo con texto que corre (novedades, ideas, saga y ayuda del menú) ---- */
+.tk{display:none}
+html.tking .tk{position:fixed;left:0;right:0;bottom:0;z-index:44;display:flex;align-items:stretch;height:30px;background:linear-gradient(180deg,#5a5a5a,#2b2b2b);border-top:2px solid #1a1a1a;box-shadow:0 -1px 0 #ffffff22 inset,0 -6px 18px -8px #000a;color:#f2f2f0;font-size:.82rem;font-weight:600}
+.tktag{display:grid;place-items:center;flex:none;min-width:86px;padding:0 12px;background:linear-gradient(180deg,#fdf0a0,#e6c02e);color:#1c1c1a;font-weight:800;font-size:.72rem;letter-spacing:.08em;border-right:2px solid #1a1a1a;box-shadow:inset 0 1px #fff9}
+.tk.helping .tktag{background:linear-gradient(180deg,#fff,#e6c02e)}
+.tkwin{position:relative;flex:1;min-width:0;overflow:hidden}
+.tkrun{position:absolute;top:0;bottom:0;left:0;display:flex;width:max-content;animation:tkLoop 120s linear infinite;will-change:transform}
+.tkseg{display:flex;align-items:center;flex:none}
+.tki{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;padding-right:46px;text-shadow:0 1px 0 #000}
+.tki b{font-size:.62rem;letter-spacing:.08em;padding:1px 6px;color:#1c1c1a;background:linear-gradient(180deg,#fdf0a0,#e6c02e);text-shadow:none}
+.tki[data-k="pes"] b{background:linear-gradient(180deg,#fafaf8,#c9c8c2)}
+.tki[data-k="idea"] b{background:linear-gradient(180deg,#d9f0ff,#7fb8e6)}
+.tkhelp{position:absolute;top:0;bottom:0;left:14px;right:14px;opacity:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:30px;color:#fdf0a0;text-shadow:0 1px 0 #000;transition:opacity .2s}
+.tk.helping .tkhelp{opacity:1}.tk.helping .tkrun{opacity:0;animation-play-state:paused}
+.tk:hover .tkrun{animation-play-state:paused}
+@keyframes tkLoop{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+html.tking main{padding-bottom:86px}
+html.tking .mp{bottom:44px}
+html.tking .toast{bottom:44px}
+/* texto de la barra de abajo: blanco y con la fuente de PES, como el resto del estilo */
+html.tking .tk{font-family:"PES Express",var(--body);color:#fff}
+.tki,.tkhelp{color:#fff;font-family:inherit;text-shadow:0 1px 0 #000,0 0 6px #0008}
+.tki b,.tktag{font-family:inherit}

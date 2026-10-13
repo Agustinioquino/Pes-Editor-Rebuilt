@@ -44,7 +44,7 @@ async function connectSiderRO() {
 }
 // los pasos para sacar la carpeta Sider de Archivos de programa (en esta ventana y en la pantalla de carga)
 function siderMoveSteps(name, btn) {
-  return `<ol class="note siderhow"><li>Cerrá el juego y Sider.</li><li>En el Explorador de archivos, cortá ${name ? `la carpeta <b>${name}</b>` : 'tu carpeta Sider'} (clic derecho › Cortar).</li><li>Pegala en una carpeta tuya fuera de Archivos de programa, por ejemplo <b>C:\\PES2021</b>. Si Windows pide permiso de administrador, aceptá.</li><li>Desde ahora abrí <b>sider.exe</b> desde ese lugar nuevo (podés crear un acceso directo en el escritorio).</li><li>Acá tocá <b>${btn}</b> y elegí la carpeta en su lugar nuevo. Si tu sider.ini tiene rutas completas a la carpeta vieja, el editor las arregla solo (con copia de seguridad).</li></ol>`;
+  return `<ol class="note siderhow"><li>Cerrá el juego y Sider.</li><li>En el Explorador de archivos, cortá ${name ? `la carpeta <b>${name}</b>` : 'tu carpeta Sider'} (clic derecho › Cortar).</li><li>Pegala en una carpeta tuya del mismo disco, fuera de Archivos de programa, por ejemplo <b>C:\\PES2021</b>. Si Windows pide permiso de administrador, aceptá. Tarda un segundo aunque pese muchos GB: dentro del mismo disco Windows no copia los archivos, solo cambia la carpeta donde están.</li><li>Desde ahora abrí <b>sider.exe</b> desde ese lugar nuevo (podés crear un acceso directo en el escritorio).</li><li>Acá tocá <b>${btn}</b> y elegí la carpeta en su lugar nuevo. Si tu sider.ini tiene rutas completas a la carpeta vieja, el editor las arregla solo (con copia de seguridad).</li></ol>`;
 }
 const siderRoName = () => (SIDER_RO && SIDER_RO.name ? esc(SIDER_RO.name) : '');
 function siderBlockedHelp() {

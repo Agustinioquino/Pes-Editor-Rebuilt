@@ -12,7 +12,7 @@ const saveOnline = () => { try { localStorage.setItem(ONLINE_LS, JSON.stringify(
 // handle persistence (IndexedDB) so the Parche folder is remembered between sessions
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open('edit21', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function idbSet(k, v) { try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch { } }
-async function idbGet(k) { try { const db = await idb(); return await new Promise((res, rej) => { const tx = db.transaction('kv'); const q = tx.objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch { return null; } }
+async function idbGet(k) { if (k === 'sider' && typeof SIDER_RO !== 'undefined' && SIDER_RO) return SIDER_RO; try { const db = await idb(); return await new Promise((res, rej) => { const tx = db.transaction('kv'); const q = tx.objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch { return null; } }
 
 async function indexFaceDir(d) {
   let n = 0;

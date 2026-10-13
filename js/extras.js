@@ -12,10 +12,13 @@ function parseKitCfg(txt, n) {
   const c1 = col(g('ShirtColor1')) || col(g('UniColor_Color1')); if (!c1) return null;
   return { n, c1, c2: col(g('ShirtColor2')) || col(g('UniColor_Color2')) || c1, sh: col(g('ShortsColor')) || c1, so: col(g('SocksColor')) || c1, t: g('TightKit') === '1' ? 1 : 0 };
 }
-async function connectKits() {
-  if (!window.showDirectoryPicker) { toast('Tu navegador no permite abrir carpetas. Usá Chrome o Edge.'); return; }
-  let dir;
-  try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'readwrite' }); } catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); return; }
+async function connectKits(dirIn) {
+  let dir = dirIn && dirIn.kind === 'directory' ? dirIn : null;
+  if (!dir) {
+    if (!window.showDirectoryPicker) return connectSiderRO(); // Firefox y otros: solo para ver
+    try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'readwrite' }); SIDER_RO = null; }
+    catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); else toast('¿El navegador no te dejó abrir la carpeta?', 9000, ['Ver qué hacer', siderBlockedHelp]); return; }
+  }
   let root = null;
   for (const p of ['', 'kit-server', 'content/kit-server']) { try { const d = p ? await subDir(dir, p) : dir; if (await readText(d, 'map.txt') != null) { root = d; break; } } catch { } }
   if (!root) { toast('No encontré content\\kit-server\\map.txt ahí. Elegí la carpeta de Sider de tu Parche (la que tiene sider.exe).', 8000); return; }
@@ -36,7 +39,7 @@ async function connectKits() {
   const q = map.slice(); await Promise.all(Array.from({ length: 12 }, async () => { while (q.length) await work(q.shift()); }));
   KITS.map = out; KITS.from = dir.name; KITS.when = Date.now(); kitsSaveCache(); RATE_GEN++;
   let sider = dir; try { if (!(await readText(dir, 'sider.exe') !== null || await dir.getDirectoryHandle('livecpk'))) sider = dir; } catch { }
-  try { await indexFaces(sider); idbSet('sider', sider); FACES.needsPerm = null; } catch { }
+  try { await indexFaces(sider); if (!sider.readOnly) idbSet('sider', sider); FACES.needsPerm = null; } catch { }
   try { await indexBadges(sider); } catch { }
   // names from the edit21_db Sider module dump (content\edit21-db\Player.bin)
   let namesMsg = '';
@@ -50,7 +53,8 @@ async function connectKits() {
       namesMsg = ` y ${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
-  if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, true); } catch { } }
+  if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, !sider.readOnly); } catch { } }
+  if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa.', 9000, ['Ver qué hacer', siderBlockedHelp]), 7200);
   toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
 }
 // el botón de arriba dice "Reconectar" cuando la carpeta Sider ya está conectada (en la carga o antes)

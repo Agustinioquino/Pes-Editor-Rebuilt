@@ -16,7 +16,9 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , direct
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-o%20app%20para%20Windows-555)
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Descargar para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)**
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Descargar para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)
+
+<sub>La app para Windows es el mismo editor en su propia ventana: se actualiza sola y conecta la carpeta Sider aunque esté en Archivos de programa. <a href="#-con-la-app-para-windows">Cómo instalarla</a></sub>
 
 </div>
 
@@ -113,7 +115,11 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 
 ## 🚀 Cómo usarlo
 
-1. Abrí **[PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
+Hay dos formas de usar el mismo editor: en el navegador o con la app para Windows. Si tu carpeta Sider está dentro de `C:\Program Files (x86)` (donde Steam instala PES 2021), usá la app, porque el navegador no deja guardar ahí.
+
+### 🌐 En el navegador
+
+1. Abrí **[PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
 3. En el aviso del navegador elegí **"Permitir en cada visita"** para no repetir el paso.
 4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del Parche (la que tiene `sider.exe`, dentro de la carpeta del juego). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
@@ -125,9 +131,38 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 >
 > **¿El aviso de la base no se va?** Mirá el `sider.log` en la carpeta de Sider y buscá las líneas `[edit21_db]`. Si dice `copiado ...`, la copia se hizo: tocá **"Ya lo hice"**. Si dice `ERROR no puedo escribir ... -> nil`, es el `io` de Sider, que en algunas instalaciones no deja guardar archivos: desde la v1.5 el módulo lo resuelve solo escribiendo con las funciones de Windows, siempre que `sider.ini` tenga `luajit.ext.enabled = 1` (el Parche ya lo trae). Si el error dice *Permission denied*, revisá **Seguridad de Windows › Protección contra ransomware › Acceso controlado a carpetas** y permití `PES2021.exe`.
 
-**Instalarlo como app:** en Chrome o Edge tocá el ícono de instalar en la barra de direcciones (o menú ⋮ → *Instalar PES Editor*).
+**Instalarlo desde el navegador:** en Chrome o Edge tocá el ícono de instalar en la barra de direcciones (o menú ⋮ → *Instalar PES Editor Rebuilt*). Para conectar una carpeta Sider que está en Archivos de programa hace falta la app para Windows.
 
-**Privacidad:** todo se procesa en tu PC. Tus archivos no se suben a ningún servidor.
+### 💻 Con la app para Windows
+
+1. Descargá el **[instalador (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** o la **[versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)**, que se abre sin instalar nada.
+2. Si Windows muestra **"Windows protegió su PC"**, tocá **Más información › Ejecutar de todas formas**.
+3. Abrí **PES Editor Rebuilt**, tocá **"📂 Elegir mi carpeta Documentos"** y después **"Conectar carpeta Sider"**. La carpeta Sider se conecta donde está, aunque sea dentro de Archivos de programa, con permiso para guardar.
+4. Seguí con los pasos 5 y 6 de arriba: la base del juego y **"Guardar en el juego"**.
+
+> [!NOTE]
+> **Se actualiza sola.** La app abre el editor desde su página web cada vez que arranca, así que todo lo nuevo (el editor, la valoración, la interfaz, el caché) le llega igual que a la web, sin reinstalar. Solo hace falta bajar un .exe nuevo cuando cambia la app en sí: el logo, el nombre o cómo accede a tus carpetas. Pasa muy de vez en cuando, y ahí instalás el nuevo encima.
+>
+> **¿Por qué aparece "Windows protegió su PC"?** La app todavía no tiene firma digital, que es un certificado que le dice a Windows quién hizo el programa. Sin ella Windows avisa la primera vez, pero la app funciona igual. El código y el armado del .exe están a la vista en este repositorio ([`desktop/`](desktop/)).
+>
+> **¿No deja guardar?** Si Windows no deja escribir en una carpeta, la app te avisa: cerrala y abrila con clic derecho › *Ejecutar como administrador*. Si el juego tiene un archivo abierto, te pide que lo cierres.
+
+<details><summary>🇬🇧 The Windows app in English</summary>
+
+**PES Editor Rebuilt for Windows** is the same editor as the web page, in its own window. It connects your Sider folder where it is, even inside `C:\Program Files (x86)`, where the browser can't save.
+
+1. Download the **[installer (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** or the **[portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)**, which runs without installing.
+2. If Windows shows **"Windows protected your PC"**, click **More info › Run anyway**.
+3. Open **PES Editor Rebuilt**, click **"📂 Pick my Documents folder"** and then **"Connect Sider folder"**.
+4. Then follow steps 5 and 6 above: the game database and **"Save to the game"**.
+
+**It updates itself.** The app loads the editor from its web page every time it starts, so every change reaches it just like the web, without reinstalling. You only need a new .exe when the app itself changes (the logo, the name or how it reaches your folders); install it over the old one.
+
+**Why "Windows protected your PC"?** The app has no digital signature yet, a paid certificate that tells Windows who made the program. Without it Windows warns you the first time, but the app works the same.
+
+</details>
+
+**Privacidad:** en el navegador y en la app, todo se procesa en tu PC. Tus archivos no se suben a ningún servidor.
 
 ## 🎵 Música
 

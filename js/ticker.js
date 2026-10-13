@@ -32,7 +32,8 @@ const TICKER_HELP = {
   bHome: 'Volver al inicio: la pestaña Equipos, arriba de todo.',
   gq: 'Buscador: escribí un equipo o un jugador. Atajo: tecla /.'
 };
-const TK = { el: null, i: 0, items: [], help: null };
+const TK = { el: null, help: null };
+const tickerKind = t => /^(Novedad|v0\.)/.test(t) ? 'novedad' : /^(Idea|¿Tenés)/.test(t) ? 'idea' : 'pes';
 function tickerItems() {
   const news = (typeof NEWS !== 'undefined' ? NEWS.slice(0, 3) : []).flatMap(n => [`Novedad ${newsVer(n.v)}: ${n.t}.`, ...(n.items || []).slice(0, 2).map(it => `${newsVer(n.v)} · ${it[1]}.`)]);
   const mix = (a, b, c) => { const out = [], m = Math.max(a.length, b.length, c.length); for (let k = 0; k < m; k++) [a[k], b[k], c[k]].forEach(x => x && out.push(x)); return out; };
@@ -43,9 +44,12 @@ const tickerOn = () => document.documentElement.dataset.gfx === 'pes6';
 function tickerMount() {
   if (TK.el) return;
   const el = TK.el = document.createElement('div'); el.className = 'tk'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off');
-  el.innerHTML = '<span class="tktag" id="tkTag">INFO</span><div class="tkwin"><span class="tkrun" id="tkRun"></span><span class="tkhelp" id="tkHelp"></span></div>';
+  // una cinta continua: todos los textos seguidos (dos veces, para que el final empalme con el principio) que corre despacio sin cortes
+  const strip = tickerItems().map(t => { const k = tickerKind(t); return `<span class="tki" data-k="${k}"><b>${{ novedad: 'NOVEDAD', idea: 'IDEA', pes: 'PES' }[k]}</b>${esc(t)}</span>`; }).join('');
+  el.innerHTML = `<span class="tktag" id="tkTag">INFO</span><div class="tkwin"><div class="tkrun" id="tkRun"><span class="tkseg">${strip}</span><span class="tkseg" aria-hidden="true">${strip}</span></div><span class="tkhelp" id="tkHelp"></span></div>`;
   document.body.appendChild(el);
-  el.querySelector('#tkRun').addEventListener('animationend', () => tickerNext());
+  // velocidad fija y lenta (unos 45 px por segundo), sea cual sea el largo del texto
+  requestAnimationFrame(() => { const w = el.querySelector('.tkseg').scrollWidth; el.querySelector('#tkRun').style.animationDuration = (w / 45).toFixed(0) + 's'; });
   // descripción del menú al pasar el mouse
   document.addEventListener('mouseover', e => {
     if (!tickerOn()) return;
@@ -54,24 +58,11 @@ function tickerMount() {
     tickerHelp(txt);
   });
   document.addEventListener('mouseleave', () => tickerHelp(null));
-  TK.items = tickerItems(); TK.i = 0; tickerNext(true);
-}
-function tickerNext(first) {
-  const run = TK.el && TK.el.querySelector('#tkRun'); if (!run) return;
-  if (TK.i >= TK.items.length) { TK.items = tickerItems(); TK.i = 0; }
-  const txt = TK.items[TK.i++], tag = /^(Novedad|v0\.)/.test(txt) ? 'NOVEDAD' : /^(Idea|¿Tenés)/.test(txt) ? 'IDEA' : 'PES';
-  TK.el.querySelector('#tkTag').textContent = tag; TK.el.dataset.k = tag.toLowerCase();
-  run.textContent = txt; run.style.animation = 'none'; void run.offsetWidth;
-  const still = document.documentElement.dataset.q === 'low' || ANIM.reduce.matches;
-  if (still) { run.style.animation = `tkHold 7s linear ${first ? 0 : .2}s 1 both`; return; }
-  const w = TK.el.querySelector('.tkwin').clientWidth || innerWidth, dist = w + run.scrollWidth;
-  run.style.setProperty('--tkw', w + 'px');
-  run.style.animation = `tkRun ${(dist / 85).toFixed(1)}s linear 1 both`;
 }
 function tickerHelp(txt) {
   if (!TK.el || TK.help === txt) return; TK.help = txt;
   TK.el.classList.toggle('helping', !!txt);
-  if (txt) { TK.el.querySelector('#tkHelp').textContent = txt; TK.el.querySelector('#tkTag').textContent = 'AYUDA'; }
-  else { const k = TK.el.dataset.k || 'pes'; TK.el.querySelector('#tkTag').textContent = k.toUpperCase(); }
+  if (txt) TK.el.querySelector('#tkHelp').textContent = txt;
+  TK.el.querySelector('#tkTag').textContent = txt ? 'AYUDA' : 'INFO';
 }
 function tickerSync() { if (tickerOn()) tickerMount(); document.documentElement.classList.toggle('tking', tickerOn()); }

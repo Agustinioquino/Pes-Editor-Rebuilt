@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** (con Dream Patch y Sider), directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.012%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.014%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
@@ -46,7 +46,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Plantel como tabla de datos:**
   - ordenar por columna;
   - filtrar por texto, posición y situación (titulares, banco, reserva);
-  - acciones sobre varios jugadores a la vez;
+  - acciones sobre varios jugadores a la vez, y el **capitán** se elige desde el menú *Acciones* de cada jugador (queda marcado con una **C**);
   - columnas a elección, tres densidades y exportar.
 - **Fotos de los jugadores** (minicaras del Dream Patch) en el plantel y la formación.
 - **Formación sobre la cancha:**
@@ -77,17 +77,18 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
   - paletas, con mezcla de colores con los del equipo abierto;
   - esquinas y tamaño de letra;
   - fuente propia para toda la página.
-- **Fuente QuickExpress** de estilo deportivo en toda la página (se puede cambiar por cualquier otra).
+- **Una fuente para cada estilo:** *Outfit* y *Big Shoulders* en Moderno (modernas y legibles), *QuickExpress* en PES 6 Editar, letras de píxeles *Pixelify Sans* y *Silkscreen* en Retro (en la onda de los Winning Eleven de PS1) y *Tahoma* en Clásico. Se puede cambiar en cada estilo desde Apariencia y funcionan sin internet.
 - **🖥️ Gráficos:**
-  - modos *Moderno*, *Clásico* (editor de escritorio de antes), *Retro* (menús de PS2) y **PES 6 Editar**, inspirado en el modo Editar de PES 6;
-  - sonidos de menú al moverte y tocar (sintetizados, no sacados del juego);
-  - calidad *Baja* (sin animaciones ni efectos, para PCs lentas), *Media* o *Alta* (3D con supermuestreo y efectos al máximo), con medidor de cuadros por segundo.
+  - modos *Moderno*, *Clásico* (editor de escritorio de antes), *Retro* (menús de PS2) y **PES 6 Editar**, inspirado en el menú Editar de PES 6: barras plateadas, selección amarilla dorada y fondo ámbar desenfocado;
+  - sonidos de *confirmar* y *deshacer* del menú de PES 6 al tocar opciones y al volver;
+  - con Clásico, Retro o PES 6, Apariencia deja ajustar solo tamaño de letra, fuente y efectos;
+  - calidad *Baja* (sin animaciones ni efectos, para PCs lentas), *Media* o *Alta* (3D con supermuestreo y efectos al máximo).
 - **Intro animada** con el logo y brillo neón mientras carga el EDIT.
 - **Reproductor de música** abajo a la izquierda:
   - carátula, aleatorio, repetir y volumen;
   - pases entre canciones *Corte*, *Suave* o *Remix* (filtros y eco estilo DJ);
   - agregás tus canciones y el editor lee **título, artista y carátula** de sus etiquetas (MP3, FLAC, M4A);
-  - **listas y videos de YouTube** pegando el link.
+  - **listas y videos de YouTube** pegando el link (el video se ve chiquito arriba del reproductor).
 - **Novedades.** Cada cambio con fecha, explicación y pasos para usarlo.
 - **Instalable como app** desde Chrome o Edge, con su ícono y funcionamiento sin internet.
 
@@ -123,7 +124,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 Por derechos de autor, el repositorio **no incluye** música de los juegos. El reproductor funciona igual:
 
 - **＋ Agregar canciones:** elegís archivos de tu PC y se suman con su carátula.
-- **▶ YouTube:** pegás el link de una lista o un video. YouTube no permite ocultar sus videos, así que se ven en una ventanita al lado del reproductor.
+- **▶ YouTube:** pegás el link de una lista o un video. YouTube no permite ocultar sus videos, así que se ven chiquitos arriba del reproductor (o en lugar de la carátula, con el panel abierto).
 
 Todo queda guardado en tu navegador.
 
@@ -143,7 +144,7 @@ Para enterarte de cada versión, tocá **Watch → Custom → Releases** arriba 
 
 Este proyecto toma inspiración de **PES 2020 Editor**, la herramienta original creada por **[ejogc327](https://ejogc327.blogspot.com/2022/10/pes-2020-editor-v0-12.html)**. Gracias por abrir el camino.
 
-Los modelos 3D de los kits se basan en el *CometKIT previewer*. Las plantillas de fuentes siguen el formato del juego. La fuente de la interfaz es *QuickExpress*, reparada y ampliada con letras del español. El estilo *PES 6 Editar* es un homenaje: está hecho a mano y no usa imágenes ni sonidos del juego.
+Los modelos 3D de los kits se basan en el *CometKIT previewer*. Las plantillas de fuentes siguen el formato del juego. Fuentes: *QuickExpress* (reparada y ampliada con letras del español) y, con licencia libre SIL OFL, *Outfit*, *Big Shoulders*, *Pixelify Sans* y *Silkscreen*. El estilo *PES 6 Editar* es un homenaje: el diseño está hecho a mano, sin imágenes del juego, y usa dos sonidos cortos de su menú (confirmar y deshacer).
 
 ## 📄 Licencia
 

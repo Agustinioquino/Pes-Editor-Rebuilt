@@ -2,6 +2,36 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.014 alpha · Una fuente para cada estilo e ícono nuevo
+
+*13 de octubre de 2026, 04:25 (hora de Argentina)*
+
+Cada estilo gráfico trae su propia fuente, y la pestaña del navegador estrena ícono.
+
+- **Fuente según el estilo** (Interfaz). Moderno usa Outfit para el texto y Big Shoulders para los títulos: modernas y fáciles de leer. PES 6 Editar usa QuickExpress, la del estilo PES. Retro usa Pixelify Sans y Silkscreen, letras de píxeles inspiradas en los Winning Eleven de PlayStation 1 pero legibles. Clásico usa Tahoma, como los programas de escritorio de antes. Las fuentes nuevas vienen dentro de la página (licencia libre OFL), así que funcionan sin internet.
+- **Cambiar la fuente en cualquier estilo** (Interfaz). La fuente se elige por estilo: lo que cambies en Retro queda para Retro, y lo de Moderno para Moderno. QuickExpress sigue disponible en todos.
+  1. Elegí el estilo en "🖥️ Gráficos".
+  2. Tocá "🎨 Apariencia" y en "Fuente de la página" elegí otra, o "La del estilo" para volver a la de siempre.
+- **Ícono nuevo en la pestaña del navegador** (Interfaz). La pestaña del navegador muestra el logo PES con un borde oscuro, para que se vea tanto con el navegador en modo claro como en oscuro.
+
+## v0.013 alpha · PES 6 más fiel, capitán en Acciones y pestañas sin desplazarse
+
+*13 de octubre de 2026, 04:10 (hora de Argentina)*
+
+El estilo PES 6 Editar se rehízo con la referencia del menú original, y se ordenaron varias partes de la interfaz.
+
+- **Estilo PES 6 Editar rehecho** (Interfaz). Ahora se parece al menú Editar de PES 6: barra de título gris carbón, botones y listas como barras plateadas con bordes redondeados, la opción elegida en amarillo dorado y un fondo ámbar desenfocado con luces, estelas y líneas de puntos. Está hecho a mano, sin imágenes del juego.
+- **Sonidos de PES 6** (Interfaz). En el estilo PES 6 suenan los sonidos del menú: "confirmar" al tocar opciones, pestañas y acciones, y "deshacer" al volver, cerrar, apretar Esc o deshacer un cambio (Ctrl+Z).
+  1. En "🖥️ Gráficos", "Sonidos de menú" elige si suenan solo en PES 6, siempre o nunca.
+  2. Ajustá el volumen ahí mismo.
+- **Pestañas sin desplazarse** (Interfaz). La barra de Equipos, Selecciones, Jugadores, etc. es más ancha y usa letra un poco más chica, así entra completa sin tener que desplazarla. En pantallas más angostas se ocultan los avisos de estado para dejar lugar.
+- **Apariencia según el estilo** (Interfaz). Con los estilos Clásico, Retro o PES 6 Editar, los colores los pone el estilo: Apariencia solo deja cambiar el tamaño de la letra y la cantidad de efectos, y tiene un botón para volver al estilo Moderno.
+- **Sin medidor de fluidez** (Interfaz). Se sacó "Fluidez ahora" del panel de Gráficos.
+- **Capitán desde Acciones** (Plantel). La columna "Cap." se reemplazó: el capitán se elige en el menú de la columna Acciones de cada jugador, y se marca con una "C" al lado de su nombre.
+  1. En la tabla del plantel, abrí el menú de Acciones del jugador.
+  2. Elegí "© Hacer capitán".
+- **Video de YouTube arriba del reproductor** (Música). Cuando suena un video de YouTube, se ve chiquito justo arriba del reproductor. Si abrís el panel grande, el video toma el lugar de la carátula.
+
 ## v0.012 alpha · Estilo PES 6 Editar y sonidos de menú
 
 *13 de octubre de 2026, 03:30 (hora de Argentina)*

@@ -2,6 +2,24 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.020 alpha · El Plan de juego, como en el juego
+
+*13 de octubre de 2026, 08:25 (hora de Argentina)*
+
+La pestaña Formación usa las mismas opciones y nombres que el Plan de juego de PES 2021, con su explicación, y suma el capitán y los lanzadores de balón parado. Todo verificado en el juego.
+
+- **Estrategia con los nombres del juego** (Formación). Ataque en rosa y defensa en celeste; cada opción es una tarjeta con lo que hace. Las líneas defensiva, de apoyo y la distancia al jugador con balón traen la explicación del juego.
+- **Las 4 instrucciones avanzadas** (Formación). 2 de ataque y 2 de defensa por plan, como en el juego, sin repetir la misma. 13 de 14 confirmadas en el juego; Delantero liberado figura como "probable" porque el juego la muestra como "No" si no tiene un delantero asignado.
+  1. Abrí un equipo y entrá en Formación.
+  2. En "Instrucciones avanzadas", tocá hasta 2 por lado. Tocá una marcada para quitarla.
+- **Opciones tácticas rápidas** (Formación). Las del juego (Balones largos a la contra, Contraataques rápidos, Juego de posesión, Defensa total, Todos adelante, Por las bandas y Por el centro) cambian varias opciones de una vez. Los valores son aproximados porque el juego no los guarda en el EDIT.
+- **Config. marcaje** (Formación). Avisa si algún jugador marca a un rival fijo y lo devuelve a automático con un toque.
+- **Capitán y balón parado** (Formación). Capitán, tiro libre largo y corto, tirador 2, córner izquierdo y derecho, penales y los 3 jugadores ofensivos, igual que "Opciones del jugador" del juego. "Elegir automáticamente" elige un titular por jugada según sus habilidades.
+- **Equipación para varios jugadores** (Plantel). Con varios seleccionados, "Equipación…" cambia mangas, camiseta interior, medias, calzas, camiseta afuera, guantes, color de guantes y botines a todos a la vez.
+- **Revisión antes de guardar** (Archivo). El editor vuelve a abrir el EDIT generado y revisa cantidades e IDs de jugadores, equipos y planteles; si aparece un problema nuevo, no guarda y muestra la lista.
+- **Comparar con otro EDIT más claro** (Archivo). Nombra cada lanzador, cada instrucción avanzada y la Config. marcaje.
+- **Adaptado a cada modo gráfico** (Interfaz). La Estrategia cambia de look en Moderno, Clásico, Retro y PES 6 Editar.
+
 ## v0.019 alpha · Todos los jugadores del Parche en Jugadores
 
 *13 de octubre de 2026, 06:55 (hora de Argentina)*

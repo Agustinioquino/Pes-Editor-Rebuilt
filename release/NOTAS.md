@@ -1,6 +1,6 @@
 <div align="center">
 
-<img alt="La pestaña Jugadores con la base del Parche" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.019/jugadores-del-parche.png" width="100%">
+<img alt="La nueva Estrategia, con los nombres y las explicaciones del juego" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.020/estrategia.png" width="100%">
 
 **[▶ Abrir PES Editor](https://agustinioquino.github.io/pes-editor/)** · [📜 Todos los cambios](https://github.com/Agustinioquino/pes-editor/blob/main/CHANGELOG.md) · [🐛 Avisar un error](https://github.com/Agustinioquino/pes-editor/issues/new/choose)
 
@@ -8,61 +8,77 @@
 
 ## ⚽ De qué se trata
 
-En PES 2021 el EDIT solo guarda los jugadores que alguna vez se editaron. Por eso la pestaña **Jugadores** mostraba muy pocos (en la PC de prueba, 10), aunque el Parche trae miles.
+Esta versión es para los que se sientan en el banco. La pestaña **Formación** ahora habla el mismo idioma que el **Plan de juego** de PES 2021: mismas opciones, mismos nombres, y cada una te explica qué hace antes de tocarla.
 
-Desde esta versión, con la base del Parche copiada por el módulo de Sider, **Jugadores muestra a todos**: en la prueba, **27.192 jugadores**, cada uno con su equipo, su dorsal y todas sus habilidades.
+Nada de esto salió de una tabla adivinada. Cada dato se probó **en el juego**: se cambiaba un valor en el EDIT, se abría el Plan de juego y se sacaba captura. Fueron varias rondas con el Manchester United, el Liverpool y el Barcelona como conejillos de Indias (todos volvieron sanos a su táctica original 😅).
 
 ---
 
-## 👥 Dos listas: tu EDIT y el Parche
+## 🧠 Estrategia: como en el juego, pero explicada
 
-Arriba de la lista hay dos botones:
+Ataque en **rosa**, defensa en **celeste**, igual que en el juego. Cada opción es una tarjeta: la tocás y queda marcada, y debajo dice qué hace.
 
-| Botón | Qué muestra |
+| Ataque | Defensa |
 |---|---|
-| **Mi EDIT** | Los jugadores que guarda tu EDIT. Se editan como siempre |
-| **Del Parche** | Toda la base del Parche, ordenada por valoración |
+| Estilo de ataque · Creación · Zona de ataque · Posicionamiento · Zona de apoyo | Estilo de defensa · Zona de contención · Presión · Línea defensiva · Distancia al jugador con balón |
 
-- Si tu EDIT no tiene jugadores, la pestaña arranca directo en **Del Parche**.
-- La pestaña muestra el total de la base (por ejemplo *Jugadores 27,2k*). Si pasás el mouse por encima, dice cuántos hay en cada lista.
-- Para encontrar a alguien, buscá por **nombre, ID o equipo**. También podés filtrar por posición o por **"Solo los que no están en mi EDIT"**.
-- Sin búsqueda se ven los 250 de mejor valoración; al buscar, aparecen todos los que coinciden.
+### 🎯 Instrucciones avanzadas: las 4, con nombre
 
-## 📋 La ficha de cada jugador del Parche
+El juego deja **2 de ataque y 2 de defensa** por plan, y ahora el editor también. Las ves todas juntas, tocás hasta 2 por lado y cada una muestra si es *Ataque 1* o *Ataque 2*. Si tocás una marcada, se va. Y no te deja repetir la misma, como el juego.
 
-Es de **solo lectura** y muestra lo mismo que usa el juego:
+- **Ataque:** Ensanchar la cancha, Laterales ofensivos, Rotación en banda, Tiqui-taca, Falso nueve, Centros al área, Falsos laterales y Falso extremo.
+- **Defensa:** Carrilero, Marcaje estrecho, Defensiva atrasada, Poblar el área, Presión alta y Delantero liberado.
 
-- cara, posición, nacionalidad, edad, altura y valoración;
-- sus equipos con el dorsal (tocá uno para ir a ese plantel);
-- todas las habilidades en barras, más pierna mala, estado de forma y resistencia a lesiones.
+13 de las 14 están confirmadas en el juego. La que falta es **Delantero liberado**: el juego la muestra como "No" si no tiene un delantero asignado, así que en el editor aparece como *probable*.
 
-### ¿Lo querés cambiar?
+### ⚡ Opciones tácticas rápidas
 
-Tocá **"Agregar a mi EDIT para editarlo"**. El jugador se copia a tu EDIT con todas sus habilidades y se abre su ficha editable, como cualquier otro. La cara y el nombre siguen saliendo del Parche. Si te arrepentís, **Ctrl+Z**.
+Las mismas del juego, como tarjetas con su descripción: *Balones largos a la contra*, *Contraataques rápidos*, *Juego de posesión*, *Defensa total*, *Todos adelante*, *Por las bandas* y *Por el centro* (ofensiva o defensiva). Un toque y cambian varias opciones de una. La que coincide con lo que tiene tu equipo queda resaltada.
 
-## 🔎 El buscador de arriba también los encuentra
+> [!NOTE]
+> El juego no guarda en el EDIT los valores exactos de estas opciones, así que el editor usa unos parecidos.
 
-Con la tecla **/** o el buscador de arriba ahora aparecen también los jugadores del Parche que no están en ningún plantel de tu EDIT, marcados como **"Base del Parche"**. Al elegir uno se abre su ficha.
+### 🛡️ Config. marcaje
+
+Si algún jugador quedó marcando a un rival fijo (y lo persigue por toda la cancha cuando no debería), la tarjeta te avisa cuántos son y con **"Volver a automático"** queda como viene. El marcaje individual se sigue eligiendo en el juego.
+
+## 🎨 Se pone la camiseta de cada modo gráfico
+
+La Estrategia se adapta a cada modo de **Gráficos**: Moderno (claro y oscuro), Clásico con sus bordes en relieve, Retro con el azul de PS2 y PES 6 Editar con la selección dorada.
+
+<img alt="La Estrategia en modo oscuro, Clásico, Retro y PES 6 Editar" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.020/modos-graficos.png" width="100%">
+
+## 🥅 Capitán y balón parado
+
+Nueva tarjeta en **Formación**, igual a "Opciones del jugador" del Plan de juego: capitán, tiro libre largo, tiro libre corto, tirador 2, córner izquierdo, córner derecho, penales y los **3 jugadores ofensivos** que suben al área. Titulares arriba, suplentes abajo. El orden de cada lugar está verificado en el juego, córners incluidos.
+
+<img alt="Capitán y balón parado" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.020/balon-parado.png" width="100%">
+
+¿Paja de elegir uno por uno? **"Elegir automáticamente"** pone a un titular en cada jugada según sus habilidades: tiro libre y potencia, efecto, definición, cabezazo.
+
+## 👕 Equipación para todo el plantel de una
+
+En **Plantel**, seleccioná varios jugadores y tocá **"Equipación…"**: mangas, camiseta interior, medias, calzas, camiseta afuera, guantes, color de guantes y botines para todos a la vez. Solo cambia lo que elijas; lo demás queda como estaba.
+
+<img alt="Equipación para varios jugadores" src="https://raw.githubusercontent.com/Agustinioquino/pes-editor/main/docs/releases/v0.020/equipacion.png" width="100%">
+
+## 🔒 Antes de guardar, el editor revisa el EDIT
+
+Antes de escribir o descargar tu EDIT, el editor lo vuelve a abrir y revisa que cuadren las cantidades e IDs de jugadores, equipos y planteles. Si encuentra un problema que no estaba en tu archivo original, **no guarda** y te muestra la lista. Mejor un aviso que un EDIT roto.
 
 ## ✏️ Otros cambios
 
-- El editor, el README y el módulo de Sider ahora dicen **"Parche"** en lugar del nombre de un parche en particular: PES Editor sirve con cualquier parche que use Sider.
+- **Comparar con otro EDIT** (pestaña Archivo) ahora nombra cada lanzador, cada instrucción avanzada y la Config. marcaje, en vez de mostrar números.
+- Nuevas pruebas automáticas en GitHub: cada cambio se prueba cifrando y descifrando EDIT de PES 2020 y 2021 byte por byte, y escribiendo y leyendo cada campo de jugador y equipo.
 
 ---
-
-## 🧭 Si todavía no copiaste la base del Parche
-
-1. Abrí PES Editor y tocá **Conectar carpeta Sider**: se instala solo el módulo `edit21_db.lua`.
-2. Abrí **PES 2021 con Sider** hasta el **menú principal**.
-3. Entrá en **Partido › Amistoso** hasta la **elección de equipos** y cerrá el juego.
-4. Volvé al editor y tocá **"Ya lo hice: volver a leer"**.
 
 ## 📦 Descargas
 
 | Archivo | Para qué |
 |---|---|
 | **[Abrir en el navegador](https://agustinioquino.github.io/pes-editor/)** | Lo más fácil: siempre la última versión, y se puede instalar como app |
-| `pes-editor-v0.019.zip` | El editor completo para tenerlo en tu PC. Descomprimilo y abrí `index.html` con **Chrome** o **Edge** |
+| `pes-editor-v0.020.zip` | El editor completo para tenerlo en tu PC. Descomprimilo y abrí `index.html` con **Chrome** o **Edge** |
 | `edit21_db.lua` | El módulo de Sider, por si lo querés instalar a mano en `modules\` |
 
 > [!WARNING]

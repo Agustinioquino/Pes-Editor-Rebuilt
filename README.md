@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.019%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.020%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
@@ -48,7 +48,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Plantel como tabla de datos:**
   - ordenar por columna;
   - filtrar por texto, posición y situación (titulares, banco, reserva);
-  - acciones sobre varios jugadores a la vez, y el **capitán** se elige desde el menú *Acciones* de cada jugador (queda marcado con una **C**);
+  - acciones sobre varios jugadores a la vez (incluida la **equipación**: mangas, medias, guantes, botines…), y el **capitán** se elige desde el menú *Acciones* de cada jugador (queda marcado con una **C**);
   - columnas a elección, tres densidades y exportar.
 - **Fotos de los jugadores** (minicaras del Parche) en el plantel y la formación.
 - **Formación sobre la cancha:**
@@ -56,6 +56,8 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
   - plantillas de formación y tres planes;
   - banco de suplentes;
   - valoración del equipo.
+- **Estrategia como en el Plan de juego.** Las mismas opciones y nombres que el juego, cada una con su explicación; las 4 instrucciones avanzadas (2 de ataque y 2 de defensa); las opciones tácticas rápidas y la Config. marcaje.
+- **Capitán y balón parado.** Tiros libres, córners, penales y los 3 jugadores ofensivos, a mano o automático según las habilidades.
 - **Valoración por rendimiento.** Usa los últimos partidos reales; los cambios se ven con una animación al aplicarlos.
 - **Plantel según la base del juego.** Si un equipo está vacío en tu EDIT, se ve el plantel que trae el Parche y se puede copiar al EDIT con un toque (se deshace con Ctrl+Z).
 - **Todos los jugadores del Parche en *Jugadores*.** Con la base copiada, la pestaña muestra los más de 27.000 jugadores del Parche además de los de tu EDIT: búsqueda por nombre, ID o equipo, ficha con cara, equipos, dorsal y todas las habilidades, y un botón para agregarlo a tu EDIT y editarlo.

@@ -1399,7 +1399,7 @@ $('fFile').onchange = e => { const f = e.target.files[0]; if (f) openFile(f); e.
 $('bNames').onclick = () => $('fNames').click();
 $('bKits').onclick = connectKits;
 document.addEventListener('click', e => { if (e.target.closest('[data-kits]')) connectKits(); });
-kitsLoadCache(); namesLoadCache(); restoreFaces().then(() => { if (FACES.count) render(); });
+kitsLoadCache(); namesLoadCache(); FACES.ready = restoreFaces().then(() => { if (FACES.count) render(); });
 $('fNames').onchange = e => { const f = e.target.files[0]; if (f) loadNames(f); e.target.value = ''; };
 $('bSave').onclick = save; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
 $('bReload').onclick = () => reloadFromGame(); $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tNews').onclick = () => setTab('news');

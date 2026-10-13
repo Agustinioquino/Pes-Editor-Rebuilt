@@ -51,7 +51,7 @@ async function connectKits() {
     } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, true); } catch { } }
-  toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render();
+  toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
 }
 function teamKits(t) {
   const k = KITS.map.get(t.id); if (k && (k.k.length || k.g.length)) return k;
@@ -231,7 +231,7 @@ function tacticsCard(t) {
         ${PD.roster(S.d, t).some(x => LM.adj.has(x.pid)) ? '' : '<span class="note">Para ver la forma, buscá los últimos partidos reales abajo.</span>'}</div>
       ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del Parche</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del Parche</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
         <label class="chk"><input type="checkbox" id="fonline" ${PREFS.online ? 'checked' : ''}> Buscar en internet las que falten</label>
-        ${PREFS.online ? '<span class="note">Fuente: TheSportsDB (por nombre y club). Se guardan para no volver a buscarlas.</span>' : ''}</div>` : ''}
+        ${PREFS.online ? `<span class="note">Busca a la vez en Wikipedia y TheSportsDB (por nombre y club) y usa la que conteste primero. Se guardan para no volver a buscarlas.${faceSrcStats() ? '<br>' + faceSrcStats() + '.' : ''}</span>` : ''}</div>` : ''}
       <div class="row"><span class="lab">Plantillas:</span>${Object.keys(FORM_PRESETS).map(k => `<button class="btn small" type="button" data-preset="${k}">${k}</button>`).join('')}</div>
     </div>
     ${lastMatchCard(t)}

@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.015%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.016%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
@@ -139,6 +139,23 @@ PES Editor sigue en desarrollo. Esto es lo que viene (puede cambiar):
 Para enterarte de cada versión, tocá **Watch → Custom → Releases** arriba en este repositorio. Dentro del editor, la pestaña **Novedades** muestra un punto cuando hay algo nuevo.
 
 ¿Encontraste un error o se te ocurrió algo? Abrí un [issue](https://github.com/Agustinioquino/pes-editor/issues/new/choose): hay una plantilla para **🐛 Algo no anda** y otra para **💡 Tengo una idea**. Todo suma, como un buen pase al vacío.
+
+## 🧩 Cómo está armado el código
+
+Todo es HTML, CSS y JavaScript sin frameworks ni instalación. `index.html` es corto: carga `css/editor.css` y los archivos de la carpeta `js/`, uno por cada parte del editor, en este orden:
+
+| Archivo | Qué hace |
+|---|---|
+| `pescrypt.js`, `pesdata.js` | Descifra el EDIT00000000 y lee/escribe equipos, jugadores y tácticas |
+| `tables.js`, `dds.js`, `faces.js`, `pitch.js` | Tablas del juego, imágenes DDS, minicaras y escudos, dibujo de la cancha |
+| `extras.js`, `matches.js`, `natcall.js` | Formación, valoración por rendimiento, convocatorias de selecciones |
+| `ftexenc.js`, `kitfont.js`, `kitmat.js`, `kitstudio.js`, `kitpack.js`, `kit3d.js` | Estudio de kits: texturas FTEX, fuentes, telas, modelos y visor 3D |
+| `intro.js`, `news.js`, `help.js` | Pantalla de carga, Novedades y ayudas |
+| `app.js`, `motion.js`, `ui.js`, `gfx.js` | La página en sí, animaciones, Apariencia y Gráficos |
+| `fonts.js`, `logos.js`, `sfxdata.js` | Fuentes, logos y sonidos incluidos |
+| `mptags.js`, `music.js`, `mpyt.js` | Reproductor: etiquetas de canciones, audio y YouTube |
+
+Para probar un cambio alcanza con editar el archivo y recargar la página.
 
 ## 🙌 Créditos e inspiración
 

@@ -2,6 +2,16 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.016 alpha · Código ordenado en archivos
+
+*13 de octubre de 2026, 05:00 (hora de Argentina)*
+
+Limpieza interna: el editor pasó de un solo archivo gigante a archivos separados, sin cambiar ninguna función.
+
+- **HTML corto, CSS y JavaScript aparte** (Archivo). La página principal pasó de 17 MB a unos 6 KB: los estilos están en css/editor.css y el código en la carpeta js, un archivo por cada parte (plantel, formación, kits, 3D, reproductor, gráficos, etc.). En tu PC queda "Editor EDIT 21.html" junto a la carpeta "pes-editor-files", que tiene que estar al lado para que funcione.
+- **Código revisado** (Archivo). Se revisó que no haya funciones repetidas ni sin uso, y se quitó la que abría carpetas con los botones viejos. El ícono de la pestaña también pasó a ser un archivo.
+- **Carga más liviana** (Velocidad). Al estar separado, el navegador guarda cada archivo y en las próximas visitas solo baja lo que cambió. La app instalable guarda todos los archivos para funcionar sin internet.
+
 ## v0.015 alpha · YouTube: volumen fijo y video más chico
 
 *13 de octubre de 2026, 04:45 (hora de Argentina)*

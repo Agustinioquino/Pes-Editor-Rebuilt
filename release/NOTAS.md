@@ -1,11 +1,14 @@
-## ⚽ PES Editor v0.015 alpha · YouTube afinado
+## ⚽ PES Editor v0.016 alpha · Vestuario ordenado
 
-### 🎵 Reproductor
-- **El volumen se mantiene al cambiar de tema de YouTube.** Antes, el video nuevo podía arrancar silenciado: el navegador silenciaba el segundo reproductor porque no lo habías tocado. Ahora todos los videos suenan en un mismo reproductor, con el volumen que elegiste. Entre dos videos el pase es: baja, cambia y sube.
-- **Video más chico y al costado.** Mide 200 × 200 (lo mínimo que permite YouTube) y queda al lado del reproductor, sin tapar la lista de equipos. Con el panel abierto ocupa el lugar de la carátula.
-- **En el celular, sin video encima de la página.** El video de YouTube se ve solo con el reproductor abierto. Como YouTube no permite que su audio siga con el video oculto, al cerrar el panel ese tema se pausa y vuelve a sonar al abrirlo. Tus canciones propias suenan siempre.
+Versión de limpieza interna: **ninguna función cambia**, pero el código quedó mucho más fácil de leer y mantener.
 
-### 🛠️ Repositorio
-- Las releases ahora se publican solas con cada versión nueva.
+### 🧩 Código
+- `index.html` pasó de **3,6 MB a 5 KB**: los estilos están en `css/editor.css` y el código en la carpeta `js/`, un archivo por cada parte del editor (plantel, formación, kits, 3D, reproductor, gráficos…). El README explica qué hace cada uno.
+- Se revisó que no haya funciones repetidas ni sin uso, y se quitó la que abría carpetas con los botones viejos.
+- El ícono de la pestaña pasó a ser un archivo (`icons/favicon-64.png`).
+
+### ⚡ Carga
+- Al estar separado, el navegador guarda cada archivo y en las próximas visitas solo baja lo que cambió.
+- La app instalable guarda todos los archivos para funcionar sin internet.
 
 > Versión **alpha**: guardá una copia de tu EDIT antes de empezar. ¿Algo falla? Contalo en [Issues](https://github.com/Agustinioquino/pes-editor/issues/new/choose).

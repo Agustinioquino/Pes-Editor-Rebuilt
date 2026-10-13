@@ -630,13 +630,17 @@ function stadiumCard(t) {
     ${[1, 2, 3, 4].map(i => `<div class="f"><label for="tBan${i}">Bandera ${i}</label><input type="text" id="tBan${i}" data-banner="banner${i}" value="${esc(tget(t, 'banner' + i))}" maxlength="15"></div>`).join('')}</div>
     <p class="note">Hasta 15 caracteres cada una.</p></div>`;
 }
-// bandera chiquita de la nación: el escudo de su selección (con la carpeta Sider es la bandera del Parche; si no, sus colores y sigla)
+// bandera chiquita de la nación: la bandera real (flagcdn.com, necesita internet); sin conexión queda el escudo de su selección
+// (con la carpeta Sider es la bandera del Parche; si no, sus colores). Código de país del juego → código ISO de la bandera.
+const FLAG_ISO = new Map('1:af,2:bh,3:bd,4:bt,5:bn,6:kh,7:cn,8:hk,9:in,10:id,11:ir,12:iq,13:jp,14:jo,15:kp,16:kr,17:kw,18:la,19:lb,20:mo,21:my,22:mv,23:mn,24:mm,25:np,26:om,27:pk,28:ps,29:ph,30:qa,31:sa,32:sg,33:lk,34:sy,36:th,37:ae,38:vn,39:ye,40:kg,41:tj,42:tm,43:tl,44:dz,45:ao,46:bj,47:bw,48:bf,49:bi,50:cm,51:cv,52:cf,53:td,54:km,55:cd,56:ci,57:dj,58:eg,59:gq,60:er,61:et,62:ga,63:gm,64:gh,65:gn,66:gw,67:ke,68:ls,69:lr,70:ly,71:mg,72:mw,73:ml,74:mr,75:mu,76:ma,77:mz,78:na,79:ne,80:ng,81:rw,82:st,83:sn,84:sc,85:sl,86:so,87:za,88:sd,89:sz,90:tz,91:tg,92:tn,93:ug,94:zm,95:zw,98:cg,103:ai,104:ag,105:aw,106:bs,107:bb,108:bz,109:bm,110:ca,111:ky,112:cr,113:cu,114:dm,115:do,116:sv,117:gd,119:gt,120:ht,121:hn,122:jm,124:mx,125:ms,127:ni,128:pa,129:pr,130:kn,131:lc,132:vc,133:tt,134:tc,135:us,136:vg,137:vi,139:sr,140:cw,144:ar,145:bo,146:br,147:cl,148:co,149:ec,150:py,151:pe,152:uy,153:ve,159:gy,161:as,162:au,163:ck,164:fj,165:nc,166:nz,167:pg,168:ws,169:sb,170:pf,171:to,172:vu,176:gu,184:pw,189:il,190:tr,191:al,192:ad,193:am,194:at,195:az,196:by,197:be,198:ba,199:bg,200:hr,201:cy,202:cz,203:dk,204:gb-eng,205:ee,206:fo,207:fi,208:fr,209:ge,210:de,211:gr,212:hu,213:is,214:ie,215:it,216:kz,217:lv,218:li,219:lt,220:lu,221:mk,222:mt,223:md,224:nl,225:gb-nir,226:no,227:pl,228:pt,229:ro,230:ru,231:sm,232:gb-sct,234:sk,235:si,236:es,237:se,238:ch,239:ua,240:uz,241:gb-wls,245:gi,250:mc,298:tw,303:rs,304:me,311:xk,312:ss'.split(',').map(x => { const [k, v] = x.split(':'); return [+k, v]; }));
 const NAT_TEAM = new WeakMap();
 function natFlag(n) {
   if (!S.ix) return '';
   let m = NAT_TEAM.get(S.ix); if (!m) NAT_TEAM.set(S.ix, m = new Map());
   if (!m.has(n)) m.set(n, S.ix.teams.find(x => isNat(x) && tget(x, 'country') === n) || null);
-  const t = m.get(n); return t ? crest(t, 'flagmini') : '';
+  const t = m.get(n), iso = FLAG_ISO.get(n);
+  if (!t && !iso) return '';
+  return `<span class="flagw">${t ? crest(t, 'flagmini') : '<span class="crest flagmini"></span>'}${iso ? `<img class="flagimg" src="https://flagcdn.com/w40/${iso}.png" srcset="https://flagcdn.com/w80/${iso}.png 2x" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
 }
 function ageValCells(pid, ro) {
   const i = pInfo(pid), pv = playerValue(pid);
@@ -736,6 +740,7 @@ function rosterCard(t) {
       <div class="fgroups"><div class="fgrp"><span class="flab" aria-hidden="true">Posición</span><div class="fchips" id="rgrp" aria-label="Posición">${grp.map(([k, n]) => `<button type="button" data-g="${k}" aria-pressed="${(S.rgrp || 'all') === k}">${n}</button>`).join('')}</div>
       </div><div class="fgrp"><span class="flab" aria-hidden="true">Estado</span><div class="fchips" id="rst" aria-label="Estado">${sts.map(([k, n]) => `<button type="button" data-st="${k}" aria-pressed="${(S.rst || 'all') === k}">${n}</button>`).join('')}</div></div></div>
       <div class="dttools">
+        <div class="seg mini" id="rlook" title="Ver jugadores con">${[['photos', 'Fotos'], ['kits', 'Camisetas']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${(PREFS.rLook || 'photos') === k}">${n}</button>`).join('')}</div>
         <div class="seg mini" id="rdens" title="Densidad de filas">${[['compact', '▤', 'Compacta'], ['normal', '☰', 'Normal'], ['comfy', '≡', 'Cómoda']].map(([k, ic, n]) => `<button type="button" data-d="${k}" aria-pressed="${dens === k}" title="${n}" aria-label="Filas: ${n}">${ic}</button>`).join('')}</div>
         <div class="pop"><button class="btn small" type="button" id="rcolsBtn" aria-expanded="false">Columnas</button>
           <div class="popmenu" id="rcols" hidden>${RCOLS.filter(([k]) => !RCOL_FIXED.has(k)).map(([k, n, tip]) => `<label class="chk"><input type="checkbox" data-col="${k}" ${hide.has(k) ? '' : 'checked'}> ${k === 'act' ? 'Acciones' : n === 'Val.' ? 'Valoración' : n === 'Nac.' ? 'Nacionalidad' : n === 'Pos.' ? 'Posición' : n === 'Cap.' ? 'Capitán' : n}</label>`).join('')}
@@ -762,7 +767,7 @@ function rosterCard(t) {
           <td class="c-sel"><input type="checkbox" data-sel="${w.pid}" ${sel ? 'checked' : ''} aria-label="Seleccionar ${esc(w.name || 'ID ' + w.pid)}"></td>
           <td class="stno c-xi">${w.si >= 0 ? w.si + 1 : w.oi < 18 ? `<span class="bnch">S${w.oi - 10}</span>` : ''}</td>
           <td class="num c-num"><input type="number" min="1" max="99" value="${w.num}" data-num="${w.slot}" aria-label="Dorsal"></td>
-          <td class="c-player"><span class="pcell">${faceHtml(w.pid, kitFor(t, isGk), 'pl')}<span class="pn">${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
+          <td class="c-player"><span class="pcell">${faceHtml(PREFS.rLook === 'kits' ? 0 : w.pid, kitFor(t, isGk), 'pl')}<span class="pn">${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
           <td class="idc c-id">${w.pid}</td>
           <td class="c-pos">${i ? posBadge(i.pos) : ''}</td>
           <td class="mono c-val">${i && i.r ? `<b class="${vcls(i.r)}">${i.r}</b>${adjHtml(i.adj, i.form)}` : ''}</td>
@@ -833,6 +838,7 @@ function bindRosterTable(t, m) {
   const rq = $('rq'); rq.oninput = () => { S.rq = rq.value; rosterFilter(); };
   $('rgrp').onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; S.rgrp = b.dataset.g; $('rgrp').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };
   $('rst').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; S.rst = b.dataset.st; $('rst').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };
+  $('rlook').onclick = e => { const b = e.target.closest('[data-v]'); if (!b || PREFS.rLook === b.dataset.v) return; PREFS.rLook = b.dataset.v; savePrefs(); render(); };
   $('rdens').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; PREFS.rDens = b.dataset.d; savePrefs(); tb.classList.remove('d-compact', 'd-normal', 'd-comfy'); tb.classList.add('d-' + b.dataset.d); $('rdens').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
   const pop = (btn, menu) => { btn.onclick = e => { e.stopPropagation(); const open = menu.hidden; sh.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); sh.querySelectorAll('.pop > .btn').forEach(x => x.setAttribute('aria-expanded', 'false')); menu.hidden = !open; btn.setAttribute('aria-expanded', open); }; };
   pop($('rcolsBtn'), $('rcols')); pop($('rexpBtn'), $('rexp')); pop($('rbKitBtn'), $('rbKit'));

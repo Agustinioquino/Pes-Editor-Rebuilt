@@ -199,7 +199,7 @@ function mpMount() {
   document.body.appendChild(el);
   const $m = id => el.querySelector('#' + id);
   const open = v => { MP.st.open = v == null ? !MP.st.open : v; if (MP.st.open) MP.st.min = false; mpSave(); mpUiState(); if (MP.st.open) { mpRenderList(); } };
-  $m('mpCov').onclick = () => { if (MP.st.min) { MP.st.min = false; mpSave(); mpUiState(); } else open(); };
+  $m('mpCov').onclick = () => { if (el.classList.contains('ytmin') && typeof ytMinOff === 'function') ytMinOff(); else if (MP.st.min) { MP.st.min = false; mpSave(); mpUiState(); } else open(); };
   $m('mpMeta').onclick = () => open(); $m('mpOpen').onclick = () => open(); $m('mpClose').onclick = () => open(false);
   $m('mpMinB').onclick = () => { MP.st.min = true; MP.st.open = false; mpSave(); mpUiState(); };
   $m('mpPlay').onclick = $m('mpPlay2').onclick = () => mpToggle();

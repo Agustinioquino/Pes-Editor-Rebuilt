@@ -36,8 +36,9 @@ const HELP = {
       ['Usar esta formación', 'pregunta antes de tocar nada: podés poner solo el 11 y la formación, o también aplicar los cambios de valoración al juego.']]],
     ['Capitán y balón parado', [
       ['Capitán', 'elegilo de la lista: titulares arriba, suplentes abajo.'],
-      ['Lanzadores', 'son los 9 lugares que el juego guarda para tiros libres, córners y penales. Todavía no está confirmado cuál es cuál, por eso dicen "sin confirmar".'],
-      ['Elegir automáticamente', 'pone en todos los lanzamientos al titular con mejor tiro libre, efecto y potencia. Los lugares que estaban en "Ninguno" quedan así.']]]] },
+      ['Lanzadores', 'tiro libre largo, tiro libre corto y su segundo tirador, córner izquierdo y derecho, y penales. Es lo mismo que "Opciones del jugador" en el Plan de juego.'],
+      ['Jugadores ofensivos', 'los 3 que suben al área en tiros libres y córners.'],
+      ['Elegir automáticamente', 'elige un titular para cada jugada según sus habilidades: tiro libre y potencia, efecto, definición, cabezazo. Los lugares que estaban en "Ninguno" quedan así.']]]] },
   data: { t: 'los datos del equipo', intro: 'Nombre, abreviatura, colores, país y entrenador. Son los datos que el juego muestra en menús, marcadores y radar.', groups: [
     ['Qué hace cada cosa', [
       ['Nombre y abreviatura', 'se ven en menús y en el marcador. Al cambiarlos se activa "Proteger nombre" para que el Parche no los vuelva a pisar.'],

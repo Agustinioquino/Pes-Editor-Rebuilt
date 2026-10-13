@@ -224,22 +224,45 @@ function tacticsCard(t) {
   ${strategyCard(t)}
   ${setPieceCard(t)}`;
 }
-// ---- capitán y lanzadores de balón parado (9 bytes antes del capitán; qué jugada es cada uno no está confirmado) ----
-const kickScore = pid => { const a = abilOf(pid); return a ? a('place_kick') * 2 + a('swerve') + a('kick_pwr') : 0; };
+// ---- capitán y lanzadores de balón parado: 9 bytes antes del capitán, en el orden del menú del juego (verificado en PES 2021) ----
+// [nombre, puntaje para elegir automáticamente, sin confirmar]; los 3 "ofensivos" son los que suben al área en las jugadas de balón parado
+const SP_ROLES = [
+  ['Tiro libre largo', a => a('place_kick') * 2 + a('kick_pwr') * 2 + a('swerve')],
+  ['Tiro libre corto', a => a('place_kick') * 2 + a('swerve') * 2],
+  ['Tirador 2 (tiro libre corto)', a => a('place_kick') * 2 + a('swerve') * 2],
+  ['Córner izquierdo', a => a('swerve') * 2 + a('loftpass') + a('place_kick'), true],
+  ['Córner derecho', a => a('swerve') * 2 + a('loftpass') + a('place_kick'), true],
+  ['Penales', a => a('finish') * 2 + a('place_kick') + a('kick_pwr') + (a('sk36') ? 20 : 0)],
+  ['Jugador ofensivo 1', a => a('header') * 2 + a('jump') + a('phys_cont')],
+  ['Jugador ofensivo 2', a => a('header') * 2 + a('jump') + a('phys_cont')],
+  ['Jugador ofensivo 3', a => a('header') * 2 + a('jump') + a('phys_cont')],
+];
+// elige un titular de campo por rol; tirador 2 y los ofensivos no repiten a quien ya tiene ese rol
+function autoTakers(t) {
+  const roster = PD.roster(S.d, t), xi = getOrder(t).slice(1, 11).map(s => roster.find(x => x.slot === s)).filter(Boolean);
+  const ab = new Map(xi.map(x => { const g = abilOf(x.pid); if (!g) return [x.slot, null]; const p = S.ix.byId.get(x.pid); return [x.slot, k => (k === 'sk36' ? (p ? pget(p, 'sk36') : 0) : g(k))]; }));
+  if (!xi.length || xi.some(x => !ab.get(x.slot))) return null;
+  const pick = (k, not = []) => xi.filter(x => !not.includes(x.slot)).sort((x, y) => SP_ROLES[k][1](ab.get(y.slot)) - SP_ROLES[k][1](ab.get(x.slot)))[0];
+  const out = []; for (let k = 0; k < NTAKERS; k++) {
+    const not = k === 2 ? [out[1]] : k >= 6 ? [out[3], out[4], ...out.slice(6)] : [];
+    const x = pick(k, not) || pick(k); out.push(x.slot);
+  }
+  return out;
+}
 function setPieceCard(t) {
   const roster = PD.roster(S.d, t), bySlot = new Map(roster.map(x => [x.slot, x])), xi = getOrder(t).slice(0, 11).filter(s => bySlot.has(s));
   const opt = (x, cur) => `<option value="${x.slot}" ${x.slot === cur ? 'selected' : ''}>#${x.number} ${esc(playerName(x.pid) || 'ID ' + x.pid)}</option>`;
   const sel = (off, label, chip) => {
     const cur = S.d[t.tacticsBase + off], rest = roster.filter(x => !xi.includes(x.slot));
-    return `<div class="f"><label for="sp${off}">${label}${chip ? ' <span class="chip">sin confirmar</span>' : ''}</label><select id="sp${off}" data-sp="${off}">
+    return `<div class="f"><label for="sp${off}">${label}${chip ? ' <span class="chip" title="Se deduce del orden del menú del juego: probalo con dos jugadores distintos">probable</span>' : ''}</label><select id="sp${off}" data-sp="${off}">
       ${cur === 255 || !bySlot.has(cur) ? `<option value="${cur}" selected>${cur === 255 ? 'Ninguno' : 'Lugar ' + cur + ' (vacío)'}</option>` : ''}
       <optgroup label="Titulares">${xi.map(s => opt(bySlot.get(s), cur)).join('')}</optgroup>
       ${rest.length ? `<optgroup label="Suplentes y reserva">${rest.map(x => opt(x, cur)).join('')}</optgroup>` : ''}</select></div>`;
   };
   return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Capitán y balón parado</h3>
-    <button class="btn small" type="button" id="spAuto" title="Pone en cada lanzamiento usado al titular con mejor tiro libre, efecto y potencia">Elegir automáticamente</button></div>
-    <div class="grid wide">${sel(CAPT, 'Capitán')}${Array.from({ length: NTAKERS }, (_, k) => sel(TAKERS + k, 'Lanzador ' + (k + 1), true)).join('')}</div>
-    <p class="note">El capitán es seguro. Los 9 lanzadores son los datos que el juego guarda para tiros libres, córners y penales, pero todavía no sé cuál es cuál: cambiá uno, guardá y miralo en el juego, o usá "Comparar con otro EDIT" en la pestaña Archivo.</p></div>`;
+    <button class="btn small" type="button" id="spAuto" title="Elige para cada jugada al titular con las mejores habilidades para ella">Elegir automáticamente</button></div>
+    <div class="grid wide">${sel(CAPT, 'Capitán')}${SP_ROLES.map(([n, , unsure], k) => sel(TAKERS + k, n, unsure)).join('')}</div>
+    <p class="note">Es lo mismo que "Opciones del jugador" en el Plan de juego. Los jugadores ofensivos son los que suben al área en tiros libres y córners. Que el córner izquierdo vaya antes que el derecho sale del orden del menú: si en el juego te aparecen al revés, avisame.</p></div>`;
 }
 function seg2(id, labels, v) { return `<div class="seg" data-seg2="${id}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
 function bindTactics(t, m) {
@@ -278,11 +301,10 @@ function bindTactics(t, m) {
   });
   sh.querySelectorAll('[data-sp]').forEach(s2 => s2.onchange = () => { const o = +s2.dataset.sp; edit((o === CAPT ? 'Capitán' : 'Lanzador') + ' de ' + tn, 't' + t.id, regT(t), () => { S.d[t.tacticsBase + o] = +s2.value; }); rer(); });
   const spa = $('spAuto'); if (spa) spa.onclick = () => {
-    const roster = PD.roster(S.d, t), xi = getOrder(t).slice(1, 11).filter(s => roster.some(x => x.slot === s));
-    const best = xi.map(s => roster.find(x => x.slot === s)).sort((a, b) => kickScore(b.pid) - kickScore(a.pid))[0];
-    if (!best || !kickScore(best.pid)) { toast('No tengo las habilidades de los titulares: conectá la carpeta Sider o agregalos a tu EDIT.', 5000); return; }
-    edit('Lanzadores de ' + tn, 't' + t.id, regT(t), () => { for (let k = 0; k < NTAKERS; k++) if (S.d[t.tacticsBase + TAKERS + k] !== 255) S.d[t.tacticsBase + TAKERS + k] = best.slot; });
-    toast('Todos los lanzamientos para ' + (playerName(best.pid) || 'ID ' + best.pid) + '.', 4000, ['Deshacer', undo]); rer();
+    const sl = autoTakers(t);
+    if (!sl) { toast('No tengo las habilidades de los titulares: conectá la carpeta Sider o agregalos a tu EDIT.', 5000); return; }
+    edit('Lanzadores de ' + tn, 't' + t.id, regT(t), () => { sl.forEach((v, k) => { if (S.d[t.tacticsBase + TAKERS + k] !== 255) S.d[t.tacticsBase + TAKERS + k] = v; }); });
+    toast('Lanzadores elegidos según las habilidades de los titulares.', 4000, ['Deshacer', undo]); rer();
   };
   const pitch = $('fpitch'); if (!pitch) return;
   const markerAt = (x, y, not) => document.elementsFromPoint(x, y).map(el => el.closest && el.closest('.fm')).find(el => el && el !== not);
@@ -348,7 +370,7 @@ function compareEdits(other) {
       const sa = ta.tacticsBase, sb = tb.tacticsBase;
       const at = s => { const r = ra.find(y => y.slot === s); return r ? r.pid : null; }, bt = s => { const r = rb.find(y => y.slot === s); return r ? r.pid : null; };
       for (let i = 0; i < 11; i++) { const pa = at(A[sa + ORD + i]), pb = bt(B[sb + ORD + i]); if (pa !== pb) li.push(`Titular ${i + 1}: ${esc(pidName(pa))} → ${esc(pidName(pb))}`); }
-      for (let k = 0; k < NTAKERS + 1; k++) { const o = TAKERS + k; const va = A[sa + o], vb = B[sb + o]; const na = va === 255 ? '—' : pidName(at(va)), nb = vb === 255 ? '—' : pidName(bt(vb)); if (na !== nb) li.push(`${o === CAPT ? 'Capitán' : 'Lanzador #' + (k + 1) + ' (dato +0x' + o.toString(16) + ')'}: ${esc(na)} → ${esc(nb)}`); }
+      for (let k = 0; k < NTAKERS + 1; k++) { const o = TAKERS + k; const va = A[sa + o], vb = B[sb + o]; const na = va === 255 ? '—' : pidName(at(va)), nb = vb === 255 ? '—' : pidName(bt(vb)); if (na !== nb) li.push(`${o === CAPT ? 'Capitán' : SP_ROLES[k][0]}: ${esc(na)} → ${esc(nb)}`); }
       for (let p = 0; p < 3; p++) {
         for (let v = 0; v < 3; v++) { const oa = sa + 4 + p * PLAN_SZ + v * ENT_SZ, ob = sb + 4 + p * PLAN_SZ + v * ENT_SZ; if (!A.subarray(oa, oa + ENT_SZ).every((x, i) => x === B[ob + i])) li.push(`Plan ${p + 1}, variante ${['Base', 'Ataque', 'Defensa'][v]}: cambió la formación`); }
         for (let o = 0x63; o < PLAN_SZ; o++) { const va = A[sa + 4 + p * PLAN_SZ + o], vb = B[sb + 4 + p * PLAN_SZ + o]; if (va !== vb) li.push(`Plan ${p + 1}, ${esc(label(o))}: ${va} → ${vb}`); }

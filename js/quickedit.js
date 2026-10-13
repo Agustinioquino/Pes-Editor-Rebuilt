@@ -5,7 +5,7 @@
 const QE = { pid: null, start: null, close: null };
 const QE_GK = ['gk', 'catching', 'clearing', 'reflex', 'cover'];
 function qeKeys(p) { return pget(p, 'reg_pos') === 0 ? [...QE_GK, 'jump'] : ABIL.map(a => a[0]).filter(k => !QE_GK.includes(k)); }
-const qeRate = (p, get) => Math.round(posFormula(POS_KEY[pget(p, 'reg_pos')] || 'cmf', get));
+const qeRate = (p, get) => Math.round(posFormula(pget(p, 'reg_pos'), get));
 // el corrimiento d (igual para todas) que deja la media lo más cerca posible del objetivo
 function qeProposal(p, target) {
   const ks = qeKeys(p), cur = new Map(ks.map(k => [k, pget(p, k)]));

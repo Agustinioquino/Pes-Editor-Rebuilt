@@ -5,7 +5,17 @@
 const CREST_SET = [ // tamaño de cada archivo cuando la carpeta del Parche no trae otro escudo para copiar la medida
   ['f', 256], ['f_l', 512], ['f_ll', 1024], ['r', 256], ['r_l', 256], ['r_ll', 1024],
   ['r_b_l', 256], ['r_b_ll', 1024], ['r_w', 256], ['r_w_l', 256], ['r_w_ll', 1024]];
-const CREST_FLAG = 'common/render/symbol/flag';
+const CREST_FLAG = 'common/render/symbol/flag', CREST_ROOT = 'PESEditor-Escudos';
+// agrega la carpeta a sider.ini (antes de las otras cpk.root, así sus escudos mandan); copia de seguridad la primera vez
+async function crestIniAdd(sider, root) {
+  const f = await sdbFile(sider, 'sider.ini'); if (!f) throw new Error('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).');
+  const orig = await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), line = `cpk.root = ".\\livecpk\\${root}"`;
+  if (lines.some(l => new RegExp('^\\s*cpk\\.root\\s*=\\s*"?\\.?[\\\\/]?livecpk[\\\\/]' + root.replace(/[-.]/g, '\\$&') + '[\\\\/]?"?\\s*$', 'i').test(l))) return false;
+  const i = lines.findIndex(l => /^\s*cpk\.root\s*=/i.test(l));
+  if (i >= 0) lines.splice(i, 0, '; PES Editor: escudos propios', line); else lines.push('', '; PES Editor: escudos propios', line);
+  if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
+  await sdbWrite(sider, 'sider.ini', lines.join(nl)); return true;
+}
 const CR = { team: null, main: null, own: {}, renamed: 0, prev: null, target: null, busy: false, msg: '', err: '', done: false };
 const crestId = id => String(id).padStart(6, '0');
 const crestName = (id, suf) => `e_${crestId(id)}_${suf}.png`;
@@ -38,15 +48,16 @@ async function crestSider(write) {
   return h;
 }
 async function crestTarget(t, sider) {
-  const live = await sider.getDirectoryHandle('livecpk');
+  let live = null; try { live = await sider.getDirectoryHandle('livecpk'); } catch { }
   // orden de sider.ini: la primera carpeta de la lista es la que manda en el juego
   const ini = (await readText(sider, 'sider.ini')) || '', order = [];
-  for (const m of ini.matchAll(/^\s*cpk\.root\s*=\s*"?([^"\r\n]+)"?/gim)) { const p = m[1].trim().replace(/\\/g, '/').replace(/^\.\//, ''); const k = p.match(/^livecpk\/([^/]+)\/?$/i); if (k) order.push(k[1].toLowerCase()); }
+  for (const m of ini.matchAll(/^\s*cpk\.root\s*=\s*"?([^"\r\n]+)"?/gim)) { const p = m[1].trim().replace(/\\/g, '/').replace(/^\.\//, ''); const k = p.match(/(?:^|\/)livecpk\/([^/]+)\/?$/i); if (k) order.push(k[1].toLowerCase()); }
   const rank = n => { const i = order.indexOf(n.toLowerCase()); return i < 0 ? 1e6 : i; };
-  const roots = []; for await (const [name, h] of live.entries()) if (h.kind === 'directory') roots.push({ name, h, r: rank(name) });
+  const roots = []; if (live) for await (const [name, h] of live.entries()) if (h.kind === 'directory') roots.push({ name, h, r: rank(name) });
   roots.sort((a, b) => a.r - b.r || a.name.localeCompare(b.name));
   const mine = new RegExp('^e_' + crestId(t.id) + '_', 'i'); let best = null;
   for (const ro of roots) {
+    if (ro.r >= 1e6 && ro.name.toLowerCase() !== CREST_ROOT.toLowerCase()) continue; // Sider no la lee: no se toca
     let flag; try { flag = await subDir(ro.h, CREST_FLAG); } catch { continue; }
     let n = 0, has = false; const sample = {};
     for await (const [name, fh] of flag.entries()) {
@@ -57,7 +68,8 @@ async function crestTarget(t, sider) {
     if (has) { best = c; break; } // la primera (en el orden de Sider) que ya tiene escudo de este equipo
     if (n && (!best || n > best.n)) best = c;
   }
-  if (!best) { const ro = roots.find(r => r.r < 1e6) || roots[0]; if (!ro) throw new Error('No encontré carpetas dentro de livecpk.'); best = { root: ro.name, h: ro.h, flag: null, n: 0, has: false, sample: {}, listed: ro.r < 1e6 }; }
+  // ninguna carpeta tiene escudos: se crea una propia en livecpk y se agrega a sider.ini
+  if (!best) { const ro = roots.find(r => r.name.toLowerCase() === CREST_ROOT.toLowerCase()); best = { root: CREST_ROOT, h: ro ? ro.h : null, flag: null, n: 0, has: false, sample: {}, listed: !!ro && ro.r < 1e6, create: !ro }; }
   // la medida de cada archivo: la misma que usan los escudos que ya están en esa carpeta
   best.size = {}; for (const [suf, def] of CREST_SET) best.size[suf] = (best.sample[suf] && await pngSize(best.sample[suf])) || [def, def];
   return best;
@@ -79,10 +91,11 @@ function crestCard(t) {
           ${ready ? '<button class="btn small ghost" type="button" id="crestClear">✕ Quitar</button>' : ''}</div>
         ${CR.err ? `<p class="note bad" role="alert">${esc(CR.err)}</p>` : ''}${CR.msg ? `<p class="note ${CR.done ? 'ok' : ''}" role="status">${CR.msg}</p>` : ''}
         ${own.length ? `<p class="note"><span>Tus archivos:</span> ${own.map(s => `<b>${s}</b>`).join(', ')}.${own.length < CREST_SET.length ? ' <span>Los demás tamaños salen de la imagen más grande.</span>' : ''}${CR.renamed ? ` <span>(${CR.renamed} con otro ID: se guardan con el ${crestId(t.id)})</span>` : ''}</p>` : ''}
+        ${tg && tg.create && !CR.done ? '<p class="note warn">📂 Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk.</p>' : ''}
         ${tget(t, 'e_emblem') ? '<p class="note warn">Este equipo usa un escudo hecho en el modo Editar del juego, que tapa al del Parche. <button class="btn small" type="button" id="crestUsePatch">Usar el escudo del Parche</button></p>' : ''}
       </div>
     </div>
-    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && !tg.listed ? ' (ojo: esa carpeta no figura en sider.ini)' : ''}. Si ya había un escudo, la primera vez se guarda una copia <code>.bak-edit21</code> al lado. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div></details>
+    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && tg.create ? '. <span>Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk</span>' : tg && !tg.listed ? '. <span>Esa carpeta no figura en sider.ini: al guardar la agrego para que Sider la lea</span>' : ''}. Si ya había un escudo, la primera vez se guarda una copia <code>.bak-edit21</code> al lado. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div></details>
   </div>`;
 }
 async function crestFiles(t, files) {
@@ -102,7 +115,9 @@ async function crestSave(t) {
   CR.busy = true; CR.err = ''; CR.msg = ''; crestPaint(t);
   try {
     const sider = await crestSider(true), tg = CR.target = await crestTarget(t, sider);
+    if (!tg.h) tg.h = await (await sider.getDirectoryHandle('livecpk', { create: true })).getDirectoryHandle(tg.root, { create: true });
     const flag = tg.flag || await CREST_FLAG.split('/').reduce(async (d, seg) => (await d).getDirectoryHandle(seg, { create: true }), Promise.resolve(tg.h));
+    const iniAdded = !tg.listed && await crestIniAdd(sider, tg.root);
     let backed = 0, n = 0, last = null;
     for (const [suf] of CREST_SET) {
       const name = crestName(t.id, suf), [w, h] = tg.size[suf], src = CR.own[suf] && CR.own[suf].width === w && CR.own[suf].height === h ? CR.own[suf] : crestFit(CR.own[suf] || CR.main, w, h);
@@ -113,7 +128,9 @@ async function crestSave(t) {
     }
     // el editor muestra el escudo nuevo enseguida
     if (last) { const u = BADGES.url.get(t.id); if (u && u.startsWith('blob:')) URL.revokeObjectURL(u); BADGES.url.delete(t.id); BADGES.idx.set(t.id, last); BADGES.count = BADGES.idx.size; BADGES.loading.add(t.id); await loadLocalBadge(t.id); }
-    CR.done = true; CR.msg = `Listo: ${n} archivos guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó guardado como .bak-edit21)' : ''}. Abrí el juego de nuevo para verlo.`;
+    CR.done = true; CR.msg = `Listo: ${n} archivos guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó guardado como .bak-edit21)' : ''}. Abrí el juego de nuevo para verlo.`
+      + (iniAdded ? ` <span>Agregué la carpeta ${esc(tg.root)} a sider.ini para que Sider la lea (copia en sider.ini.bak-pes-editor).</span>` : '');
+    tg.listed = true; tg.create = false; tg.flag = flag;
     toast('Escudo de ' + tget(t, 'name') + ' guardado.');
   } catch (e) { CR.err = e.message; }
   CR.busy = false; crestPaint(t);

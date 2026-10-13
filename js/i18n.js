@@ -12,23 +12,23 @@ const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const nTxt = s => s.replace(/\s+/g, ' ').trim();
 function i18nInit() {
   if (I18N.dict || LANG === 'es' || typeof I18N_EN === 'undefined') return !!I18N.dict;
-  I18N.dict = new Map();
+  I18N.dict = new Map(); I18N.lower = new Map();
   for (const [k, v] of Object.entries(I18N_EN)) {
     if (!v || k === v) continue;
-    if (!k.includes('{x}')) { I18N.dict.set(k, v); continue; }
+    if (!k.includes('{x}')) { I18N.dict.set(k, v); if (k.length > 3) I18N.lower.set(k.toLowerCase(), v); continue; }
     const lits = k.split('{x}'), longest = lits.reduce((a, b) => (b.length > a.length ? b : a), '');
     if (longest.replace(/[\s·.,:;()]/g, '').length < 2) continue; // sin texto fijo suficiente: atraparía cualquier cosa
-    I18N.pats.push({ re: new RegExp('^' + lits.map(escRe).join('(.*?)') + '$', 's'), longest, v, n: lits.length - 1 });
+    I18N.pats.push({ re: new RegExp('^' + lits.map(escRe).join('(.*?)') + '$', 's'), longest, v, lit: lits.join('').length });
   }
   I18N.pats.sort((a, b) => b.longest.length - a.longest.length); // los más específicos primero
   return true;
 }
 function trCore(s) {
-  const d = I18N.dict, ex = d.get(s); if (ex != null) return ex;
+  const d = I18N.dict, ex = d.get(s) ?? I18N.lower.get(s.toLowerCase()); if (ex != null) return ex;
   for (const p of I18N.pats) {
-    if (!s.includes(p.longest)) continue;
+    if (!s.includes(p.longest) || p.lit < s.length * .3) continue; // el texto fijo tiene que ser buena parte de la frase
     const m = p.re.exec(s); if (!m) continue;
-    const caps = m.slice(1).map(c => (c && /[a-záéíóúñ]/i.test(c) ? tr(c) : c));
+    const caps = m.slice(1).map(c => (c === 'es' ? 's' : c && /[a-záéíóúñ]/i.test(c) ? tr(c) : c)); // "jugador" + "es" → "player" + "s"
     let i = 0; return p.v.replace(/\{(x|\d+)\}/g, (_, k) => (k === 'x' ? caps[i++] ?? '' : caps[+k - 1] ?? ''));
   }
   // frases armadas con " · ": se traduce cada parte

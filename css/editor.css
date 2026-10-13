@@ -1304,6 +1304,7 @@ html[data-gfx="pes6"] .fm.multi{outline-color:#ffd23a;background:#ffd23a2e}
 html[data-gfx="pes6"] .fm.multi .fav{box-shadow:0 0 0 3px #ffd23a99}
 /* selector de idioma, al lado de Recargar */
 .langpick{position:relative;display:inline-flex}
+.langmenu[hidden]{display:none!important}
 #bLang{display:inline-flex;align-items:center;gap:6px;padding-inline:9px}
 #bLang svg,.langmenu svg{display:block;border-radius:2px;box-shadow:0 0 0 1px #0003;flex:none}
 .langcode{font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.04em}

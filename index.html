@@ -818,10 +818,10 @@ tr:hover .face.pl{scale:1.12;box-shadow:inset 0 0 0 2px var(--accent),0 4px 12px
 /* YouTube en el reproductor */
 .mpyt{display:grid;gap:6px;padding:10px;border-radius:12px;background:color-mix(in srgb,var(--sunk) 75%,transparent);border:1px solid var(--line)}
 .mpyt[hidden]{display:none}.mpyt label{font-size:.75rem;color:var(--muted)}.mpyt input{flex:1;min-width:0}
-.mptv{position:absolute;left:0;bottom:calc(100% + 10px);width:100%;height:200px;z-index:3;border-radius:14px;overflow:hidden;background:#000;border:1px solid color-mix(in srgb,var(--mpc) 40%,var(--line));box-shadow:0 18px 44px -16px #000c;display:none;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s}
+.mptv{position:absolute;left:calc(100% + 10px);bottom:0;width:200px;height:200px;z-index:3;border-radius:12px;overflow:hidden;background:#000;border:1px solid color-mix(in srgb,var(--mpc) 40%,var(--line));box-shadow:0 14px 34px -14px #000c;display:none;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s}
 .mp.yt .mptv{display:block}
-.mp.min .mptv{width:260px}
 .mp.open .mptv{bottom:auto;border-radius:16px}
+@media (max-width:640px){.mp.yt:not(.open) .mptv{display:none}}
 .mptvp{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .9s ease}
 .mptvp.on{opacity:1;pointer-events:auto}
 .mptvp iframe,.mptvp>div{width:100%;height:100%;border:0;display:block}
@@ -1030,7 +1030,7 @@ html.revealing body>.top{transition-delay:.05s}html.revealing body>main{transiti
       <input type="search" id="gq" placeholder="Buscar equipo o jugador…  ( / )" autocomplete="off" aria-label="Buscar en todo el archivo" disabled>
       <div class="gres" id="gres" hidden></div>
     </div>
-        <div class="brandsub"><b>Editor EDIT 21</b><span>eFootball PES 2021 · v0.014 alpha</span></div>
+        <div class="brandsub"><b>Editor EDIT 21</b><span>eFootball PES 2021 · v0.015 alpha</span></div>
       </div>
       <div class="btns">
       <button class="btn ghost icon" id="bUndo" type="button" disabled title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button>
@@ -4512,6 +4512,10 @@ function renderWepes(m) {
 const NEWS_TAGS = { interfaz: '🎨 Interfaz', kits: '👕 Kits', archivo: '📁 Archivo', plantel: '📋 Plantel', musica: '🎵 Música', velocidad: '⚡ Velocidad' };
 const newsVer = v => 'v0.' + String(v).padStart(3, '0');
 const NEWS = [
+  { v: 15, d: '2026-10-13 04:45', t: 'YouTube: volumen fijo y video más chico', lead: 'Arreglos en los temas de YouTube del reproductor.', items: [
+    ['musica', 'El volumen se mantiene al cambiar de tema', 'Al pasar de un video de YouTube a otro, el nuevo podía arrancar silenciado o con otro volumen: el navegador silenciaba el segundo reproductor porque no lo habías tocado. Ahora todos los videos suenan en un solo reproductor, con el volumen que elegiste. Entre dos videos el pase es: baja, cambia y sube.'],
+    ['musica', 'Video más chico y al costado', 'El video ahora mide 200 × 200 (lo mínimo que permite YouTube) y está al lado del reproductor, no arriba, así no tapa la lista de equipos. Con el panel abierto sigue ocupando el lugar de la carátula.'],
+    ['musica', 'En el celular, sin video encima de la página', 'En pantallas chicas el video de YouTube no aparece sobre la página: se ve solo con el reproductor abierto. Como YouTube no permite que su audio siga con el video oculto, al cerrar el panel ese tema se pausa y vuelve a sonar al abrirlo. Las canciones propias suenan siempre.']] },
   { v: 14, d: '2026-10-13 04:25', t: 'Una fuente para cada estilo e ícono nuevo', lead: 'Cada estilo gráfico trae su propia fuente, y la pestaña del navegador estrena ícono.', items: [
     ['interfaz', 'Fuente según el estilo', 'Moderno usa Outfit para el texto y Big Shoulders para los títulos: modernas y fáciles de leer. PES 6 Editar usa QuickExpress, la del estilo PES. Retro usa Pixelify Sans y Silkscreen, letras de píxeles inspiradas en los Winning Eleven de PlayStation 1 pero legibles. Clásico usa Tahoma, como los programas de escritorio de antes. Las fuentes nuevas vienen dentro de la página (licencia libre OFL), así que funcionan sin internet.'],
     ['interfaz', 'Cambiar la fuente en cualquier estilo', 'La fuente se elige por estilo: lo que cambies en Retro queda para Retro, y lo de Moderno para Moderno. QuickExpress sigue disponible en todos.', ['Elegí el estilo en "🖥️ Gráficos".', 'Tocá "🎨 Apariencia" y en "Fuente de la página" elegí otra, o "La del estilo" para volver a la de siempre.']],
@@ -6448,6 +6452,17 @@ function mpUiState() {
   el.classList.toggle('open', !!MP.st.open); el.classList.toggle('min', !!MP.st.min);
   el.querySelector('#mpFull').setAttribute('aria-hidden', String(!MP.st.open));
   mpTvPlace(); clearTimeout(MP.tvT); MP.tvT = setTimeout(mpTvPlace, 380);
+  mpYtMobile();
+}
+// en el celular el video de YouTube no se muestra encima de la página: se ve solo con el panel abierto.
+// YouTube no permite que su audio siga sonando con el video oculto, así que al cerrar el panel ese tema se pausa
+// (tus canciones propias siguen sonando normal) y vuelve a sonar al abrirlo.
+const mpIsPhone = () => matchMedia('(max-width: 640px)').matches;
+function mpYtMobile() {
+  if (MP.kind !== 'yt') { MP.ytHid = false; return; }
+  const p = YT_ST.p[YT_ST.cur]; if (!p) return;
+  if (mpIsPhone() && !MP.st.open && MP.playing) { MP.ytHid = true; try { p.pauseVideo(); } catch { } MP.el && MP.el.classList.add('ythold'); if (!MP.ytHidTold) { MP.ytHidTold = 1; toast('En el celular, los temas de YouTube suenan con el reproductor abierto (YouTube no deja ocultar el video). Tus canciones propias suenan siempre.', 7000); } }
+  else if (MP.ytHid && (MP.st.open || !mpIsPhone())) { MP.ytHid = false; MP.el && MP.el.classList.remove('ythold'); if (MP.playing) try { p.playVideo(); } catch { } }
 }
 // video de YouTube: chiquito arriba del reproductor; con el panel abierto ocupa el lugar de la carátula
 function mpTvPlace() {
@@ -6565,8 +6580,10 @@ function ytPlayers() {
 }
 function ytState(n, s) {
   if (n !== YT_ST.cur || MP.kind !== 'yt') return;
-  if (s === 1) { // sonando: completa el título si todavía no lo teníamos
-    const tr = MP.list[MP.i], d = YT_ST.p[n].getVideoData && YT_ST.p[n].getVideoData();
+  if (s === 1) { // sonando: sin silencio, con el volumen del reproductor, y completa el título si faltaba
+    const p = YT_ST.p[n]; try { if (p.isMuted && p.isMuted()) p.unMute(); if (!p.__iv) p.setVolume(ytVol()); } catch { }
+    if (typeof mpYtMobile === 'function' && mpIsPhone() && !MP.st.open) mpYtMobile();
+    const tr = MP.list[MP.i], d = p.getVideoData && p.getVideoData();
     if (tr && tr.yt && d && d.title && tr.t !== d.title) { tr.t = d.title; if (d.author) tr.g = d.author; mpSaveCustom(); mpUi(); }
   }
   if (s === 0 && MP.playing && !MP.going) mpNext('auto');
@@ -6582,7 +6599,7 @@ function ytRamp(p, to, dur) {
   clearInterval(p.__iv); let from; try { from = p.getVolume(); } catch { from = 0; }
   if (dur <= .05) { try { p.setVolume(to); } catch { } return; }
   const t0 = performance.now();
-  p.__iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / (dur * 1000)), v = from + (to - from) * (to > from ? Math.sin(k * Math.PI / 2) : 1 - Math.cos(k * Math.PI / 2)); try { p.setVolume(Math.round(v)); } catch { } if (k >= 1) clearInterval(p.__iv); }, 50);
+  p.__iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / (dur * 1000)), v = from + (to - from) * (to > from ? Math.sin(k * Math.PI / 2) : 1 - Math.cos(k * Math.PI / 2)); try { p.setVolume(Math.round(v)); } catch { } if (k >= 1) { clearInterval(p.__iv); p.__iv = 0; } }, 50);
 }
 const ytVol = () => Math.round((MP.st.mute ? 0 : MP.st.vol) * 100);
 function ytShow(n) {
@@ -6608,16 +6625,18 @@ async function mpGoYt(i, tr, why) {
   let ps = null;
   if (inYt) { try { ps = await ytPlayers(); } catch (e) { toast(e.message, 6000); return; } }
   mpFinish();
-  // lo que sale
-  if (wasPlaying) {
-    if (outYt) { const po = YT_ST.p[YT_ST.cur]; ytRamp(po, 0, D); setTimeout(() => { if (YT_ST.p[YT_ST.cur] !== po || MP.kind !== 'yt') try { po.pauseVideo(); } catch { } }, D * 1000 + 100); }
+  // Todo YouTube suena en UN solo reproductor (el que activaste con tu clic): así el navegador no lo silencia
+  // y el volumen se mantiene entre temas. Entre dos videos el pase es: baja → cambia → sube.
+  const p0 = ps ? ps[0] : YT_ST.p[0];
+  if (wasPlaying && !(outYt && inYt)) {
+    if (outYt) { ytRamp(p0, 0, D); setTimeout(() => { if (MP.kind !== 'yt') try { p0.pauseVideo(); } catch { } }, D * 1000 + 100); }
     else { const od = MP.decks[MP.cur]; mpLevel(od, 0, D); setTimeout(() => { if (MP.kind === 'yt' || MP.decks[MP.cur] !== od) od.a.pause(); }, D * 1000 + 100); }
   }
-  // lo que entra
   if (inYt) {
-    const n = outYt && wasPlaying ? 1 - YT_ST.cur : YT_ST.cur, p = ps[n];
-    try { p.setVolume(0); p.loadVideoById({ videoId: tr.yt }); } catch { }
-    YT_ST.cur = n; YT_ST.err = 0; MP.kind = 'yt'; ytShow(n); ytRamp(p, ytVol(), D); ytTick();
+    const half = outYt && wasPlaying ? D / 2 : 0;
+    const start = () => { try { p0.unMute(); p0.setVolume(0); p0.loadVideoById({ videoId: tr.yt }); p0.unMute(); } catch { } ytRamp(p0, ytVol(), outYt && wasPlaying ? D / 2 : D); };
+    YT_ST.cur = 0; YT_ST.err = 0; MP.kind = 'yt'; ytShow(0); ytTick();
+    if (half) { ytRamp(p0, 0, half); setTimeout(start, half * 1000); } else start();
     if (MP.ctx) mpMaster(mpVolTarget(), .2);
   } else {
     const inD = MP.decks[1 - MP.cur]; let src; try { src = await mpSrc(tr); } catch { return; }
@@ -6639,7 +6658,7 @@ async function mpYtAdd(url) {
   let ids = r.v ? [r.v] : [];
   if (r.list) {
     say('Leyendo la lista…');
-    const p = ps[MP.kind === 'yt' ? 1 - YT_ST.cur : YT_ST.cur];
+    const p = ps[1];
     ids = await new Promise(res => {
       let done = false; const fin = v => { if (!done) { done = true; res(v); } };
       const chk = setInterval(() => { try { const l = p.getPlaylist(); if (l && l.length) { clearInterval(chk); fin(l); } } catch { } }, 300);

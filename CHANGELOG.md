@@ -2,6 +2,16 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.015 alpha · YouTube: volumen fijo y video más chico
+
+*13 de octubre de 2026, 04:45 (hora de Argentina)*
+
+Arreglos en los temas de YouTube del reproductor.
+
+- **El volumen se mantiene al cambiar de tema** (Música). Al pasar de un video de YouTube a otro, el nuevo podía arrancar silenciado o con otro volumen: el navegador silenciaba el segundo reproductor porque no lo habías tocado. Ahora todos los videos suenan en un solo reproductor, con el volumen que elegiste. Entre dos videos el pase es: baja, cambia y sube.
+- **Video más chico y al costado** (Música). El video ahora mide 200 × 200 (lo mínimo que permite YouTube) y está al lado del reproductor, no arriba, así no tapa la lista de equipos. Con el panel abierto sigue ocupando el lugar de la carátula.
+- **En el celular, sin video encima de la página** (Música). En pantallas chicas el video de YouTube no aparece sobre la página: se ve solo con el reproductor abierto. Como YouTube no permite que su audio siga con el video oculto, al cerrar el panel ese tema se pausa y vuelve a sonar al abrirlo. Las canciones propias suenan siempre.
+
 ## v0.014 alpha · Una fuente para cada estilo e ícono nuevo
 
 *13 de octubre de 2026, 04:25 (hora de Argentina)*

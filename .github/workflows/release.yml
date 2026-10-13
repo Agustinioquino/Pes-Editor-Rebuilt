@@ -1,0 +1,30 @@
+# Publica sola una release cada vez que cambia release/VERSION o release/NOTAS.md en main.
+# La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha) y el texto sale de release/NOTAS.md.
+name: Publicar release
+
+on:
+  push:
+    branches: [main]
+    paths: ['release/VERSION', 'release/NOTAS.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Crear la release (si todavía no existe)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          V=$(tr -d ' \r\n' < release/VERSION)
+          TAG="v${V}-alpha"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "La release $TAG ya existe: no hago nada."
+            exit 0
+          fi
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "PES Editor v${V} alpha" --notes-file release/NOTAS.md --prerelease

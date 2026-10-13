@@ -37,14 +37,14 @@ const PROVIDERS = {
       }
       return j.response || [];
     },
-    async searchTeam(name, national) {
-      const clean = normTxt(name).replace(/\b(fc|cf|sc|ac|cd|ca|afc|club|de|del|la|el|the|sad|ssc|as|us|rc|real)\b/g, ' ').replace(/\s+/g, ' ').trim();
-      const tries = [...new Set([normTxt(name), clean, clean.split(' ').sort((a, b) => b.length - a.length)[0]].filter(s => s && s.length >= 3))];
-      let out = [];
-      for (const q of tries) { const res = await this.get('teams', { search: q }); out = res.map(x => ({ id: x.team.id, name: x.team.name, country: x.team.country, logo: x.team.logo, national: !!x.team.national })); if (out.length) break; }
-      const want = normTxt(name), wt = new Set(want.split(' '));
-      const score = c => { const cn = normTxt(c.name); let s = cn === want ? 10 : 0; for (const t of cn.split(' ')) if (wt.has(t) && t.length > 2) s += 2; if (c.national === national) s += 3; else s -= 6; if (/\b(u\d\d|w|women|femenino|ii|b)\b/.test(cn) && !/\b(u\d\d|w|women|femenino|ii|b)\b/.test(want)) s -= 5; return s; };
-      return out.sort((a, b) => score(b) - score(a));
+    async searchTeam(name, national, hint) {
+      const seen = new Set(), out = [];
+      for (const q of TS.queries(name).filter(x => x.length >= 3)) {
+        const res = await this.get('teams', { search: q });
+        for (const x of res) if (!seen.has(x.team.id)) { seen.add(x.team.id); out.push({ id: x.team.id, name: x.team.name, country: x.team.country, logo: x.team.logo, national: !!x.team.national }); }
+        if (out.length && TS.confident(Math.max(...out.map(c => TS.score(c, name, national, hint))))) break;
+      }
+      return out.map(c => Object.assign(c, { score: TS.score(c, name, national, hint) })).sort((a, b) => b.score - a.score);
     },
     async lastMatches(tid, n = 5) {
       let fx;
@@ -63,18 +63,20 @@ PROVIDERS.espn = {
     if (!r.ok) throw new Error('ESPN respondió ' + r.status + '.');
     return r.json();
   },
-  async searchTeam(name, national) {
-    const clean = normTxt(name).replace(/\b(fc|cf|sc|ac|cd|ca|afc|club|sad|ssc)\b/g, ' ').replace(/\s+/g, ' ').trim();
-    let out = [];
-    for (const q of [...new Set([name, clean])]) {
-      const j = await this.get('https://site.web.api.espn.com/apis/search/v2?limit=10&type=team&query=' + encodeURIComponent(q));
+  // "Como 1907" → "Como": se prueba el nombre entero, sin año, sin siglas, la palabra más larga… hasta dar con un candidato convincente
+  async searchTeam(name, national, hint) {
+    const seen = new Set(), out = [];
+    for (const q of TS.queries(name)) {
+      let j; try { j = await this.get('https://site.web.api.espn.com/apis/search/v2?limit=10&type=team&query=' + encodeURIComponent(q)); } catch (e) { if (!out.length) throw e; break; }
       const res = (j.results || []).filter(x => x.type === 'team').flatMap(x => x.contents || []);
-      out = res.filter(x => (x.sport || 'soccer') === 'soccer' || /soccer|football/.test(x.uid || '')).map(x => { const id = +((x.uid || '').match(/~t:(\d+)/) || [])[1]; return { id, name: x.displayName, country: x.subtitle || '', league: x.defaultLeagueSlug || '', logo: id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png` : '', national: /^fifa\.|\.world|friendly|nations|copa\.america|euro/.test(x.defaultLeagueSlug || '') || /national|selecci|FIFA/i.test(x.subtitle || '') }; }).filter(x => x.id);
-      if (out.length) break;
+      for (const x of res) {
+        if (!((x.sport || 'soccer') === 'soccer' || /soccer|football/.test(x.uid || ''))) continue;
+        const id = +((x.uid || '').match(/~t:(\d+)/) || [])[1]; if (!id || seen.has(id)) continue; seen.add(id);
+        out.push({ id, name: x.displayName, country: x.subtitle || '', league: x.defaultLeagueSlug || '', logo: `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png`, national: /^fifa\.|\.world|friendly|nations|copa\.america|euro/.test(x.defaultLeagueSlug || '') || /national|selecci|FIFA/i.test(x.subtitle || '') });
+      }
+      if (out.length && TS.confident(Math.max(...out.map(c => TS.score(c, name, national, hint))))) break;
     }
-    const want = normTxt(name), wt = new Set(want.split(' '));
-    const score = c => { const cn = normTxt(c.name); let s = cn === want ? 10 : 0; for (const t of cn.split(' ')) if (wt.has(t) && t.length > 2) s += 2; s += c.national === national ? 3 : -6; if (/\b(u\d\d|w|women|femenino|ii|b|reserves)\b/.test(cn) && !/\b(u\d\d|w|women|femenino|ii|b|reserves)\b/.test(want)) s -= 5; return s; };
-    return out.sort((a, b) => score(b) - score(a));
+    return out.map(c => Object.assign(c, { score: TS.score(c, name, national, hint) })).sort((a, b) => b.score - a.score);
   },
   async lastMatches(tid, n = 6) {
     const sc = await this.get(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/teams/${tid}/schedule`);
@@ -151,6 +153,8 @@ function espnFormation(xi) {
   return (am ? [d, mid, am + wing, att] : [d, mid, att + wing]).filter(Boolean).join('-');
 }
 const PROVIDER = () => PROVIDERS[PREFS.lmProv] || PROVIDERS.espn;
+// pista para la búsqueda: el país del equipo en el EDIT (ISO-3 y nombre), que en la web aparece como liga ("ita.1", "Italian Serie A")
+const lmHint = t => { if (!t || isNat(t)) return null; const row = (typeof T_ !== 'undefined' && T_.countries || []).find(c => c[0] === tget(t, 'country')); return row ? TS.hint(row[2], row[1]) : null; };
 function trimFixture(fx, tid) {
   const side = fx.teams.home.id === tid ? 'home' : 'away', other = side === 'home' ? 'away' : 'home', opp = fx.teams[other];
   const lu = (fx.lineups || []).find(l => l.team.id === tid);
@@ -166,7 +170,7 @@ async function lmFetch(t, force, pick) {
   try {
     let api = pick || LM.map[lk(t)];
     if (!api) {
-      const c = await P.searchTeam(tget(t, 'name'), isNat(t));
+      const c = await P.searchTeam(tget(t, 'name'), isNat(t), lmHint(t));
       if (!c.length) throw new Error('No encontré "' + tget(t, 'name') + '" en la web. Probá buscarlo con otro nombre.');
       api = c[0]; LM.cands = c.slice(0, 8);
     }
@@ -179,6 +183,7 @@ async function lmFetch(t, force, pick) {
     }
     if (api.logo && !BADGES.url.has(t.id) && !BADGES.online.get(t.id)) { BADGES.online.set(t.id, api.logo); saveOnlineBadges(); }
     lmSave(); LM.sel[t.id] = 0; lmComputeAdj(t); RATE_GEN++;
+    if (typeof seasonFetch === 'function') seasonFetch(t, force || (c0 && c0.api.id !== api.id)); // toda la temporada, lesiones e historial: en segundo plano
     const n = LM.cache[lk(t)].fx.length;
     LM.msg = n ? `${n} partido${n > 1 ? 's' : ''} de ${api.name}.` : `API-Football no tiene partidos terminados recientes de ${api.name}.`;
   } catch (e) { LM.err = e.message === 'NOKEY' ? 'Falta la clave de API-Football.' : e.message; }
@@ -214,40 +219,80 @@ function lmElsewhere(p) {
   return null;
 }
 
-// ---- rating by performance: weighted by recency and minutes, damped and capped ----
-// ---- forma: rendimiento reciente ajustado por edad, valor de mercado, temporada del equipo y goles ----
-const GA_EXPECT = { gk: 0, df: 0.07, mf: 0.25, fw: 0.55 };
+// ---- forma: rendimiento reciente + temporada + goles + equipo + historial + lesiones, ajustado por edad y con topes ----
+// Cada componente está en puntos de valoración; el detalle de cada jugador se ve con el botón ⓘ (lmWhy) y la explicación
+// general en "Cómo se calcula la forma". Lo que vale para todos: la exigencia sube con la valoración y el valor de mercado.
+const GA_EXPECT = { gk: 0, df: 0.07, mf: 0.25, fw: 0.55 }, GA_K = { gk: 0, df: 2, mf: 1.4, fw: 1.4 };
+const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 function lmComputeAdj(t) {
   const c = LM.cache[lk(t)]; if (!c) return;
-  const acc = new Map();
+  const acc = new Map(), aidOf = new Map();
   c.fx.forEach((fx, k) => {
     const w0 = [1, .85, .72, .6, .5, .42][k] || .35, mm = lmMatch(t, fx);
     for (const p of [...fx.xi, ...fx.subs]) {
-      if (p.rt == null || p.min < 10) continue; const x = mm.get(p.id); if (!x) continue;
+      const x = mm.get(p.id); if (!x) continue; if (!aidOf.has(x.pid)) aidOf.set(x.pid, p.id);
+      if (p.rt == null || p.min < 10) continue;
       const w = w0 * Math.min(1, p.min / 60), a = acc.get(x.pid) || { s: 0, w: 0, n: 0, last: [], min: 0, g: 0, as: 0 };
       a.s += p.rt * w; a.w += w; a.n++; a.last.push(p.rt); a.min += p.min; a.g += (p.st && p.st.g) || 0; a.as += (p.st && p.st.a) || 0; acc.set(x.pid, a);
     }
   });
+  const sd = typeof seasonData === 'function' ? seasonData(t) : null;
+  // con la temporada analizada entran también los que no jugaron los últimos partidos (lesionados, suplentes): la forma los refleja
+  if (sd) for (const [aid, x] of sd.mm) { if (!acc.has(x.pid)) { if (!sd.agg[aid] && !sd.inj[aid]) continue; acc.set(x.pid, { s: 0, w: 0, n: 0, last: [], min: 0, g: 0, as: 0 }); } if (!aidOf.has(x.pid)) aidOf.set(x.pid, aid); }
   const se = c.season, ppg = se && se.pj ? (se.w * 3 + se.d) / se.pj : null;
+  const prevPpg = sd && sd.prev && sd.prev.pj >= 5 ? (sd.prev.w * 3 + sd.prev.d) / sd.prev.pj : null;
+  const done = sd ? sd.done : 0;
   for (const [pid, a] of acc) {
     // la exigencia se mide contra la media original del parche (no contra la ya modificada), así no se retroalimenta
     const b0 = pInfoBase(pid) || { r: 75, pos: 5 }, orig = S.names.get(pid), b = orig && orig.r ? Object.assign({}, b0, { r: orig.r }) : b0, age = b.a || 26, grp = POS_GRP[b.pos] || 'mf';
-    const value = (playerValueBase(pid) || { v: 1 }).v, avg = a.s / a.w, rel = Math.min(1, a.w / 2.5);
+    const value = (playerValueBase(pid) || { v: 1 }).v, avg = a.w ? a.s / a.w : null, rel = Math.min(1, a.w / 2.5);
     // lo que se espera de él: más valoración y más valor de mercado = más exigencia
     const expect = 6.6 + (b.r - 75) * 0.02 + Math.min(0.3, Math.log10(1 + value) * 0.12);
-    const perf = (avg - expect) * 2.2 * rel;
-    // goles y asistencias cada 90' comparado con lo normal para su puesto
-    const ga90 = a.min ? (a.g + a.as * 0.7) * 90 / a.min : 0;
-    const goals = grp === 'gk' ? 0 : Math.max(-0.5, Math.min(1.5, (ga90 - GA_EXPECT[grp]) * (grp === 'df' ? 2 : 1.4))) * rel;
-    // cómo le va al equipo en la temporada (puntos por partido)
-    const team = ppg == null ? 0 : Math.max(-0.8, Math.min(0.8, (ppg - 1.4) * 0.5));
-    let total = perf + goals + team;
+    // 1) últimos partidos: puntaje contra lo esperado (pesan más el más reciente y los minutos)
+    const perf = avg == null ? 0 : (avg - expect) * 2.2 * rel;
+    // 2) temporada completa: puntaje promedio y cuántos minutos juega de los posibles
+    const aid = aidOf.get(pid), s = sd && aid != null ? sd.agg[aid] : null;
+    let season = 0, share = null, sAvg = null, sPerf = 0, sMin = 0;
+    if (s && done >= 3) {
+      const rts = s.r.filter(e => e[2] >= 20); sAvg = rts.length ? rts.reduce((z, e) => z + e[1], 0) / rts.length : null;
+      share = Math.min(1, s.min / (done * 90));
+      sPerf = sAvg == null ? 0 : clampN((sAvg - expect) * 1.3 * Math.min(1, s.app / 8), -1.5, 1.5);
+      sMin = done >= 5 ? (share >= 0.7 ? 0.3 : share >= 0.4 ? 0.1 : share >= 0.2 ? -0.1 : s.app ? -0.4 : -0.6) : 0;
+      season = sPerf + sMin;
+    }
+    // 3) goles y asistencias cada 90' contra lo normal para su puesto (con la temporada si hay 270'+, si no con los últimos partidos)
+    const useS = !!(s && s.min >= 270), gMin = useS ? s.min : a.min, gG = useS ? s.g : a.g, gA = useS ? s.a : a.as;
+    const ga90 = gMin ? (gG + gA * 0.7) * 90 / gMin : 0, gRel = useS ? Math.min(1, gMin / 900) : rel;
+    const goals = grp === 'gk' ? 0 : clampN((ga90 - GA_EXPECT[grp]) * GA_K[grp], -0.5, 1.5) * gRel;
+    // 4) equipo: puntos por partido de la temporada y comparación con la anterior
+    const team = ppg == null ? 0 : clampN((ppg - 1.4) * 0.5, -0.8, 0.8) + (prevPpg == null || se.pj < 3 ? 0 : clampN((ppg - prevPpg) * 0.4, -0.4, 0.4));
+    // 5) historial: lo que hizo en temporadas anteriores modera la actual (una racha de 3 partidos no lo vuelve crack) y premia al titular de siempre
+    const hs = sd && aid != null ? sd.hist(aid).filter(h => h.y && h.y < sd.year && (h.app || h.min)).slice(0, 3) : [];
+    let hist = 0, hGa90 = null, hApp = null, hBase = null;
+    if (hs.length) {
+      const tot = hs.reduce((z, h, i) => { const w = [1, .7, .5][i]; z.g += (h.g + h.a * 0.7) * w; z.m += (h.min || h.app * 75) * w; z.app += h.app * w; z.w += w; return z; }, { g: 0, m: 0, app: 0, w: 0 });
+      hGa90 = tot.m ? tot.g * 90 / tot.m : 0; hApp = tot.app / tot.w;
+      if (grp !== 'gk') { hBase = clampN((hGa90 - GA_EXPECT[grp]) * GA_K[grp], -0.5, 1.5) * Math.min(1, tot.m / (tot.w * 900)); hist = clampN((hBase - goals) * 0.35, -0.6, 0.6); }
+      if (hApp >= 25 && share != null && share >= 0.6) hist += 0.2;
+    }
+    // 6) lesión o ausencia: lesionado baja (más si es larga); duda baja menos; habitual que faltó a las últimas 3 citaciones, baja
+    let inj = 0, injury = null, absent = 0;
+    if (sd && aid != null) {
+      injury = sd.inj[aid] || null; absent = sd.absent(aid);
+      if (injury) { const st = String(injury.st).toLowerCase(), days = typeof seasInjDays === 'function' ? seasInjDays(injury) : 0; inj = /doubt|question|day|probable|duda/.test(st) ? -0.5 : days >= 60 ? -1.5 : -1; }
+      else if (absent >= 3 && s && s.app >= 3) inj = -1;
+    }
+    let total = perf + season + goals + team + hist + inj;
     // edad: los jóvenes suben más rápido y bajan menos; los veteranos al revés
-    const up = age <= 21 ? 1.3 : age <= 29 ? 1 : age <= 32 ? 0.8 : 0.6, down = age <= 21 ? 0.9 : age <= 29 ? 1 : age <= 32 ? 1.15 : 1.3;
-    total *= total >= 0 ? up : down;
+    const up = age <= 21 ? 1.3 : age <= 29 ? 1 : age <= 32 ? 0.8 : 0.6, down = age <= 21 ? 0.9 : age <= 29 ? 1 : age <= 32 ? 1.15 : 1.3, mul = total >= 0 ? up : down;
+    total *= mul;
     const capUp = age <= 23 ? 4 : age >= 33 ? 2 : 3, capDown = age >= 33 ? -4 : -3;
-    let adj = Math.max(capDown, Math.min(capUp, Math.round(total)));
-    LM.adj.set(pid, { adj, avg: Math.round(avg * 100) / 100, expect: Math.round(expect * 100) / 100, n: a.n, last: a.last, g: a.g, as: a.as, min: a.min, ppg, age, parts: { perf: +perf.toFixed(2), goals: +goals.toFixed(2), team: +team.toFixed(2), mul: total >= 0 ? up : down } });
+    const adj = clampN(Math.round(total), capDown, capUp);
+    const r2 = v => Math.round(v * 100) / 100;
+    LM.adj.set(pid, { adj, avg: avg == null ? null : r2(avg), expect: r2(expect), n: a.n, last: a.last, g: a.g, as: a.as, min: a.min, ppg, age, grp, value,
+      parts: { perf: r2(perf), season: r2(season), sPerf: r2(sPerf), sMin: r2(sMin), goals: r2(goals), team: r2(team), hist: r2(hist), inj: r2(inj), mul, raw: r2(total), capUp, capDown },
+      s: s ? { app: s.app, st: s.st, min: s.min, g: s.g, a: s.a, yc: s.yc, rc: s.rc, avg: sAvg == null ? null : r2(sAvg), share: share == null ? null : Math.round(share * 100), games: done } : null,
+      ga90: r2(ga90), gaExp: GA_EXPECT[grp], useS, prevPpg, injury, absent, hist: hs.map(h => ({ y: h.y, n: h.n, team: h.team, app: h.app, g: h.g, a: h.a, min: h.min })), hGa90: hGa90 == null ? null : r2(hGa90), hApp: hApp == null ? null : Math.round(hApp), deep: !!sd });
   }
 }
 function lmRestoreAdj() { if (!S.ix) return; LM.adj.clear(); for (const k of Object.keys(LM.cache)) { if (!k.startsWith(PREFS.lmProv + ':')) continue; const t = S.ix.teamById.get(+k.split(':')[1]); if (t) lmComputeAdj(t); } RATE_GEN++; }
@@ -371,9 +416,12 @@ function lastMatchCard(t) {
     const i = Math.min(LM.sel[t.id] || 0, c.fx.length - 1), fx = c.fx[i];
     body += `<div class="row lmteam">${c.api.logo ? `<img src="${esc(c.api.logo)}" alt="" class="lmlogo" onerror="this.remove()">` : ''}<b>${esc(c.api.name)}</b><span class="note">${esc(c.api.country || '')}</span>
       <button class="btn ghost small" type="button" id="lmChange">✏️ ¿No es este equipo? Cambiar</button><button class="btn ghost small" type="button" id="lmRefresh" ${busy ? 'disabled' : ''}>🔄 Actualizar</button><span class="note">🕒 Actualizado ${new Date(c.when).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}${espn ? '' : ' · consultas hoy: ' + lmUse(0) + '/100'}</span></div>`;
-    if (c.season && c.season.pj) { const z = c.season, ppg = (z.w * 3 + z.d) / z.pj; body += `<div class="lmseason"><span class="lab">🗓 Temporada</span><span class="chip" title="Partidos jugados">🗓 <b>${z.pj}</b> PJ</span><span class="chip ok" title="Ganados">✅ <b>${z.w}</b> G</span><span class="chip" title="Empatados">🤝 <b>${z.d}</b> E</span><span class="chip warn" title="Perdidos">❌ <b>${z.l}</b> P</span><span class="chip" title="Goles a favor y en contra">⚽ <b>${z.gf}</b>-<b>${z.ga}</b> <small>(${z.gf - z.ga >= 0 ? '+' : ''}${z.gf - z.ga})</small></span><span class="chip" title="Puntos por partido">📈 ${ppg.toFixed(2).replace('.', ',')} pts/PJ ${adjHtml(ppg >= 2 ? 3 : ppg >= 1.6 ? 1 : ppg >= 1.2 ? 0 : ppg >= 0.9 ? -1 : -3, null) || adjHtml(0, {})}</span></div>`; }
-    const formRows = PD.roster(S.d, t).map(x => ({ x, f: LM.adj.get(x.pid) })).filter(e => e.f).sort((a, b) => b.f.adj - a.f.adj || b.f.avg - a.f.avg);
-    if (formRows.length) body += `<details class="ksgroup lmform"><summary>📊 Forma del plantel · <span class="up">▲ ${formRows.filter(e => e.f.adj > 0).length} en alza</span> · <span class="eq">➡ ${formRows.filter(e => !e.f.adj).length} estables</span> · <span class="dn">▼ ${formRows.filter(e => e.f.adj < 0).length} en baja</span></summary><div class="formgrid">${formRows.map(({ x, f }) => { const i = pInfoBase(x.pid); return `<div class="frow">${i ? posBadge(i.pos) : ''}<span class="cnm"><b>${esc(playerName(x.pid) || 'ID ' + x.pid)}</b><small>${f.avg} prom. · ${f.n} PJ${f.g ? ' · ' + f.g + ' G' : ''}${f.as ? ' · ' + f.as + ' A' : ''} · ${f.age} años</small></span><span class="crt"><b class="${vcls(i ? i.r : 0)}">${i ? i.r : ''}</b>${adjHtml(f.adj, f)}</span></div>`; }).join('')}</div></details>`;
+    const seasChips = typeof seasonChips === 'function' ? seasonChips(t) : '';
+    if (c.season && c.season.pj) { const z = c.season, ppg = (z.w * 3 + z.d) / z.pj; body += `<div class="lmseason"><span class="lab">🗓 Temporada</span><span class="chip" title="Partidos jugados">🗓 <b>${z.pj}</b> PJ</span><span class="chip ok" title="Ganados">✅ <b>${z.w}</b> G</span><span class="chip" title="Empatados">🤝 <b>${z.d}</b> E</span><span class="chip warn" title="Perdidos">❌ <b>${z.l}</b> P</span><span class="chip" title="Goles a favor y en contra">⚽ <b>${z.gf}</b>-<b>${z.ga}</b> <small>(${z.gf - z.ga >= 0 ? '+' : ''}${z.gf - z.ga})</small></span><span class="chip" title="Puntos por partido">📈 ${ppg.toFixed(2).replace('.', ',')} pts/PJ ${adjHtml(ppg >= 2 ? 3 : ppg >= 1.6 ? 1 : ppg >= 1.2 ? 0 : ppg >= 0.9 ? -1 : -3, null) || adjHtml(0, {})}</span>${seasChips}</div>`; }
+    else if (seasChips) body += `<div class="lmseason"><span class="lab">🗓 Temporada</span>${seasChips}</div>`;
+    if (typeof scorersHtml === 'function') body += scorersHtml(t);
+    const formRows = PD.roster(S.d, t).map(x => ({ x, f: LM.adj.get(x.pid) })).filter(e => e.f).sort((a, b) => b.f.adj - a.f.adj || (b.f.avg || 0) - (a.f.avg || 0));
+    if (formRows.length) body += `<details class="ksgroup lmform" ${LM.formOpen ? 'open' : ''}><summary>📊 Forma del plantel · <span class="up">▲ ${formRows.filter(e => e.f.adj > 0).length} en alza</span> · <span class="eq">➡ ${formRows.filter(e => !e.f.adj).length} estables</span> · <span class="dn">▼ ${formRows.filter(e => e.f.adj < 0).length} en baja</span></summary><p class="note">Tocá ⓘ en un jugador para ver de dónde sale su forma.</p><div class="formgrid">${formRows.map(({ x, f }) => lmFormRow(x, f)).join('')}</div></details>`;
     if (!c.fx.length) body += '<p class="note">No hay partidos terminados recientes con alineaciones.</p>';
     else {
       body += `<div class="lmfx" role="tablist">${c.fx.map((f2, k) => `<button type="button" role="tab" class="lmf ${k === i ? 'on' : ''}" data-fx="${k}" aria-selected="${k === i}"><span class="d">${fmtDate(f2.date)} · ${esc(f2.league || '')}</span><span class="m">${f2.home ? '' : '@ '}${esc(f2.opp)}</span><span class="s ${f2.gf > f2.ga ? 'w' : f2.gf < f2.ga ? 'l' : 'e'}">${f2.gf}-${f2.ga}</span><span class="fo">${esc(f2.formation || '—')}</span></button>`).join('')}</div>`;
@@ -389,7 +437,57 @@ function lastMatchCard(t) {
   }
   return `<div class="lmcard"><div class="row" style="justify-content:space-between"><h3>⚽ Últimos partidos reales</h3><span class="row"><button class="btn ghost small" type="button" id="lmClose">✕ Cerrar</button></span></div>
     ${body}
-    <details class="lmhelp"><summary>ℹ️ Cómo se calcula la forma</summary><p class="note">La <b>forma</b> combina el puntaje de los últimos partidos (pesa más el más reciente y los minutos jugados), los goles y asistencias para su puesto, la campaña del equipo, la edad (los jóvenes suben más rápido, los veteranos bajan más rápido) y el valor de mercado (a los cracks se les exige más). Topes: hasta <b>+4</b> en jóvenes, +3 en general, +2 en mayores de 33; hasta <b>-3</b> (-4 en veteranos). Flechas: ${adjHtml(3, null)} muy en alza · ${adjHtml(1, null)} en alza · ${adjHtml(0, {})} estable · ${adjHtml(-1, null)} en baja · ${adjHtml(-3, null)} muy en baja. "Por rendimiento" aplica ese ajuste a la valoración en todo el editor; no cambia las habilidades guardadas en el juego.</p></details></div>`;
+    <details class="lmhelp" ${LM.helpOpen ? 'open' : ''}><summary>ℹ️ Cómo se calcula la forma</summary><div class="note">
+      <p>La <b>forma</b> compara lo que se espera de cada jugador con lo que está haciendo en la realidad. Cada parte suma o resta puntos de valoración; el total se redondea y tiene tope. Con ⓘ se ve el detalle de cada jugador con sus números.</p>
+      <ul>
+        <li><b>📈 Últimos partidos:</b> el puntaje de cada partido (lo calcula el editor con goles, asistencias, tiros, atajadas, tarjetas y resultado) contra lo que se le exige. Pesan más el partido más reciente y los minutos jugados.</li>
+        <li><b>🗓 Temporada completa:</b> su puntaje promedio en todos los partidos analizados y qué parte de los minutos posibles juega: el titular fijo suma, el que casi no juega resta.</li>
+        <li><b>⚽ Goles y asistencias:</b> cada 90 minutos, contra lo normal para su puesto (un defensor que hace goles suma más que un delantero). Se usa la temporada si ya tiene 270 minutos; si no, los últimos partidos.</li>
+        <li><b>🏟 Equipo:</b> los puntos por partido de la campaña y si el equipo mejoró o empeoró respecto de la temporada anterior.</li>
+        <li><b>📚 Historial:</b> sus temporadas anteriores moderan la actual (una racha de tres partidos no lo vuelve crack, ni un mal mes lo hunde) y premian al titular de siempre.</li>
+        <li><b>🤕 Lesiones y ausencias:</b> lesionado −1 (−1,5 si lleva más de dos meses), en duda −0,5; el habitual que faltó a las últimas tres citaciones, −1.</li>
+        <li><b>🎂 Edad:</b> multiplica el total: hasta 21 años sube ×1,3 y baja ×0,9; de 30 a 32 sube ×0,8 y baja ×1,15; de 33 sube ×0,6 y baja ×1,3. Topes: hasta <b>+4</b> en jóvenes, +3 en general, +2 en mayores de 33; hasta <b>-3</b> (-4 en veteranos).</li>
+        <li><b>⭐ Exigencia:</b> a los cracks se les pide más: el puntaje esperado sube con la valoración del parche y con el valor de mercado.</li>
+      </ul>
+      <p>Fuentes: con <b>ESPN</b> entran los últimos 6 partidos, toda la temporada, el plantel con sus lesionados, la campaña anterior y el historial de cada jugador (se guarda 7 días). Con API-Football solo entran los últimos partidos. Flechas: ${adjHtml(3, null)} muy en alza · ${adjHtml(1, null)} en alza · ${adjHtml(0, {})} estable · ${adjHtml(-1, null)} en baja · ${adjHtml(-3, null)} muy en baja. "Por rendimiento" aplica ese ajuste a la valoración en todo el editor; no cambia las habilidades guardadas en el juego hasta que tocás "Usar esta formación y este 11".</p>
+    </div></details></div>`;
+}
+// una fila de "Forma del plantel": últimos partidos, temporada, goles, lesión y el botón ⓘ con el detalle
+function lmFormRow(x, f) {
+  const i = pInfoBase(x.pid), s = f.s, bits = [];
+  if (f.avg != null) bits.push(`${f.avg} prom.`);
+  bits.push(f.n ? `${f.n} PJ` : 'sin partidos recientes');
+  if (s) { bits.push(`${s.app} PJ temp.`); if (s.g) bits.push(s.g + ' G'); if (s.a) bits.push(s.a + ' A'); if (s.share != null && s.games >= 5) bits.push(`${s.share}% min.`); }
+  else { if (f.g) bits.push(f.g + ' G'); if (f.as) bits.push(f.as + ' A'); }
+  if (f.age) bits.push(`${f.age} años`);
+  const badge = f.injury ? `<span class="injb out" title="${esc((f.injury.t ? f.injury.t + ' · ' : '') + f.injury.st + (f.injury.d ? ' · ' + f.injury.d : ''))}">🤕 <span>${/doubt|question|day|probable/i.test(f.injury.st) ? 'Duda' : 'Lesionado'}</span></span>` : f.parts.inj && f.absent >= 3 ? `<span class="injb abs" title="Era habitual y faltó a las últimas ${f.absent} citaciones">👻 <span>Ausente</span></span>` : '';
+  return `<div class="frow">${i ? posBadge(i.pos) : ''}<span class="cnm"><b>${esc(playerName(x.pid) || 'ID ' + x.pid)}${badge}</b><small>${bits.join(' · ')}</small></span><span class="crt"><b class="${vcls(i ? i.r : 0)}">${i ? i.r : ''}</b>${adjHtml(f.adj, f)}<button type="button" class="why" data-why="${x.pid}" title="Cómo se calcula la forma de este jugador">ⓘ</button></span></div>`;
+}
+// detalle de un jugador: cada parte de la forma con sus números
+const GRP_LONG = { gk: 'arquero', df: 'defensor', mf: 'mediocampista', fw: 'delantero' };
+function lmWhy(t, pid) {
+  const f = LM.adj.get(pid), i = pInfoBase(pid); if (!f) return;
+  const P = f.parts, pts = v => `<b class="${v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : ''}">${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}</b>`;
+  const dec = v => v == null ? '?' : (+v).toFixed(2).replace('.', ',');
+  const row = (ic, name, data, v) => `<tr><td>${ic} <span>${name}</span></td><td>${data}</td><td>${pts(v)}</td></tr>`;
+  const s = f.s, lastTxt = f.last.length ? f.last.map(r => `<b class="lrt ${rtCls(r)}" data-noi18n>${r.toFixed(1)}</b>`).join(' ') : '';
+  const rows = [
+    row('📈', 'Últimos partidos', f.n ? `<span>${f.n} partidos</span> · <span>promedio ${f.avg}</span> · <span>se esperaba ${f.expect}</span> · ${lastTxt}` : '<span>No jugó los últimos partidos analizados.</span>', P.perf),
+    row('🗓', 'Temporada', s ? `<span>${s.app} PJ (${s.st} de titular)</span> · <span>${s.min}′ = ${s.share == null ? '?' : s.share}% de los minutos posibles</span>${s.avg != null ? ` · <span>puntaje promedio ${s.avg}</span>` : ''}${s.games < 5 ? ' · <span>pocos partidos analizados todavía</span>' : ''}` : f.deep ? '<span>Sin partidos en la temporada analizada.</span>' : '<span>Temporada sin analizar (fuente ESPN con "Analizar toda la temporada").</span>', P.season),
+    row('⚽', 'Goles y asistencias', f.grp === 'gk' ? '<span>No aplica a arqueros.</span>' : `<span>${f.useS ? s.g : f.g} G y ${f.useS ? s.a : f.as} A en ${f.useS ? s.min : f.min}′</span> (<span>${f.useS ? 'temporada' : 'últimos partidos'}</span>) · <span>${dec(f.ga90)} por 90′</span> · <span>lo normal para un ${GRP_LONG[f.grp]} es ${dec(f.gaExp)}</span>`, P.goals),
+    row('🏟', 'Equipo', f.ppg == null ? '<span>Sin campaña.</span>' : `<span>${dec(f.ppg)} pts/PJ esta temporada</span>${f.prevPpg != null ? ` · <span>anterior ${dec(f.prevPpg)}</span>` : ''}`, P.team),
+    row('📚', 'Historial', f.hist.length ? `${f.hist.map(h => `<span data-noi18n>${esc(h.n)}: ${h.app} PJ · ${h.g} G · ${h.a} A${h.min ? ' · ' + h.min + '′' : ''}</span>`).join('<br>')}<br><span>${dec(f.hGa90)} por 90′ en sus últimas ${f.hist.length} temporadas</span>${f.hApp != null ? ` · <span>${f.hApp} partidos por temporada</span>` : ''}` : f.deep ? '<span>Sin historial en la web.</span>' : '<span>Solo con la temporada analizada.</span>', P.hist),
+    row('🤕', 'Lesión o ausencia', f.injury ? `<span data-noi18n>${esc((f.injury.t ? f.injury.t + ' · ' : '') + f.injury.st)}</span>${f.injury.d ? ` · <span data-noi18n>${esc(f.injury.d)}</span>` : ''}${f.injury.date ? ` · <span>desde ${fmtDate(f.injury.date)} (${typeof seasInjDays === 'function' ? seasInjDays(f.injury) : '?'} días)</span>` : ''}` : f.absent >= 3 && P.inj ? `<span>Era habitual y faltó a las últimas ${f.absent} citaciones.</span>` : f.deep ? '<span>Sin lesiones informadas.</span>' : '<span>Solo con la temporada analizada.</span>', P.inj),
+  ];
+  const sum = P.perf + P.season + P.goals + P.team + P.hist + P.inj, base = i ? i.r : '?', r0 = S.names.get(pid), rb = r0 && r0.r ? r0.r : base;
+  const html = `<div class="why"><div class="whyhead">${i ? posBadge(i.pos) : ''}<b>${esc(playerName(pid) || 'ID ' + pid)}</b> <span class="chip"><span>Valoración</span> <b data-noi18n>${rb}</b></span> <span class="chip">${f.age} años</span> <span class="chip"><span>Se le exige un puntaje de</span> <b data-noi18n>${f.expect}</b></span></div>
+    <p class="note">Más valoración y más valor de mercado = más exigencia. Cada parte suma o resta puntos de valoración.</p>
+    <table class="whytable"><tr><th>Parte</th><th>Datos</th><th>Puntos</th></tr>${rows.join('')}
+      <tr class="tot"><td><span>Suma</span></td><td></td><td>${pts(sum)}</td></tr>
+      <tr><td>🎂 <span>Edad</span></td><td><span>${f.age} años</span>: <span>${f.age <= 21 ? 'joven: sube más rápido y baja menos' : f.age >= 33 ? 'veterano: sube menos y baja más rápido' : f.age >= 30 ? 'sube algo menos y baja algo más' : 'edad normal'}</span></td><td data-noi18n>×${P.mul}</td></tr>
+      <tr class="tot"><td><span>Forma</span></td><td><span>${dec(P.raw)} redondeado, con tope ${P.capUp > 0 ? '+' : ''}${P.capUp} / ${P.capDown}</span></td><td>${adjHtml(f.adj, null) || adjHtml(0, {})}</td></tr></table>
+    <p class="note">${i ? `<span>Valoración</span> <b class="${vcls(rb)}" data-noi18n>${rb}</b> → <b class="${vcls(Math.max(40, Math.min(99, rb + f.adj)))}" data-noi18n>${Math.max(40, Math.min(99, rb + f.adj))}</b> <span>en el modo "Por rendimiento". En el juego se guarda solo al tocar "Usar esta formación y este 11".</span>` : ''}</p></div>`;
+  ksModal(tr('Cómo se calcula la forma de ') + (playerName(pid) || ''), html, () => { });
 }
 function bindLastMatch(t, m) {
   lmRerender = () => later(() => renderTeams(m));
@@ -400,7 +498,7 @@ function bindLastMatch(t, m) {
   on('lmGo', () => lmFetch(t));
   on('lmRefresh', () => lmFetch(t, true));
   on('lmChange', () => { LM.search = true; LM.q = c0name(t); renderTeams(m); });
-  const doSearch = async () => { const q = $('lmQ').value.trim(); if (q.length < 3) { toast('Escribí al menos 3 letras.'); return; } LM.q = q; LM.busy = t.id; LM.err = ''; renderTeams(m); try { LM.cands = await PROVIDER().searchTeam(q, isNat(t)); if (!LM.cands.length) LM.err = 'Sin resultados para "' + q + '".'; } catch (e) { LM.err = e.message === 'NOKEY' ? 'Falta la clave de API-Football.' : e.message; } LM.busy = 0; renderTeams(m); };
+  const doSearch = async () => { const q = $('lmQ').value.trim(); if (q.length < 3) { toast('Escribí al menos 3 letras.'); return; } LM.q = q; LM.busy = t.id; LM.err = ''; renderTeams(m); try { LM.cands = await PROVIDER().searchTeam(q, isNat(t), lmHint(t)); if (!LM.cands.length) LM.err = 'Sin resultados para "' + q + '".'; } catch (e) { LM.err = e.message === 'NOKEY' ? 'Falta la clave de API-Football.' : e.message; } LM.busy = 0; renderTeams(m); };
   on('lmQGo', doSearch); const q = $('lmQ'); if (q) q.onkeydown = e => { if (e.key === 'Enter') doSearch(); };
   document.querySelectorAll('[data-cand]').forEach(b => b.onclick = () => { const x = LM.cands[+b.dataset.cand]; LM.search = false; delete LM.cache[lk(t)]; lmFetch(t, true, x); });
   document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => { LM.sel[t.id] = +b.dataset.fx; renderTeams(m); });
@@ -411,6 +509,10 @@ function bindLastMatch(t, m) {
   on('lmApply', () => { const c = LM.cache[lk(t)], fx = c.fx[LM.sel[t.id] || 0]; lmConfirmApply(t, fx, m); });
   const pv = $('lmProv'); if (pv) pv.onclick = e => { const b = e.target.closest('[data-v]'); if (!b || b.dataset.v === PREFS.lmProv) return; PREFS.lmProv = b.dataset.v; savePrefs(); LM.err = ''; LM.cands = null; LM.ready = null; RATE_GEN++; render(); };
   const md = $('lmMode'); if (md) md.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; PREFS.rateMode = b.dataset.v; savePrefs(); RATE_GEN++; render(); };
+  const dp = $('lmDeep'); if (dp) dp.onchange = () => { PREFS.lmDeep = dp.checked; savePrefs(); LM.ready = null; RATE_GEN++; if (dp.checked && typeof seasonFetch === 'function') seasonFetch(t); renderTeams(m); };
+  document.querySelectorAll('[data-why]').forEach(b => b.onclick = () => lmWhy(t, +b.dataset.why));
+  document.querySelectorAll('details.lmform').forEach(d => d.ontoggle = () => { LM.formOpen = d.open; });
+  document.querySelectorAll('details.lmhelp').forEach(d => d.ontoggle = () => { LM.helpOpen = d.open; });
 }
 const c0name = t => (LM.map[lk(t)] && LM.map[lk(t)].name) || tget(t, 'name');
 
@@ -430,7 +532,7 @@ async function sqFetch(t, rer) {
   try {
     const P = PROVIDER();
     let api = LM.map[lk(t)];
-    if (!api) { const c = await P.searchTeam(tget(t, 'name'), isNat(t)); if (!c.length) throw new Error('No encontré "' + tget(t, 'name') + '" en la web.'); api = c[0]; LM.map[lk(t)] = api; LM.cands = c.slice(0, 8); lmSave(); }
+    if (!api) { const c = await P.searchTeam(tget(t, 'name'), isNat(t), lmHint(t)); if (!c.length) throw new Error('No encontré "' + tget(t, 'name') + '" en la web.'); api = c[0]; LM.map[lk(t)] = api; LM.cands = c.slice(0, 8); lmSave(); }
     const players = await P.squad(api.id);
     SQ.cache[lk(t)] = { api, when: Date.now(), players }; sqSave();
     // neutral headshots (no club or national kit): usable everywhere

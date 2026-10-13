@@ -132,11 +132,15 @@ function pInfo(id) {
 function formLevel(a) { return a >= 3 ? 2 : a >= 1 ? 1 : a <= -3 ? -2 : a <= -1 ? -1 : 0; }
 function formTip(f) {
   if (!f) return '';
-  const p = f.parts || {}, bits = [`Rinde ${f.avg} de promedio en ${f.n} partido${f.n > 1 ? 's' : ''} (se esperaba ${f.expect ?? '?'})`];
-  if (f.g || f.as) bits.push(`${f.g} gol${f.g === 1 ? '' : 'es'} y ${f.as} asistencia${f.as === 1 ? '' : 's'} en ${f.min}′`);
+  const p = f.parts || {}, bits = [];
+  if (f.n) bits.push(`Rinde ${f.avg} de promedio en ${f.n} partido${f.n > 1 ? 's' : ''} (se esperaba ${f.expect ?? '?'})`); else bits.push('Sin partidos recientes');
+  if (f.s) bits.push(`temporada: ${f.s.app} PJ, ${f.s.g} G y ${f.s.a} A${f.s.share != null ? ', ' + f.s.share + '% de los minutos' : ''}`);
+  else if (f.g || f.as) bits.push(`${f.g} gol${f.g === 1 ? '' : 'es'} y ${f.as} asistencia${f.as === 1 ? '' : 's'} en ${f.min}′`);
   if (f.ppg != null) bits.push(`equipo: ${f.ppg.toFixed(2).replace('.', ',')} pts por partido`);
+  if (f.hist && f.hist.length) bits.push(`historial: ${f.hist.length} temporada${f.hist.length > 1 ? 's' : ''}`);
+  if (f.injury) bits.push(`lesión: ${f.injury.t || f.injury.st}`); else if (f.absent >= 3 && p.inj) bits.push(`ausente en las últimas ${f.absent} citaciones`);
   if (f.age) bits.push(`${f.age} años (${f.age <= 21 ? 'joven: sube más rápido' : f.age >= 33 ? 'veterano: baja más rápido' : f.age >= 30 ? 'sube algo menos' : 'edad normal'})`);
-  return bits.join(' · ') + ` → ${f.adj > 0 ? '+' : ''}${f.adj}`;
+  return bits.join(' · ') + ` → ${f.adj > 0 ? '+' : ''}${f.adj}` + ' · ⓘ en Forma del plantel para ver el detalle';
 }
 // valoración para la cancha/banco según la vista elegida: del juego, por rendimiento o comparando las dos
 function rateHtml(pi, tag = 'span') {

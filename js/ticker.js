@@ -10,13 +10,11 @@ const TICKER_IDEAS = [
 ];
 // lo nuevo de la última versión, contado para la barra
 const TICKER_NEW = [
-  'Novedad v0.040: el editor ahora también habla inglés; elegí el idioma con la bandera al lado de Recargar.',
-  'Novedad v0.040: en Formación podés elegir varios jugadores con Ctrl y moverlos todos juntos.',
-  'Novedad v0.040: la cabecera de Formación muestra el valor de Transfermarkt al lado del estimado.',
-  'Novedad v0.040: en este modo PES 6, cada cambio de pantalla trae un golpe de estática, como cambiar de canal.',
-  'Novedad v0.040: la pestaña elegida tiene su trazado rojo dando vueltas, y cada modo gráfico su propia animación.',
-  'Novedad v0.040: el panel de equipos es más ancho y filtra por liga o país.',
-  'Novedad v0.040: los escudos que faltan se buscan en Wikipedia, y la ✕ del video de YouTube lo saca de la pantalla.'
+  'Novedad v0.041: en Datos y colores podés subir tu propio escudo y el editor lo guarda en el Parche con todos sus tamaños.',
+  'Novedad v0.041: si tu Sider no tiene carpeta de escudos, el editor la crea y la agrega a sider.ini.',
+  'Novedad v0.041: el editor avisa cuando hay una versión nueva y se actualiza con un toque.',
+  'Novedad v0.041: las fotos y escudos de internet se guardan y cargan al instante, también sin conexión.',
+  'Novedad v0.041: si tu Sider está dentro de Archivos de programa, podés abrirlo solo para ver.'
 ];
 const TICKER_SAGA = [
   'PES nació en 2001 en PlayStation 2. En Japón la saga se llamaba Winning Eleven.',

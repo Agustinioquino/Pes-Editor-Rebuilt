@@ -2,6 +2,24 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.042 alpha · Valoración dinámica con datos reales
+
+*13 de octubre de 2026, 15:45 (hora de Argentina)*
+
+La valoración por rendimiento ahora mira toda la temporada, los goleadores, las lesiones y el historial de cada jugador, y te muestra de dónde sale cada punto.
+
+- **Búsqueda que encuentra a tu equipo** (Plantel). "Como 1907" ahora encuentra a "Como": el editor prueba el nombre sin el año, sin siglas como FC, Club o Calcio y con la palabra más importante, y usa el país del equipo en tu EDIT para elegir bien.
+- **Toda la temporada, no solo 6 partidos** (Plantel). Con ESPN, el editor analiza en segundo plano todos los partidos de la temporada: goleadores, asistencias, minutos y puntaje de cada jugador. También trae la campaña de la temporada anterior.
+  1. Abrí un equipo y entrá en Formación.
+  2. Tocá "⚽ Últimos partidos reales" con la fuente ESPN.
+  3. Dejá marcado "Analizar toda la temporada" y esperá a que termine.
+- **Lesionados y ausentes** (Plantel). El plantel de ESPN dice quién está lesionado o en duda. El lesionado baja su forma (más si lleva más de dos meses afuera), y también el habitual que faltó a las últimas 3 citaciones.
+- **Historial de cada jugador** (Plantel). Las temporadas anteriores de cada jugador moderan la forma: una racha corta no lo vuelve crack, un mal mes no lo hunde y el titular de siempre suma.
+- **Cómo se calcula, jugador por jugador** (Plantel). En Forma del plantel cada jugador tiene un botón ⓘ con el detalle: cada parte de la forma con sus números, la edad y los topes. La ayuda "Cómo se calcula la forma" explica la fórmula completa.
+  1. Abrí "📊 Forma del plantel".
+  2. Tocá ⓘ al lado de un jugador.
+- **En desarrollo** (Interfaz). Un cartel muestra lo que está en prueba y lo que viene. También queda arriba de todo en Novedades.
+
 ## v0.041 alpha · Escudos propios y siempre la última versión
 
 *13 de octubre de 2026, 14:45 (hora de Argentina)*

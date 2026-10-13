@@ -1356,3 +1356,22 @@ html[data-gfx="pes6"] .updbar .sub{color:#55534d}
 .crestfiles .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
 @media (max-width:700px){.crestup .crestrow{grid-template-columns:auto auto}.crestinfo{grid-column:1/-1}}
+/* ---------- últimos partidos: temporada, goleadores, forma por jugador ---------- */
+.lmtop{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0}.lmtop .lab{margin-right:2px}.lmtop .chip small{margin-left:4px;color:var(--muted);font-size:.62rem}
+.chip.lmdeep{cursor:pointer;gap:4px}.chip.lmdeep input{margin:0;width:13px;height:13px;accent-color:var(--accent)}
+.chip.lmprog .spin{width:10px;height:10px;border-width:2px}
+.frow .crt{display:inline-flex;align-items:center;gap:4px}.frow .why{font:inherit;font-size:.78rem;line-height:1;width:20px;height:20px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer}.frow .why:hover{color:var(--accent);border-color:var(--accent)}
+.injb{display:inline-block;font-family:var(--mono);font-weight:400;font-size:.62rem;padding:0 5px;border-radius:99px;margin-left:5px;vertical-align:middle;white-space:nowrap}.injb.out{background:var(--warn-soft);color:var(--warn)}.injb.abs{background:var(--sunk);color:var(--muted);border:1px dashed var(--line)}
+.why .whyhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:1rem}
+.whytable{width:100%;border-collapse:collapse;font-size:.84rem;margin:8px 0}.whytable th,.whytable td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.whytable th{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.whytable td:first-child{white-space:nowrap;font-weight:600}.whytable td:last-child{text-align:right;font-family:var(--mono);white-space:nowrap}.whytable .tot td{font-weight:700;background:var(--sunk)}.whytable .pos{color:#0f9d48}.whytable .neg{color:#d32f2f}
+.lmhelp ul{margin:6px 0;padding-left:1.1em}.lmhelp li{margin:3px 0}.lmhelp .note p{margin:.4em 0}
+.lmform > .note{margin:4px 0 6px}
+.lmform .frow .cnm small{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
+/* ---------- en desarrollo ---------- */
+.devlist{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}.devlist li{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start}.devlist .devic{font-size:1.2rem;line-height:1.3}.devlist b{font-family:var(--display);font-size:1rem}.devlist p{margin:2px 0 0;font-size:.84rem;color:var(--muted);line-height:1.35}.devlist .devst{font-size:.62rem;padding:0 .45rem;vertical-align:middle}
+.devcard{margin:0 0 14px;border-style:dashed}.devcard h3{margin:0}
+.devpop{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(420px,calc(100% - 36px));max-height:calc(100vh - 140px);overflow:auto;z-index:20;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 18px 50px #0006;opacity:0;translate:0 24px;transition:opacity .3s,translate .3s}
+.devpop.on{opacity:1;translate:0 0}.devpop h3{margin:0;font-family:var(--display)}.devpop .devbtns{justify-content:flex-end;margin-top:4px}
+html[data-gfx="pes6"] .devpop{border-radius:0;border:2px solid #8f8c84;background:#f2f1ec;color:#2b2b2b}
+html[data-gfx="pes6"] .devcard{border-radius:0}

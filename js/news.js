@@ -4,6 +4,13 @@
 const NEWS_TAGS = { interfaz: '🎨 Interfaz', kits: '👕 Kits', archivo: '📁 Archivo', plantel: '📋 Plantel', musica: '🎵 Música', velocidad: '⚡ Velocidad' };
 const newsVer = v => 'v0.' + String(v).padStart(3, '0');
 const NEWS = [
+  { v: 42, d: '2026-10-13 15:45', t: 'Valoración dinámica con datos reales', lead: "La valoración por rendimiento ahora mira toda la temporada, los goleadores, las lesiones y el historial de cada jugador, y te muestra de dónde sale cada punto.", items: [
+    ["plantel", "Búsqueda que encuentra a tu equipo", "\"Como 1907\" ahora encuentra a \"Como\": el editor prueba el nombre sin el año, sin siglas como FC, Club o Calcio y con la palabra más importante, y usa el país del equipo en tu EDIT para elegir bien."],
+    ["plantel", "Toda la temporada, no solo 6 partidos", "Con ESPN, el editor analiza en segundo plano todos los partidos de la temporada: goleadores, asistencias, minutos y puntaje de cada jugador. También trae la campaña de la temporada anterior.", ["Abrí un equipo y entrá en Formación.", "Tocá \"⚽ Últimos partidos reales\" con la fuente ESPN.", "Dejá marcado \"Analizar toda la temporada\" y esperá a que termine."]],
+    ["plantel", "Lesionados y ausentes", "El plantel de ESPN dice quién está lesionado o en duda. El lesionado baja su forma (más si lleva más de dos meses afuera), y también el habitual que faltó a las últimas 3 citaciones."],
+    ["plantel", "Historial de cada jugador", "Las temporadas anteriores de cada jugador moderan la forma: una racha corta no lo vuelve crack, un mal mes no lo hunde y el titular de siempre suma."],
+    ["plantel", "Cómo se calcula, jugador por jugador", "En Forma del plantel cada jugador tiene un botón ⓘ con el detalle: cada parte de la forma con sus números, la edad y los topes. La ayuda \"Cómo se calcula la forma\" explica la fórmula completa.", ["Abrí \"📊 Forma del plantel\".", "Tocá ⓘ al lado de un jugador."]],
+    ["interfaz", "En desarrollo", "Un cartel muestra lo que está en prueba y lo que viene. También queda arriba de todo en Novedades."]] },
   { v: 41, d: '2026-10-13 14:45', t: 'Escudos propios y siempre la última versión', lead: 'Escudos propios en un par de clics, el editor que se actualiza solo y una salida para quienes tienen Sider dentro de Archivos de programa.', items: [
     ['plantel', 'Subí tus propios escudos', 'En Datos y colores hay una sección Escudo. Subís un PNG (o tus archivos e_XXXXXX_*.png) y el editor arma los 11 archivos que usa el juego, cada uno con su tamaño y con el ID de 6 cifras del equipo, y los guarda en livecpk\\…\\common\\render\\symbol\\flag. Lo que había queda como .bak-edit21.', ['Conectá la carpeta Sider.', 'Abrí un equipo y entrá en Datos y colores.', 'En Escudo tocá "Elegir imagen o archivos" (o arrastrá el PNG).', 'Tocá "Guardar escudo en el Parche" y abrí el juego de nuevo.']],
     ['plantel', 'Carpeta de escudos automática', 'Si tu Sider no tiene ninguna carpeta con escudos, el editor crea livecpk\\PESEditor-Escudos y la agrega a sider.ini, antes de las otras, para que tus escudos manden. Guarda una copia del sider.ini como sider.ini.bak-pes-editor.'],
@@ -167,6 +174,7 @@ function renderNews(m) {
   m.innerHTML = `<section class="card newsc">
     <div class="newshead"><div><h2>Novedades</h2><p class="note">Lo que cambió en cada versión de PES Editor, con fecha y cómo usarlo. Estás usando la <b>${newsVer(NEWS_VER)} alpha</b> del ${newsDate(NEWS[0].d).full}.</p></div>
       <div class="newstools"><input type="search" id="newsQ" placeholder="Buscar en los cambios…" value="${esc(NEWS_Q)}" aria-label="Buscar en las novedades"><button type="button" class="btn small ghost" id="newsAll">${NEWS_OPEN && NEWS_OPEN.size === NEWS.length ? 'Cerrar todo' : 'Abrir todo'}</button></div></div>
+    ${typeof devCard === 'function' ? devCard() : ''}
     <div class="seg newsf">${[['todo', 'Todo'], ...Object.entries(NEWS_TAGS)].map(([k, n]) => `<button type="button" aria-pressed="${NEWS_F === k}" data-nf="${k}">${n}</button>`).join('')}</div>
     ${list.length ? '' : '<p class="note" style="margin-top:14px">No hay cambios que coincidan con la búsqueda.</p>'}
     <ol class="newslist">${list.map((r, i) => { const dt = newsDate(r.d); return `<li class="newsv ${r.v > seen ? 'fresh' : ''}" style="--i:${i}">

@@ -1,80 +1,75 @@
 <div align="center">
 
-<img alt="La ventana para editar la media de un jugador en PES 6 Editar, con la media en grande, los botones −5 a +5, la barra y el hexágono" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/portada.png" width="100%">
+<img alt="El logo de PES Editor Rebuilt al lado de la ventana de la app para Windows, con la carpeta Sider conectada" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.044/portada.png" width="100%">
 
-**[▶ Abrir PES Editor](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · [📜 Todos los cambios](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/blob/main/CHANGELOG.md) · [🐛 Avisar un error](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose)
+# 💻 ¡PES Editor Rebuilt ya es un programa para Windows!
+
+**[⬇️ Descargar el instalador (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil, sin instalar](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe) · [▶ Seguir usándolo en el navegador](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)
 
 </div>
 
-## ⚽ De qué se trata
+## ⚽ Lo que tanto esperábamos
 
-¿Querés que tu promesa de 72 llegue a 80 sin tocar 25 números uno por uno? Ahora **la media se cambia a mano alzada**: arrastrás una punta del hexágono, o tocás la valoración en el plantel y la subís con un botón. El editor reparte el cambio entre las habilidades para que el jugador **siga siendo el mismo jugador**, solo que mejor (o peor, no juzgamos 😅).
+Esta es la versión que más ganas teníamos de sacar. 🥹
 
-Y como actualizamos seguido, también nos ocupamos de que **actualizar no te cueste nada**: antes de recargar el editor te pregunta si guardar, y tu trabajo queda guardado en el caché del navegador.
+Hasta hoy, si tu carpeta Sider estaba dentro de **`C:\Program Files (x86)`** (justo donde Steam instala PES 2021, y donde la tienen muchísimos Parches), Chrome te frenaba en seco con un *"Esta carpeta no se puede abrir… contiene archivos del sistema"*. Podías mirar, pero no guardar ni un escudo. Y no era culpa del editor: **ninguna página web puede escribir ahí**. Probamos de todo, hasta revisamos el código de Chrome por dentro, y no hay atajo.
+
+Así que hicimos lo único que faltaba: **sacamos el editor del navegador**. 🚀
+
+Ahora descargás un **.exe**, lo abrís con doble clic y tenés **PES Editor Rebuilt en su propia ventana**, con su logo nuevo en el escritorio y en el menú Inicio, **conectado a tu carpeta Sider donde está**. Sin moverla, sin trucos y con permiso para guardar en el Parche. Es el comienzo de algo grande: con el editor viviendo en tu PC, los atajos para crear mods que vienen después van a poder hacer mucho más.
 
 ---
 
-## ⬡ Ficha hexagonal
+## ⬇️ Instalarlo en 1 minuto
 
-En **Jugadores → Habilidades** hay un hexágono con seis áreas: **Ataque, Técnica, Pase, Velocidad, Físico y Defensa** (los arqueros tienen el suyo: Portero, Atajar, Despejar, Reflejos, Alcance y Físico). Cada punta es el promedio de las habilidades de esa área.
+1. Descargá **[PES-Editor-Rebuilt-Setup.exe](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** (o la **[versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)**, que se abre sin instalar nada).
+2. Si Windows muestra **"Windows protegió tu PC"**, tocá **Más información › Ejecutar de todas formas**. Aparece porque la app todavía no tiene firma digital: es la misma que se arma, a la vista de todos, en este repositorio.
+3. Abrí **PES Editor Rebuilt**, elegí tu carpeta **Documentos** y después **Conectar carpeta Sider**.
+4. Listo. La próxima vez entra directo. 🎉
 
-- **Arrastrá una punta** y todas las habilidades del área suben o bajan lo mismo: las diferencias entre ellas se mantienen.
-- La **valoración aproximada** cambia en vivo mientras arrastrás, con el +/− que suma.
-- Una **línea punteada** muestra cómo estaba al abrir el archivo, y cada área dice cuánto cambió.
-- También con el **teclado**: flechas para ±1, RePág y AvPág para ±5.
-- Cada movimiento es un solo paso de **Deshacer**.
+<img alt="La app de escritorio en PES 6 Editar, en el paso Conectar carpeta Sider, sin ningún aviso de Archivos de programa" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.044/app-sider.png" width="100%">
 
-<img alt="El hexágono en PES 6 Editar mientras se arrastra Ataque: sube a 94 (+21) y la valoración aproximada a 85 (+10)" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/hexagono.png" width="100%">
+## ✨ Por qué la app es lo más
 
-## ✎ La media, desde el plantel
-
-La primera pantalla del editor ahora sirve para editar: en la columna **Val.** de la tabla del plantel, cada valoración tiene un lápiz ✎. Tocala y se abre una ventana **por encima de la página**, sin salir del equipo.
-
-<img alt="La tabla del plantel con la valoración 75 de un jugador marcada con un lápiz" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/plantel.png" width="100%">
-
-| | Qué hace |
+| | |
 |---|---|
-| **−5 −1 +1 +5** | Mueven la media de a poco o de a mucho. |
-| **Barra de 40 a 99** | Elegís la media directo; el hexágono muestra en vivo cómo quedaría. |
-| **Hexágono** | Para retocar un área puntual sin tocar las demás. |
-| **Volver a como estaba** | Deshace todo lo de esa ventana (queda en Rehacer). |
-| **Abrir ficha completa** | Te lleva a Habilidades del jugador. |
+| 📂 **Tu carpeta Sider, donde está** | Conecta la carpeta aunque esté en Archivos de programa, y guarda kits, escudos y el módulo `edit21_db` como siempre. |
+| 🔄 **Siempre la última versión** | La app carga el editor desde GitHub cada vez que la abrís. Cada novedad llega sola, **sin reinstalar nunca**. |
+| 🗂 **Su propio caché** | Guarda fotos, escudos, tus ajustes y el trabajo sin guardar. Después de la primera vez, **abre también sin internet**. |
+| 🔒 **Solo lo que vos elegís** | Lee y escribe únicamente dentro de las carpetas que elegís con el selector de Windows (Documentos y Sider), y las recuerda. |
+| 🛟 **Avisa si algo frena** | Si Windows no deja escribir en una carpeta, te dice que abras la app como administrador; si el juego tiene un archivo abierto, te pide que lo cierres. |
+| 🎨 **Todo igual que en la web** | Los cuatro modos gráficos, la música, Novedades, español e inglés: es exactamente el mismo editor. |
 
-En los jugadores de campo se mueven por igual todas las habilidades de juego (las de arquero no se tocan); en los arqueros, las de arquero y el salto. Si un jugador está en la base del Parche pero no en tu EDIT, la ventana te ofrece agregarlo para poder editarlo.
+## 🏷️ Nombre nuevo: PES Editor Rebuilt
 
-<img alt="La ventana de un jugador del Parche que todavía no está en el EDIT, con el botón para agregarlo" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/parche.png" width="100%">
+El editor estrena nombre: **PES Editor Rebuilt**. Lo vas a ver en la pestaña del navegador, al instalarlo desde Chrome y en la app. Y la app viene con **logo propio**: el escudo con el césped, la pelota y las tres estrellas. ⭐⭐⭐
 
-## ⬆️ El aviso de versión nueva, en serio
+## 🌐 ¿Seguís en el navegador? También mejoró
 
-- Revisa **cada 3 minutos** con la pestaña a la vista (antes cada 10) y apenas volvés a ella.
-- Mira el **último cambio publicado en GitHub**: cuando aparece uno, revisa cada 30 segundos hasta que la página nueva está lista.
-- Muestra **qué cambió**, con el título del cambio.
-- **Actualizar ahora** pide cada archivo de nuevo, así no queda nada de la versión anterior.
+Si Chrome no te deja abrir tu carpeta Sider, ahora el editor **te explica por qué** y te ofrece las salidas, empezando por descargar la app:
 
-<img alt="El aviso Hay una versión nueva del editor con el título del cambio y los botones Actualizar ahora y Más tarde" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/aviso.png" width="100%">
+<img alt="La ventana ¿Chrome no te dejó abrir la carpeta Sider? con el botón Descargar para Windows y los pasos para mover la carpeta" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.044/ayuda.png" width="100%">
 
-## 🗂 Tu trabajo, a salvo en el caché
+- **⬇️ Descargar para Windows**: la solución completa, con un botón directo al .exe.
+- **Sacar solo la carpeta Sider de Archivos de programa**: con los pasos uno por uno. Dentro del mismo disco **tarda un segundo aunque pese muchos GB**, porque Windows no copia los archivos, solo cambia la carpeta donde están. El juego queda donde está.
+- **Abrirla solo para ver**: kits, caras, escudos y nombres, sin guardar.
 
-Si tenés cambios sin guardar y tocás **Actualizar ahora** (o **Borrar caché**), el editor te pregunta qué hacer:
+La pantalla de carga también lo avisa desde el principio, con el enlace para descargar la app:
 
-- **🗂 Guardar en el caché y recargar**: tus cambios quedan en este navegador y vuelven solos. El EDIT del juego no se toca.
-- **💾 Guardar en el juego y recargar** (o **Guardar copia**, si abriste el archivo a mano).
-- **Actualizar sin guardar** o **Cancelar**.
+<img alt="La pantalla de carga en PES 6 Editar con el aviso de Archivos de programa y el enlace para descargar la app" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.044/carga.png" width="100%">
 
-<img alt="El cuadro Actualizar el editor en PES 6 Editar con las opciones Guardar en el caché y Guardar en el juego" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/pregunta.png" width="100%">
+## 🔧 sider.ini se arregla solo
 
-Al volver, el editor abre **el mismo EDIT**, con tus cambios, el historial de **Deshacer** y en la **pantalla donde estabas**. Si el juego guardó el EDIT mientras tanto, te avisa antes de pisar nada. Lo guardado en el caché dura un día.
-
-<img alt="El editor después de recargar, con el aviso Recuperé 2 cambios sin guardar del caché" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.043/recuperado.png" width="100%">
-
-## 🔧 Arreglo
-
-- En pantallas de 1366 px o menos, con la carpeta del juego abierta, el aviso **"N cambios sin guardar"** quedaba escondido. Ahora siempre se ve.
+Si movés la carpeta Sider y tu `sider.ini` tenía rutas completas a la carpeta vieja (`cpk.root = "C:\Program Files…\livecpk\…"`), al conectarla **el editor las cambia por rutas relativas** (`.\livecpk\…`) para que Sider las siga encontrando. Antes guarda una copia en `sider.ini.bak-pes-editor`, por las dudas.
 
 ---
 
-> 🧪 **Está en beta.** El hexágono, la media rápida y el caché se estrenan en esta versión. Si una media no queda como esperabas o algo no se recupera, [avisanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose). Y cuando termines, guardá en el juego igual 😉
-
-*Las capturas usan un plantel de prueba con jugadores de ejemplo.*
+> 🧪 **La app está en beta.** Es su primera versión. Si algo no se guarda en el Parche o la app no abre, [avisanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose) y lo arreglamos rápido. Y como siempre, el editor hace una copia de respaldo antes de cada guardado. 😉
 
 **Todo en español e inglés**, como siempre 🇦🇷🇬🇧
+
+<details><summary>🇬🇧 The help window in English</summary>
+
+<img alt="The Didn't Chrome let you open the Sider folder? window in English, in PES 6 Editar mode" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.044/ayuda-en.png" width="100%">
+
+</details>

@@ -1,11 +1,12 @@
 # Publica sola una release cada vez que cambia release/VERSION o release/NOTAS.md en main.
-# La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha) y el texto sale de release/NOTAS.md.
+# La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha), el texto sale de release/NOTAS.md
+# y el subtítulo de release/TITULO (opcional). Adjunta el editor en .zip y el módulo de Sider.
 name: Publicar release
 
 on:
   push:
     branches: [main]
-    paths: ['release/VERSION', 'release/NOTAS.md']
+    paths: ['release/VERSION', 'release/NOTAS.md', 'release/TITULO']
   workflow_dispatch:
 
 permissions:
@@ -27,4 +28,11 @@ jobs:
             echo "La release $TAG ya existe: no hago nada."
             exit 0
           fi
-          gh release create "$TAG" --target "$GITHUB_SHA" --title "PES Editor v${V} alpha" --notes-file release/NOTAS.md --prerelease
+          TITLE="PES Editor v${V} alpha"
+          if [ -s release/TITULO ]; then TITLE="$TITLE · $(head -n1 release/TITULO | tr -d '\r')"; fi
+          # el editor completo para usar sin internet: descomprimir y abrir index.html con Chrome o Edge
+          ZIP="pes-editor-v${V}.zip"
+          zip -qr "$ZIP" index.html manifest.webmanifest sw.js css js icons LICENSE README.md
+          FILES=("$ZIP")
+          [ -f sider/edit21_db.lua ] && FILES+=("sider/edit21_db.lua")
+          gh release create "$TAG" "${FILES[@]}" --target "$GITHUB_SHA" --title "$TITLE" --notes-file release/NOTAS.md --prerelease

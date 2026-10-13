@@ -15,7 +15,7 @@ function parseKitCfg(txt, n) {
 async function connectKits() {
   if (!window.showDirectoryPicker) { toast('Tu navegador no permite abrir carpetas. Usá Chrome o Edge.'); return; }
   let dir;
-  try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'read' }); } catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); return; }
+  try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'readwrite' }); } catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); return; }
   let root = null;
   for (const p of ['', 'kit-server', 'content/kit-server']) { try { const d = p ? await subDir(dir, p) : dir; if (await readText(d, 'map.txt') != null) { root = d; break; } } catch { } }
   if (!root) { toast('No encontré content\\kit-server\\map.txt ahí. Elegí la carpeta "Dream Patch Sider" (la que tiene sider.exe).', 8000); return; }
@@ -50,6 +50,7 @@ async function connectKits() {
       namesMsg = ` y ${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
+  if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, true); } catch { } }
   toast(`Kits cargados: ${out.size} equipos${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render();
 }
 function teamKits(t) {

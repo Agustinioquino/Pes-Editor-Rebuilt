@@ -38,7 +38,7 @@ async function indexFaces(sider) {
 }
 async function restoreFaces() {
   const h = await idbGet('sider'); if (!h) return;
-  try { if ((await h.queryPermission({ mode: 'read' })) === 'granted') { await indexFaces(h); await indexBadges(h); loadDbQuiet(h); } else FACES.needsPerm = h; } catch { }
+  try { if ((await h.queryPermission({ mode: 'read' })) === 'granted') { await indexFaces(h); await indexBadges(h); await loadDbQuiet(h); if (typeof sdbLoadAll === 'function') { const st = await sdbLoadAll(h); let told = false; try { told = sessionStorage.getItem('pes-editor-db-notice') === '1'; } catch { } if (st.missing.length && !told) { try { sessionStorage.setItem('pes-editor-db-notice', '1'); } catch { } setTimeout(() => { if (!document.querySelector('.intro')) sdbNotice(st); else setTimeout(() => sdbNotice(st), 2500); }, 1500); } } } else FACES.needsPerm = h; } catch { }
 }
 async function grantFaces() {
   const h = FACES.needsPerm; if (!h) return;
@@ -231,6 +231,6 @@ function faceTools(pid) {
 }
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider) sin mostrar nada
-async function loadDbQuiet(sider) {
-  try { const d = await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size) { S.names = m; namesSave(); } } catch { }
+async function loadDbQuiet(sider, force) {
+  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force) { S.names = m; S.namesFrom = 'Dream Patch (base del juego)'; namesSave(); RATE_GEN++; } } catch { }
 }

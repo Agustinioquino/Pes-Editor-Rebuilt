@@ -12,7 +12,7 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.016%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.017%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-requerido-555)
 
@@ -38,6 +38,8 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Guarda directo en el juego.** Hace una copia de respaldo del archivo anterior antes de cada guardado.
 - **Detecta cambios del juego.** Si el juego guardó el EDIT mientras el editor estaba abierto, lo recarga para que veas lo mismo que el juego.
 - **Deshacer y rehacer** (Ctrl+Z / Ctrl+Y) para cualquier cambio.
+- **Instala solo el módulo de Sider.** Al tocar *Conectar carpeta Sider*, el editor copia `edit21_db.lua` en `modules\` y lo suma a `sider.ini` si falta (con copia de respaldo del ini). Ese módulo es de solo lectura: cuando abrís el juego, guarda una copia de la base del Dream Patch para que el editor tenga nombres, equipos y planteles completos.
+- **Avisa si la base no está cargada** y explica qué hacer: abrir el juego hasta el menú principal, entrar en *Partido › Amistoso* hasta la elección de equipos y cerrar. Si Windows no dejó escribir la copia, muestra el error que quedó en `sider.log` y cómo resolverlo.
 - **Pestaña WEPES.** Muestra los archivos de esa carpeta con miniaturas (png, jpg, dds, ftex), deja entrar a subcarpetas, ver en grande y copiar archivos nuevos.
 
 ### 📋 Equipos, plantel y formación
@@ -55,6 +57,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
   - banco de suplentes;
   - valoración del equipo.
 - **Valoración por rendimiento.** Usa los últimos partidos reales; los cambios se ven con una animación al aplicarlos.
+- **Plantel según la base del juego.** Si un equipo está vacío en tu EDIT, se ve el plantel que trae el Dream Patch y se puede copiar al EDIT con un toque (se deshace con Ctrl+Z).
 - **Selecciones nacionales.** Convocatorias con los jugadores de cada país.
 - **Datos, colores, estadio, rivales y banderas** de cada equipo.
 
@@ -110,10 +113,13 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
 3. En el aviso del navegador elegí **"Permitir en cada visita"** para no repetir el paso.
 4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del Dream Patch (la que tiene `sider.exe`, por ejemplo `eFootball PES 2021\Dream Patch Sider`). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
-5. Editá y tocá **"Guardar en el juego"**. Cerrá el juego antes de guardar.
+5. **La primera vez, prepará la base del juego.** El editor instala el módulo `edit21_db.lua` en Sider y te avisa. Abrí PES 2021 con Sider hasta el **menú principal**, entrá en **Partido › Amistoso** hasta la **elección de equipos** y cerrá el juego. Volvé al editor y tocá **"Ya lo hice"**.
+6. Editá y tocá **"Guardar en el juego"**. Cerrá el juego antes de guardar.
 
 > [!TIP]
 > **¿No ves nombres de jugadores ni valoraciones?** Si en el plantel aparece *"sin nombre · conectá la carpeta Sider"* o las columnas de valoración y valor están vacías, falta el paso 4: tocá **"Conectar carpeta Sider"** arriba y elegí la carpeta de Sider. El EDIT solo guarda tus cambios; los datos completos de cada jugador vienen de la base del Dream Patch. Si ya la habías conectado y el navegador te pide permiso de nuevo, tocá **"Permitir"**.
+>
+> **¿El aviso de la base no se va?** Fijate en `Dream Patch Sider\sider.log`: si aparece `[edit21_db] ERROR no se pudo escribir` con *Permission denied*, Windows está bloqueando la escritura. Entrá en **Seguridad de Windows › Protección contra ransomware › Acceso controlado a carpetas** y permití `PES2021.exe`, o desactivá esa opción mientras abrís el juego una vez. El módulo prueba también en `content\pes-editor-db`.
 
 **Instalarlo como app:** en Chrome o Edge tocá el ícono de instalar en la barra de direcciones (o menú ⋮ → *Instalar PES Editor*).
 
@@ -150,6 +156,7 @@ Todo es HTML, CSS y JavaScript sin frameworks ni instalación. `index.html` es c
 | `tables.js`, `dds.js`, `faces.js`, `pitch.js` | Tablas del juego, imágenes DDS, minicaras y escudos, dibujo de la cancha |
 | `extras.js`, `matches.js`, `natcall.js` | Formación, valoración por rendimiento, convocatorias de selecciones |
 | `ftexenc.js`, `kitfont.js`, `kitmat.js`, `kitstudio.js`, `kitpack.js`, `kit3d.js` | Estudio de kits: texturas FTEX, fuentes, telas, modelos y visor 3D |
+| `luadata.js`, `siderdb.js` | Módulo de Sider `edit21_db.lua` (se instala solo) y lectura de la base del juego |
 | `intro.js`, `news.js`, `help.js` | Pantalla de carga, Novedades y ayudas |
 | `app.js`, `motion.js`, `ui.js`, `gfx.js` | La página en sí, animaciones, Apariencia y Gráficos |
 | `fonts.js`, `logos.js`, `sfxdata.js` | Fuentes, logos y sonidos incluidos |

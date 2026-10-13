@@ -587,7 +587,7 @@ function teamSheet(t) {
       <div class="sub">ID ${t.id} · ${isNat(t) ? 'Selección' : 'Club'} · ${r.length}/40 jugadores${(() => { const tr = teamRating(t), l = leagueOf(t); return (l ? ' · ' + esc(LEAGUE_NAME[l] || l) : '') + (tr ? ' · valor ' + fmtMoney(tr.value) : ''); })()} · DT ${esc(COACH.get(coach) || 'ID ' + coach)} · ${esc(STADIUM.get(tget(t, 'stadium_id')) || 'Estadio ' + tget(t, 'stadium_id'))}</div></div></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ttab="${k}" aria-selected="${S.ttab === k}">${n}</button>`).join('')}</div>
   </div>
-  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) : stadiumCard(t)}
+  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) : stadiumCard(t)}
   ${helpCard(S.ttab)}`;
 }
 function teamDataCard(t) {
@@ -680,6 +680,15 @@ function rosterSorted(t, rows) {
     age: (a, b) => (a.age || 99) - (b.age || 99), h: (a, b) => b.h - a.h, nat: (a, b) => (a.natName || '~').localeCompare(b.natName || '~', 'es') || b.r - a.r
   }[k] || xi;
   return [...rows].sort((a, b) => dir * cmp(a, b) || xi(a, b));
+}
+// plantel según la base del juego (Dream Patch) para equipos que en tu EDIT están vacíos
+function dbRosterCard(t) {
+  if (typeof sdbRoster !== 'function' || PD.roster(S.d, t).length) return '';
+  const db = sdbRoster(t); if (!db || !db.length) return '';
+  const can = t.rosterBase != null;
+  return `<section class="card"><h3>Plantel según la base del juego</h3><p class="note">En tu EDIT este equipo está vacío. Esto es lo que trae el Dream Patch para él (${db.length} jugadores). ${can ? 'Podés copiarlo a tu EDIT para editarlo, o tocar un jugador para abrirlo.' : 'Tocá un jugador para abrirlo.'}</p>
+    <div class="dbroster">${db.map(x => { const i = pInfo(x.pid), n = playerName(x.pid) || 'ID ' + x.pid; return `<button type="button" class="dbp" data-dbp="${x.pid}"><b class="num">${x.num || '–'}</b>${faceHtml(x.pid, kitFor(t, i && i.pos === 0), 'pl')}<span class="pn">${esc(n)}</span>${i ? posBadge(i.pos) : ''}<span class="mono">${i && i.r ? i.r : ''}</span></button>`; }).join('')}</div>
+    ${can ? `<div class="row"><button class="btn primary" type="button" data-dbuse="${t.id}">Copiar este plantel a mi EDIT (${Math.min(40, db.length)} jugadores)</button><span class="note">Los que no estén en tu EDIT se agregan con sus habilidades; cara y nombre siguen saliendo del parche.</span></div>` : ''}</section>`;
 }
 function rosterCard(t) {
   if (S.rselTeam !== t.id) { S.rsel = new Set(); S.rselTeam = t.id; S.rq = ''; }
@@ -961,6 +970,13 @@ function bindTeam(t, m) {
       if (err) toast(err, 5000); else { rebuildTeamOf(); toast(who + ' quitado del plantel.', 4000, ['Deshacer', undo]); rer(); }
     }
     if (b.dataset.edit != null) { S.player = +b.dataset.edit; setTab('players'); }
+    if (b.dataset.dbuse != null) {
+      const db = (sdbRoster(t) || []).slice(0, 40), need = db.filter(x => !S.ix.byId.has(x.pid)).map(x => x.pid), bad = need.filter(id => !canMakeEditPlayer(id));
+      if (!await confirmBox(`¿Copiar ${db.length} jugadores de la base al plantel de ${tn()}?${need.length ? ` ${need.length - bad.length} se agregan a tu EDIT.` : ''}${bad.length ? ` ${bad.length} no se pueden agregar (sin datos en la base).` : ''}`)) return;
+      edit('Plantel de la base en ' + tn(), 'players', [...editPlayersRegion(need.length), ...regT(t)], () => { insertEditPlayers(need); for (const x of db) { if (S.ix.byId.has(x.pid) && !rosterAddCheck(t, x.pid)) rosterAdd(t, x.pid, x.num); } });
+      S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf(); toast('Plantel copiado desde la base del juego.', 4000, ['Deshacer', undo]); rer(); return;
+    }
+    if (b.dataset.dbp != null) { const pid = +b.dataset.dbp; if (S.ix.byId.has(pid)) { S.player = pid; setTab('players'); } else if (await confirmBox(`${playerName(pid) || 'ID ' + pid} está en la base del juego pero no en tu EDIT. ¿Agregarlo a tu EDIT con sus habilidades para poder editarlo? (cara, nombre y lo demás siguen saliendo del parche)`)) { if (!canMakeEditPlayer(pid)) { toast('No se pudo agregar: el EDIT está lleno o falta la base.', 5000); return; } edit('Agregar ' + (playerName(pid) || pid) + ' al EDIT', 'players', editPlayersRegion(1), () => { insertEditPlayers([pid]); }); S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf(); S.player = pid; setTab('players'); } }
     if (b.dataset.val != null) {
       const pid = +b.dataset.val, pv = playerValue(pid), td = b.parentNode;
       td.innerHTML = `<input type="text" inputmode="decimal" class="valin" value="${pv && pv.manual ? String(pv.v).replace('.', ',') : ''}" placeholder="${pv ? String(pv.est ?? '').replace('.', ',') : ''}" aria-label="Valor real en millones de euros" title="Millones de euros (ej. 12,5). Vacío = volver al estimado.">`;

@@ -2,6 +2,23 @@
 
 Todos los cambios de PES Editor. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.017 alpha · Módulo de Sider automático y más datos de la base
+
+*13 de octubre de 2026, 05:30 (hora de Argentina)*
+
+Al conectar la carpeta Sider, el editor instala solo el módulo que copia la base del juego, y ahora lee más datos de esa copia.
+
+- **El módulo edit21_db.lua se instala solo** (Archivo). Al tocar "Conectar carpeta Sider", el editor revisa tu Sider: si falta el módulo lo copia a modules\, agrega la línea lua.module = "edit21_db.lua" en sider.ini (guardando una copia de seguridad como sider.ini.bak-pes-editor) y crea la carpeta content\edit21-db. Si ya está pero es una versión vieja, lo actualiza. Es un módulo de solo lectura: no cambia nada del juego.
+  1. Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider (la que tiene sider.exe).
+  2. Si el editor te pide permiso para escribir en esa carpeta, aceptá: lo necesita para instalar el módulo.
+- **Aviso cuando la base no está cargada** (Archivo). Si es la primera vez, si el módulo se acaba de instalar o si en content\edit21-db faltan archivos, el editor muestra qué hacer: abrir PES 2021 con Sider hasta el menú principal, entrar en Partido › Amistoso hasta la elección de equipos y cerrar el juego. Después, "Ya lo hice" vuelve a leer la base. También avisa al arrancar si la copia está incompleta.
+- **Módulo v1.3: copia toda la base y avisa si algo falla** (Archivo). Si Windows no le deja escribir en content\edit21-db, el módulo prueba en content\pes-editor-db, anota el error exacto en sider.log y deja un estado.txt; el editor lee ese registro y te dice qué pasó y cómo arreglarlo (por ejemplo, el "Acceso controlado a carpetas" de Windows). Además copia todos los archivos de pesdb que el juego carga (Player, Team, PlayerAssignment, Coach, Stadium, Country, Competition, Tactics…), no solo una lista fija, y escribe index.txt con el nombre, tamaño y hora de cada uno. Los archivos de la elección de equipos (como PlayerAssignment.bin) recién se copian al entrar en el amistoso: por eso ese paso.
+- **Planteles de la base para equipos vacíos** (Plantel). Con PlayerAssignment.bin y Team.bin copiados, el editor sabe qué jugadores tiene cada equipo en el Dream Patch y el nombre y la sigla de los 750 equipos. Si un equipo está vacío en tu EDIT, la pestaña Plantel muestra el plantel que trae el parche, con dorsales, fotos y valoraciones.
+  1. Abrí un equipo sin plantel (activá "Incluir sin plantel" en la lista).
+  2. Tocá un jugador para abrirlo; si no estaba en tu EDIT, el editor ofrece agregarlo con sus habilidades.
+  3. Con "Copiar este plantel a mi EDIT" se agregan todos de una vez (hasta 40). Se puede deshacer con Ctrl+Z.
+- **Datos más precisos de los jugadores** (Plantel). Los jugadores que están en la base pero no en tu EDIT se leen con todas sus habilidades, altura, edad, nacionalidad y posiciones desde la copia de Player.bin, así que las valoraciones y los valores se calculan igual que para los editados.
+
 ## v0.016 alpha · Código ordenado en archivos
 
 *13 de octubre de 2026, 05:00 (hora de Argentina)*

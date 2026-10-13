@@ -93,6 +93,10 @@ const HELP = {
     ['Dónde lo busca', [
       ['La primera vez', 'el navegador pide que elijas tu carpeta Documentos una sola vez (la ventana ya se abre ahí). Después lo recuerda; si te vuelve a pedir permiso, elegí "Permitir en cada visita".'],
       ['Varios EDIT', 'si hay más de uno (drmp y save, u otra cuenta de Steam) se abre el más reciente, y en "Carpeta del juego" podés cambiar al otro.']]],
+    ['La carpeta Sider y la base del juego', [
+      ['Conectar carpeta Sider', 'elegí la carpeta de Sider del Dream Patch (la que tiene sider.exe). De ahí salen los kits, las caras, los escudos y la base del juego: nombres, valoraciones y planteles de todos los jugadores.'],
+      ['El módulo edit21_db.lua', 'el editor lo instala solo en modules\\ y agrega su línea en sider.ini (con copia de seguridad). Es de solo lectura: cuando el juego carga su base, la copia en content\\edit21-db.'],
+      ['Si avisa que la base no está cargada', 'abrí PES 2021 con Sider hasta el menú principal, entrá en Partido › Amistoso hasta la elección de equipos y cerrá el juego. Después tocá "Ya lo hice". Ese paso hace falta una vez por versión del módulo.']]],
     ['Guardar sin perder nada', [
       ['Guardar', 'escribe directo en la carpeta del juego. El primer guardado de cada sesión crea un respaldo con la fecha.'],
       ['Si el juego está abierto', 'el juego lee el EDIT solo al arrancar y lo reescribe al salir del modo Editar. Si editaste en el juego, tocá "🔄 Recargar" (arriba) antes de seguir acá.'],

@@ -3341,7 +3341,6 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "Al buscar sider.ini":"When looking for sider.ini",
 "Mandá una captura de esto si el archivo sí está en la carpeta.":"Send a screenshot of this if the file is really in the folder.",
 "El navegador no deja crear {x} en esa carpeta: crealo vos (vacío) con el Bloc de notas y volvé a intentar.":"The browser won't let me create {1} in that folder: create it yourself (empty) with Notepad and try again.",
-"Chrome no deja que las páginas vean los archivos .ini (ni .exe ni .dll), así que no encuentro sider.ini en":"Chrome doesn't let pages see .ini files (nor .exe or .dll), so I can't find sider.ini in",
 "aunque esté. Elegilo vos una vez con el botón de abajo: el editor lo recuerda.":"even if it's there. Pick it yourself once with the button below: the editor remembers it.",
 "📄 Elegir sider.ini a mano":"📄 Pick sider.ini by hand",
 "No se pudo abrir el selector:":"The file picker couldn't open:",
@@ -3350,6 +3349,7 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "Ese sider.ini está en otra carpeta":"That sider.ini is in another folder",
 "tiene que ser el de":"it has to be the one in",
 "sider.ini elegido: el editor lo recuerda para la próxima.":"sider.ini picked: the editor remembers it for next time.",
-"Sider: no veo sider.ini (Chrome oculta los .ini a las páginas): elegilo a mano en la pestaña Sider.":"Sider: I can't see sider.ini (Chrome hides .ini files from pages): pick it by hand in the Sider tab.",
-"Si el archivo sí está, Chrome lo oculta: elegilo a mano en la pestaña Sider.":"If the file is really there, Chrome is hiding it: pick it by hand in the Sider tab."
+"El navegador no deja que las páginas vean los archivos .ini (ni .exe ni .dll; pasa en Chrome, Edge, Opera y Brave), así que no encuentro sider.ini en":"The browser doesn't let pages see .ini files (nor .exe or .dll; this happens in Chrome, Edge, Opera and Brave), so I can't find sider.ini in",
+"Sider: no veo sider.ini (el navegador oculta los .ini a las páginas): elegilo a mano en la pestaña Sider.":"Sider: I can't see sider.ini (the browser hides .ini files from pages): pick it by hand in the Sider tab.",
+"Si el archivo sí está, el navegador lo oculta: elegilo a mano en la pestaña Sider.":"If the file is really there, the browser is hiding it: pick it by hand in the Sider tab."
 };

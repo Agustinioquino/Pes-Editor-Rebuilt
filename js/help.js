@@ -50,7 +50,7 @@ const HELP = {
       ['Colores', 'principal y secundario del equipo: los usa el juego en menús y el editor para escudos, cancha y la apariencia.'],
       ['Usar los colores del kit', 'copia los colores del kit titular del juego.'],
       ['País y entrenador', 'el país sirve para ligas y selecciones; el entrenador es el DT que aparece en los partidos.']]]] },
-  kits: { t: 'el estudio de kits', intro: 'Edita los kits del juego (content\\kit-server): el config.txt y todas sus texturas. Lo que ves está armado con los modelos reales del juego (camisetas, mangas, 116 cuellos, 16 shorts y medias, sacados del CometKITpreviewer).', groups: [
+  kits: { t: 'el Kit Studio Pro', intro: 'Edita los kits del juego (content\\kit-server): el config.txt y todas sus texturas. Lo que ves está armado con los modelos reales del juego (camisetas, mangas, 116 cuellos, 16 shorts y medias, sacados del CometKITpreviewer).', groups: [
     ['Vistas', [
       ['3D', 'el uniforme completo. Arrastrá para girar, clic derecho (o Shift) para mover la cámara, rueda para acercar, flechas del teclado para girar de a poco y doble clic para volver al frente.'],
       ['Cámara', 'encuadres rápidos (frente, espalda, costados, 3/4, desde arriba, primer plano del pecho), lente más abierta o más cerrada y giro automático con velocidad.'],

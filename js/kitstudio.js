@@ -1,4 +1,4 @@
-// ===================== Estudio de kits (kit-server config.txt + texturas) =====================
+// ===================== Kit Studio Pro (kit-server config.txt + texturas) =====================
 // Lee y escribe content\kit-server\<ruta>\<kit>\config.txt, order.ini y gk_order.ini del juego,
 // y muestra la textura del kit (.ftex del juego o .dds) con una maqueta aproximada.
 const KS = { team: null, kits: [], gk: [], sel: null, cfg: null, dirty: false, view: '3d', T: {}, sample: { name: 'JUGADOR', num: '10' }, mat: { fabric: 'malla', repeat: 48, fabricStrength: .5, emboss: .5 }, busy: false, err: '', tex: new Map(), texIdx: null, sync: true, side: 'front' };
@@ -448,10 +448,10 @@ function ksUpload(S, m) {
 // ---- tarjeta ----
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
-  if (!k || !k.path) return `<div class="card"><h3>Estudio de kits</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+  if (!k || !k.path) return `<div class="card"><h3>Kit Studio Pro</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
   if (KS.team !== t.id && !KS.busy) { KS.team = t.id; KS.cfg = null; KS.sel = null; ksLoad(t).then(() => ksRerender()); }
   if (KS.busy || (!KS.cfg && !KS.err)) return '<div class="card"><div class="lmload"><span class="spin"></span> Leyendo los kits del juego…</div></div>';
-  if (!KS.cfg) return `<div class="card"><h3>Estudio de kits</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
+  if (!KS.cfg) return `<div class="card"><h3>Kit Studio Pro</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
   const roleName = (n, i, gk) => gk ? (i ? 'Arquero alternativo ' + (i + 1) : 'Arquero') : ['Titular', 'Suplente', 'Alternativa', 'Cuarto kit'][i] || 'Kit ' + (i + 1);
   const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.4em')}<span><b>${esc(n)}</b><small>${roleName(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button>
     <span class="ksord"><button type="button" class="btn ghost small" data-up="${esc(n)}" title="Subir" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn ghost small" data-dup="${esc(n)}" title="Duplicar como kit nuevo">⧉</button>${gk ? '' : `<button type="button" class="btn ghost small" data-dupgk="${esc(n)}" title="Copiar como kit de arquero (con los mismos números, nombre y texturas)">🧤</button>`}<button type="button" class="btn ghost small" data-del="${esc(n)}" title="Borrar este kit" ${!gk && KS.kits.length < 2 ? 'disabled' : ''}>🗑</button></span></div>`; };
@@ -474,7 +474,7 @@ function kitStudioCard(t) {
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
   return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
-    <div class="row" style="justify-content:space-between"><h3>Estudio de kits · ${esc(KS.path)}</h3>
+    <div class="row" style="justify-content:space-between"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
       <div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
       <button class="btn" type="button" id="ksUndo" ${KS.dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty ? '' : 'disabled'}>Guardar kit</button></div></div>
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}

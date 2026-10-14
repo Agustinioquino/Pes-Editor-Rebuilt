@@ -26,7 +26,7 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , direct
 
 ## 🧉 ¿Por qué existe?
 
-Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el dorsal de tu ídolo, armar la camiseta del club del barrio. Las herramientas de siempre hacen el trabajo, pero se quedaron en el tiempo. **PES Editor Rebuilt** junta todo en un solo lugar, con una interfaz moderna, un estudio de kits en 3D y, para los nostálgicos, música de menú de fondo mientras editás.
+Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el dorsal de tu ídolo, armar la camiseta del club del barrio. Las herramientas de siempre hacen el trabajo, pero se quedaron en el tiempo. **PES Editor Rebuilt** junta todo en un solo lugar, con una interfaz moderna, el Kit Studio Pro en 3D y, para los nostálgicos, música de menú de fondo mientras editás.
 
 > [!WARNING]
 > **Versión alpha.** Funciona y guarda en el juego, pero todavía puede tener errores. El editor hace una copia de respaldo del EDIT cada vez que guardás. Igual, conviene tener tu propia copia antes de empezar.
@@ -67,7 +67,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Selecciones nacionales.** Convocatorias con los jugadores de cada país.
 - **Datos, colores, estadio, rivales y banderas** de cada equipo.
 
-### 👕 Estudio de kits (kit-server de Sider)
+### 👕 Kit Studio Pro (kit-server de Sider)
 - **Visor 3D con los modelos reales:**
   - camisetas, mangas, más de 100 cuellos, 16 shorts y medias;
   - iluminación tipo estadio y fondo HDRI propio;
@@ -106,8 +106,8 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 | Plantel | Formación |
 |---|---|
 | ![Plantel](docs/capturas/02-plantel.png) | ![Formación](docs/capturas/03-formacion.png) |
-| **Estudio de kits** | **Novedades** |
-| ![Estudio de kits](docs/capturas/04-estudio-kits.png) | ![Novedades](docs/capturas/05-novedades.png) |
+| **Kit Studio Pro** | **Novedades** |
+| ![Kit Studio Pro](docs/capturas/04-estudio-kits.png) | ![Novedades](docs/capturas/05-novedades.png) |
 | **Apariencia (modo claro)** | **Gráficos** |
 | ![Apariencia](docs/capturas/06-apariencia-modo-claro.png) | ![Gráficos](docs/capturas/07-graficos.png) |
 | **Estilo PES 6 Editar** | **Estilo Retro** |
@@ -177,7 +177,7 @@ Todo queda guardado en tu navegador.
 
 PES Editor sigue en desarrollo. Esto es lo que viene (puede cambiar):
 
-- Más opciones en el estudio de kits y en la edición de estadios.
+- Más opciones en el Kit Studio Pro y en la edición de estadios.
 - Mejoras en la versión instalable (accesos directos, funcionamiento sin conexión más completo).
 - Correcciones a partir de lo que reporten los usuarios.
 
@@ -194,7 +194,7 @@ Todo es HTML, CSS y JavaScript sin frameworks ni instalación. `index.html` es c
 | `pescrypt.js`, `pesdata.js` | Descifra el EDIT00000000 y lee/escribe equipos, jugadores y tácticas |
 | `tables.js`, `dds.js`, `faces.js`, `pitch.js` | Tablas del juego, imágenes DDS, minicaras y escudos, dibujo de la cancha |
 | `extras.js`, `matches.js`, `natcall.js` | Formación, valoración por rendimiento, convocatorias de selecciones |
-| `ftexenc.js`, `kitfont.js`, `kitmat.js`, `kitstudio.js`, `kitpack.js`, `kit3d.js` | Estudio de kits: texturas FTEX, fuentes, telas, modelos y visor 3D |
+| `ftexenc.js`, `kitfont.js`, `kitmat.js`, `kitstudio.js`, `kitpack.js`, `kit3d.js` | Kit Studio Pro: texturas FTEX, fuentes, telas, modelos y visor 3D |
 | `luadata.js`, `siderdb.js` | Módulo de Sider `edit21_db.lua` (se instala solo) y lectura de la base del juego |
 | `intro.js`, `news.js`, `help.js` | Pantalla de carga, Novedades y ayudas |
 | `app.js`, `motion.js`, `ui.js`, `gfx.js` | La página en sí, animaciones, Apariencia y Gráficos |

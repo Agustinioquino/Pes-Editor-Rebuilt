@@ -1,4 +1,4 @@
-// Estudio de kits (js/kitstudio.js): copiar un kit de jugador como arquero y borrar kits (la carpeta queda en _borrados).
+// Kit Studio Pro (js/kitstudio.js): copiar un kit de jugador como arquero y borrar kits (la carpeta queda en _borrados).
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), vm = require('vm');
 const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'kitstudio.js'), 'utf8');
 const pick = re => { const m = src.match(re); assert.ok(m, 'falta ' + re); return m[0]; };

@@ -19,9 +19,11 @@ const ctx = vm.createContext({ TextDecoder, TextEncoder, console,
   sdbFile: async (d, n) => { try { return await (await d.getFileHandle(n)).getFile(); } catch { return null; } },
   hasFile: async (d, n) => { try { await d.getFileHandle(n); return true; } catch { return false; } },
   hasDir: async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } },
-  lines: t => (t || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean) });
+  lines: t => (t || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean),
+  readText: async (d, n) => { try { return await (await (await d.getFileHandle(n)).getFile()).text(); } catch { return null; } },
+  idbGet: async () => null, S: { tab: 'x' }, $: () => null, render: () => {} });
 const J = x => JSON.parse(JSON.stringify(x)); // los objetos nacen en el otro contexto del vm
-const X = vm.runInContext(code + '\n;({ SI, siParse, siText, siDirty, siAdd, siSet, siMove, siKv, siGet, siById, siResolve, siScanRoot, siDecode, siEncode, siReadIni })', ctx);
+const X = vm.runInContext(code + '\n;({ SI, siParse, siText, siDirty, siAdd, siSet, siMove, siKv, siGet, siById, siResolve, siScanRoot, siDecode, siEncode, siReadIni, siLoad, siSync, siParseLine })', ctx);
 
 const INI = '[sider]\r\n; debug level\r\ndebug = 0\r\nlivecpk.enabled = 1\r\nlua.enabled = 1 ; comentario\r\nexe.name = "\\PES2021.exe"\r\n\r\ncpk.root = ".\\livecpk\\A"\r\ncpk.root = ".\\livecpk\\B" ; escudos\r\n; cpk.root = ".\\livecpk\\C"\r\n# cpk.root = "D:\\X\\livecpk\\D"\r\nlua.module = "kserv.lua"\r\nlua.module = "chants.lua"\r\n';
 
@@ -113,4 +115,73 @@ test('sider.ini en UTF-8, UTF-16 y Windows-1252 se lee bien y se guarda igual', 
   const be = X.siEncode(txt, 'utf-16be'); assert.deepStrictEqual([be[0], be[1], be[2], be[3]], [0xFE, 0xFF, 0, 0x5B]); assert.deepStrictEqual([X.siDecode(be).enc, X.siDecode(be).text], ['utf-16be', txt]);
   const noBom16 = u16.subarray(2); assert.strictEqual(X.siDecode(noBom16).text, txt, 'UTF-16 sin BOM');
   const dir = new FDir('S', { 'sider.ini': cp }); assert.strictEqual(await X.siReadIni(dir), txt); assert.strictEqual(X.SI.enc, 'cp1252');
+});
+
+test('la lista que se ve se rearma al agregar, quitar, mover y deshacer (sin volver a leer el disco)', async () => {
+  const ini = '[sider]\r\nlivecpk.enabled = 1\r\nlua.enabled = 1\r\ncpk.root = ".\\livecpk\\A"\r\ncpk.root = "D:\\Parche\\Sider\\livecpk\\B"\r\nlua.module = "kserv.lua"\r\nlua.module = "chants.lua"\r\n';
+  const sd = new FDir('Sider', { 'sider.ini': new TextEncoder().encode(ini), livecpk: { A: { common: { render: { symbol: { flag: { 'e_1.png': null } } } } }, B: {}, Trophies: {} }, modules: { 'kserv.lua': null, 'chants.lua': null, 'trophy.lua': null, 'camera.lua': null }, content: { 'kit-server': { 'map.txt': new TextEncoder().encode('101, "A"\r\n102, "B"') } } });
+  X.SI.info = null; await X.siLoad(true, sd); const info = X.SI.info;
+  const names = () => J(info.roots.map(r => r.name)), live = () => J(info.live.map(l => l.name)), mods = () => J(info.mods.map(m => m.name)), free = () => J(info.modFree.map(m => m.name));
+  assert.deepStrictEqual([names(), live(), mods(), free()], [['A', 'B'], ['Trophies'], ['kserv.lua', 'chants.lua'], ['camera.lua', 'trophy.lua']], 'la ruta completa a B dentro de esta Sider cuenta como usada');
+  assert.deepStrictEqual(J(info.roots[0].types.map(t => [t.t, t.sure])), [['escudos', true]]);
+  assert.strictEqual(info.content[0].mod.name, 'kserv.lua');
+  X.siAdd('cpk.root', '.\\livecpk\\Trophies'); X.siAdd('lua.module', 'trophy.lua'); await X.siSync();
+  assert.deepStrictEqual([names(), live(), mods(), free()], [['A', 'B', 'Trophies'], [], ['kserv.lua', 'chants.lua', 'trophy.lua'], ['camera.lua']], 'agregar: aparece en la lista y se va de los botones');
+  assert.deepStrictEqual(J(info.mods[2].desc), 'Trophy server: trofeos');
+  X.siMove(info.roots[2].it, -1); await X.siSync(); assert.deepStrictEqual(names(), ['A', 'Trophies', 'B'], 'mover cambia el orden que se ve');
+  X.SI.items.splice(X.SI.items.indexOf(info.roots[0].it), 1); await X.siSync(); assert.deepStrictEqual([names(), live()], [['Trophies', 'B'], ['A']], 'quitar: vuelve a los botones');
+  X.siParse(X.SI.orig); await X.siSync(); assert.deepStrictEqual([names(), live(), free()], [['A', 'B'], ['Trophies'], ['camera.lua', 'trophy.lua']], 'deshacer vuelve a lo del archivo');
+  info.roots[0].it.off = true; info.roots[0].it.ch = true; assert.match(X.siText(), /; cpk\.root = "\.\\livecpk\\A"/, 'después de deshacer, el interruptor sigue tocando la línea real');
+  assert.deepStrictEqual(J(info.mods.map(m => m.type)), ['kits', 'cantos']);
+});
+
+test('categorías: rutas precisas le ganan a las generales y los nombres nuevos se reconocen', async () => {
+  const d = new FDir('X', { common: { etc: { pesdb: { 'a.bin': null }, 'otro.bin': null }, render: { ui: { scoreboard: { 'x.dds': null } } } } });
+  assert.deepStrictEqual(J(await X.siScanRoot(d, 'X')).map(x => x.t).sort(), ['base', 'marcadores'], 'common/etc y common/render/ui no cuentan si adentro hay algo más preciso');
+  const names = { 'Football Life': [], 'Legends-Pack': ['leyendas?'], 'Transfers-Octubre': ['plantillas?'], 'Gameplay-Mod': ['jugabilidad?'], 'Camera-Mod': ['camara?'], 'Commentary-ES': ['relatos?'], 'Intro-Videos': ['escenas?'], 'Movie-Pack': ['videos?'], 'RefKitServer': ['arbitros?'], 'BallBoysServer': ['publico?'], 'UIColors': ['menu?'], 'FoulScenes': ['escenas?'], 'Nets-HD': ['redes?'], 'Reshade-Preset': ['graficos?'], 'Faces-Pack': ['caras?'], 'Balls-2026': ['balones?'] };
+  for (const [n, want] of Object.entries(names)) assert.deepStrictEqual(J(await X.siScanRoot(new FDir(n, {}), n)).map(x => x.t + (x.sure ? '' : '?')), want, n);
+  assert.strictEqual(J(await X.siScanRoot(new FDir('Trophies', {}), 'Trophies'))[0].desc, 'Trofeos y medallas de la ceremonia final.', 'cada tipo trae su descripción');
+});
+
+test('marcadores profundos: anime = animaciones, common_ad = banners, y las comillas raras no rompen la ruta', async () => {
+  const edit = new FDir('edit mod', { common: { character0: { model: { character: { anime: { interface: { 'edit_idle.gani': null, 'match_away07.gani': null } } } } } } });
+  assert.deepStrictEqual(J(await X.siScanRoot(edit, 'edit mod')).map(x => x.t + (x.sure ? '' : '?')), ['animaciones']);
+  const ban = new FDir('Banner', { Asset: { model: { bg: { common_ad: { 'x.ftex': null } } } } });
+  assert.deepStrictEqual(J(await X.siScanRoot(ban, 'Banner')).map(x => x.t + (x.sure ? '' : '?')), ['banners']);
+  assert.deepStrictEqual(J(await X.siScanRoot(new FDir('Banners NO LOGO', {}), 'Banners NO LOGO')).map(x => x.t + (x.sure ? '' : '?')), ['banners?']);
+  for (const l of ['cpk.root = ".\\livecpk\\Global Model Efootball 5.0"', 'cpk.root = “.\\livecpk\\Global Model Efootball 5.0”', 'cpk.root = ".\\livecpk\\Global Model Efootball 5.0""']) {
+    const it = X.siParseLine(l, 0); assert.deepStrictEqual([it.val, it.quoted, it.cmt], ['.\\livecpk\\Global Model Efootball 5.0', true, ''], l);
+  }
+  const sd = new FDir('Sider', { livecpk: { 'Global Model Efootball 5.0': {} } });
+  assert.strictEqual(!!(await X.siResolve(sd, '".\\livecpk\\Global Model Efootball 5.0"')).h, true, 'aunque el valor llegue con comillas, la carpeta se encuentra');
+});
+
+test('módulos: subcarpetas, rutas con modules\\, encabezado del .lua y carpetas de content que nombra', async () => {
+  const enc = t => new TextEncoder().encode(t);
+  const ini = '[sider]\r\nlua.enabled = 1\r\nlua.module = "FoulScenes.lua"\r\nlua.module = "modules\\lib\\helper.lua"\r\nlua.module = "camera"\r\nlua.module = "nada.lua"\r\nlua.module = "Rarisimo.lua"\r\n';
+  const sd = new FDir('Sider', { 'sider.ini': enc(ini),
+    modules: { 'Rarisimo.lua': enc('-- Rarisimo: cambia el color del cielo\r\n'), 'FoulScenes.lua': enc('-- FoulScenes: muestra escenas de faltas y tarjetas\r\nlocal root = ctx.sider_dir .. "content\\\\foul-scenes\\\\"\r\n'), 'camera.lua': enc('--\r\n-- Camera module\r\n'), lib: { 'helper.lua': null }, 'otro.lua': null },
+    content: { 'foul-scenes': { a: {} }, 'sin-uso': {} } });
+  X.SI.info = null; await X.siLoad(true, sd); const info = X.SI.info;
+  assert.deepStrictEqual(J(info.mods.map(m => [m.name, m.exists])), [['FoulScenes.lua', true], ['modules\\lib\\helper.lua', true], ['camera', true], ['nada.lua', false], ['Rarisimo.lua', true]]);
+  assert.strictEqual(info.mods[4].desc, 'Rarisimo: cambia el color del cielo', 'si no lo conozco, uso lo que dice el archivo');
+  assert.strictEqual(info.mods[0].desc, 'FoulScenes: escenas nuevas de faltas (y revisión del VAR en la versión con VAR)', 'lo conozco: uso mi descripción');
+  assert.deepStrictEqual(J(info.modFree.map(m => m.name)), ['otro.lua'], 'los de subcarpetas no se ofrecen para agregar');
+  const fc = info.content.find(c => c.name === 'foul-scenes');
+  assert.deepStrictEqual(J(fc.mods.map(m => m.name)), ['FoulScenes.lua'], 'el módulo nombra content\\foul-scenes en su código');
+  assert.deepStrictEqual(J(info.content.find(c => c.name === 'sin-uso').mods), []);
+});
+
+test('módulo mal escrito: sugiere el archivo que sí está', async () => {
+  const enc = t => new TextEncoder().encode(t);
+  const sd = new FDir('Sider', { 'sider.ini': enc('[sider]\r\nlua.module = "FreeHeartEngine.lu"\r\nlua.module = "AI-Tweaks.lua"\r\nlua.module = "Nada.lua"\r\n'), modules: { 'FreeHeartEngine.lua': null, 'AI_Tweaks.lua': null, FreeHeartEngine: {} } });
+  X.SI.info = null; await X.siLoad(true, sd);
+  assert.deepStrictEqual(J(X.SI.info.mods.map(m => [m.name, m.exists, m.sug])), [['FreeHeartEngine.lu', false, 'FreeHeartEngine.lua'], ['AI-Tweaks.lua', false, 'AI_Tweaks.lua'], ['Nada.lua', false, null]]);
+});
+
+test('descripciones corregidas: crowd server, cámaras por el nombre, Liga Master', () => {
+  const C = vm.runInContext('siModInfo', ctx), d = n => J(C(n));
+  assert.deepStrictEqual([d('GRAND\\Crowd-Server.lua').type, d('penaltyCam.lua').desc, d('ReplayCamera.lua').desc, d('Campeones.lua').type], ['publico', 'Cámara de penales', 'Cámara de las repeticiones', null]);
+  assert.strictEqual(d('masterleague.lua').type, 'ligamaster');
+  assert.strictEqual(d('netblock.lua').desc, 'NetBlock: saca el aviso de fin del servicio online de PES');
 });

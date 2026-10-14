@@ -7,6 +7,7 @@ const DEV_ITEMS = [
   ['beta', '⬡', 'Ficha hexagonal y media rápida', 'Cambiar la media y cada área de un jugador arrastrando el hexágono o desde el plantel. Está en prueba: si una media no queda como esperabas, avisá.'],
   ['beta', '🗂', 'Tu trabajo en el caché', 'Al actualizar el editor, tus cambios sin guardar quedan en el navegador y vuelven solos. Está en prueba: guardá en el juego igual cuando termines.'],
   ['beta', '📈', 'Valoración dinámica con datos reales', 'La forma de cada jugador ahora usa toda la temporada, los goleadores, las lesiones y el historial de ESPN. Está en prueba: si ves un dato raro, avisá.'],
+  ['soon', '📥', 'Instalar mods arrastrándolos', 'Soltar un mod en la pestaña Sider y que se copie solo a livecpk, modules o content, con su readme a la vista y cada paso para deshacer.'],
   ['soon', '🎮', 'Más estilos gráficos', 'Modos inspirados en los menús de otras ediciones de PES, como el de PES 5.'],
   ['soon', '🛠️', 'Habilidades desde la ficha', 'Editar las habilidades de cada jugador desde su ficha, con los nombres del juego.'],
   ['soon', '📋', 'Formaciones como plantillas', 'Guardar y compartir tus formaciones favoritas.'],

@@ -2,6 +2,19 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.046 alpha · La pestaña Sider entiende tu Parche
+
+*14 de octubre de 2026, 12:45 (hora de Argentina)*
+
+La pestaña Sider ahora dice qué hace cada carpeta y cada módulo, se actualiza al instante al agregar o quitar, encuentra los módulos en subcarpetas y sugiere el nombre correcto si uno está mal escrito.
+
+- **Agregar, quitar y mover se ve al instante** (Sider). Al tocar "＋" en una carpeta de livecpk o en un módulo, aparece al final de su lista, resaltado, con un aviso, y el botón desaparece. Quitar, mover con las flechas, deshacer y aplicar el texto también se ven en el momento. Antes los cambios estaban, pero la lista no se actualizaba hasta volver a leer el archivo.
+- **Qué hace cada carpeta y cada módulo** (Sider). Cada carpeta de contenido, cada módulo y cada carpeta de content tiene una línea que dice qué cambia en el juego. Hay más de 40 categorías (animaciones, banners de hinchadas, escenas, público, parches de manga, Liga Master, jugabilidad, cámaras…) y más de 60 módulos conocidos. Las cámaras se describen por el nombre: penaltyCam es la cámara de penales. Si un módulo no está en la lista, se usa lo que dice su propio archivo.
+- **Mira adentro de cada carpeta** (Sider). Además de las rutas conocidas de PES 2021, busca nombres de carpeta que delatan el contenido hasta 7 niveles adentro: anime (poses del modo Editar y la previa), common_ad (banners de hinchadas), demo (escenas), scoreboard, turf y más. Funciona igual con PES 2021 base, con cualquier Parche o con Football Life.
+- **Módulos en subcarpetas y mods que viven en content** (Sider). Los módulos guardados en subcarpetas de modules (como modules\GRAND\Crowd-Server.lua) ya no aparecen como faltantes. Las carpetas de content se unen al módulo que las nombra en su código, y si ningún módulo las usa, lo dice.
+- **¿Es FreeHeartEngine.lua? Corregir** (Sider). Si un lua.module está mal escrito (le falta una letra, tiene un guion en vez de un guion bajo…), la fila sugiere el archivo que sí está en modules y un botón lo corrige. Las comillas de más o de menos en una ruta ya no hacen que una carpeta aparezca como que no existe.
+- **Carpetas repetidas, con sus filas** (Sider). El aviso de carpetas repetidas dice qué ruta se repite y en qué filas, y cada fila repetida lleva "Repetida (fila N)". Sider usa la primera; las otras se pueden apagar o quitar.
+
 ## v0.045 alpha · Pestaña Sider, música por link y cualquier Parche
 
 *14 de octubre de 2026, 06:30 (hora de Argentina)*

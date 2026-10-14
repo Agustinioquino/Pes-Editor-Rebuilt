@@ -170,3 +170,10 @@ test('módulos: subcarpetas, rutas con modules\\, encabezado del .lua y carpetas
   assert.deepStrictEqual(J(fc.mods.map(m => m.name)), ['FoulScenes.lua'], 'el módulo nombra content\\foul-scenes en su código');
   assert.deepStrictEqual(J(info.content.find(c => c.name === 'sin-uso').mods), []);
 });
+
+test('módulo mal escrito: sugiere el archivo que sí está', async () => {
+  const enc = t => new TextEncoder().encode(t);
+  const sd = new FDir('Sider', { 'sider.ini': enc('[sider]\r\nlua.module = "FreeHeartEngine.lu"\r\nlua.module = "AI-Tweaks.lua"\r\nlua.module = "Nada.lua"\r\n'), modules: { 'FreeHeartEngine.lua': null, 'AI_Tweaks.lua': null, FreeHeartEngine: {} } });
+  X.SI.info = null; await X.siLoad(true, sd);
+  assert.deepStrictEqual(J(X.SI.info.mods.map(m => [m.name, m.exists, m.sug])), [['FreeHeartEngine.lu', false, 'FreeHeartEngine.lua'], ['AI-Tweaks.lua', false, 'AI_Tweaks.lua'], ['Nada.lua', false, null]]);
+});

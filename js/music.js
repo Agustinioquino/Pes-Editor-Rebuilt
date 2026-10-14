@@ -194,7 +194,7 @@ function mpMount() {
       <div class="mpfoot"><button type="button" class="btn small" id="mpAdd">＋ Agregar canciones</button><button type="button" class="btn small" id="mpYtB" aria-expanded="false">🔗 Agregar por link</button><button type="button" class="btn small ghost" id="mpCoverB">🖼 Carátula</button></div>
       ${mfHtmlPanel()}
     </div>
-    <div class="mptv" id="mpTv" aria-label="Video de YouTube"><button type="button" class="mptvcov" id="mpTvCov" title="Ver el video otra vez"><img alt=""><span>▶ Ver video</span></button><button type="button" class="mptvx" id="mpTvX" title="Sacar el video (sigue sonando la música)" aria-label="Sacar el video">✕</button><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div><div class="mptvp" data-n="sp"><div id="mpSp"></div></div></div>
+    <div class="mptv" id="mpTv" aria-label="Video de YouTube"><button type="button" class="mptvcov" id="mpTvCov" title="Ver el video otra vez"><img alt=""><span>▶ Ver video</span></button><div class="mptvbar" id="mpTvBar" title="Arrastrá para moverlo · doble clic: volver a su lugar">⠿ mover</div><span class="mptvrs" id="mpTvRs" title="Arrastrá para cambiar el tamaño"></span><button type="button" class="mptvx" id="mpTvX" title="Sacar el video (sigue sonando la música)" aria-label="Sacar el video">✕</button><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div><div class="mptvp" data-n="sp"><div id="mpSp"></div></div></div>
     <div class="mpbar"><button type="button" class="mpcov" id="mpCov" title="Abrir el reproductor"><img id="mpArtS" alt=""><span class="mpring"></span></button>
       <button type="button" class="mpmeta" id="mpMeta" title="Abrir el reproductor"><b class="mpt"><span id="mpT"></span></b><small id="mpG"></small></button>
       <button type="button" class="mpb mpmain sm" id="mpPlay" title="Reproducir o pausar">${mpIco('play', 20)}</button><button type="button" class="mpb" id="mpNext" title="Siguiente">${mpIco('next', 18)}</button>
@@ -222,7 +222,25 @@ function mpMount() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && MP.st.open) open(false); });
   $m('mpFull').addEventListener('scroll', () => { if (MP.kind === 'yt') mpTvPlace(); }, { passive: true }); addEventListener('resize', () => mpTvPlace());
   document.addEventListener('pointerdown', e => { if (MP.st.open && !el.contains(e.target)) open(false); });
+  mpTvDrag(el);
   mpUiState(); mpUi();
+}
+// la ventanita del video (YouTube o Spotify): con el reproductor cerrado se puede mover arrastrando la barra de arriba
+// y cambiar de tamaño desde la esquina de abajo a la derecha; queda guardada (doble clic en la barra la devuelve)
+function mpTvDrag(el) {
+  const tv = el.querySelector('#mpTv');
+  const start = (e, kind) => {
+    if (MP.st.open || e.button) return; e.preventDefault(); e.stopPropagation();
+    const r = el.getBoundingClientRect(), t = tv.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+    const b0 = { x: t.left - r.left, y: t.top - r.top, w: t.width, h: t.height };
+    tv.classList.add('drag');
+    const move = ev => { const dx = ev.clientX - x0, dy = ev.clientY - y0; MP.st.tvBox = kind === 'move' ? { ...b0, x: b0.x + dx, y: b0.y + dy } : { ...b0, w: b0.w + dx, h: b0.h + dy }; mpTvPlace(); };
+    const up = () => { tv.classList.remove('drag'); removeEventListener('pointermove', move); removeEventListener('pointerup', up); mpSave(); };
+    addEventListener('pointermove', move); addEventListener('pointerup', up);
+  };
+  el.querySelector('#mpTvBar').onpointerdown = e => start(e, 'move');
+  el.querySelector('#mpTvRs').onpointerdown = e => start(e, 'size');
+  el.querySelector('#mpTvBar').ondblclick = () => { delete MP.st.tvBox; mpSave(); mpTvPlace(); };
 }
 function mpRenderList() {
   const ol = MP.el && MP.el.querySelector('#mpList'); if (!ol) return;
@@ -249,6 +267,14 @@ function mpYtMobile() {
 // video de YouTube: chiquito arriba del reproductor; con el panel abierto ocupa el lugar de la carátula
 function mpTvPlace() {
   const el = MP.el, tv = el && el.querySelector('#mpTv'); if (!tv) return;
+  if (!MP.st.open && MP.st.tvBox) {
+    // donde lo dejó el usuario, siempre adentro de la ventana
+    const r = el.getBoundingClientRect(), B = MP.st.tvBox;
+    const w = Math.round(Math.min(Math.max(B.w, 200), innerWidth - 16)), h = Math.round(Math.min(Math.max(B.h, 120), innerHeight - 16));
+    const vx = Math.min(Math.max(r.left + B.x, 8), innerWidth - w - 8), vy = Math.min(Math.max(r.top + B.y, 8), innerHeight - h - 8);
+    tv.style.left = Math.round(vx - r.left) + 'px'; tv.style.top = Math.round(vy - r.top) + 'px'; tv.style.bottom = 'auto'; tv.style.width = w + 'px'; tv.style.height = h + 'px';
+    return;
+  }
   if (!MP.st.open) {
     // minimizado: arriba del reproductor si a la izquierda de la página queda un hueco libre;
     // si no hay lugar (pantallas más angostas), al costado como antes

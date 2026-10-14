@@ -1436,6 +1436,7 @@ html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
 .devcard{margin:0 0 14px;border-style:dashed}.devcard h3{margin:0}
 .devpop{position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(420px,calc(100% - 36px));max-height:calc(100vh - 140px);overflow:auto;z-index:20;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 18px 50px #0006;opacity:0;translate:0 24px;transition:opacity .3s,translate .3s}
 .devpop.on{opacity:1;translate:0 0}.devpop h3{margin:0;font-family:var(--display)}.devpop .devbtns{justify-content:flex-end;margin-top:4px}
+.devpop .devtop{gap:4px;flex-wrap:nowrap}.devpop.min{width:auto;padding:8px 10px 8px 14px;overflow:hidden}.devpop.min .devbody{display:none}.devpop.min h3{cursor:pointer;font-size:1rem;margin-right:10px}
 html[data-gfx="pes6"] .devpop{border-radius:0;border:2px solid #8f8c84;background:#f2f1ec;color:#2b2b2b}
 html[data-gfx="pes6"] .devcard{border-radius:0}
 /* ===== Ficha hexagonal ===== */
@@ -1568,3 +1569,10 @@ html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
 .kzchip.ok{border-color:color-mix(in srgb,#2fbf71 70%,var(--line))}.kzchip.gen{border-color:color-mix(in srgb,#3b8cff 70%,var(--line))}.kzchip.none{opacity:.55}
 .kzrep:not([hidden]){display:grid;gap:4px}
 @media (max-width:560px){.kzkit{grid-template-columns:1fr}.kzprev{width:90px;height:90px}}
+
+/* ventanita del video: barra para moverla y esquina para cambiar el tamaño (solo con el reproductor cerrado) */
+.mptvbar{position:absolute;left:50%;top:6px;translate:-50% 0;z-index:5;padding:3px 12px;border-radius:99px;background:#000b;color:#fff;font:600 .72rem var(--body);cursor:grab;user-select:none;touch-action:none;opacity:0;transition:opacity .2s}
+.mptvrs{position:absolute;right:0;bottom:0;z-index:5;width:18px;height:18px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,#fffa 50%,#fffa 60%,transparent 60%,transparent 70%,#fffa 70%,#fffa 80%,transparent 80%);opacity:0;transition:opacity .2s}
+.mp:not(.open) .mptv:hover .mptvbar,.mp:not(.open) .mptv:hover .mptvrs,.mptv.drag .mptvbar,.mptv.drag .mptvrs{opacity:.85}
+.mp.open .mptvbar,.mp.open .mptvrs,.mp.ytmin .mptvbar,.mp.ytmin .mptvrs{display:none}
+.mptv.drag{transition:none!important}.mptv.drag .mptvp{pointer-events:none!important}.mptv.drag .mptvbar{cursor:grabbing}

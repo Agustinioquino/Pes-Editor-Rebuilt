@@ -42,6 +42,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Detecta cambios del juego.** Si el juego guardó el EDIT mientras el editor estaba abierto, lo recarga para que veas lo mismo que el juego.
 - **Deshacer y rehacer** (Ctrl+Z / Ctrl+Y) para cualquier cambio.
 - **Instala solo el módulo de Sider.** Al tocar *Conectar carpeta Sider*, el editor copia `edit21_db.lua` en `modules\` y lo suma a `sider.ini` si falta (con copia de respaldo del ini). Ese módulo es de solo lectura: cuando abrís el juego, guarda una copia de la base del juego para que el editor tenga nombres, equipos y planteles completos.
+- **Lee la base directo de los archivos del juego, sin abrirlo.** Si al conectar Sider elegís la carpeta del juego (la que tiene `PES2021.exe`, o `FL_2026.exe` en Football Life 2026) o una de más arriba, el editor lee `common\etc\pesdb` de los `.cpk` de `Data` y `download` (en Football Life, `data_s2526.cpk`, `data_s2526a.cpk`…: el más nuevo pisa al anterior) y le suma lo que agregan las carpetas de Sider. La copia del módulo se sigue usando cuando está completa y es más nueva.
 - **Avisa si la base no está cargada** y explica qué hacer: abrir el juego hasta el menú principal, entrar en *Partido › Amistoso* hasta la elección de equipos y cerrar. Si Windows no dejó escribir la copia, muestra el error que quedó en `sider.log` y cómo resolverlo.
 - **Pestaña WEPES.** Muestra los archivos de esa carpeta con miniaturas (png, jpg, dds, ftex), deja entrar a subcarpetas, ver en grande y copiar archivos nuevos.
 
@@ -125,7 +126,7 @@ Hay dos formas de usar el mismo editor: en el navegador o con la app para Window
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
 3. En el aviso del navegador elegí **"Permitir en cada visita"** para no repetir el paso.
 4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del juego (la que tiene `sider.exe`, dentro de la carpeta del juego). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
-5. **La primera vez, prepará la base del juego.** El editor instala el módulo `edit21_db.lua` en Sider y te avisa. Abrí PES 2021 con Sider hasta el **menú principal**, entrá en **Partido › Amistoso** hasta la **elección de equipos** y cerrá el juego. Volvé al editor y tocá **"Ya lo hice"**.
+5. **La primera vez, prepará la base del juego** (no hace falta si en el paso 4 elegiste la carpeta del juego). El editor instala el módulo `edit21_db.lua` en Sider y te avisa. Abrí el juego con Sider hasta el **menú principal**, entrá en **Partido › Amistoso** hasta la **elección de equipos** y cerrá el juego. Volvé al editor y tocá **"Ya lo hice"**.
 6. Editá y tocá **"Guardar en el juego"**. Cerrá el juego antes de guardar.
 
 > [!TIP]
@@ -197,7 +198,7 @@ Todo es HTML, CSS y JavaScript sin frameworks ni instalación. `index.html` es c
 | `tables.js`, `dds.js`, `faces.js`, `pitch.js` | Tablas del juego, imágenes DDS, minicaras y escudos, dibujo de la cancha |
 | `extras.js`, `matches.js`, `natcall.js` | Formación, valoración por rendimiento, convocatorias de selecciones |
 | `ftexenc.js`, `kitfont.js`, `kitmat.js`, `kitstudio.js`, `kitpack.js`, `kit3d.js` | Kit Studio Pro: texturas FTEX, fuentes, telas, modelos y visor 3D |
-| `luadata.js`, `siderdb.js` | Módulo de Sider `edit21_db.lua` (se instala solo) y lectura de la base del juego |
+| `luadata.js`, `siderdb.js`, `gamedb.js` | Módulo de Sider `edit21_db.lua` (se instala solo) y lectura de la base del juego (de la copia del módulo o directo de los `.cpk`) |
 | `intro.js`, `news.js`, `help.js` | Pantalla de carga, Novedades y ayudas |
 | `app.js`, `motion.js`, `ui.js`, `gfx.js` | La página en sí, animaciones, Apariencia y Gráficos |
 | `fonts.js`, `logos.js`, `sfxdata.js` | Fuentes, logos y sonidos incluidos |

@@ -50,15 +50,39 @@ async function sdbDbDir(sider) {
 async function sdbLog(sider) {
   try { const f = await sdbFile(sider, 'sider.log'); if (!f) return null; const txt = await f.slice(Math.max(0, f.size - 1500000)).text(); const i = txt.lastIndexOf('Loading module: edit21_db'); if (i < 0) return { loaded: false }; const lines = txt.slice(i).split(/\r?\n/).filter(l => l.includes('[edit21_db')); const ver = (lines.join(' ').match(/v(\d+\.\d+) listo/) || [])[1]; const errs = lines.filter(l => /ERROR|no se pudo|AVISO/.test(l) && !/sin carpeta de salida/.test(l)).map(l => l.replace(/^.*?\[edit21_db\]\s*/, '')); return { loaded: true, ver, errs, copied: lines.filter(l => /copiado/.test(l)).length, when: f.lastModified }; } catch { return null; }
 }
-async function sdbCheck(sider) {
-  const st = { dir: null, have: [], missing: DB_NEEDED.slice(), index: null };
+async function sdbCheck(sider, force) {
+  const st = { dir: null, have: [], missing: DB_NEEDED.slice(), index: null, src: 'copia' };
   st.log = await sdbLog(sider);
-  st.dir = await sdbDbDir(sider); if (!st.dir) { SDB.state = st; return st; }
-  try { for await (const [n, h] of st.dir.entries()) if (h.kind === 'file' && /\.bin$/i.test(n)) { const f = await h.getFile(); st.have.push({ n, size: f.size, when: f.lastModified }); } } catch { }
-  const have = new Set(st.have.map(x => x.n.toLowerCase()));
-  st.missing = DB_NEEDED.filter(n => !have.has(n.toLowerCase()));
-  const idx = await sdbFile(st.dir, 'index.txt'); if (idx) st.index = await idx.text();
+  st.dir = await sdbDbDir(sider);
+  if (st.dir) {
+    try { for await (const [n, h] of st.dir.entries()) if (h.kind === 'file' && /\.bin$/i.test(n)) { const f = await h.getFile(); st.have.push({ n, size: f.size, when: f.lastModified }); } } catch { }
+    const have = new Set(st.have.map(x => x.n.toLowerCase()));
+    st.missing = DB_NEEDED.filter(n => !have.has(n.toLowerCase()));
+    const idx = await sdbFile(st.dir, 'index.txt'); if (idx) st.index = await idx.text();
+  }
+  await sdbSource(sider, st, force);
   SDB.state = st; return st;
+}
+// de dónde sale la base: la copia del módulo (es justo lo que cargó el juego) o, si la carpeta conectada es la del
+// juego, sus propios archivos (.cpk de download y Data, más lo que agregan las carpetas de Sider). Se usan los archivos
+// del juego cuando la copia falta o está incompleta, o cuando el juego se actualizó después de la copia.
+async function sdbSource(sider, st, force) {
+  const scan = typeof gdbLoad === 'function' ? await gdbLoad(sider, force) : null;
+  st.game = scan ? { exe: scan.exe, old: !!scan.old, cpks: scan.cpks } : null;
+  if (!scan || !DB_NEEDED.every(n => scan.files.has(n.toLowerCase()))) return;
+  const copyAt = st.have.length ? Math.max(...st.have.map(x => x.when || 0)) : 0, gameAt = Math.max(...DB_NEEDED.map(n => scan.files.get(n.toLowerCase()).when || 0));
+  if (!st.missing.length && copyAt >= gameAt) return;
+  st.src = 'juego'; st.files = scan.files; st.missing = [];
+  st.from = [...new Set(DB_NEEDED.map(n => scan.files.get(n.toLowerCase()).from))];
+  st.have = [...scan.files.values()].map(f => ({ n: f.name, size: 0, when: f.when }));
+}
+// un archivo de la base, sin comprimir con CRILAYLA (el WESYS lo abre quien lo lee)
+async function sdbBin(st, name) {
+  if (!st) return null;
+  if (st.src === 'juego') { const f = st.files.get(name.toLowerCase()); return f ? await f.get() : null; }
+  if (!st.dir) return null;
+  const f = await sdbFile(st.dir, name); if (!f) return null;
+  const b = new Uint8Array(await f.arrayBuffer()); return typeof gdbPlain === 'function' ? gdbPlain(b) : b;
 }
 
 // ---- lectura de los archivos de la base ----
@@ -115,8 +139,8 @@ async function sdbAssign(bytes, playerIds, teamIds, editNums) {
   return { map: out, layout: Object.assign({}, best, { numOff, numAdd }) };
 }
 async function sdbLoadAll(sider) {
-  const st = await sdbCheck(sider); if (!st.dir) return st;
-  const get = async n => { const f = await sdbFile(st.dir, n); return f ? new Uint8Array(await f.arrayBuffer()) : null; };
+  const st = await sdbCheck(sider); if (!st.dir && st.src !== 'juego') return st;
+  const get = n => sdbBin(st, n);
   try { const t = await get('Team.bin'); if (t) SDB.teams = await sdbTeams(t); } catch { }
   try {
     const a = await get('PlayerAssignment.bin');
@@ -136,8 +160,9 @@ function sdbNotice(st, inst) {
     : none ? 'El módulo está instalado, pero la copia de la base del juego todavía no se generó.' : 'La copia de la base del juego está incompleta: faltan <b>' + missing.join(', ') + '</b>.';
   ksModal('La base del juego no está cargada', `<p>${why}</p>
     <p>Para que los mods y la base queden cargados correctamente, hacé esto una vez:</p>
-    <ol class="sdbsteps"><li>Abrí <b>PES 2021 con Sider</b> y esperá a llegar al <b>menú principal</b>.</li><li>Entrá en <b>Partido › Amistoso</b> hasta la pantalla de <b>elección de equipos</b> (ahí el juego carga el resto de la base).</li><li><b>Cerrá el juego.</b></li><li>Volvé acá y tocá <b>"Ya lo hice"</b>.</li></ol>
+    <ol class="sdbsteps"><li>Abrí <b>el juego con Sider</b> y esperá a llegar al <b>menú principal</b>.</li><li>Entrá en <b>Partido › Amistoso</b> hasta la pantalla de <b>elección de equipos</b> (ahí el juego carga el resto de la base).</li><li><b>Cerrá el juego.</b></li><li>Volvé acá y tocá <b>"Ya lo hice"</b>.</li></ol>
     <p class="note">El módulo es de solo lectura: no cambia nada del juego. Copia los archivos a <code>content\\edit21-db</code>. Si el juego ya estaba abierto, cerralo y abrilo de nuevo para que tome el módulo.</p>
+    ${st && st.game && st.game.old ? '<div class="warnbox">Actualizá la app PES Editor Rebuilt: la versión nueva lee la base directo de los archivos del juego, sin abrirlo.</div>' : st && !st.game ? '<p class="note"><b>Sin abrir el juego:</b> si en <b>Conectar carpeta Sider</b> elegís la <b>carpeta del juego</b> (la que tiene PES2021.exe, o FL_2026.exe en Football Life) en vez de la de Sider, el editor lee la base directo de sus archivos.</p>' : ''}
     ${st && st.log && st.log.errs && st.log.errs.length ? `<div class="warnbox"><b>Lo que pasó la última vez que abriste el juego</b> (según sider.log): el módulo ${st.log.ver ? 'v' + st.log.ver + ' ' : ''}se cargó pero no pudo guardar la copia.<br><code style="font-size:.75rem">${esc(st.log.errs[0].slice(0, 220))}</code><br>${/-> nil\s*$/.test(st.log.errs[0]) && !(parseFloat(st.log.ver) >= parseFloat(LUA_VERSION)) ? `Ese error es de una versión anterior del módulo (${st.log.ver ? 'v' + st.log.ver : 'vieja'}): el <code>io</code> de tu Sider no deja que los módulos guarden archivos (en tu sider.log les pasa también a otros, como PostProcessingEditor y UIColors). No es un problema de permisos de Windows. Ya instalé la <b>v${LUA_VERSION}</b>, que si eso pasa escribe con las funciones de Windows (necesita <code>luajit.ext.enabled = 1</code> en sider.ini, que Sider ya trae): repetí los pasos de arriba.` : /denied|denegado|Permission/i.test(st.log.errs.join(' ')) ? 'Windows no le da permiso al juego para escribir en esa carpeta. Abrí <b>Seguridad de Windows › Protección contra virus y amenazas › Protección contra ransomware</b> y, si "Acceso controlado a carpetas" está activado, tocá "Permitir una aplicación" y agregá <b>PES2021.exe</b>. Si no, probá abrir el juego sin "Ejecutar como administrador" (o con, si siempre lo abrís así).' : 'Revisá que la carpeta exista y que no esté marcada como "Solo lectura" (clic derecho › Propiedades).'}</div>` : st && st.log && !st.log.loaded ? '<div class="warnbox">En sider.log no aparece el módulo edit21_db: Sider no lo cargó. Revisá que en sider.ini esté <code>lua.enabled = 1</code> y la línea <code>lua.module = "edit21_db.lua"</code>.</div>' : ''}
     ${st && st.have.length ? `<p class="note">Archivos copiados hasta ahora: ${st.have.map(x => x.n).join(', ')}.</p>` : ''}
     <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn ghost" type="button" data-x>Más tarde</button><button class="btn primary" type="button" id="sdbRetry">Ya lo hice: volver a leer</button></div>`,
@@ -149,6 +174,7 @@ async function sdbSetup(sider, canWrite) {
   if (canWrite) { try { inst = await sdbInstall(sider); } catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 7000); } }
   const st = await sdbLoadAll(sider);
   if (inst && inst.ini === 'no-sider') { let more = ''; try { if (typeof siNoIniDetail === 'function') more = ' ' + siNoIniText(await siNoIniDetail(sider)); } catch { } toast(tr('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).') + more + (window.showOpenFilePicker && !sider.native ? ' ' + tr('Si el archivo sí está, el navegador lo oculta: elegilo a mano en la pestaña Sider.') : ''), 16000); return st; }
+  if (st.src === 'juego' && !st.missing.length) { const nm = st.game && st.game.exe ? gdbGameName(st.game.exe) : /^SiderAddons$/i.test(sider.name || '') ? 'Football Life' : ''; toast(`${nm ? 'Base de ' + nm : 'Base del juego'} leída directo de sus archivos (${st.from.join(', ')}): ${S.names.size.toLocaleString('es-AR')} jugadores y ${SDB.teams.size.toLocaleString('es-AR')} equipos.`, 7000); return st; }
   if ((inst && inst.changed) || st.missing.length) setTimeout(() => sdbNotice(st, inst), 300);
   else if (inst) toast('Módulo edit21_db v' + LUA_VERSION + ' listo en Sider y base del juego completa.', 4000);
   return st;

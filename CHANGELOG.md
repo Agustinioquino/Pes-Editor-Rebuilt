@@ -2,6 +2,19 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.050 alpha · ¡Football Life 2026 es compatible!
+
+*14 de octubre de 2026, 16:45 (hora de Argentina)*
+
+El editor reconoce Football Life 2026: lee su base directo de los archivos del juego, muestra las valoraciones con su tope (104) y encuentra su EDIT. Además, un botón para buscar el EDIT a mano.
+
+- **La base del juego, sin abrir el juego** (Archivo). Al conectar la carpeta del juego, el editor lee la base directo de los data_s2526*.cpk de download, en el orden de spFileList.bin (gana la actualización más nueva), con las carpetas de Sider encima. 29.413 jugadores y 749 equipos, clásicos incluidos. Sirve también para PES 2021 (Data y download).
+- **Valoraciones como las muestra cada juego** (Plantel). PES 2021 llega a 109 y Football Life a 104: el editor se fija qué juego es por la carpeta del EDIT (…\2026\save en Football Life) o por el .exe conectado con Sider, y usa ese tope.
+- **Buscar EDIT** (Archivo). Un botón al lado de Recargar lista los EDIT encontrados para pasar de uno a otro, busca de nuevo, deja elegir la carpeta del EDIT o abrir el archivo a mano.
+- **Football Life en la pestaña Sider** (Sider). El chip ⚽ Football Life 2026 aparece con el Sider de SiderAddons; el módulo edit21_db funciona igual en ese juego.
+- **Ventanita de música que se mueve** (Música). La ventanita de Spotify y YouTube se arrastra desde "⠿ mover" y se agranda desde la esquina; queda guardada.
+- **En desarrollo se minimiza** (Interfaz). El cartel En desarrollo tiene un botón para dejarlo como pestañita.
+
 ## v0.047 alpha · Kit Studio Pro: cargá kits desde un .zip (versión preliminar)
 
 *14 de octubre de 2026, 16:00 (hora de Argentina)*

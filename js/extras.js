@@ -56,15 +56,17 @@ async function siderLayout(dir) {
 // relativas, o completas que apunten dentro de esta misma Sider), después el resto de livecpk
 // cuando la carpeta elegida no es (ni contiene) Sider: qué parece ser, para decir qué carpeta elegir
 async function siderWhatIs(dir) {
-  const names = []; let cpkLike = 0;
+  const T = typeof tr === 'function' ? tr : x => x, names = []; let cpkLike = 0;
   try { for await (const [n, h] of dir.entries()) { if (h.kind !== 'directory') continue; names.push(n); if (names.length <= 12 && await isCpkContent(h)) cpkLike++; } } catch { }
   if (await isCpkContent(dir)) return 'Esa carpeta parece una carpeta de contenido (tiene common o Asset): elegí la carpeta de Sider, la que tiene sider.exe y sider.ini, dos niveles más arriba.';
   if (cpkLike >= 1 && cpkLike >= names.length / 2) return 'Esa carpeta parece la carpeta livecpk: elegí la de arriba, la que tiene sider.exe y sider.ini.';
   if (await hasDir(dir, 'kit-server') || await hasFile(dir, 'map.txt') || await hasDir(dir, 'edit21-db')) return 'Esa carpeta parece la carpeta content de Sider: elegí la de arriba, la que tiene sider.exe y sider.ini.';
   if (await hasFile(dir, 'PES2021.exe')) return 'Es la carpeta del juego, pero Sider no está adentro ni en sus subcarpetas: elegí la carpeta donde está sider.exe (con sider.ini).';
   if (!names.length) return 'En esa carpeta no está Sider (sider.exe o sider.ini) y está vacía. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.';
-  if (names.length > 6) return `En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay ${names.length} carpetas, como ${names.slice(0, 5).join(', ')}. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.`;
-  return `En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay: ${names.join(', ')}. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.`;
+  // los nombres de las carpetas van fuera de la traducción (si no, una carpeta "Escudos" saldría como "Crests")
+  const tail = T('Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.');
+  if (names.length > 6) return `${T('En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay')} ${names.length} ${T('carpetas, como')} ${names.slice(0, 5).join(', ')}. ${tail}`;
+  return `${T('En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay:')} ${names.join(', ')}. ${tail}`;
 }
 async function siderCpkRoots(sider) {
   const out = [], seen = new Set(), add = (h, key) => { if (h && !seen.has(key.toLowerCase())) { seen.add(key.toLowerCase()); out.push(h); } };
@@ -132,7 +134,7 @@ async function connectKits(dirIn) {
   if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
   // el aviso se arma por partes (cada una se traduce sola) y se une con " · "
   const T = typeof tr === 'function' ? tr : x => x, parts = [];
-  if (lay.sider !== dir) parts.push(T(`Sider encontrado en ${sider.name}`));
+  if (lay.sider !== dir) parts.push(T('Sider encontrado en') + ' ' + sider.name); // el nombre de la carpeta queda fuera de la traducción
   parts.push(T(root ? `Kits cargados: ${out.size} equipos` : 'Sider conectado (sin kit-server: los kits no se pueden editar acá)'));
   if (namesMsg) parts.push(T(namesMsg));
   if (FACES.count) parts.push(T(`${FACES.count.toLocaleString('es-AR')} minifaces`));

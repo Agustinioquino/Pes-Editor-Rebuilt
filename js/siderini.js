@@ -118,7 +118,7 @@ const siGuess = name => { for (const [re, t] of SI_NAMES) if (re.test(name)) ret
 async function siScanRoot(d, name) {
   const found = new Map();
   for (const [p, t, cnt] of SI_PATHS) {
-    try { const x = await subDir(d, p); let n = 0; for await (const [, e] of x.entries()) { if (!cnt) { n = 1; break; } if (e.kind === 'file' || t === 'caras') n++; if (n >= 3000) break; } if (n) { const cur = found.get(t); if (!cur || n > cur.count) found.set(t, { sure: true, count: cnt ? n : 0 }); } } catch { }
+    try { const x = await subDir(d, p); let n = 0; for await (const [, e] of x.entries()) { if (!cnt) { n = 1; break; } if (t === 'caras' ? e.kind === 'directory' : e.kind === 'file') n++; if (n >= 3000) break; } if (n) { const cur = found.get(t); if (!cur || n > cur.count) found.set(t, { sure: true, count: cnt ? n : 0 }); } } catch { }
   }
   if (!found.size) { const g = siGuess(name); if (g) found.set(g, { sure: false, count: 0 }); }
   return [...found].map(([t, v]) => Object.assign(siType(t), v));

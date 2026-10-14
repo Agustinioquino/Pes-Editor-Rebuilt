@@ -3,7 +3,16 @@ const KIT_LS = 'edit21-kits-v1';
 const KITS = { map: new Map(), from: '', when: 0 };
 function kitsLoadCache() { try { const j = JSON.parse(localStorage.getItem(KIT_LS) || 'null'); if (j) { KITS.map = new Map(j.teams); KITS.from = j.from; KITS.when = j.when; } } catch { } }
 function kitsSaveCache() { try { localStorage.setItem(KIT_LS, JSON.stringify({ teams: [...KITS.map], from: KITS.from, when: KITS.when })); } catch { } }
-async function subDir(dir, path) { for (const seg of path.split(/[\\/]/).filter(Boolean)) dir = await dir.getDirectoryHandle(seg); return dir; }
+// en Windows los nombres no distinguen mayúsculas; en un disco que sí (Linux) se busca el nombre parecido si el exacto no está
+async function subDir(dir, path) {
+  for (const seg of path.split(/[\\/]/).filter(Boolean)) {
+    try { dir = await dir.getDirectoryHandle(seg); continue; } catch (e) { if (!e || e.name !== 'NotFoundError') throw e; }
+    let found = null; const low = seg.toLowerCase();
+    for await (const [n, h] of dir.entries()) if (h.kind === 'directory' && n.toLowerCase() === low) { found = h; break; }
+    if (!found) throw new DOMException('No existe ' + seg, 'NotFoundError'); dir = found;
+  }
+  return dir;
+}
 async function readText(dir, name) { try { const h = await dir.getFileHandle(name); return (await (await h.getFile()).text()).replace(/^﻿/, ''); } catch { return null; } }
 const lines = txt => (txt || '').split(/\r?\n/).map(l => l.replace(/[;#].*$/, '').trim()).filter(Boolean);
 function parseKitCfg(txt, n) {

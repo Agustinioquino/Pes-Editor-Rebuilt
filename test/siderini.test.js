@@ -66,7 +66,7 @@ test('sider.ini: saltos LF, claves en mayúsculas y comentarios sin punto no se 
   assert.ok(X.siText().includes('\n') && !X.siText().includes('\r\n'));
 });
 
-const sider = new FDir('Sider PES2021', { 'sider.ini': null, 'sider.exe': null, livecpk: { Escudos: { common: { render: { symbol: { flag: { 'e_000100_r.png': null, 'e_000101_r.png': null } } } } }, 'Faces-HD': { common: { character0: { model: { character: { face: { real: { '1000': {} } } } } } } }, Balones: { common: { character0: { model: { character: { ball: { b1: {} } } } } } }, Tattoos: {}, 'Menu-Pack': { x: {} } }, content: { 'kit-server': { 'map.txt': null } } });
+const sider = new FDir('Sider PES2021', { 'sider.ini': null, 'sider.exe': null, livecpk: { Escudos: { common: { render: { symbol: { flag: { 'e_000100_r.png': null, 'e_000101_r.png': null } } } } }, 'Faces-HD': { common: { character0: { model: { character: { face: { real: { '1000': {}, '1001': {}, 'readme.txt': null } } } } } } }, Balones: { common: { character0: { model: { character: { ball: { b1: {} } } } } } }, Tattoos: {}, 'Menu-Pack': { x: {} } }, content: { 'kit-server': { 'map.txt': null } } });
 
 test('cpk.root: rutas relativas, completas, renombradas y de afuera', async () => {
   const r = async v => { const x = await X.siResolve(sider, v); return J([x.rel, !!x.h, x.outside, x.name]); };
@@ -88,7 +88,7 @@ test('clasificación de carpetas: por lo que tienen adentro o por el nombre', as
   const live = await sider.getDirectoryHandle('livecpk');
   const t = async n => J(await X.siScanRoot(await live.getDirectoryHandle(n), n)).map(x => x.t + (x.sure ? '' : '?') + (x.count ? ':' + x.count : ''));
   assert.deepStrictEqual(await t('Escudos'), ['escudos:2']);
-  assert.deepStrictEqual(await t('Faces-HD'), ['caras:1']);
+  assert.deepStrictEqual(await t('Faces-HD'), ['caras:2'], 'una carpeta por jugador; los archivos sueltos no cuentan');
   assert.deepStrictEqual(await t('Balones'), ['balones']);
   assert.deepStrictEqual(await t('Tattoos'), ['tatuajes?']);
   assert.deepStrictEqual(await t('Menu-Pack'), ['menu?']);

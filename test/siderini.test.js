@@ -76,7 +76,9 @@ test('cpk.root: rutas relativas, completas, renombradas y de afuera', async () =
   assert.deepStrictEqual(await r('.\\livecpk\\NoExiste'), ['livecpk\\NoExiste', false, false, 'NoExiste']);
   assert.deepStrictEqual(await r('C:\\Program Files (x86)\\Steam\\steamapps\\common\\eFootball PES 2021\\Sider PES2021\\livecpk\\Balones'), ['livecpk\\Balones', true, false, 'Balones']);
   assert.deepStrictEqual(await r('D:\\Juegos\\Sider-Viejo\\livecpk\\Balones'), ['livecpk\\Balones', true, false, 'Balones'], 'la carpeta Sider cambió de nombre y lugar');
-  assert.deepStrictEqual(await r('D:\\Otro\\Balones'), ['livecpk\\Balones', true, false, 'Balones'], 'solo coincide la última carpeta, dentro de livecpk');
+  assert.deepStrictEqual(await r('D:\\Otro\\Balones'), [null, false, true, 'Balones'], 'sin livecpk en la ruta no se adivina: es de afuera');
+  assert.deepStrictEqual(await r('D:\\Juegos\\Sider-Viejo\\livecpk'), ['livecpk', true, false, 'livecpk'], 'la carpeta livecpk misma');
+  assert.deepStrictEqual(await r('\\livecpk\\Escudos'), ['livecpk\\Escudos', true, false, 'Escudos'], 'barra inicial');
   assert.deepStrictEqual((await r('D:\\Otro\\Mods\\Nada'))[2], true, 'ruta completa que no está acá');
   assert.deepStrictEqual((await r('E:\\Parche\\livecpk\\Nada')).slice(0, 3), ['livecpk\\Nada', false, false], 'parece de esta Sider pero la carpeta no existe');
   assert.deepStrictEqual((await r('..\\Otro\\livecpk\\X'))[2], true, 'sube un nivel: no se puede mirar');
@@ -107,6 +109,7 @@ test('sider.ini en UTF-8, UTF-16 y Windows-1252 se lee bien y se guarda igual', 
   assert.deepStrictEqual([dh.enc, dh.text], ['cp1252', '; \u2026 \u2013 \u2019 \u20ac \u00f1']);
   assert.deepStrictEqual(Array.from(X.siEncode(dh.text, 'cp1252')), Array.from(hi), 'los bytes altos vuelven iguales');
   assert.strictEqual(X.siEncode('\u4e2d', 'cp1252')[0], 63, 'lo que no entra en cp1252 queda como ?');
+  const be = X.siEncode(txt, 'utf-16be'); assert.deepStrictEqual([be[0], be[1], be[2], be[3]], [0xFE, 0xFF, 0, 0x5B]); assert.deepStrictEqual([X.siDecode(be).enc, X.siDecode(be).text], ['utf-16be', txt]);
   const noBom16 = u16.subarray(2); assert.strictEqual(X.siDecode(noBom16).text, txt, 'UTF-16 sin BOM');
   const dir = new FDir('S', { 'sider.ini': cp }); assert.strictEqual(await X.siReadIni(dir), txt); assert.strictEqual(X.SI.enc, 'cp1252');
 });

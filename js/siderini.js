@@ -20,7 +20,7 @@ function siDecode(b) {
   return { enc: b.length >= 3 && b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 'utf-8-bom' : 'utf-8', text: u.replace(/^\uFEFF/, '') };
 }
 function siEncode(t, enc) {
-  if (enc === 'utf-16le' || enc === 'utf-16be') { const b = new Uint8Array(2 + t.length * 2); b[0] = 0xFF; b[1] = 0xFE; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[2 + i * 2] = c & 255; b[3 + i * 2] = c >> 8; } return b; }
+  if (enc === 'utf-16le' || enc === 'utf-16be') { const be = enc === 'utf-16be', b = new Uint8Array(2 + t.length * 2); b[0] = be ? 0xFE : 0xFF; b[1] = be ? 0xFF : 0xFE; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[2 + i * 2 + be] = c & 255; b[3 + i * 2 - be] = c >> 8; } return b; }
   if (enc === 'cp1252') { const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[i] = c < 256 ? c : CP1252_REV.get(c) ?? 63; } return b; }
   if (enc === 'utf-8-bom') return new TextEncoder().encode('\uFEFF' + t);
   return new TextEncoder().encode(t);
@@ -136,11 +136,13 @@ async function siResolve(sider, val) {
     const low = parts.map(x => x.toLowerCase()), k = low.lastIndexOf(me), cands = [];
     if (k >= 0) cands.push(parts.slice(k + 1).join('\\'));
     for (let i = 1; i < parts.length - 1; i++) cands.push(parts.slice(i).join('\\')); // finales de dos o más carpetas
-    if (last && !/^livecpk$/i.test(last)) cands.push('livecpk\\' + last);
+    const lv = low.indexOf('livecpk');
+    if (lv >= 0) cands.push(parts.slice(lv).join('\\')); // desde livecpk (también la carpeta livecpk sola)
+    if (lv >= 0 && last && !/^livecpk$/i.test(last)) cands.push('livecpk\\' + last); // la Sider se movió o renombró: misma carpeta de livecpk
     for (const c of cands) if (await tryRel(c)) break;
-    if (!h) { const lv = low.indexOf('livecpk'); rel = lv >= 0 ? parts.slice(lv).join('\\') : null; outside = rel == null; }
+    if (!h) { rel = lv >= 0 ? parts.slice(lv).join('\\') : null; outside = rel == null; }
   } else if (/^\.\.(\\|$)/.test(p)) outside = true; // sube un nivel: el navegador no puede mirar ahí
-  else await relOf(p.replace(/^\.(\\|$)/, ''));
+  else await relOf(p.replace(/^\.?(\\|$)/, '')); // ".\livecpk\X", "livecpk\X" y "\livecpk\X" son la misma carpeta
   return { abs, rel, h, outside, name: ((rel != null ? rel : p).split('\\').filter(Boolean).pop()) || p };
 }
 async function siCount(d, re, cap = 500) { let n = 0; try { for await (const [nm, e] of d.entries()) { if (!re || (e.kind === 'file' && re.test(nm))) n++; if (n >= cap) break; } } catch { } return n; }

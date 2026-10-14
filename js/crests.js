@@ -50,7 +50,7 @@ async function crestSider(write) {
 async function crestTarget(t, sider) {
   let live = null; try { live = await sider.getDirectoryHandle('livecpk'); } catch { }
   // orden de sider.ini: la primera carpeta de la lista es la que manda en el juego
-  const ini = (await readText(sider, 'sider.ini')) || '', order = [];
+  const ini = (typeof siReadIni === 'function' ? await siReadIni(sider) : await readText(sider, 'sider.ini')) || '', order = [];
   for (const m of ini.matchAll(/^\s*cpk\.root\s*=\s*"?([^"\r\n]+)"?/gim)) { const p = m[1].trim().replace(/\\/g, '/').replace(/^\.\//, ''); const k = p.match(/(?:^|\/)livecpk\/([^/]+)\/?$/i); if (k) order.push(k[1].toLowerCase()); }
   const rank = n => { const i = order.indexOf(n.toLowerCase()); return i < 0 ? 1e6 : i; };
   const roots = []; if (live) for await (const [name, h] of live.entries()) if (h.kind === 'directory') roots.push({ name, h, r: rank(name) });

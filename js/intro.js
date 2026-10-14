@@ -197,7 +197,7 @@ async function introSider(t0) {
     // qué dice sider.ini y si todo lo que nombra existe (carpetas de contenido, módulos, kit-server, edit21-db)
     if (typeof siIntroCheck === 'function') {
       const sh = await idbGet('sider').catch(() => null); // idbGet devuelve SIDER_RO si está; no el handle viejo si eligió otra carpeta
-      if (sh) { introStep('Revisando sider.ini…'); const c = await Promise.race([siIntroCheck(sh).catch(() => null), introWait(20000)]); introStep(c ? c.text : 'sider.ini: la revisión sigue en la pestaña Sider.', 'ok'); if (c && c.warn) introStep(c.warn, 'warn'); }
+      if (sh) { introStep('Revisando sider.ini…'); const c = await Promise.race([siIntroCheck(sh).catch(() => null), introWait(20000)]); introStep(c ? c.text : 'sider.ini: la revisión sigue en la pestaña Sider.', c && !c.ok && !c.warn ? 'warn' : 'ok'); if (c && c.warn) introStep(c.warn, 'warn'); }
     }
   } else introStep('Sin Sider por ahora: podés conectarlo después con el botón de arriba.');
   // fotos de internet para los que no tienen miniface: se elige una vez

@@ -439,6 +439,29 @@ async function reloadFromGame(force) {
     toast('🔄 EDIT recargado desde la carpeta del juego.');
   } catch (e) { toast('No se pudo recargar: ' + e.message, 6000); }
 }
+// botón "Buscar EDIT": los EDIT encontrados, buscar de nuevo, elegir la carpeta o abrir el archivo a mano
+function editFinder() {
+  const list = PESLOC.edits || [];
+  ksModal('Buscar el EDIT', `${list.length ? `<p class="note">EDIT encontrados (el juego usa el que guardó por última vez):</p>
+    <div class="pesedits">${list.map((e, i) => `<div class="pesedit ${PESLOC.chosen === e ? 'on' : ''}"><b>${esc(e.kind)}</b><span class="mono">${esc(e.path)}\\EDIT00000000</span><small>${new Date(e.mtime).toLocaleString('es-AR')} · ${(e.size / 1048576).toFixed(1).replace('.', ',')} MB</small>${PESLOC.chosen === e ? '<span class="chip ok">Abierto</span>' : `<button class="btn small" type="button" data-fe="${i}">Abrir este</button>`}</div>`).join('')}</div>` : '<p class="note">Todavía no hay una carpeta del juego conectada.</p>'}
+    <div class="col" style="display:grid;gap:8px;margin-top:10px">
+      <button class="btn" type="button" data-fa="again">🔎 Buscar de nuevo${PESLOC.root ? ' en ' + esc(PESLOC.root.name) : ''}</button>
+      <button class="btn" type="button" data-fa="folder">📁 Elegir la carpeta del EDIT…</button>
+      <button class="btn ghost" type="button" data-fa="file">📄 Abrir el archivo a mano (se guarda como copia)</button>
+    </div>
+    <p class="note">PES 2021 de Steam: Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\&lt;número&gt;\\drmp. Football Life: la misma carpeta, en <b>2026\\save</b>. Podés elegir Documentos o directo la carpeta donde está el EDIT00000000.</p>`,
+    (box, close) => {
+      box.querySelectorAll('[data-fe]').forEach(b => b.onclick = () => { close(); pesSwitch(+b.dataset.fe); });
+      box.querySelector('[data-fa="again"]').onclick = async () => {
+        close(); if (pending() && !await confirmBox('Tenés cambios sin guardar. ¿Buscar el EDIT de nuevo y perderlos?')) return;
+        const r = PESLOC.root || await idbGet('pesDocs').catch(() => null);
+        if (r) { try { if (r.queryPermission && (await r.queryPermission({ mode: 'readwrite' })) !== 'granted' && (await r.requestPermission({ mode: 'readwrite' })) !== 'granted') throw 0; return pesOpen(r); } catch { } }
+        pesStart(true);
+      };
+      box.querySelector('[data-fa="folder"]').onclick = async () => { close(); if (pending() && !await confirmBox('Tenés cambios sin guardar. ¿Abrir otro EDIT y perderlos?')) return; if (!window.showDirectoryPicker) { $('fFile').click(); return; } pesPick(); };
+      box.querySelector('[data-fa="file"]').onclick = () => { close(); $('fFile').click(); };
+    });
+}
 // al volver a la ventana: si el juego guardó el EDIT, avisar o recargar solo
 window.addEventListener('focus', async () => {
   if (!S.editHandle || !S.mtime) return;
@@ -1446,7 +1469,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-kits]')) c
 kitsLoadCache(); namesLoadCache(); FACES.ready = restoreFaces().then(() => { if (FACES.count) render(); });
 $('fNames').onchange = e => { const f = e.target.files[0]; if (f) loadNames(f); e.target.value = ''; };
 $('bSave').onclick = save; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
-$('bReload').onclick = () => reloadFromGame(); $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news');
+$('bReload').onclick = () => reloadFromGame(); $('bFindEdit').onclick = editFinder; $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news');
 $('gq').oninput = e => gsearch(e.target.value);
 $('gq').onkeydown = e => { if (e.key === 'Enter') { const b = $('gres').querySelector('button'); if (b) gpick(b); } if (e.key === 'Escape') { $('gres').hidden = true; e.target.blur(); } };
 $('gres').onclick = e => { const b = e.target.closest('button'); if (b) gpick(b); };

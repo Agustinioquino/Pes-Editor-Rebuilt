@@ -85,7 +85,12 @@ const FLAG_SVG = {
   es: '<svg viewBox="0 0 30 20" width="22" height="15" aria-hidden="true"><rect width="30" height="20" fill="#c60b1e"/><rect y="5" width="30" height="10" fill="#ffc400"/></svg>',
   en: '<svg viewBox="0 0 60 30" width="22" height="15" aria-hidden="true"><clipPath id="ukc"><path d="M30,15h30v15zv15h-30zh-30v-15zv-15h30z"/></clipPath><path d="M0,0v30h60v-30z" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" clip-path="url(#ukc)" stroke="#C8102E" stroke-width="4"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/><path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></svg>'
 };
-function setLang(l) { try { localStorage.setItem('edit21-lang', l); } catch { } location.reload(); }
+// con cambios sin guardar, el EDIT pasa al caché (vuelve solo al recargar, con Deshacer) y la recarga no se frena
+async function setLang(l) {
+  try { localStorage.setItem('edit21-lang', l); } catch { }
+  if (typeof sessSave === 'function' && typeof pending === 'function' && pending() && await sessSave()) UNLOAD_OK = true;
+  location.reload();
+}
 function langPicker() {
   const ref = document.getElementById('bReload'); if (!ref || document.getElementById('bLang')) return;
   const w = document.createElement('div'); w.className = 'langpick';

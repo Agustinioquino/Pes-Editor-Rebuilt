@@ -66,7 +66,7 @@ function siderBlockedHelp() {
 async function siderFixPaths(sider) {
   const f = await sdbFile(sider, 'sider.ini'); if (!f) return 0;
   let live = null; try { live = await sider.getDirectoryHandle('livecpk'); } catch { return 0; }
-  const orig = await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), me = sider.name.toLowerCase();
+  const orig = typeof siReadIni === 'function' ? await siReadIni(sider) : await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), me = sider.name.toLowerCase();
   let n = 0;
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(/^(\s*cpk\.root\s*=\s*)"?([A-Za-z]:[\\/][^"\r\n]*?|\\\\[^"\r\n]*?)"?\s*(;.*)?$/i); if (!m) continue;
@@ -78,5 +78,5 @@ async function siderFixPaths(sider) {
   }
   if (!n) return 0;
   if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
-  await sdbWrite(sider, 'sider.ini', lines.join(nl)); return n;
+  await sdbWrite(sider, 'sider.ini', lines.join(nl)); if (typeof siReset === 'function') siReset(); return n;
 }

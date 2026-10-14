@@ -528,12 +528,13 @@ function gpick(b) {
 function setTab(t) {
   const same = S.tab === t;
   if (!same) { if (S.tab === 'teams' || S.tab === 'nats') { S.teamByTab[S.tab] = S.team; S.qTeam = ''; } if (t === 'teams' || t === 'nats') { S.team = S.teamByTab[t] ?? null; if (t === 'nats' && !S.natSeen) { S.ttab = 'call'; S.natSeen = true; } if (t === 'teams' && S.ttab === 'call') S.ttab = 'roster'; S.fsel = null; S.fbench = null; } }
-  S.tab = t; for (const [id, k] of [['tTeams', 'teams'], ['tNats', 'nats'], ['tPlayers', 'players'], ['tWepes', 'wepes'], ['tFile', 'file'], ['tNews', 'news']]) $(id).setAttribute('aria-selected', String(k === t)); same ? render() : leave(S.f && $('main'), render);
+  S.tab = t; for (const [id, k] of [['tTeams', 'teams'], ['tNats', 'nats'], ['tPlayers', 'players'], ['tWepes', 'wepes'], ['tSider', 'sider'], ['tFile', 'file'], ['tNews', 'news']]) $(id).setAttribute('aria-selected', String(k === t)); same ? render() : leave(S.f && $('main'), render);
 }
 function render() {
   const m = $('main');
   if (!S.f && S.tab === 'wepes') { renderWepes(m); return; }
   if (S.tab === 'news') { renderNews(m); return; }
+  if (S.tab === 'sider') { renderSider(m); return; }
   if (!S.f) { m.innerHTML = welcome(); const w = $('wFind'); if (w) w.onclick = () => pesStart(); return; }
   if (S.tab === 'teams' || S.tab === 'nats') renderTeams(m); else if (S.tab === 'players') renderPlayers(m); else if (S.tab === 'wepes') renderWepes(m); else renderFile(m);
 }
@@ -1445,7 +1446,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-kits]')) c
 kitsLoadCache(); namesLoadCache(); FACES.ready = restoreFaces().then(() => { if (FACES.count) render(); });
 $('fNames').onchange = e => { const f = e.target.files[0]; if (f) loadNames(f); e.target.value = ''; };
 $('bSave').onclick = save; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
-$('bReload').onclick = () => reloadFromGame(); $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tNews').onclick = () => setTab('news');
+$('bReload').onclick = () => reloadFromGame(); $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news');
 $('gq').oninput = e => gsearch(e.target.value);
 $('gq').onkeydown = e => { if (e.key === 'Enter') { const b = $('gres').querySelector('button'); if (b) gpick(b); } if (e.key === 'Escape') { $('gres').hidden = true; e.target.blur(); } };
 $('gres').onclick = e => { const b = e.target.closest('button'); if (b) gpick(b); };

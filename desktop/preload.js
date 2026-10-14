@@ -12,5 +12,6 @@ contextBridge.exposeInMainWorld('pesNative', {
   read: p => call('read', p),
   write: (p, d) => call('write', p, d),
   mkdir: p => call('mkdir', p),
-  remove: (p, r) => call('remove', p, r)
+  remove: (p, r) => call('remove', p, r),
+  ytSearch: q => call('ytSearch', q)
 });

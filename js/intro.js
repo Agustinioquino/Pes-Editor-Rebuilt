@@ -2,25 +2,46 @@
 // El navegador no deja que una página lea Documentos sin permiso: la primera vez se elige la carpeta una sola vez
 // (el selector ya se abre en Documentos) y después se recuerda. Desde ahí se busca
 // KONAMI\eFootball PES 2021 SEASON UPDATE\<número de Steam>\drmp (Parche) o \save → EDIT00000000, y la carpeta WEPES.
+// También la versión sin Steam (CPY y otras: ...\SEASON UPDATE\save\EDIT00000000), Football Life y cualquier otra
+// carpeta de guardado del parche; si no aparece nada, se busca el EDIT00000000 unos niveles más abajo.
 const PESLOC = { root: null, season: null, edits: [], wepes: null, chosen: null };
-const SEASON_RE = /^eFootball PES 20(21|20)( SEASON UPDATE)?$/i;
+const SEASON_RE = /^(eFootball PES 20(21|20)( SEASON UPDATE)?|Football Life.*|PES 202[01].*)$/i;
 async function pesFind(root) {
   const out = { season: null, edits: [], wepes: null };
   const has = async (d, n) => { try { return await d.getFileHandle(n); } catch { return null; } };
   const sub = async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } };
   const dirs = async d => { const r = []; try { for await (const [n, h] of d.entries()) if (h.kind === 'directory') r.push([n, h]); } catch { } return r; };
+  const push = async (d, h, kind, steam, path) => { if (out.edits.some(e => e.path.toLowerCase() === path.toLowerCase())) return; const f = await h.getFile(); out.edits.push({ dir: d, handle: h, kind, steam, mtime: f.lastModified, size: f.size, path }); };
+  // <temporada>\<número de Steam>\<drmp, save u otra>\EDIT00000000, o sin Steam: <temporada>\save\EDIT00000000
   const addEdits = async (season, label) => {
-    for (const [steam, sd] of await dirs(season)) for (const kind of ['drmp', 'save']) { const d = await sub(sd, kind), h = d && await has(d, 'EDIT00000000'); if (h) { const f = await h.getFile(); out.edits.push({ dir: d, handle: h, kind, steam, mtime: f.lastModified, size: f.size, path: `${label}\\${steam}\\${kind}` }); } }
+    for (const [n1, d1] of await dirs(season)) {
+      if (/^wepes$/i.test(n1)) continue;
+      const h1 = await has(d1, 'EDIT00000000'); if (h1) await push(d1, h1, n1, '', `${label}\\${n1}`);
+      for (const [n2, d2] of await dirs(d1)) { const h2 = await has(d2, 'EDIT00000000'); if (h2) await push(d2, h2, n2, n1, `${label}\\${n1}\\${n2}`); }
+    }
   };
   // 1) eligieron directamente la carpeta del EDIT (drmp o save)
   const direct = await has(root, 'EDIT00000000');
   if (direct) { const f = await direct.getFile(); out.edits.push({ dir: root, handle: direct, kind: root.name, steam: '', mtime: f.lastModified, size: f.size, path: root.name }); }
   // 2) la carpeta de la temporada: la elegida, dentro de KONAMI, o buscando unos niveles hacia abajo
-  let season = SEASON_RE.test(root.name) ? root : null;
-  if (!season) { const k = /^konami$/i.test(root.name) ? root : await sub(root, 'KONAMI'); if (k) for (const n of ['eFootball PES 2021 SEASON UPDATE', 'eFootball PES 2021', 'eFootball PES 2020']) { season = await sub(k, n); if (season) break; } }
+  let season = SEASON_RE.test(root.name) ? root : null; const others = [];
+  if (!season) { const k = /^konami$/i.test(root.name) ? root : await sub(root, 'KONAMI'); if (k) { const all = (await dirs(k)).filter(([n]) => SEASON_RE.test(n)).sort((a, b) => (/2021 SEASON UPDATE$/i.test(b[0]) - /2021 SEASON UPDATE$/i.test(a[0]))); if (all.length) { season = all[0][1]; others.push(...all.slice(1)); } } }
   if (!season && !direct) { const q = [[root, 0]]; let seen = 0; while (q.length && !season && seen < 400) { const [d, depth] = q.shift(); for (const [n, h] of await dirs(d)) { seen++; if (SEASON_RE.test(n)) { season = h; break; } if (depth < 3 && !/^(\.|appdata|node_modules|\$)/i.test(n)) q.push([h, depth + 1]); } } }
   if (!season && !direct && /^(drmp|save)$/i.test(root.name) === false && /^\d{8,}$/.test(root.name)) { for (const kind of ['drmp', 'save']) { const d = await sub(root, kind), h = d && await has(d, 'EDIT00000000'); if (h) { const f = await h.getFile(); out.edits.push({ dir: d, handle: h, kind, steam: root.name, mtime: f.lastModified, size: f.size, path: root.name + '\\' + kind }); } } }
   if (season) { out.season = season; await addEdits(season, season.name); out.wepes = await sub(season, 'WEPES'); }
+  for (const [n, d] of others) await addEdits(d, n); // otra instalación (por ejemplo Football Life al lado de PES 2021)
+  // nada en los lugares de siempre: se busca el archivo unos niveles más abajo de la carpeta elegida
+  if (!out.edits.length) {
+    const q = [[root, root.name, 0]]; let seen = 0;
+    while (q.length && seen < 800 && out.edits.length < 6) {
+      const [d, path, depth] = q.shift();
+      for (const [n, h] of await dirs(d)) {
+        if (++seen > 800) break; if (/^(\.|\$|appdata$|node_modules$|wepes$)/i.test(n)) continue;
+        const e = await has(h, 'EDIT00000000'); if (e) await push(h, e, n, '', `${path}\\${n}`);
+        if (depth < 4) q.push([h, `${path}\\${n}`, depth + 1]);
+      }
+    }
+  }
   // el más reciente primero; a igual fecha, el del Parche
   out.edits.sort((a, b) => (b.mtime - a.mtime) || ((a.kind === 'drmp') ? -1 : 1));
   return out;
@@ -110,7 +131,7 @@ async function pesOpen(root) {
   if (f.season) introStep('Encontrada: ' + f.season.name + (f.wepes ? ' (con WEPES)' : ''));
   if (!f.edits.length) {
     introStep('No encontré ningún EDIT00000000 ahí.', 'err');
-    introActions(`<button class="btn primary" type="button" id="introOther">Elegir otra carpeta</button><p class="note">Tiene que estar en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\&lt;número&gt;\\drmp (o \\save). Si nunca guardaste en el modo Editar del juego, el archivo todavía no existe.</p>`, a => a.querySelector('#introOther').onclick = () => pesPick());
+    introActions(`<button class="btn primary" type="button" id="introOther">Elegir otra carpeta</button><p class="note">Suele estar en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\&lt;número&gt;\\drmp (o \\save; sin Steam, como CPY, directo en \\save). Si nunca guardaste en el modo Editar del juego, el archivo todavía no existe.</p>`, a => a.querySelector('#introOther').onclick = () => pesPick());
     return;
   }
   if (typeof sessPeek === 'function') await sessPeek();
@@ -155,7 +176,7 @@ async function introSider(t0) {
     let failed = !!INTRO_BROWSER; // en Chrome y Edge se avisa desde el principio
     for (;;) {
       let a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button>${failed ? '<button class="btn" type="button" data-a="ro">📂 Abrir solo para ver</button>' : ''}${failed ? '<button class="btn ghost" type="button" data-a="how">Cómo moverla</button>' : ''}<button class="btn ghost" type="button" data-a="no">Ahora no</button>
-        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>). Se hace una sola vez: después el editor la recuerda.</p>${failed ? introRoNote() : ''}`);
+        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>; en Football Life, la carpeta del juego). Se hace una sola vez: después el editor la recuerda.</p>${failed ? introRoNote() : ''}`);
       if (a === 'no') break;
       if (a === 'how') {
         const b = await introAsk(`${siderMoveSteps(siderRoName(), 'Ya la moví: elegir la carpeta')}
@@ -173,6 +194,11 @@ async function introSider(t0) {
     introStep('Cargando caras, escudos y la base del juego desde Sider…');
     await Promise.race([FACES.ready || Promise.resolve(), introWait(12000)]);
     introStep(`Sider listo: ${(FACES.count || 0).toLocaleString('es-AR')} caras y ${(BADGES.count || 0).toLocaleString('es-AR')} escudos.`);
+    // qué dice sider.ini y si todo lo que nombra existe (carpetas de contenido, módulos, kit-server, edit21-db)
+    if (typeof siIntroCheck === 'function') {
+      const sh = await idbGet('sider').catch(() => null); // idbGet devuelve SIDER_RO si está; no el handle viejo si eligió otra carpeta
+      if (sh) { introStep('Revisando sider.ini…'); const c = await Promise.race([siIntroCheck(sh).catch(() => null), introWait(20000)]); introStep(c ? c.text : 'sider.ini: la revisión sigue en la pestaña Sider.', c && !c.ok && !c.warn ? 'warn' : 'ok'); if (c && c.warn) introStep(c.warn, 'warn'); }
+    }
   } else introStep('Sin Sider por ahora: podés conectarlo después con el botón de arriba.');
   // fotos de internet para los que no tienen miniface: se elige una vez
   if (!PREFS.photoSrc) {
@@ -182,9 +208,55 @@ async function introSider(t0) {
     setPhotoSrc(a); introActions(''); INTRO.el && INTRO.el.classList.add('busy');
     introStep({ tsdb: 'Fotos: recortadas de TheSportsDB.', mix: 'Fotos: recortadas y, si faltan, de Wikipedia.', off: 'Fotos: solo las del Parche.' }[a]);
   }
-  // un momento más para que terminen de cargar las fuentes, el logo y las primeras caras
+  await introImages();
+  if (typeof SI !== 'undefined' && SI.introProbs) { const probs = SI.introProbs; setTimeout(() => toast('Sider: ' + probs.join('; ') + '.', 12000, ['Ver en la pestaña Sider', () => setTab('sider')]), 2200); }
+  // un momento más para que terminen de cargar las fuentes y el logo
   introStep('Preparando la pantalla…');
   await Promise.race([Promise.all([document.fonts ? document.fonts.ready : null, introWait(Math.max(0, t0 + 2600 - Date.now()))]), introWait(8000)]);
+}
+// ---- escudos y fotos listos antes de mostrar el editor, así nada aparece de golpe ----
+// Se cargan todos los escudos (los de Sider y los de internet ya encontrados), las caras del equipo que se abre y lo que
+// se ve en pantalla. Lo que todavía no se buscó en internet (la primera vez) se espera solo para lo que se ve primero,
+// con un tope de tiempo y un botón para entrar antes.
+async function introImages() {
+  if (!S.ix) return;
+  const T0 = Date.now(), CAP = 45000, out = () => skip || Date.now() - T0 > CAP;
+  let skip = false, done = 0, total = 0;
+  introStep('Cargando escudos y fotos…');
+  const li = $('introSteps') && $('introSteps').lastElementChild;
+  const say = () => { if (li) li.textContent = `Cargando escudos y fotos… ${Math.min(done, total).toLocaleString('es-AR')} de ${total.toLocaleString('es-AR')}`; const bar = $('introBar'); if (bar && total) bar.style.width = Math.max(4, Math.round(100 * Math.min(done, total) / total)) + '%'; };
+  const skipT = setTimeout(() => introActions('<button class="btn ghost" type="button" id="introSkip">Entrar ya (el resto carga después)</button><p class="note">La primera vez tarda más porque busca escudos y fotos en internet. Después quedan guardados y la carga es rápida.</p>', a => a.querySelector('#introSkip').onclick = () => { skip = true; introActions(''); }), 6000);
+  const pool = async (items, n, fn) => { const q = items.slice(); await Promise.all(Array.from({ length: n }, async () => { while (q.length && !out()) { await fn(q.shift()); done++; say(); } })); };
+  const pic = u => new Promise(res => { if (!u) return res(); const im = new Image(), t = setTimeout(res, 8000); if (!/^(blob|data):/.test(u)) im.crossOrigin = null; im.onload = () => { clearTimeout(t); (im.decode ? im.decode() : Promise.resolve()).catch(() => { }).then(res); }; im.onerror = () => { clearTimeout(t); res(); }; im.src = u; });
+  const until = async (ok, ms) => { const t = Date.now(); while (!ok() && !out() && Date.now() - t < ms) await introWait(150); };
+  const teams = S.ix.teams.filter(t => PD.roster(S.d, t).length || BADGES.idx.has(t.id));
+  const cur = S.ix.teamById.get(S.team), roster = cur ? PD.roster(S.d, cur).map(r => r.pid) : [];
+  // 1) escudos de Sider (archivos locales) y caras del Parche del equipo que se abre
+  const local = teams.filter(t => BADGES.idx.has(t.id) && !BADGES.url.has(t.id));
+  const facesLocal = roster.filter(pid => FACES.idx.has(pid) && !FACES.url.has(pid));
+  total = local.length + facesLocal.length; say();
+  await pool(local, 8, async t => { BADGES.loading.add(t.id); await loadLocalBadge(t.id); });
+  facesLocal.forEach(pid => faceUrl(pid)); await until(() => facesLocal.every(pid => FACES.url.has(pid)), 8000); done += facesLocal.length; say();
+  // 2) lo que se ve primero y todavía no se buscó en internet: escudos de los primeros equipos de la lista y caras del equipo abierto
+  render(); await introWait(60);
+  const firstIds = [...new Set([...document.querySelectorAll('img[data-badge]')].filter(i => { const r = i.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }).slice(0, 24).map(i => +i.dataset.badge))];
+  if (PREFS.onlineBadges) firstIds.forEach(id => { const t = S.ix.teamById.get(id); if (t && !BADGES.idx.has(id) && !BADGES.online.has(id)) badgeUrl(t, true); });
+  if (PREFS.online) roster.forEach(pid => { if (!FACES.idx.has(pid) && !FACES.online.has(pid)) faceUrl(pid); });
+  const pend = () => firstIds.filter(id => PREFS.onlineBadges && !BADGES.idx.has(id) && !BADGES.online.has(id) && !BADGES.err.has(id)).length + (PREFS.online ? roster.filter(pid => !FACES.idx.has(pid) && !FACES.online.has(pid) && !FACES.err.has(pid)).length : 0);
+  const p0 = pend();
+  if (p0) { total += p0; done = total - p0; say(); await until(() => { const p = pend(); done = total - p; say(); return !p; }, CAP); }
+  // 3) todas las imágenes ya conocidas (escudos y caras), descargadas y listas para dibujar
+  const urls = new Set();
+  for (const t of teams) { const u = BADGES.url.get(t.id) || BADGES.online.get(t.id); if (u) urls.add(u); }
+  FACE_CTX.nat = !!(cur && isNat(cur)); for (const pid of roster) { const u = FACES.url.get(pid) || onlineFor(pid); if (u) urls.add(u); }
+  total += urls.size; say();
+  await pool([...urls], 10, pic);
+  // 4) lo que quedó en pantalla (banderas, logos, fotos) terminado de dibujar
+  render(); await introWait(60);
+  const vis = [...document.querySelectorAll('img')].filter(i => !(INTRO.el && INTRO.el.contains(i))).filter(i => i.getAttribute('src') && i.getBoundingClientRect().top < innerHeight);
+  await Promise.race([Promise.all(vis.map(i => i.complete ? (i.decode ? i.decode().catch(() => { }) : null) : new Promise(r => { i.onload = i.onerror = r; }))), introWait(Math.max(1500, CAP - (Date.now() - T0)))]);
+  clearTimeout(skipT); introActions('');
+  if (li) li.textContent = skip ? 'Escudos y fotos: el resto termina de cargar en el editor.' : 'Escudos y fotos listos.';
 }
 // cambiar entre EDITs encontrados (drmp / save / otra cuenta de Steam)
 async function pesSwitch(i) {

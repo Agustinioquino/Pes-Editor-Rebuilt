@@ -2,6 +2,7 @@
 // Un cartel abajo a la derecha, una vez por versión, cuando termina la pantalla de carga. También queda arriba de
 // todo en Novedades. "Beta" = ya está en el editor pero en prueba; "Próximamente" = en camino, puede cambiar.
 const DEV_ITEMS = [
+  ['beta', '🧩', "Pestaña Sider", "Qué carga tu Parche y edición de sider.ini con interruptores. Está en prueba: si una carpeta o un módulo sale mal clasificado, o algo no se guarda, avisá."],
   ['beta', '💻', 'PES Editor Rebuilt para Windows', 'La app que conecta tu carpeta Sider aunque esté en Archivos de programa. Está en prueba: si algo no se guarda en el Parche, avisá.'],
   ['beta', '⬡', 'Ficha hexagonal y media rápida', 'Cambiar la media y cada área de un jugador arrastrando el hexágono o desde el plantel. Está en prueba: si una media no queda como esperabas, avisá.'],
   ['beta', '🗂', 'Tu trabajo en el caché', 'Al actualizar el editor, tus cambios sin guardar quedan en el navegador y vuelven solos. Está en prueba: guardá en el juego igual cuando termines.'],

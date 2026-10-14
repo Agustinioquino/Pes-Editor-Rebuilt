@@ -6,8 +6,9 @@ const LUA_NAME = 'edit21_db.lua';
 const LUA_VERSION = (typeof EDIT21_LUA === 'string' && EDIT21_LUA.match(/v(\d+\.\d+)/) || [])[1] || '0';
 const DB_NEEDED = ['Player.bin', 'Team.bin', 'PlayerAssignment.bin'];
 
-async function sdbFile(dir, name) { try { return await (await dir.getFileHandle(name)).getFile(); } catch { return null; } }
-async function sdbWrite(dir, name, text) { const h = await dir.getFileHandle(name, { create: true }); const w = await h.createWritable(); await w.write(text); await w.close(); }
+async function sdbFile(dir, name) { try { return await (await fsFile(dir, name)).getFile(); } catch { return null; } }
+// sider.ini se escribe con la misma codificación con la que se leyó (siReadIni la anota en SI.enc)
+async function sdbWrite(dir, name, text) { const h = await fsFile(dir, name, true); const w = await h.createWritable(); await w.write(/^sider\.ini/i.test(name) && typeof siEncode === 'function' && typeof SI !== 'undefined' ? siEncode(text, SI.enc) : text); await w.close(); }
 
 // ---- instalación del módulo (necesita permiso de escritura en la carpeta Sider) ----
 async function sdbInstall(sider) {
@@ -21,7 +22,7 @@ async function sdbInstall(sider) {
   if (!cur) { await sdbWrite(mods, LUA_NAME, EDIT21_LUA); r.module = 'nuevo'; r.changed = true; }
   else if (parseFloat(curVer) < parseFloat(LUA_VERSION)) { try { await sdbWrite(mods, LUA_NAME + '.anterior', await cur.text()); } catch { } await sdbWrite(mods, LUA_NAME, EDIT21_LUA); r.module = 'actualizado'; r.changed = true; }
   // 2) sider.ini: lua.enabled = 1 y la línea del módulo
-  let text = await ini.text(), orig = text;
+  let text = typeof siReadIni === 'function' ? await siReadIni(sider) : await ini.text(), orig = text;
   if (!/^\s*lua\.module\s*=\s*"?edit21_db\.lua"?\s*$/mi.test(text)) {
     const nl = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/); let last = -1;
@@ -31,7 +32,7 @@ async function sdbInstall(sider) {
     text = lines.join(nl); r.ini = 'agregado';
   }
   if (/^\s*lua\.enabled\s*=\s*0\s*$/m.test(text)) { text = text.replace(/^(\s*lua\.enabled\s*=\s*)0(\s*)$/m, '$11$2'); r.ini = 'agregado'; }
-  if (text !== orig) { if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig); await sdbWrite(sider, 'sider.ini', text); r.changed = true; }
+  if (text !== orig) { if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig); await sdbWrite(sider, 'sider.ini', text); r.changed = true; if (typeof siReset === 'function') siReset(); }
   // 3) content\edit21-db (el módulo no puede crear carpetas)
   const content = await sider.getDirectoryHandle('content', { create: true }); await content.getDirectoryHandle('pes-editor-db', { create: true }); const out = await content.getDirectoryHandle('edit21-db', { create: true });
   if (!await sdbFile(out, 'LEEME.txt')) await sdbWrite(out, 'LEEME.txt', 'Carpeta de salida del modulo edit21_db.lua (PES Editor).\r\nAca se guarda una copia de la base de datos que carga el juego (Player.bin, Team.bin, PlayerAssignment.bin, etc.).\r\nNo borres esta carpeta: si falta, el modulo no puede escribir.\r\n');
@@ -147,7 +148,7 @@ async function sdbSetup(sider, canWrite) {
   let inst = null;
   if (canWrite) { try { inst = await sdbInstall(sider); } catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 7000); } }
   const st = await sdbLoadAll(sider);
-  if (inst && inst.ini === 'no-sider') { toast('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).', 7000); return st; }
+  if (inst && inst.ini === 'no-sider') { let more = ''; try { if (typeof siNoIniDetail === 'function') more = ' ' + siNoIniText(await siNoIniDetail(sider)); } catch { } toast(tr('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).') + more + (window.showOpenFilePicker && !sider.native ? ' ' + tr('Si el archivo sí está, el navegador lo oculta: elegilo a mano en la pestaña Sider.') : ''), 16000); return st; }
   if ((inst && inst.changed) || st.missing.length) setTimeout(() => sdbNotice(st, inst), 300);
   else if (inst) toast('Módulo edit21_db v' + LUA_VERSION + ' listo en Sider y base del juego completa.', 4000);
   return st;

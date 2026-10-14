@@ -9,12 +9,12 @@ const CREST_FLAG = 'common/render/symbol/flag', CREST_ROOT = 'PESEditor-Escudos'
 // agrega la carpeta a sider.ini (antes de las otras cpk.root, así sus escudos mandan); copia de seguridad la primera vez
 async function crestIniAdd(sider, root) {
   const f = await sdbFile(sider, 'sider.ini'); if (!f) throw new Error('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).');
-  const orig = await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), line = `cpk.root = ".\\livecpk\\${root}"`;
+  const orig = typeof siReadIni === 'function' ? await siReadIni(sider) : await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), line = `cpk.root = ".\\livecpk\\${root}"`;
   if (lines.some(l => new RegExp('^\\s*cpk\\.root\\s*=\\s*"?\\.?[\\\\/]?livecpk[\\\\/]' + root.replace(/[-.]/g, '\\$&') + '[\\\\/]?"?\\s*$', 'i').test(l))) return false;
   const i = lines.findIndex(l => /^\s*cpk\.root\s*=/i.test(l));
   if (i >= 0) lines.splice(i, 0, '; PES Editor: escudos propios', line); else lines.push('', '; PES Editor: escudos propios', line);
   if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
-  await sdbWrite(sider, 'sider.ini', lines.join(nl)); return true;
+  await sdbWrite(sider, 'sider.ini', lines.join(nl)); if (typeof siReset === 'function') siReset(); return true;
 }
 const CR = { team: null, main: null, own: {}, renamed: 0, prev: null, target: null, busy: false, msg: '', err: '', done: false };
 const crestId = id => String(id).padStart(6, '0');
@@ -50,7 +50,7 @@ async function crestSider(write) {
 async function crestTarget(t, sider) {
   let live = null; try { live = await sider.getDirectoryHandle('livecpk'); } catch { }
   // orden de sider.ini: la primera carpeta de la lista es la que manda en el juego
-  const ini = (await readText(sider, 'sider.ini')) || '', order = [];
+  const ini = (typeof siReadIni === 'function' ? await siReadIni(sider) : await readText(sider, 'sider.ini')) || '', order = [];
   for (const m of ini.matchAll(/^\s*cpk\.root\s*=\s*"?([^"\r\n]+)"?/gim)) { const p = m[1].trim().replace(/\\/g, '/').replace(/^\.\//, ''); const k = p.match(/(?:^|\/)livecpk\/([^/]+)\/?$/i); if (k) order.push(k[1].toLowerCase()); }
   const rank = n => { const i = order.indexOf(n.toLowerCase()); return i < 0 ? 1e6 : i; };
   const roots = []; if (live) for await (const [name, h] of live.entries()) if (h.kind === 'directory') roots.push({ name, h, r: rank(name) });

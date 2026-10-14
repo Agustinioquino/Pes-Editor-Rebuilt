@@ -3,7 +3,7 @@ const PREF_LS = 'edit21-prefs-v1';
 const PREFS = (() => { try { return Object.assign({ look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }, JSON.parse(localStorage.getItem(PREF_LS) || '{}')); } catch { return { look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }; } })();
 function savePrefs() { try { localStorage.setItem(PREF_LS, JSON.stringify(PREFS)); } catch { } }
 const ONLINE_LS = 'edit21-online-faces-v1';
-const FACES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: 0, dir: null, count: 0 };
+const FACES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), err: new Set(), queue: [], busy: 0, dir: null, count: 0 };
 // online photo entries: { u: url, k: 'c' club kit | 'n' national-team kit | 'x' neutral headshot | '?' unknown, m: manual }
 try { FACES.online = new Map(JSON.parse(localStorage.getItem(ONLINE_LS) || '[]').map(([id, v]) => [id, typeof v === 'string' ? { u: v, k: '?' } : v])); } catch { }
 const FACE_CTX = { nat: false }; // set while rendering a club or a national team
@@ -21,13 +21,8 @@ async function indexFaceDir(d) {
 }
 async function indexFaces(sider) {
   FACES.idx.clear(); FACES.url.clear(); FACES.dir = sider;
-  // 1) livecpk roots (Sider priority order is unknown here; folders named "Faces" first)
-  try {
-    const live = await sider.getDirectoryHandle('livecpk'); const roots = [];
-    for await (const [name, h] of live.entries()) if (h.kind === 'directory') roots.push([name, h]);
-    roots.sort((a, b) => (/face/i.test(b[0]) - /face/i.test(a[0])));
-    for (const [, h] of roots) { try { await indexFaceDir(await subDir(h, 'common/render/symbol/player')); } catch { } }
-  } catch { }
+  // 1) las carpetas de contenido de Sider, en el orden de sider.ini (la primera manda) y después el resto de livecpk
+  try { for (const h of await siderCpkRoots(sider)) { try { await indexFaceDir(await subDir(h, 'common/render/symbol/player')); } catch { } } } catch { }
   // 2) miniface_server module content
   try {
     const mf = await subDir(sider, 'content/miniface_server/MiniFaces');
@@ -73,7 +68,7 @@ async function pumpFaces() {
         if (!res) { FACES.online.set(pid, { u: '', k: '?' }); saveOnline(); }
         else { const k = await classifyPhoto(pid, res.u); FACES.online.set(pid, { u: res.u, k, tm: res.tm, s: res.src }); saveOnline(); const u = onlineFor(pid); if (u) paintFace(pid, u); }
       }
-    } catch { }
+    } catch { FACES.err.add(pid); } // no contestó: queda para la próxima sesión
   }
   FACES.busy--;
 }
@@ -85,18 +80,22 @@ FACES.src = (() => { const z = () => ({ n: 0, ms: 0, hit: 0, win: 0 }); try { co
 try { if (!localStorage.getItem(FACE_SRC_LS)) { for (const [k, v] of FACES.online) if (!v.u && !v.m) FACES.online.delete(k); saveOnline(); } } catch { }
 const saveFaceSrc = () => { try { localStorage.setItem(FACE_SRC_LS, JSON.stringify(FACES.src)); } catch { } };
 let tsdbNext = 0; // TheSportsDB gratis: una búsqueda cada ~2 segundos
+// si la base no contestó (sin internet, límite de pedidos o bloqueo) devuelve { err }: eso no es "no tiene foto"
 async function faceTimed(k, fn) {
-  const t = performance.now(); let r = null; try { r = await fn(); } catch { }
+  const t = performance.now(); let r = null, err = null; try { r = await fn(); } catch (e) { err = e; }
   const s = FACES.src[k]; s.n++; s.ms += performance.now() - t; if (r) s.hit++; saveFaceSrc();
-  return r ? Object.assign(r, { src: k }) : null;
+  return r ? Object.assign(r, { src: k }) : err ? { err } : null;
 }
 // recortadas: solo TheSportsDB (fotos sin fondo) · mezcla: TheSportsDB primero y, si no tiene, la foto de Wikipedia
 async function tsdbTurn() { let w; while ((w = tsdbNext - Date.now()) > 0) await new Promise(ok => setTimeout(ok, w)); tsdbNext = Date.now() + 2100; }
 async function findOnlineFace(pid) {
   const wiki = PREFS.photoSrc === 'mix' ? faceTimed('wiki', () => wikiFace(pid)) : null; // arranca ya, mientras espera su turno TheSportsDB
   await tsdbTurn();
-  let r = await faceTimed('tsdb', () => onlineFace(pid));
-  if (!r && wiki) r = await wiki;
+  const t = await faceTimed('tsdb', () => onlineFace(pid));
+  if (t && t.err) tsdbNext = Math.max(tsdbNext, Date.now() + 8000); // TheSportsDB pidió frenar: se espera un poco más
+  let r = t && !t.err ? t : null;
+  if (!r && wiki) { const w = await wiki; if (w && !w.err) r = w; else if (w && w.err) throw w.err; }
+  if (!r && t && t.err) throw t.err; // TheSportsDB no contestó: queda para la próxima, no como "sin foto"
   if (r) { FACES.src[r.src].win++; saveFaceSrc(); }
   return r;
 }
@@ -119,7 +118,7 @@ async function wikiFace(pid) {
   const club = clubOf(pid), clubName = club ? normTxt(tget(club, 'name')) : '';
   const q = `${surname} footballer${clubName ? ' ' + clubName : ''}`;
   const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=6&prop=pageimages%7Cdescription&piprop=thumbnail&pithumbsize=240`);
-  if (!r.ok) return null;
+  if (!r.ok) throw new Error('Wikipedia ' + r.status);
   const j = await r.json(), pages = Object.values((j.query && j.query.pages) || {}).sort((a, b) => a.index - b.index);
   let best = null, bestScore = -1;
   for (const p of pages) {
@@ -143,7 +142,7 @@ async function onlineFace(pid) {
   const surname = parts.filter(p => !/\.$/.test(p)).join(' ');
   const club = clubOf(pid), clubName = club ? normTxt(tget(club, 'name')) : '';
   const r = await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(PREFS.apiKey || '3')}/searchplayers.php?p=${encodeURIComponent(surname)}`);
-  if (!r.ok) return null;
+  if (!r.ok) throw new Error('TheSportsDB ' + r.status);
   const j = await r.json(); const list = (j.player || j.players || []).filter(p => /soccer/i.test(p.strSport || 'soccer'));
   let best = null, bestScore = -1;
   for (const p of list) {
@@ -166,10 +165,19 @@ function faceHtml(pid, kit, cls = '') {
 
 // ===================== Team badges: Parche flag/emblem PNGs + optional online fallback =====================
 const BADGE_LS = 'edit21-online-badges-v1';
-const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: false, count: 0 };
+const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), err: new Set(), queue: [], busy: false, count: 0 };
 try { BADGES.online = new Map(JSON.parse(localStorage.getItem(BADGE_LS) || '[]')); } catch { }
 // los escudos que TheSportsDB no encontró se vuelven a buscar una vez, ahora también en Wikipedia
 try { if (!localStorage.getItem('edit21-badges-wiki')) { for (const [k, v] of BADGES.online) if (!v) BADGES.online.delete(k); localStorage.setItem(BADGE_LS, JSON.stringify([...BADGES.online])); localStorage.setItem('edit21-badges-wiki', '1'); } } catch { }
+// v0.045: antes, si TheSportsDB o Wikipedia no contestaban (límite de pedidos, sin internet, o en la app de Windows
+// que algunos sitios frenaban), el jugador o el equipo quedaba anotado como "sin foto" para siempre. Se buscan de nuevo una vez.
+try {
+  if (!localStorage.getItem('edit21-retry-v045')) {
+    for (const [k, v] of FACES.online) if (!v.u && !v.m) FACES.online.delete(k);
+    for (const [k, v] of BADGES.online) if (!v) BADGES.online.delete(k);
+    localStorage.setItem(ONLINE_LS, JSON.stringify([...FACES.online])); localStorage.setItem(BADGE_LS, JSON.stringify([...BADGES.online])); localStorage.setItem('edit21-retry-v045', '1');
+  }
+} catch { }
 const saveOnlineBadges = () => { try { localStorage.setItem(BADGE_LS, JSON.stringify([...BADGES.online])); } catch { } };
 // lower number = better candidate for a small crest (emblemLc/emb_XXXX are competition logos, not team badges)
 const BADGE_RANK = [[/^e_(\d{6})_r\.png$/i, 0], [/^e_(\d{6})_r_l\.png$/i, 1], [/^e_(\d{6})_r_ll\.png$/i, 2], [/^e_(\d{6})_f\.png$/i, 3], [/^e_(\d{6})_\w+\.png$/i, 4]];
@@ -183,13 +191,7 @@ async function indexBadgeDir(d, best) {
 }
 async function indexBadges(sider) {
   const best = new Map();
-  try {
-    const live = await sider.getDirectoryHandle('livecpk');
-    for await (const [, root] of live.entries()) {
-      if (root.kind !== 'directory') continue;
-      for (const sub of ['common/render/symbol/flag']) { try { await indexBadgeDir(await subDir(root, sub), best); } catch { } }
-    }
-  } catch { }
+  try { for (const root of await siderCpkRoots(sider)) { try { await indexBadgeDir(await subDir(root, 'common/render/symbol/flag'), best); } catch { } } } catch { }
   BADGES.idx = new Map([...best].map(([id, v]) => [id, v.h])); for (const u of BADGES.url.values()) URL.revokeObjectURL(u); BADGES.url.clear(); BADGES.loading.clear(); BADGES.count = BADGES.idx.size;
   return BADGES.count;
 }
@@ -217,7 +219,7 @@ async function pumpBadges() {
     if (BADGES.idx.has(id) || BADGES.online.has(id)) continue;
     const t = S.ix && S.ix.teamById.get(id); if (!t) continue;
     let url = null, ok = true;
-    try { url = await onlineBadge(t); } catch { ok = false; }
+    try { url = await onlineBadge(t); } catch { ok = false; BADGES.err.add(id); }
     if (ok) { BADGES.online.set(id, url || ''); saveOnlineBadges(); if (url) paintBadge(id, url); }
     await new Promise(r => setTimeout(r, ok ? 2100 : 8000)); // free API: ~30 requests per minute
   }
@@ -225,8 +227,9 @@ async function pumpBadges() {
 }
 async function onlineBadge(t) {
   const name = tget(t, 'name'); const n = normTxt(name).replace(/\b(fc|cf|sc|ac|cd|ca|afc|club|de|the)\b/g, ' ').replace(/\s+/g, ' ').trim();
-  const q = async s => { const r = await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(PREFS.apiKey || '3')}/searchteams.php?t=${encodeURIComponent(s)}`); if (!r.ok) return []; const j = await r.json(); return (j.teams || []).filter(x => /soccer/i.test(x.strSport || 'soccer')); };
-  let list = await q(name); if (!list.length && n && n !== normTxt(name)) list = await q(n);
+  const q = async s => { const r = await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(PREFS.apiKey || '3')}/searchteams.php?t=${encodeURIComponent(s)}`); if (!r.ok) throw new Error('TheSportsDB ' + r.status); const j = await r.json(); return (j.teams || []).filter(x => /soccer/i.test(x.strSport || 'soccer')); };
+  // si TheSportsDB no contesta, se prueba Wikipedia; si ninguna contesta, no se anota como "sin escudo" (se reintenta)
+  let list; try { list = await q(name); if (!list.length && n && n !== normTxt(name)) list = await q(n); } catch (e) { const w = await wikiBadge(t); if (w) return w; throw e; }
   const nat = isNat(t); let best = null, bs = -1;
   for (const x of list) {
     const tn = normTxt(x.strTeam), alt = normTxt(x.strTeamAlternate || '');
@@ -238,9 +241,9 @@ async function onlineBadge(t) {
     if (!(x.strBadge || x.strTeamBadge)) s -= 10;
     if (s > bs) { bs = s; best = x; }
   }
-  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return wikiBadge(t).catch(() => null); }
+  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return wikiBadge(t); }
   STADS.set(t.id, best.strStadium || ''); saveStads(); stadPaint(t);
-  return best.strBadge || best.strTeamBadge || wikiBadge(t).catch(() => null);
+  return best.strBadge || best.strTeamBadge || wikiBadge(t);
 }
 // escudo desde Wikipedia: la imagen del cuadro de la página del club (o de la selección)
 async function wikiBadge(t) {
@@ -248,7 +251,7 @@ async function wikiBadge(t) {
   const nat = isNat(t), nn = normTxt(name), words = nn.split(' ').filter(w => w.length > 2 && !/^(fc|cf|sc|ac|cd|ca|afc|club|the)$/.test(w));
   const api = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*';
   const r = await fetch(`${api}&generator=search&gsrsearch=${encodeURIComponent(name + (nat ? ' national football team' : ' football club'))}&gsrlimit=5&prop=pageprops%7Cdescription&ppprop=page_image`);
-  if (!r.ok) return null;
+  if (!r.ok) throw new Error('Wikipedia ' + r.status);
   const pages = Object.values(((await r.json()).query || {}).pages || {}).sort((a, b) => a.index - b.index);
   const pick = pages.find(p => {
     const img = p.pageprops && p.pageprops.page_image, d = normTxt(p.description), tt = normTxt(p.title.replace(/\(.*?\)/g, ''));
@@ -259,7 +262,7 @@ async function wikiBadge(t) {
   });
   if (!pick) return null;
   const r2 = await fetch(`${api}&titles=${encodeURIComponent('File:' + pick.pageprops.page_image)}&prop=imageinfo&iiprop=url&iiurlwidth=128`);
-  if (!r2.ok) return null;
+  if (!r2.ok) throw new Error('Wikipedia ' + r2.status);
   const f = Object.values(((await r2.json()).query || {}).pages || {})[0], ii = f && f.imageinfo && f.imageinfo[0];
   return ii ? ii.thumburl || ii.url : null;
 }

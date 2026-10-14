@@ -74,8 +74,8 @@ async function ksRoot(write) {
   const h = await idbGet('sider'); if (!h) throw new Error('Primero tocá "Conectar carpeta Sider".');
   const mode = write ? 'readwrite' : 'read';
   if ((await h.queryPermission({ mode })) !== 'granted' && (await h.requestPermission({ mode })) !== 'granted') throw new Error(write ? 'Sin permiso para guardar en la carpeta del Parche.' : 'Sin permiso para leer la carpeta del Parche.');
-  for (const p of ['content/kit-server', 'kit-server', '']) { try { const d = p ? await subDir(h, p) : h; if (await readText(d, 'map.txt') != null) return { sider: h, kit: d }; } catch { } }
-  throw new Error('No encontré content\\kit-server en la carpeta conectada.');
+  const lay = await siderLayout(h); if (lay && lay.kit) return { sider: h, kit: lay.kit };
+  throw new Error('Tu Sider no tiene kit-server (content\\kit-server\\map.txt): los kits de este parche no se pueden editar acá.');
 }
 async function ksLoad(t) {
   KS.err = ''; KS.busy = true;

@@ -92,6 +92,8 @@ async function mpGo(i, why = 'user') {
 }
 async function mpGo2(i, why) { i = (i + MP.list.length) % MP.list.length;
   const tr = MP.list[i], outD = MP.decks[MP.cur], inD = MP.decks[1 - MP.cur];
+  if (tr.sp) return mpGoSp(i, tr);
+  if (MP.kind === 'sp') { spHalt(); MP.kind = 'audio'; MP.playing = false; }
   if (tr.yt || MP.kind === 'yt') return mpGoYt(i, tr, why);
   const first = !MP.playing || !outD.a.src || outD.a.paused;
   let src; try { src = await mpSrc(tr); } catch { return; }
@@ -122,15 +124,16 @@ function mpNextIndex(auto) {
   return MP.i + 1;
 }
 function mpNext(why = 'user') { const j = mpNextIndex(why === 'auto'); if (j < 0) { mpPause(); return; } mpGo(j, why); }
-function mpPrev() { const d = MP.decks[MP.cur]; if (d.a.currentTime > 4) { d.a.currentTime = 0; return; } mpGo(MP.i - 1); }
+function mpPrev() { if (MP.kind === 'sp' && SP_ST.pos > 4) { spSeek(0); return; } const d = MP.decks[MP.cur]; if (MP.kind === 'audio' && d.a.currentTime > 4) { d.a.currentTime = 0; return; } mpGo(MP.i - 1); }
 function mpTick(d) {
-  if (d !== MP.decks[MP.cur] || MP.kind === 'yt') return; mpUiTime();
+  if (d !== MP.decks[MP.cur] || MP.kind !== 'audio') return; mpUiTime();
   const a = d.a; if (!MP.playing || MP.trans || MP.going || !a.duration || MP.st.repeat === 'one') return;
   const D = MP.st.mode === 'corte' ? .3 : MP.st.fade;
   if (a.duration - a.currentTime <= D + .15 && MP.list.length > 1) mpNext('auto');
 }
 async function mpPlay() {
   if (!MP.st.on) MP.st.on = true;
+  if (MP.kind === 'sp' && SP_ST.ctl) { spPlay(); MP.playing = true; mpSave(); mpUi(); return; }
   if (MP.kind === 'yt' && YT_ST.p[YT_ST.cur]) { const p = YT_ST.p[YT_ST.cur]; try { p.setVolume(0); p.playVideo(); } catch { } MP.playing = true; ytRamp(p, ytVol(), .6); ytTick(); mpSave(); mpUi(); return; }
   const d = MP.decks[MP.cur];
   if (d.a.src && d.a.currentTime > 0) { if (!await mpWake()) { mpArm(); mpUi(); return; } try { await d.a.play(); MP.playing = true; mpMaster(mpVolTarget(), .6); if (MP.simple) mpSimpleVol(d); } catch { mpArm(); } mpSave(); mpUi(); return; }
@@ -145,6 +148,7 @@ function mpFinish() {
 }
 function mpPause() {
   MP.playing = false; MP.st.on = false; mpSave(); mpMaster(0, .4); mpFinish();
+  if (MP.kind === 'sp') spPause();
   if (MP.kind === 'yt') { const p = YT_ST.p[YT_ST.cur]; if (p) { ytRamp(p, 0, .35); setTimeout(() => { if (!MP.playing) try { p.pauseVideo(); } catch { } }, 400); } }
   setTimeout(() => { if (!MP.playing) MP.decks.forEach(d => d.a.pause()); }, 420); mpUi();
 }
@@ -187,11 +191,10 @@ function mpMount() {
       <div class="mpmix"><span class="lab">Pase entre canciones</span><div class="seg" id="mpMode">${[['corte', 'Corte'], ['suave', 'Suave'], ['remix', 'Remix']].map(([k, n]) => `<button type="button" data-v="${k}">${n}</button>`).join('')}</div>
         <label class="mpfade"><span>Duración <b id="mpFadeV"></b></span><input type="range" id="mpFade" min="2" max="14" step="1" aria-label="Duración del pase"></label><p class="mpnote" id="mpNote"></p></div>
       <ol class="mplist" id="mpList"></ol>
-      <div class="mpfoot"><button type="button" class="btn small" id="mpAdd">＋ Agregar canciones</button><button type="button" class="btn small" id="mpYtB" aria-expanded="false">▶ YouTube</button><button type="button" class="btn small ghost" id="mpCoverB">🖼 Carátula</button></div>
-      <div class="mpyt" id="mpYtF" hidden><label for="mpYtU">Link de una lista o un video de YouTube</label><div class="row" style="flex-wrap:nowrap;gap:6px"><input type="url" id="mpYtU" placeholder="https://www.youtube.com/playlist?list=…"><button type="button" class="btn small primary" id="mpYtGo">Cargar</button></div>
-        <p class="mpnote" id="mpYtNote">Los videos se ven chiquitos arriba del reproductor (YouTube no permite ocultarlos ni sacarles el audio). Necesita internet${location.protocol === 'file:' ? ' y funciona en la versión web del editor: abierto como archivo en tu PC, YouTube suele bloquear la reproducción' : ''}.</p></div>
+      <div class="mpfoot"><button type="button" class="btn small" id="mpAdd">＋ Agregar canciones</button><button type="button" class="btn small" id="mpYtB" aria-expanded="false">🔗 Agregar por link</button><button type="button" class="btn small ghost" id="mpCoverB">🖼 Carátula</button></div>
+      ${mfHtmlPanel()}
     </div>
-    <div class="mptv" id="mpTv" aria-label="Video de YouTube"><button type="button" class="mptvcov" id="mpTvCov" title="Ver el video otra vez"><img alt=""><span>▶ Ver video</span></button><button type="button" class="mptvx" id="mpTvX" title="Sacar el video (sigue sonando la música)" aria-label="Sacar el video">✕</button><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div></div>
+    <div class="mptv" id="mpTv" aria-label="Video de YouTube"><button type="button" class="mptvcov" id="mpTvCov" title="Ver el video otra vez"><img alt=""><span>▶ Ver video</span></button><button type="button" class="mptvx" id="mpTvX" title="Sacar el video (sigue sonando la música)" aria-label="Sacar el video">✕</button><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div><div class="mptvp" data-n="sp"><div id="mpSp"></div></div></div>
     <div class="mpbar"><button type="button" class="mpcov" id="mpCov" title="Abrir el reproductor"><img id="mpArtS" alt=""><span class="mpring"></span></button>
       <button type="button" class="mpmeta" id="mpMeta" title="Abrir el reproductor"><b class="mpt"><span id="mpT"></span></b><small id="mpG"></small></button>
       <button type="button" class="mpb mpmain sm" id="mpPlay" title="Reproducir o pausar">${mpIco('play', 20)}</button><button type="button" class="mpb" id="mpNext" title="Siguiente">${mpIco('next', 18)}</button>
@@ -208,15 +211,14 @@ function mpMount() {
   $m('mpRep').onclick = () => { MP.st.repeat = { all: 'one', one: 'off', off: 'all' }[MP.st.repeat]; MP.decks[MP.cur].a.loop = MP.st.repeat === 'one'; mpSave(); mpUi(); };
   $m('mpMute').onclick = () => mpMute();
   $m('mpVol').oninput = e => mpSetVol(e.target.value / 100);
-  $m('mpSeek').oninput = e => { if (MP.kind === 'yt') { const p = YT_ST.p[YT_ST.cur]; try { p.seekTo(e.target.value / 1000 * p.getDuration(), true); } catch { } return; } const a = MP.decks[MP.cur].a; if (a.duration) { a.currentTime = e.target.value / 1000 * a.duration; } };
+  $m('mpSeek').oninput = e => { if (MP.kind === 'sp') { if (SP_ST.dur) spSeek(e.target.value / 1000 * SP_ST.dur); return; } if (MP.kind === 'yt') { const p = YT_ST.p[YT_ST.cur]; try { p.seekTo(e.target.value / 1000 * p.getDuration(), true); } catch { } return; } const a = MP.decks[MP.cur].a; if (a.duration) { a.currentTime = e.target.value / 1000 * a.duration; } };
   $m('mpMode').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; MP.st.mode = b.dataset.v; mpSave(); mpUi(); };
   $m('mpFade').oninput = e => { MP.st.fade = +e.target.value; mpSave(); mpUi(); };
   $m('mpList').onclick = e => { const x = e.target.closest('[data-del]'); if (x) { e.stopPropagation(); mpRemoveCustom(x.dataset.del); return; } const b = e.target.closest('[data-i]'); if (b) { MP.st.on = true; mpGo(+b.dataset.i); } };
   $m('mpAdd').onclick = () => mpAddFiles();
   $m('mpCoverB').onclick = () => mpPickCover();
   $m('mpYtB').onclick = () => { const f = $m('mpYtF'), on = f.hidden; f.hidden = !on; $m('mpYtB').setAttribute('aria-expanded', String(on)); if (on) setTimeout(() => $m('mpYtU').focus(), 50); };
-  $m('mpYtGo').onclick = () => mpYtAdd($m('mpYtU').value);
-  $m('mpYtU').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); mpYtAdd(e.target.value); } };
+  mfBind(el);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && MP.st.open) open(false); });
   $m('mpFull').addEventListener('scroll', () => { if (MP.kind === 'yt') mpTvPlace(); }, { passive: true }); addEventListener('resize', () => mpTvPlace());
   document.addEventListener('pointerdown', e => { if (MP.st.open && !el.contains(e.target)) open(false); });
@@ -225,7 +227,7 @@ function mpMount() {
 function mpRenderList() {
   const ol = MP.el && MP.el.querySelector('#mpList'); if (!ol) return;
   if (!ol.__err) { ol.__err = 1; ol.addEventListener('error', e => { const im = e.target; if (im.tagName === 'IMG' && im.dataset.ph != null && !im.dataset.fb) { im.dataset.fb = 1; im.src = mpPlaceholder(MP.list[+im.dataset.ph] || {}); } }, true); }
-  ol.innerHTML = MP.list.map((t, i) => `<li><button type="button" data-i="${i}" class="${i === MP.i ? 'on' : ''}"><img src="${mpCover(t)}" alt="" data-ph="${i}"><span><b>${esc(t.t)}</b><small>${esc(t.g)}${t.y ? ' · ' + t.y : ''}</small></span>${i === MP.i ? '<span class="mpeq" aria-label="sonando"><i></i><i></i><i></i></span>' : ''}</button>${t.blob || t.yt ? `<button type="button" class="mpdel" data-del="${esc(t.k)}" title="Quitar de la lista">✕</button>` : ''}</li>`).join('');
+  ol.innerHTML = MP.list.map((t, i) => `<li><button type="button" data-i="${i}" class="${i === MP.i ? 'on' : ''}"><img src="${mpCover(t)}" alt="" data-ph="${i}"><span><b>${esc(t.t)}</b><small>${esc(t.g)}${t.y ? ' · ' + t.y : ''}</small></span>${i === MP.i ? '<span class="mpeq" aria-label="sonando"><i></i><i></i><i></i></span>' : ''}</button>${t.blob || t.yt || t.sp ? `<button type="button" class="mpdel" data-del="${esc(t.k)}" title="Quitar de la lista">✕</button>` : ''}</li>`).join('');
 }
 function mpUiState() {
   const el = MP.el; if (!el) return;
@@ -270,6 +272,7 @@ function mpUiVol() {
 function mpUiTime() {
   const el = MP.el; if (!el) return; let a = MP.decks[MP.cur].a;
   if (MP.kind === 'yt') { const p = YT_ST.p[YT_ST.cur]; let t = 0, d = 0; try { t = p.getCurrentTime() || 0; d = p.getDuration() || 0; } catch { } a = { currentTime: t, duration: d }; }
+  else if (MP.kind === 'sp') a = { currentTime: SP_ST.pos, duration: SP_ST.dur };
   const k = a.duration ? a.currentTime / a.duration : 0;
   el.querySelector('#mpProg').style.width = (k * 100).toFixed(2) + '%';
   if (MP.st.open) { const s = el.querySelector('#mpSeek'); if (document.activeElement !== s) { s.value = Math.round(k * 1000); } s.style.setProperty('--p', (k * 100).toFixed(2) + '%'); el.querySelector('#mpCur').textContent = mpTime(a.currentTime); el.querySelector('#mpDur').textContent = mpTime(a.duration); }

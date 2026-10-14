@@ -148,7 +148,7 @@ async function sdbSetup(sider, canWrite) {
   let inst = null;
   if (canWrite) { try { inst = await sdbInstall(sider); } catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 7000); } }
   const st = await sdbLoadAll(sider);
-  if (inst && inst.ini === 'no-sider') { let more = ''; try { if (typeof siNoIniDetail === 'function') more = ' ' + siNoIniText(await siNoIniDetail(sider)); } catch { } toast(tr('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).') + more, 14000); return st; }
+  if (inst && inst.ini === 'no-sider') { let more = ''; try { if (typeof siNoIniDetail === 'function') more = ' ' + siNoIniText(await siNoIniDetail(sider)); } catch { } toast(tr('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).') + more + (window.showOpenFilePicker && !sider.native ? ' ' + tr('Si el archivo sí está, Chrome lo oculta: elegilo a mano en la pestaña Sider.') : ''), 16000); return st; }
   if ((inst && inst.changed) || st.missing.length) setTimeout(() => sdbNotice(st, inst), 300);
   else if (inst) toast('Módulo edit21_db v' + LUA_VERSION + ' listo en Sider y base del juego completa.', 4000);
   return st;

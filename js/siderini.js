@@ -251,6 +251,18 @@ function siWarns(info) {
   if (dup.length) w.push([`Carpetas repetidas en cpk.root: ${dup.join(', ')}. La segunda línea no hace nada.`]);
   return w;
 }
+// el usuario elige sider.ini con el selector de archivos (Chrome lo oculta a las páginas); tiene que ser el de esa carpeta
+async function siPickIni(h) {
+  const T = typeof tr === 'function' ? tr : x => x;
+  let f = null;
+  try { [f] = await window.showOpenFilePicker({ id: 'siderini', startIn: h, multiple: false, types: [{ description: 'sider.ini', accept: { 'text/plain': ['.ini'] } }] }); }
+  catch (e) { if (e.name !== 'AbortError') toast(T('No se pudo abrir el selector:') + ' ' + e.message, 6000); return; }
+  if (!f || (f.name || '').toLowerCase() !== 'sider.ini') { toast(`${T('Ese archivo se llama')} ${f ? f.name : '?'}: ${T('tiene que ser sider.ini, el de la carpeta')} ${h.name}.`, 8000); return; }
+  let r = null; try { r = h.resolve ? await h.resolve(f) : null; } catch { }
+  if (!r || r.length !== 1) { toast(`${T('Ese sider.ini está en otra carpeta')}${r ? ' (' + r.slice(0, -1).join('\\') + ')' : ''}: ${T('tiene que ser el de')} ${h.name}.`, 8000); return; }
+  try { if (f.requestPermission && (await f.queryPermission({ mode: 'readwrite' })) !== 'granted') await f.requestPermission({ mode: 'readwrite' }); } catch { }
+  await fsPin(f); siReset(); toast(T('sider.ini elegido: el editor lo recuerda para la próxima.'), 5000); siLoad(true);
+}
 function renderSider(m) {
   const info = SI.info, h = SI.h;
   if (!info && !SI.busy && !SI.err && !SI.perm) siLoad();
@@ -265,13 +277,15 @@ function renderSider(m) {
   }
   if (SI.perm) {
     m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><p>Hace falta tu permiso para volver a leer la carpeta <b>${esc(h.name)}</b>.</p><div class="row"><button class="btn primary" type="button" id="siPerm">Permitir leer la carpeta Sider</button><button class="btn ghost" type="button" id="siOther">Elegir otra carpeta</button></div></div>`);
-    $('siPerm').onclick = async () => { try { if ((await h.requestPermission({ mode: 'read' })) === 'granted') siLoad(true); } catch (e) { toast('No se pudo: ' + e.message, 5000); } };
+    $('siPerm').onclick = async () => { try { if ((await h.requestPermission({ mode: 'read' })) === 'granted') { await fsPinnedAsk(); siLoad(true); } } catch (e) { toast('No se pudo: ' + e.message, 5000); } };
     $('siOther').onclick = () => connectKits().then(ok => { if (ok) siLoad(true); });
     return;
   }
   if (SI.err) {
-    m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><div class="warnbox">${SI.err === 'no-ini' ? `No hay sider.ini en <b>${esc(h.name)}</b>. Si tu Sider nunca se abrió, abrilo una vez para que lo cree; si no, elegí la carpeta que tiene sider.exe.` : 'No se pudo leer la carpeta Sider: ' + esc(SI.err)}</div>${SI.err === 'no-ini' && SI.detail ? `<p class="note sidiag">${siNoIniHtml(SI.detail, h)}</p>` : ''}<div class="row"><button class="btn" type="button" id="siAgain">Volver a leer</button><button class="btn ghost" type="button" id="siOther">Elegir otra carpeta</button></div></div>`);
-    $('siAgain').onclick = () => siLoad(true); $('siOther').onclick = () => connectKits().then(ok => { if (ok) siLoad(true); });
+    const pick = SI.err === 'no-ini' && window.showOpenFilePicker && !h.readOnly && !h.native, hidden = pick && SI.detail && SI.detail.n > 0; // en Chrome la página no ve los .ini: se eligen a mano
+    m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><div class="warnbox">${SI.err === 'no-ini' ? hidden ? `<span>Chrome no deja que las páginas vean los archivos .ini (ni .exe ni .dll), así que no encuentro sider.ini en</span> <b>${esc(h.name)}</b> <span>aunque esté. Elegilo vos una vez con el botón de abajo: el editor lo recuerda.</span>` : `No hay sider.ini en <b>${esc(h.name)}</b>. Si tu Sider nunca se abrió, abrilo una vez para que lo cree; si no, elegí la carpeta que tiene sider.exe.` : 'No se pudo leer la carpeta Sider: ' + esc(SI.err)}</div>${SI.err === 'no-ini' && SI.detail ? `<p class="note sidiag">${siNoIniHtml(SI.detail, h)}</p>` : ''}<div class="row">${pick ? `<button class="btn primary" type="button" id="siPick">📄 Elegir sider.ini a mano</button>` : ''}<button class="btn" type="button" id="siAgain">Volver a leer</button><button class="btn ghost" type="button" id="siOther">Elegir otra carpeta</button></div></div>`);
+    $('siAgain').onclick = async () => { await fsPinnedAsk(); siLoad(true); }; $('siOther').onclick = () => connectKits().then(ok => { if (ok) siLoad(true); });
+    if (pick) $('siPick').onclick = () => siPickIni(h);
     return;
   }
   const dirty = siDirty(), warns = siWarns(info);
@@ -369,7 +383,7 @@ async function siIntroCheck(h) {
   const T = typeof tr === 'function' ? tr : x => x;
   try { await siLoad(true, h); } catch { }
   const info = SI.info; SI.introProbs = null;
-  if (!info) return { ok: false, text: T(SI.err === 'no-ini' ? 'Sider: en la carpeta no hay sider.ini (abrí Sider una vez para que lo cree).' : 'Sider: no se pudo leer sider.ini.') };
+  if (!info) return { ok: false, text: T(SI.err === 'no-ini' ? (SI.detail && SI.detail.n > 0 && window.showOpenFilePicker && !h.native ? 'Sider: no veo sider.ini (Chrome oculta los .ini a las páginas): elegilo a mano en la pestaña Sider.' : 'Sider: en la carpeta no hay sider.ini (abrí Sider una vez para que lo cree).') : 'Sider: no se pudo leer sider.ini.') };
   const roots = info.roots.filter(r => !r.it.off), miss = roots.filter(r => !r.h && !r.outside), out = roots.filter(r => r.outside);
   const mods = info.mods.filter(x => !x.it.off), mmiss = mods.filter(x => !x.exists);
   const kinds = []; for (const r of roots) for (const t of r.types) if (!kinds.includes(t.n)) kinds.push(t.n);

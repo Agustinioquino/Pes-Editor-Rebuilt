@@ -2,8 +2,10 @@
 // y sider.dll), el archivo se encuentra igual recorriendo la carpeta.
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), vm = require('vm');
 const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'extras.js'), 'utf8');
-const m = src.match(/async function fsFile\([\s\S]*?\n}\n/); assert.ok(m, 'fsFile está en extras.js');
-const { fsFile } = vm.runInContext(m[0] + ';({ fsFile })', vm.createContext({}));
+const m = src.match(/async function fsFile\([\s\S]*?\n}\n/), m2 = src.match(/let FS_PINNED = null;[\s\S]*?async function fsPinnedAsk\(\)[^\n]*\n/);
+assert.ok(m && m2, 'fsFile y fsPinned están en extras.js');
+const store = new Map();
+const { fsFile, fsPin } = vm.runInContext(m[0] + m2[0] + ';({ fsFile, fsPin })', vm.createContext({ idbGet: async k => store.get(k), idbSet: async (k, v) => { store.set(k, v); } }));
 const BAD = /\.(ini|exe|dll|cfg)$/i;
 class Dir { // como Chrome: los nombres "peligrosos" no se pueden pedir, pero aparecen en el listado
   constructor(files) { this.files = files.map(n => ({ kind: 'file', name: n })); }
@@ -31,4 +33,17 @@ test('un archivo que no está sigue dando NotFoundError, y crear uno rechazado d
 test('otros errores del navegador no se tocan', async () => {
   const d = { async getFileHandle() { throw Object.assign(new Error('x'), { name: 'NotAllowedError' }); }, async *entries() { } };
   await assert.rejects(fsFile(d, 'sider.ini'), e => e.name === 'NotAllowedError' && e.message === 'x');
+});
+test('un sider.ini elegido a mano se usa si está en esa carpeta y tiene permiso', async () => {
+  const d = new Dir(['modules']); // Chrome ni siquiera lo lista
+  const ini = { kind: 'file', name: 'sider.ini', async queryPermission() { return 'granted'; } };
+  d.resolve = async h => h === ini ? ['sider.ini'] : null;
+  await assert.rejects(fsFile(d, 'sider.ini'), e => e.name === 'NotFoundError');
+  await fsPin(ini);
+  assert.strictEqual(await fsFile(d, 'sider.ini'), ini);
+  assert.strictEqual(await fsFile(d, 'sider.ini', true), ini); // para escribir, la misma entrada
+  const other = new Dir([]); other.resolve = async () => null; // en otra carpeta no vale
+  await assert.rejects(fsFile(other, 'sider.ini'), e => e.name === 'NotFoundError');
+  ini.queryPermission = async () => 'prompt'; // sin permiso todavía: como si no estuviera
+  await assert.rejects(fsFile(d, 'sider.ini'), e => e.name === 'NotFoundError');
 });

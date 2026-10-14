@@ -22,10 +22,28 @@ async function fsFile(dir, name, create) {
     if (!e || e.name !== 'TypeError') throw e;
     const k = name.toLowerCase();
     try { for await (const [n, h] of dir.entries()) if (h.kind === 'file' && n.toLowerCase() === k) return h; } catch { }
+    const pinned = await fsPinned(dir, name); if (pinned) return pinned;
     if (create) throw Object.assign(new Error('El navegador no deja crear ' + name + ' en esa carpeta: crealo vos (vacío) con el Bloc de notas y volvé a intentar.'), { name: 'NotAllowedError' });
     throw Object.assign(new Error(name + ' no existe'), { name: 'NotFoundError' });
   }
 }
+// Chrome tampoco muestra esos archivos al recorrer la carpeta, así que el usuario puede elegirlos a mano una vez con el
+// selector de archivos: se guardan en IndexedDB y se usan cuando se pide ese nombre dentro de esa misma carpeta.
+let FS_PINNED = null;
+async function fsPinnedLoad() { if (!FS_PINNED) { try { FS_PINNED = ((await idbGet('pinnedFiles')) || []).filter(h => h && h.kind === 'file'); } catch { FS_PINNED = []; } } return FS_PINNED; }
+async function fsPinned(dir, name) {
+  const k = name.toLowerCase();
+  for (const h of await fsPinnedLoad()) {
+    if ((h.name || '').toLowerCase() !== k) continue;
+    try { if (h.queryPermission && (await h.queryPermission({ mode: 'read' })) !== 'granted') continue; } catch { continue; }
+    try { if (dir.resolve) { const r = await dir.resolve(h); if (!r || r.length !== 1) continue; } } catch { continue; } // de otra carpeta: no
+    return h;
+  }
+  return null;
+}
+async function fsPin(h) { const list = (await fsPinnedLoad()).filter(x => (x.name || '').toLowerCase() !== (h.name || '').toLowerCase()); list.push(h); FS_PINNED = list; await idbSet('pinnedFiles', list); }
+// pedir permiso de nuevo sobre los archivos elegidos (hace falta un clic del usuario)
+async function fsPinnedAsk() { for (const h of await fsPinnedLoad()) { try { if (h.requestPermission && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted') await h.requestPermission({ mode: 'readwrite' }); } catch { } } }
 async function readText(dir, name) { try { const h = await fsFile(dir, name); return (await (await h.getFile()).text()).replace(/^﻿/, ''); } catch { return null; } }
 const lines = txt => (txt || '').split(/\r?\n/).map(l => l.replace(/[;#].*$/, '').trim()).filter(Boolean);
 function parseKitCfg(txt, n) {

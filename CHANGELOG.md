@@ -2,6 +2,15 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.051 alpha · La app de Windows ya se deja cerrar
+
+*14 de octubre de 2026, 19:35 (hora de Argentina)*
+
+Con cambios sin guardar, la X de la app para Windows no cerraba la ventana ni avisaba por qué. Ahora muestra un cuadro con tus opciones y después cierra.
+
+- **Salir del editor** (Interfaz). Si tocás la X de la app con cambios sin guardar, aparece el cuadro "Salir del editor": guardar en el caché (vuelven solos la próxima vez que abras ese EDIT), guardar en el juego, salir sin guardar o cancelar. Antes la ventana se quedaba abierta sin decir nada.
+- **Recargar, actualizar y cambiar de idioma** (Archivo). En la app, F5 o Ctrl+R muestran el mismo cuadro para recargar. Cambiar de idioma guarda tus cambios en el caché y vuelven solos, y Actualizar sin guardar ya no se queda trabado.
+
 ## v0.050 alpha · ¡Football Life 2026 es compatible!
 
 *14 de octubre de 2026, 16:45 (hora de Argentina)*

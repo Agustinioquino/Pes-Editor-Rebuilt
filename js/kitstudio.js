@@ -220,14 +220,15 @@ let ksRerender = () => { };
 // Regiones de la textura (sacadas de los modelos reales): la espalda está girada 180°.
 // Nombre y número de la espalda: calibrados con capturas del juego (editor kserv en vivo), medidas desde el borde del cuello hasta el ruedo:
 // NameY 39 deja el nombre pegado al cuello, 26 al 50%, 10 sobre el ruedo y 0 ya fuera de la camiseta (~2,8% por punto);
-// BackNumberY 13 deja el número centrado al 70%, 29 justo bajo el cuello y 0 cortado por el ruedo. NameSize 0 mide ~55% de NameSize 11.
+// BackNumberY 13 deja el número centrado al 70% (~1,9% por punto), 29 arriba, bajo los hombros, y 0 cortado por el ruedo. NameSize 0 mide ~55% de NameSize 11,
+// BackNumberSize 0 ~40% de BackNumberSize 28; BackNumberSpacing 0 deja las cifras casi pegadas y 14 las separa ~0,4 de su alto.
 const UVR = { back: [.357, .642, .023, .464], front: [.344, .656, .49, .906] };
 const ksN = k => +(cfgGet(KS.cfg, k) || 0);
 const KS_Y = .028; // fracción de la espalda que se mueve el nombre o el número por cada punto de NameY / BackNumberY
 // posiciones aproximadas a partir del config (0..1 dentro de cada región)
 const KS_POS = {
   name: () => ({ y: .51 + (26 - ksN('NameY')) * KS_Y, h: .10 * (13 + ksN('NameSize')) / 24, stretch: 1.05 + ksN('NameStretch') * .14, curve: [0, .12, .25, .45][ksN('NameShape')] || 0 }),
-  num: () => ({ y: .70 + (13 - ksN('BackNumberY')) * KS_Y, h: .46 * (13 + ksN('BackNumberSize')) / 37, spacing: (ksN('BackNumberSpacing') - 7) * .012 }),
+  num: () => ({ y: .70 + (13 - ksN('BackNumberY')) * .019, h: .44 * (18.7 + ksN('BackNumberSize')) / 42.7, spacing: .072 + ksN('BackNumberSpacing') * .017 }),
   chest: () => ({ x: .2 + ksN('ChestNumberX') / 29 * .6, y: .05 + ksN('ChestNumberY') / 29 * .35, h: .04 + ksN('ChestNumberSize') / 28 * .1 }),
   leg: () => ({ x: ksN('ShortsNumberX') / 31, y: ksN('ShortsNumberY') / 31, h: .25 + ksN('ShortsNumberSize') / 28 * .5 }),
 };
@@ -244,7 +245,7 @@ function ksClampKey(key, v) { const f = KS.cfg && KS.cfg.fields.find(x => x.key 
 function ksDecalVals0(k, x, y) {
   const S = 1024, cl = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
   if (k === 'name' || k === 'num') { const [, , v0, v1] = UVR.back, f = (v1 * S - y) / ((v1 - v0) * S);
-    return k === 'name' ? { NameY: cl(26 - (f - .51) / KS_Y, 0, 39) } : { BackNumberY: cl(13 - (f - .70) / KS_Y, 0, 29) }; }
+    return k === 'name' ? { NameY: cl(26 - (f - .51) / KS_Y, 0, 39) } : { BackNumberY: cl(13 - (f - .70) / .019, 0, 29) }; }
   if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29) }; }
   if (k === 'leg' && KS.legM) { const [a, b, c, d, e, f] = KS.legM, px = x / S - e, py = y / S - f, det = a * d - b * c, lx = (d * px - c * py) / det, ly = (-b * px + a * py) / det;
     return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29) }; }

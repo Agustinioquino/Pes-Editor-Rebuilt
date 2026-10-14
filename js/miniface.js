@@ -6,10 +6,10 @@ const MNF_ROOT = 'PESEditor-Minifaces', MNF_DIR = 'common/render/symbol/player',
 const MNF_SIZES = [2048, 1024, 512, 256];
 // dónde va la cabeza dentro del cuadro (medido en minifaces del juego): pelo al 4% de arriba, mentón al 77%, ancho 55%
 const MNF_HEAD = { top: .04, chin: .77, w: .55 };
-const MNF = { kit: null, wand: [], wandOn: false, pid: null, file: '', img: null, src: null, alpha: false, bg: false, tol: 45, s: 1, x: 0, y: 0, guide: true, busy: false, prog: 0, msg: '', err: '', done: false, own: null, size: 2048 };
+const MNF = { kit: null, wand: [], wandOn: false, mask: null, maskFor: null, aiBusy: false, aiProg: 0, aiErr: '', pid: null, file: '', img: null, src: null, alpha: false, bg: 'off', tol: 45, s: 1, x: 0, y: 0, guide: true, busy: false, prog: 0, msg: '', err: '', done: false, own: null, size: 2048 };
 try { const j = JSON.parse(localStorage.getItem(MNF_LS) || '{}'); if (MNF_SIZES.includes(j.size)) MNF.size = j.size; if (j.guide === false) MNF.guide = false; } catch { }
 const mnfPrefs = () => { try { localStorage.setItem(MNF_LS, JSON.stringify({ size: MNF.size, guide: MNF.guide })); } catch { } };
-function mnfReset(pid) { Object.assign(MNF, { pid, wand: [], wandOn: false, file: '', img: null, src: null, alpha: false, bg: false, s: 1, x: 0, y: 0, busy: false, prog: 0, msg: '', err: '', done: false, own: null }); }
+function mnfReset(pid) { Object.assign(MNF, { pid, wand: [], wandOn: false, mask: null, maskFor: null, aiBusy: false, aiProg: 0, aiErr: '', file: '', img: null, src: null, alpha: false, bg: 'off', s: 1, x: 0, y: 0, busy: false, prog: 0, msg: '', err: '', done: false, own: null }); }
 
 // ---- imagen ----
 function mnfShrink(src, max) { // lleva la imagen a un tamaño de trabajo (de a la mitad, se ve más nítido)
@@ -37,10 +37,11 @@ function mnfFill(d, W, H, seen, starts, tol) {
     }
   }
 }
-function mnfCutBg(src, tol, auto, wand) {
+function mnfCutBg(src, tol, auto, wand, mask) {
   const W = src.width, H = src.height, c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
   const im = g.getImageData(0, 0, W, H), d = im.data, n = W * H, seen = new Uint8Array(n);
+  if (mask) for (let i = 0; i < n; i++) d[i * 4 + 3] = d[i * 4 + 3] * mask[i] / 255 + .5 | 0;
   if (auto) {
     // solo arrancan los bordes del color que más se repite (si el pelo toca arriba, no se lo come)
     const border = []; for (let x = 0; x < W; x++) border.push(x); for (let y = 1; y < Math.round(H * .6); y++) border.push(y * W, y * W + W - 1);
@@ -53,7 +54,39 @@ function mnfCutBg(src, tol, auto, wand) {
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * W + x; if (seen[i]) continue; const k = (seen[i - 1] ? 1 : 0) + (seen[i + 1] ? 1 : 0) + (seen[i - W] ? 1 : 0) + (seen[i + W] ? 1 : 0); if (k) d[i * 4 + 3] = Math.min(d[i * 4 + 3], 255 - k * 40); }
   g.putImageData(im, 0, 0); return c;
 }
-function mnfApplyBg() { MNF.src = MNF.bg || MNF.wand.length ? mnfCutBg(MNF.img, MNF.tol, MNF.bg, MNF.wand) : MNF.img; }
+function mnfApplyBg() {
+  const color = MNF.bg === 'color', mask = MNF.bg === 'ai' && MNF.mask && MNF.maskFor === MNF.img ? MNF.mask : null;
+  MNF.src = color || mask || MNF.wand.length ? mnfCutBg(MNF.img, MNF.tol, color, MNF.wand, mask) : MNF.img;
+}
+// ---- quitar el fondo con IA: MODNet (recorte de retratos, licencia Apache 2.0) con transformers.js, todo en la compu ----
+// El modelo (unos 7 MB) se descarga la primera vez que se usa y el navegador lo guarda; la foto no sale de la compu.
+const MNF_TFJS = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.min.js', MNF_MODEL = 'Xenova/modnet';
+const MNF_AI = { lib: null, model: null, proc: null };
+async function mnfAiMask(img, onProg) {
+  if (!MNF_AI.model) {
+    const T = MNF_AI.lib || (MNF_AI.lib = await import(MNF_TFJS)), files = {};
+    const prog = e => { if (e && e.status === 'progress' && e.total) { files[e.file] = [e.loaded, e.total]; let a = 0, b = 0; for (const [l, t] of Object.values(files)) { a += l; b += t; } onProg && onProg(a / b); } };
+    MNF_AI.model = await T.AutoModel.from_pretrained(MNF_MODEL, { dtype: 'q8', device: 'wasm', progress_callback: prog });
+    MNF_AI.proc = await T.AutoProcessor.from_pretrained(MNF_MODEL);
+  }
+  const T = MNF_AI.lib, W = img.width, H = img.height, image = T.RawImage.fromCanvas(img);
+  const { pixel_values } = await MNF_AI.proc(image), { output } = await MNF_AI.model({ input: pixel_values });
+  const m = await T.RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(W, H), out = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) out[i] = m.data[i * m.channels];
+  return out;
+}
+async function mnfRunAi() {
+  const img = MNF.img; if (!img) return;
+  MNF.aiBusy = true; MNF.aiProg = 0; MNF.aiErr = ''; mnfPaint();
+  try {
+    const mask = await mnfAiMask(img, p => { MNF.aiProg = p; const b = document.querySelector('#mnfCard .mfai b'); if (b) b.style.width = Math.round(p * 100) + '%'; });
+    if (MNF.img === img) { MNF.mask = mask; MNF.maskFor = img; MNF.bg = 'ai'; mnfApplyBg(); mnfAuto(); }
+  } catch (e) {
+    MNF.aiErr = 'No se pudo usar la IA (' + (e && e.message || e) + '). Hace falta internet la primera vez. Mientras tanto quité el fondo por color.';
+    if (MNF.img === img && MNF.bg === 'ai') { MNF.bg = 'color'; mnfApplyBg(); mnfAuto(); }
+  }
+  MNF.aiBusy = false; mnfPaint();
+}
 // clic con la varita: el punto de la vista previa pasa a píxel de la imagen
 function mnfWandAt(fx, fy) {
   const W = MNF.img.width, x = Math.floor((fx - MNF.x) / MNF.s * W), y = Math.floor((fy - MNF.y) / MNF.s * W);
@@ -64,7 +97,7 @@ function mnfWandAt(fx, fy) {
 function mnfAuto() {
   const c = MNF.src; if (!c) return; const W = c.width, H = c.height;
   const cover = () => { MNF.s = Math.max(1, W / H); MNF.x = (1 - MNF.s) / 2; MNF.y = 0; };
-  if (!MNF.bg && !MNF.alpha && !MNF.wand.length) return cover();
+  if (MNF.bg === 'off' && !MNF.alpha && !MNF.wand.length) return cover();
   const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data, row = y => { let l = -1, r = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 128) { if (l < 0) l = x; r = x; } return [l, r]; };
   let top = -1, x0 = W, x1 = -1;
   for (let y = 0; y < H; y++) { const [l, r] = row(y); if (r - l > 2) { if (top < 0) top = y; if (l < x0) x0 = l; if (r > x1) x1 = r; } }
@@ -81,7 +114,8 @@ async function mnfFile(file) {
   MNF.err = ''; MNF.msg = ''; MNF.done = false;
   try {
     const bmp = await createImageBitmap(file); MNF.img = mnfShrink(bmp, 2048); bmp.close && bmp.close();
-    MNF.file = file.name; MNF.alpha = mnfHasAlpha(MNF.img); MNF.bg = !MNF.alpha; mnfApplyBg(); mnfAuto();
+    MNF.file = file.name; MNF.alpha = mnfHasAlpha(MNF.img); MNF.wand = []; MNF.mask = null; MNF.bg = MNF.alpha ? 'off' : 'ai'; mnfApplyBg(); mnfAuto();
+    if (MNF.bg === 'ai') setTimeout(mnfRunAi, 0);
   } catch (e) { MNF.err = 'No se pudo leer ' + file.name + ': ' + e.message; }
 }
 // el cuadro final (N×N) con la imagen donde la dejaste
@@ -159,7 +193,9 @@ function mnfCard(pid, kit) {
         <p class="note" style="margin:0">Subí una foto PNG o JPG del jugador. El editor la deja cuadrada con fondo transparente, la convierte en <b>${pid}.dds</b> (DXT3, el formato de las minifaces del juego) y la guarda en la carpeta de Sider.</p>
         <div class="row"><button class="btn small" type="button" id="mnfPick">📁 Elegir imagen</button>${has ? '<button class="btn small" type="button" id="mnfAuto" title="Lleva la cabeza a la guía">🎯 Encuadrar solo</button><button class="btn small ghost" type="button" id="mnfClear">✕ Quitar</button>' : ''}</div>
         ${has ? `<label class="mfline"><span>Zoom</span><input type="range" id="mnfZoom" min="20" max="400" value="${Math.max(20, Math.min(400, zoom))}" aria-label="Zoom"></label>
-        <label class="chk"><input type="checkbox" id="mnfBg" ${MNF.bg ? 'checked' : ''}> Quitar el fondo automáticamente${MNF.alpha ? ' (tu imagen ya trae transparencia)' : ''}</label>
+        <div class="mfline"><span>Fondo</span><div class="seg" id="mnfBgSeg">${[['ai', '✨ Quitar con IA'], ['color', 'Por color'], ['off', 'Dejarlo']].map(([k, n]) => `<button type="button" data-bg="${k}" aria-pressed="${MNF.bg === k}" ${MNF.aiBusy ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
+        ${MNF.aiBusy ? `<div class="mfprog mfai" role="progressbar" aria-label="Quitando el fondo"><b style="width:${Math.round(MNF.aiProg * 100)}%"></b></div><p class="note" style="margin:0">Quitando el fondo con IA…${MNF_AI.model ? '' : ' La primera vez descarga el modelo (unos 7 MB).'}</p>` : ''}
+        ${MNF.aiErr ? `<p class="note warn" style="margin:0">${esc(MNF.aiErr)}</p>` : ''}
         <div class="row"><button class="btn small${MNF.wandOn ? ' primary' : ''}" type="button" id="mnfWand" aria-pressed="${MNF.wandOn}">🪄 Borrar fondo con un clic</button>${MNF.wand.length ? `<button class="btn small ghost" type="button" id="mnfUndo">↶ Deshacer (${MNF.wand.length})</button>` : ''}</div>
         ${MNF.wandOn ? '<p class="note" style="margin:0">Tocá en la imagen la parte del fondo que querés borrar. Si borra de más, deshacé y bajá la tolerancia; si borra poco, subila.</p>' : ''}
         <label class="mfline"><span>Tolerancia</span><input type="range" id="mnfTol" min="10" max="120" value="${MNF.tol}" aria-label="Tolerancia del fondo"></label>
@@ -188,6 +224,8 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   let tolT = 0, drag = null;
   document.addEventListener('click', e => {
     if (!inCard(e)) return; const id = e.target.closest('[id]') && e.target.closest('[id]').id;
+    const bgb = e.target.closest('[data-bg]');
+    if (bgb) { MNF.bg = bgb.dataset.bg; MNF.aiErr = ''; if (MNF.bg === 'ai' && MNF.maskFor !== MNF.img) mnfRunAi(); else { mnfApplyBg(); mnfPaint(); } return; }
     if (id === 'mnfPick' || (id === 'mnfStage' && !MNF.src)) mnfPick();
     else if (id === 'mnfAuto') { mnfAuto(); mnfPaint(); }
     else if (id === 'mnfClear') { const pid = MNF.pid, own = MNF.own; mnfReset(pid); MNF.own = own; mnfPaint(); }
@@ -204,7 +242,6 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   });
   document.addEventListener('change', e => {
     if (!inCard(e)) return;
-    if (e.target.id === 'mnfBg') { MNF.bg = e.target.checked; mnfApplyBg(); mnfPaint(); }
     if (e.target.id === 'mnfGuide') { MNF.guide = e.target.checked; mnfPrefs(); mnfPaint(); }
     if (e.target.id === 'mnfSize') { MNF.size = +e.target.value; mnfPrefs(); }
   });

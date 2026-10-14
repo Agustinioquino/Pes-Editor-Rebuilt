@@ -1590,3 +1590,7 @@ html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
 .mp.open .mptvbar,.mp.open .mptvrs,.mp.ytmin .mptvbar,.mp.ytmin .mptvrs{display:none}
 .mptv.drag{transition:none!important}.mptv.drag .mptvp{pointer-events:none!important}.mptv.drag .mptvbar{cursor:grabbing}
 .mfstage.wand,.mfstage.wand:active{cursor:crosshair}
+/* ---- PES 6: texto de las tarjetas con brillo metálico (acero con reflejo arriba), igual de legible ---- */
+html[data-gfx="pes6"] .card :is(p,.note,label,.lab,h2,h3,h4,summary,.sub):not(.ok,.bad,.warn,.btn){color:transparent;background:linear-gradient(180deg,#3a3a37 0%,#3a3a37 24%,#a9a9a3 32%,#74746f 44%,#0b0b0a 52%,#262624 64%,#6c6c66 76%,#3a3a37 84%) 0 0/100% 1lh repeat;-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 .4px #000c) drop-shadow(0 1px 0 #fff)}
+html[data-gfx="pes6"] .card :is(p,.note,label,.lab,h2,h3,h4,summary,.sub):not(.ok,.bad,.warn,.btn) :is(p,.note,label,.lab,.sub){filter:none}
+html[data-gfx="pes6"] .card .emo{color:#000;-webkit-text-fill-color:initial;background:none}

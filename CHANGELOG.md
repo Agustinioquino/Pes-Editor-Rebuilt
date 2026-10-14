@@ -2,6 +2,23 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.047 alpha · Kit Studio Pro: cargá kits desde un .zip (versión preliminar)
+
+*14 de octubre de 2026, 16:00 (hora de Argentina)*
+
+⚠️ Versión preliminar: todo esto es nuevo y se probó poco con juegos reales, así que es probable que tenga fallos; hacé una copia de content\kit-server antes de cargar o reemplazar kits. El Estudio de kits ahora es el Kit Studio Pro, en dos partes (Uniformes y Editor), y un kit bajado de internet se carga arrastrando su .zip.
+
+- **Arrastrá el .zip y elegí el puesto** (Kits). Soltá el .zip del kit (o sus texturas sueltas: .ftex, .dds, .png) en Uniformes. Un cuadro muestra qué trae (kit, normal map, brillo, números, letras del nombre) y elegís el puesto: titular (p1), suplente (p2), tercera, cuarta o arquero. Lo que falte se genera genérico, todo se convierte a FTEX y se escriben solos el config.txt (con los colores leídos de la textura si no trae uno) y el order.ini.
+  1. Abrí el equipo, la pestaña Kit Studio Pro y quedate en Uniformes.
+  2. Arrastrá el .zip a la zona punteada (o tocala para elegirlo).
+  3. Elegí el puesto y tocá "Cargar al kit-server".
+  4. Abrí el juego de nuevo (o en kserv apretá [0] para recargar el mapa).
+- **Si el puesto ya tiene kit: reemplazar o agregar** (Kits). Si elegís un puesto en uso, el cuadro pregunta si reemplazar el kit de ahora (lo de antes se guarda en _borrados) o agregarlo como kit nuevo (p3, p4, g2…), y el orden se acomoda solo.
+- **Los kits que viven en los .cpk** (Kits). Si el equipo no tiene carpeta en el kit-server, sus kits están cifrados dentro de los .cpk del juego y no se pueden abrir desde el editor. El Kit Studio Pro lo dice y deja cargarle un kit por Sider igual: crea la carpeta del equipo y su línea en map.txt.
+- **Uniformes y Editor** (Kits). Uniformes muestra todos los kits del equipo con sus texturas en miniatura y el orden del juego; desde ahí se edita, se sube en el orden, se duplica (⧉), se copia un kit de jugador como arquero (🧤) y se borra (🗑, la carpeta queda en _borrados). Editor es un kit a pantalla ancha, con Ampliar, pantalla completa y Vista del juego.
+- **Mové el nombre y los números sobre el modelo** (Kits). En el visor 3D, el nombre y los números de espalda, pecho y short se arrastran directo sobre la camiseta y la rueda encima les cambia el tamaño; los valores van al config.txt respetando el rango de cada kit. Las posiciones salen de una cuenta aproximada, todavía sin calibrar contra el juego: puede haber diferencias.
+- **Texturas completas, color del short y textura que no se pierde** (Kits). Las texturas se cargan a su resolución completa (hasta 4096). El generador de fuentes tiene "Número del short con otro color". La textura subida a un kit ya no desaparece al cambiar de kit y volver.
+
 ## v0.046 alpha · La pestaña Sider entiende tu juego
 
 *14 de octubre de 2026, 12:45 (hora de Argentina)*

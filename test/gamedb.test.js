@@ -99,6 +99,22 @@ test('Football Life 2026: la base sale del data_s2526 más nuevo y las carpetas 
   assert.ok(!r.files.has('x.dds'));
 });
 
+test('el orden de download sale de spFileList.bin (Football Life) y no del nombre', async () => {
+  const old = bytes(2000, 21), mid = bytes(2000, 22), last = bytes(2000, 23);
+  const entry = n => { const b = new Uint8Array(48); b.set(new TextEncoder().encode(n), 12); return b; };
+  const list = new Uint8Array([...entry('data_s2526.cpk'), ...entry('data_s2526d.cpk'), ...entry('data_s25262.cpk')]);
+  const game = new FDir('footballlife', { download: {
+    'data_s2526.cpk': cpk([['common/etc/pesdb/Team.bin', old]]),
+    'data_s2526d.cpk': cpk([['common/etc/pesdb/Team.bin', mid]]),
+    'data_s25262.cpk': cpk([['common/etc/pesdb/Team.bin', last]]),
+    'viejo_sin_lista.cpk': cpk([['common/etc/pesdb/Team.bin', bytes(2000, 24)]]),
+    'spFileList.bin': list } });
+  ctx.siderCpkRoots = async () => [];
+  const r = await X.gdbScan(game, null);
+  assert.strictEqual(r.files.get('team.bin').from, 'download\\data_s25262.cpk', 'el último de la lista gana aunque por nombre vaya antes que data_s2526d');
+  assert.strictEqual(r.cpks, 3, 'lo que no está en la lista no se carga');
+});
+
 test('la carpeta del juego: elegida más arriba (steamapps) o solo la de Sider', async () => {
   const lib = new FDir('common', { 'eFootball PES 2021': { 'PES2021.exe': new Uint8Array(1), Data: { 'dt10_all.cpk': cpk([['common/etc/pesdb/Team.bin', bytes(100, 1)]]) }, Sider: { 'sider.ini': new Uint8Array(1) } } });
   const g = await lib.getDirectoryHandle('eFootball PES 2021'), s = await g.getDirectoryHandle('Sider');

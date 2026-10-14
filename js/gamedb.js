@@ -88,12 +88,23 @@ const gdbGameName = exe => !exe ? 'el juego' : /^FL_(\d+)\.exe$/i.test(exe) ? 'F
 
 // fecha del archivo (en la app sin leerlo entero)
 async function gdbWhen(h) { try { return h.native ? ((h.info && await h.info()) || {}).mtime || 0 : (await h.getFile()).lastModified; } catch { return 0; } }
-// orden: primero Data (lo que trae el juego), después download por nombre (data_s2526.cpk antes que data_s2526a.cpk);
-// el que viene después pisa al anterior, como hace el juego con sus actualizaciones
+// orden: primero Data (lo que trae el juego), después download en el orden de su lista (DpFileList.bin; en Football Life
+// spFileList.bin): el que viene después pisa al anterior, como hace el juego con sus actualizaciones. Los .cpk que no
+// están en la lista el juego no los carga. Sin lista, por nombre.
 const gdbSort = a => a.sort((x, y) => { const p = x[0].toLowerCase(), q = y[0].toLowerCase(); return p < q ? -1 : p > q ? 1 : 0; });
+function gdbListNames(b) { const out = [], td = new TextDecoder(); let s = -1; for (let i = 0; i <= b.length; i++) { const c = i < b.length ? b[i] : 0; if (c >= 0x20 && c < 0x7f) { if (s < 0) s = i; } else { if (s >= 0 && i - s > 4) { const n = td.decode(b.subarray(s, i)); if (/\.cpk$/i.test(n)) out.push(n.toLowerCase()); } s = -1; } } return out; }
+async function gdbOrder(d, list) {
+  for (const n of ['spFileList.bin', 'DpFileList.bin']) {
+    let f; try { f = await (await d.getFileHandle(n)).getFile(); } catch { continue; }
+    const names = gdbListNames(new Uint8Array(await f.arrayBuffer())); if (!names.length) continue;
+    const by = new Map(list.map(x => [x[0].toLowerCase(), x]));
+    return names.map(x => by.get(x)).filter(Boolean);
+  }
+  return gdbSort(list);
+}
 async function gdbScan(game, sider) {
   const files = new Map(), cpks = [];
-  for (const sub of ['Data', 'download']) { const d = await hasDir(game, sub); if (d) for (const [n, h] of gdbSort(await gdbCpks(d))) cpks.push([sub + '\\' + n, h]); }
+  for (const sub of ['Data', 'download']) { const d = await hasDir(game, sub); if (d) for (const [n, h] of sub === 'download' ? await gdbOrder(d, await gdbCpks(d)) : gdbSort(await gdbCpks(d))) cpks.push([sub + '\\' + n, h]); }
   for (const [label, h] of cpks) {
     let toc; try { toc = await gdbToc(h); } catch (e) { if (/readRange/.test(e.message)) return { files, old: true, cpks: cpks.length }; continue; }
     const mt = await gdbWhen(h);

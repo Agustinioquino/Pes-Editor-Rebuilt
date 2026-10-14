@@ -1,7 +1,7 @@
 // ===================== Kit Studio Pro (kit-server config.txt + texturas) =====================
 // Lee y escribe content\kit-server\<ruta>\<kit>\config.txt, order.ini y gk_order.ini del juego,
 // y muestra la textura del kit (.ftex del juego o .dds) con una maqueta aproximada.
-const KS = { team: null, kits: [], gk: [], sel: null, cfg: null, dirty: false, view: '3d', T: {}, sample: { name: 'JUGADOR', num: '10' }, mat: { fabric: 'malla', repeat: 48, fabricStrength: .5, emboss: .5 }, busy: false, err: '', tex: new Map(), texIdx: null, sync: true, side: 'front' };
+const KS = { mode: 'list', team: null, kits: [], gk: [], sel: null, cfg: null, dirty: false, view: '3d', T: {}, sample: { name: 'JUGADOR', num: '10' }, mat: { fabric: 'malla', repeat: 48, fabricStrength: .5, emboss: .5 }, busy: false, err: '', tex: new Map(), texIdx: null, sync: true, side: 'front' };
 
 // ---- FTEX (Fox Engine texture): header 64 bytes + mip table (16 bytes each) + zlib chunks ----
 async function ftexDecode(buf, max = 1024) {
@@ -86,7 +86,7 @@ async function ksLoad(t) {
     const all = []; for await (const [name, h] of dir.entries()) if (h.kind === 'directory') all.push(name);
     KS.team = t.id; KS.path = k.path; KS.kits = ord.length ? ord : all.filter(n => /^p/i.test(n)).sort(); KS.gk = gk.length ? gk : all.filter(n => /^g/i.test(n)).sort(); KS.all = all;
     if (!KS.sel || ![...KS.kits, ...KS.gk].includes(KS.sel)) KS.sel = KS.kits[0] || KS.gk[0];
-    KS.meta = {}; for (const n of all) { try { const c = await readText(await dir.getDirectoryHandle(n), 'config.txt'); if (c) KS.meta[n] = parseKitCfg(c, n); } catch { } }
+    KS.meta = {}; KS.cfgTxt = {}; KS.thumbs = {}; for (const n of all) { try { const c = await readText(await dir.getDirectoryHandle(n), 'config.txt'); if (c) { KS.meta[n] = parseKitCfg(c, n); KS.cfgTxt[n] = c; } } catch { } }
     await ksOpenKit(KS.sel, dir);
   } catch (e) { KS.err = e.message; }
   KS.busy = false;
@@ -132,8 +132,8 @@ async function ksDecodeTex(h, S) {
 // el alfa de la textura del kit es el brillo que usa el juego (blanco = brilla más): va a su propio mapa en gris
 function ksAlphaCanvas(img) { const c = document.createElement('canvas'); c.width = img.w; c.height = img.h; const g = c.getContext('2d'), im = g.createImageData(img.w, img.h); for (let i = 0; i < im.data.length; i += 4) { im.data[i] = im.data[i + 1] = im.data[i + 2] = img.data[i + 3]; im.data[i + 3] = 255; } g.putImageData(im, 0, 0); return c; }
 function ksShrink(img, max) { if (img.w <= max) return { w: img.w, h: img.h, data: new Uint8ClampedArray(img.data) }; const k = max / img.w, w = Math.round(img.w * k), h = Math.round(img.h * k), o = new Uint8ClampedArray(w * h * 4); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const s = (Math.floor(y / k) * img.w + Math.floor(x / k)) * 4, d = (y * w + x) * 4; o[d] = img.data[s]; o[d + 1] = img.data[s + 1]; o[d + 2] = img.data[s + 2]; o[d + 3] = img.data[s + 3]; } return { w, h, data: o }; }
-async function ksFindTex(dir, file) {
-  const kd = await dir.getDirectoryHandle(KS.sel);
+async function ksFindTex(dir, file, kit = KS.sel) {
+  const kd = await dir.getDirectoryHandle(kit);
   for (const ext of ['.ftex', '.dds', '.png']) { try { return { h: await kd.getFileHandle(file + ext), where: 'kit' }; } catch { } }
   const idx = await ksTexIndex((await ksRoot(false)).sider);
   for (const ext of ['.ftex', '.dds']) { const h = idx.get((file + ext).toLowerCase()); if (h) return { h, where: 'live' }; }
@@ -445,6 +445,40 @@ function ksUpload(S, m) {
   inp.click();
 }
 
+// ---- Uniformes: todos los kits del equipo con sus texturas (miniaturas chicas, se leen una sola vez) ----
+const KS_ROLE = (n, i, gk) => gk ? (i ? 'Arquero alternativo ' + (i + 1) : 'Arquero') : ['Titular', 'Suplente', 'Alternativa', 'Cuarto kit'][i] || 'Kit ' + (i + 1);
+function ksKitFiles(n) {
+  const cfg = KS.cfgTxt && KS.cfgTxt[n] ? cfgParse(KS.cfgTxt[n]) : null;
+  return KS_SLOTS.map(S => { const v = cfg ? (cfgGet(cfg, S.f) || '').trim() : ''; return { S, file: S.derived ? (v ? v + S.suf : '') : v }; });
+}
+async function ksLoadThumbs() {
+  if (KS.thumbBusy) return; KS.thumbBusy = true;
+  try { const dir = await subDir((await ksRoot(false)).kit, KS.path);
+    for (const n of [...KS.kits, ...KS.gk]) { if (KS.thumbs[n]) continue; const T = {};
+      await Promise.all(ksKitFiles(n).map(async ({ S, file }) => {
+        if (!file) { T[S.k] = { none: true }; return; }
+        try { const f = await ksFindTex(dir, file, n); if (!f) { T[S.k] = { missing: true, file }; return; }
+          const c = await ksDecodeTex(f.h, Object.assign({}, S, { max: S.font ? 512 : 256 })); T[S.k] = { c, file: f.h.name, where: f.where };
+        } catch (e) { T[S.k] = { err: e.message, file }; } }));
+      KS.thumbs[n] = T; if (KS.mode === 'list') ksRerender(); }
+  } catch { }
+  KS.thumbBusy = false;
+}
+function ksOverview(t) {
+  const card = (n, i, gk) => { const m = KS.meta[n], T = KS.thumbs[n], files = ksKitFiles(n), have = T ? files.filter(x => T[x.S.k] && T[x.S.k].c).length : 0;
+    const slot = ({ S, file }) => { const x = T && T[S.k] || {}, st = x.c ? (x.where === 'kit' ? 'ok' : 'live') : x.none ? 'none' : x.missing ? 'cpk' : x.err ? 'err' : 'wait';
+      const tip = S.n + ': ' + (x.c ? x.file + (x.where === 'kit' ? ' (en la carpeta del kit)' : ' (suelta en livecpk)') : x.none ? (S.font ? 'no usa' : 'sin textura') : x.missing ? (file + ' dentro de los .cpk del juego') : x.err ? 'no se pudo leer' : 'buscando…');
+      return `<span class="ksfile ${st}" title="${esc(tip)}">${x.c ? `<canvas data-kth="${esc(n)}:${S.k}" width="${S.font ? 72 : 40}" height="40"></canvas>` : '<i></i>'}<small>${S.n.replace('Números de la ', 'Nº ').replace('Números del ', 'Nº ').replace('Textura del kit', 'Kit').replace('Letras del nombre', 'Nombre').replace('Brillo (SRM)', 'Brillo')}</small></span>`; };
+    return `<article class="ksucard ${KS.sel === n ? 'on' : ''}">
+      <button type="button" class="ksuthumb" data-open="${esc(n)}" title="Abrir ${esc(n)} en el Editor">${T && T.kit && T.kit.c ? `<canvas data-kth="${esc(n)}:kit" width="200" height="200"></canvas>` : `<span class="ksuph">${shirtSvg(m || kitFor(t, gk), '5.5em')}${T ? '' : '<small>Leyendo texturas…</small>'}</span>`}</button>
+      <div class="ksuhead">${shirtSvg(m || kitFor(t, gk), '1.6em')}<b>${esc(n)}</b><small>${KS_ROLE(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small><span class="chip">${T ? have + '/' + files.length + ' texturas' : '…'}</span></div>
+      <div class="ksfiles">${files.map(slot).join('')}</div>
+      <div class="row ksuact"><button type="button" class="btn small primary" data-open="${esc(n)}">✎ Editar</button><button type="button" class="btn ghost small" data-up="${esc(n)}" title="Subir en el orden" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn ghost small" data-dup="${esc(n)}" title="Duplicar como kit nuevo">⧉</button>${gk ? '' : `<button type="button" class="btn ghost small" data-dupgk="${esc(n)}" title="Copiar como kit de arquero">🧤</button>`}<button type="button" class="btn ghost small" data-del="${esc(n)}" title="Borrar este kit" ${!gk && KS.kits.length < 2 ? 'disabled' : ''}>🗑</button></div>
+    </article>`; };
+  return `<h4 class="kssec">Jugadores <small>${KS.kits.length}</small></h4><div class="ksugrid">${KS.kits.map((n, i) => card(n, i, false)).join('')}</div>
+    <h4 class="kssec">Arqueros <small>${KS.gk.length}</small></h4>${KS.gk.length ? `<div class="ksugrid">${KS.gk.map((n, i) => card(n, i, true)).join('')}</div>` : '<p class="note">Sin kits de arquero. Usá 🧤 en un kit de jugador para crear uno.</p>'}
+    <p class="note">El orden es el de order.ini y gk_order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…), 🧤 copia un kit de jugador como kit de arquero y 🗑 borra el kit (su carpeta queda guardada en _borrados). Verde: la textura está en la carpeta del kit; azul: suelta en livecpk; gris: dentro de los .cpk del juego o sin usar.</p>`;
+}
 // ---- tarjeta ----
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
@@ -453,8 +487,7 @@ function kitStudioCard(t) {
   if (KS.busy || (!KS.cfg && !KS.err)) return '<div class="card"><div class="lmload"><span class="spin"></span> Leyendo los kits del juego…</div></div>';
   if (!KS.cfg) return `<div class="card"><h3>Kit Studio Pro</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
   const roleName = (n, i, gk) => gk ? (i ? 'Arquero alternativo ' + (i + 1) : 'Arquero') : ['Titular', 'Suplente', 'Alternativa', 'Cuarto kit'][i] || 'Kit ' + (i + 1);
-  const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.4em')}<span><b>${esc(n)}</b><small>${roleName(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button>
-    <span class="ksord"><button type="button" class="btn ghost small" data-up="${esc(n)}" title="Subir" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn ghost small" data-dup="${esc(n)}" title="Duplicar como kit nuevo">⧉</button>${gk ? '' : `<button type="button" class="btn ghost small" data-dupgk="${esc(n)}" title="Copiar como kit de arquero (con los mismos números, nombre y texturas)">🧤</button>`}<button type="button" class="btn ghost small" data-del="${esc(n)}" title="Borrar este kit" ${!gk && KS.kits.length < 2 ? 'disabled' : ''}>🗑</button></span></div>`; };
+  const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}" title="Editar ${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.1em')}<span><b>${esc(n)}</b><small>${roleName(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button></div>`; };
   const groups = []; for (const f of KS.cfg.fields) { let g = groups.find(x => x.s === f.section); if (!g) groups.push(g = { s: f.section, f: [] }); g.f.push(f); }
   const ctl = f => {
     const ty = fieldType(f), id = 'ks_' + f.key, v = f.value.trim(), lab = `<label for="${id}">${esc(KEY_ES[f.key] || f.key)}</label>`;
@@ -474,13 +507,14 @@ function kitStudioCard(t) {
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
   return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
-    <div class="row" style="justify-content:space-between"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
-      <div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
-      <button class="btn" type="button" id="ksUndo" ${KS.dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty ? '' : 'disabled'}>Guardar kit</button></div></div>
+    <div class="row" style="justify-content:space-between"><div class="row"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
+      <div class="seg ksmode" id="ksMode"><button type="button" data-v="list" aria-pressed="${KS.mode === 'list'}">👕 Uniformes <small>${KS.kits.length + KS.gk.length}</small></button><button type="button" data-v="edit" aria-pressed="${KS.mode !== 'list'}">🛠 Editor · ${esc(KS.sel)}</button></div></div>
+      ${KS.mode === 'list' ? '' : `<div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
+      <button class="btn" type="button" id="ksUndo" ${KS.dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
+    ${KS.mode === 'list' ? ksOverview(t) : `
+    <div class="kssel" aria-label="Kit que se edita">${KS.kits.map((n, i) => chip(n, i, false)).join('')}${KS.gk.map((n, i) => chip(n, i, true)).join('')}</div>
     <div class="kslayout">
-      <aside class="kslist"><h4>Jugadores</h4>${KS.kits.map((n, i) => chip(n, i, false)).join('')}<h4>Arqueros</h4>${KS.gk.map((n, i) => chip(n, i, true)).join('') || '<p class="note">Sin kits de arquero.</p>'}
-        <p class="note">El orden es el de order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…) para empezar un kit nuevo, 🧤 copia un kit de jugador como kit de arquero y 🗑 borra el kit (su carpeta queda guardada en _borrados).</p></aside>
       <section class="ksprev">
         <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', 'Maqueta'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
           <div class="row ksample"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
@@ -543,13 +577,14 @@ function kitStudioCard(t) {
       <label class="chk"><input type="checkbox" id="ksSync" ${KS.sync ? 'checked' : ''}> Usar los colores principal y secundario también en el menú (UniColor)</label>
     </div>
     ${groups.map(g => `<details class="ksgroup" ${['kit colors', 'shirt - back side'].includes(g.s) ? 'open' : ''}><summary>${esc(SEC_ES[g.s] || g.s)}</summary><div class="grid wide">${g.f.map(ctl).join('')}</div></details>`).join('')}
-    <p class="note">"Guardar kit" escribe content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}\\config.txt (la primera vez guarda una copia config.txt.bak-edit21). Los comentarios y el orden del archivo se respetan. Abrí el juego de nuevo para ver los cambios.</p>
+    <p class="note">"Guardar kit" escribe content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}\\config.txt (la primera vez guarda una copia config.txt.bak-edit21). Los comentarios y el orden del archivo se respetan. Abrí el juego de nuevo para ver los cambios.</p>`}
   </div>`;
 }
 function bindKitStudio(t, m) {
   ksRerender = () => later(() => { if (S.ttab === 'kits') renderTeams(m); });
   const sh = $('teamSheet'); if (!KS.cfg) return;
   if (K3.viewer) { K3.viewer.dispose(); K3.viewer = null; }
+  ksBindList(sh, m); if (KS.mode === 'list') return;
   const savePrefs3 = () => { PREFS.k3light = K3.light; savePrefs(); };
   // normal map de la tela elegida (se regenera al mover los controles)
   const genMaps = () => { if ((KS.nsrc || (ksTexOf('nrm') ? 'kit' : 'gen')) === 'kit') { KS.genNrm = null; KS.genSrm = null; return; } KS.genNrm = KMAT.normalMap({ kitCanvas: KS.mat.src === 'gloss' ? ksGloss() : ksTexOf('kit'), fabric: KS.mat.fabric, repeat: KS.mat.repeat, fabricStrength: KS.mat.fabricStrength, emboss: KS.mat.emboss, size: 1024 }); KS.genSrm = KMAT.srm(KS.mat.fabric, 64); };
@@ -711,6 +746,17 @@ function bindKitStudio(t, m) {
     cv.onwheel = e => { e.preventDefault(); const r = cv.getBoundingClientRect(), tg = target(e.clientY - r.top), s = e.deltaY < 0 ? 1 : -1;
       const k = { name: ['NameSize', 20], num: ['BackNumberSize', 28], chest: ['ChestNumberSize', 28], leg: ['ShortsNumberSize', 28] }[tg]; setVal(k[0], Math.max(0, Math.min(k[1], ksN(k[0]) + s))); };
   });
+}
+// Uniformes y la tira de kits del Editor: abrir, ordenar, copiar y borrar
+function ksBindList(sh, m) {
+  const mode = $('ksMode'); if (mode) mode.onclick = e => { const b = e.target.closest('[data-v]'); if (!b || KS.mode === b.dataset.v) return; KS.mode = b.dataset.v; renderTeams(m); };
+  sh.querySelectorAll('[data-open]').forEach(b => b.onclick = async () => {
+    const n = b.dataset.open;
+    if (n !== KS.sel) { if (KS.dirty && !await confirmBox('Hay cambios sin guardar en ' + KS.sel + '. ¿Descartarlos?')) return; try { await ksOpenKit(n); KS.genNrm = null; KS.nsrc = null; } catch (e) { toast(e.message, 6000); return; } }
+    KS.mode = 'edit'; renderTeams(m);
+  });
+  sh.querySelectorAll('canvas[data-kth]').forEach(c => { const [n, k] = c.dataset.kth.split(':'), T = KS.thumbs[n] && KS.thumbs[n][k] && KS.thumbs[n][k].c; if (!T) return; const g = c.getContext('2d'), z = Math.min(c.width / T.width, c.height / T.height); if (k !== 'kit') { g.fillStyle = '#2a3038'; g.fillRect(0, 0, c.width, c.height); } g.drawImage(T, (c.width - T.width * z) / 2, (c.height - T.height * z) / 2, T.width * z, T.height * z); });
+  if (KS.mode === 'list') ksLoadThumbs();
   // lista de kits
   sh.querySelectorAll('[data-kit]').forEach(b => b.onclick = async () => {
     if (KS.dirty && !await confirmBox('Hay cambios sin guardar en ' + KS.sel + '. ¿Descartarlos?')) return;
@@ -731,7 +777,7 @@ function bindKitStudio(t, m) {
   sh.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
     const n = b.dataset.del;
     if (!await confirmBox('¿Borrar el kit ' + n + '? Deja de aparecer en el juego. Su carpeta se guarda en ' + KS.path + '\\_borrados por si lo querés recuperar.')) return;
-    try { const tn = await ksDelete(n); if (KS.sel === n) { KS.dirty = false; await ksOpenKit(KS.kits[0] || KS.gk[0]); } RATE_GEN++; toast('Kit ' + n + ' borrado. Copia en _borrados\\' + tn + '.', 6000); } catch (e) { toast('No se pudo borrar: ' + e.message, 6000); }
+    try { const tn = await ksDelete(n); delete KS.thumbs[n]; if (KS.sel === n) { KS.dirty = false; await ksOpenKit(KS.kits[0] || KS.gk[0]); } RATE_GEN++; toast('Kit ' + n + ' borrado. Copia en _borrados\\' + tn + '.', 6000); } catch (e) { toast('No se pudo borrar: ' + e.message, 6000); }
     renderTeams(m);
   });
 }

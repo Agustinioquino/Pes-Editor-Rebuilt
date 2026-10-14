@@ -372,6 +372,23 @@ td.idc{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
 .ksk span{display:grid;line-height:1.2}.ksk small{color:var(--muted);font-size:.72rem}
 .ksord{display:flex;gap:0;padding-right:4px}
 .ksprev{display:grid;gap:8px;justify-items:start}
+/* Kit Studio Pro: Uniformes (todos los kits) y Editor (uno) */
+.ksmode button{font-family:var(--display);font-weight:700}.ksmode small{opacity:.7;font-weight:400;margin-left:2px}
+.kssel{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.kssel .kschip{flex:0 0 auto}.kssel .ksk{padding:4px 10px}
+.kscard:has(.kssel) .kslayout{grid-template-columns:1fr}
+.kssec{font-family:var(--display);margin:14px 0 8px;display:flex;align-items:baseline;gap:6px}.kssec small{color:var(--muted);font-family:var(--mono);font-size:.75rem}
+.ksugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ksucard{display:grid;gap:8px;padding:10px;border:1.5px solid var(--line);border-radius:12px;background:var(--sunk);transition:border-color .2s,box-shadow .2s,translate .2s}
+.ksucard:hover{translate:0 -2px;box-shadow:0 6px 18px #0002}.ksucard.on{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon)}
+.ksuthumb{display:grid;place-items:center;aspect-ratio:1;width:100%;padding:0;border:0;border-radius:8px;cursor:pointer;overflow:hidden;background:repeating-conic-gradient(#0000 0 25%,#ffffff10 0 50%) 0 0/16px 16px,var(--panel)}
+.ksuthumb canvas{width:100%;height:100%;image-rendering:auto}.ksuph{display:grid;justify-items:center;gap:6px;color:var(--muted)}
+.ksuhead{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.ksuhead small{color:var(--muted);flex:1}.ksuhead .chip{font-size:.7rem}
+.ksfiles{display:flex;flex-wrap:wrap;gap:4px}
+.ksfile{display:grid;justify-items:center;gap:2px;padding:3px;border-radius:6px;border:1px solid var(--line);background:var(--panel);min-width:46px}
+.ksfile canvas,.ksfile i{height:26px;width:auto;max-width:48px;border-radius:3px;display:block}.ksfile i{width:26px;background:repeating-linear-gradient(45deg,#0000 0 4px,#8882 4px 8px)}
+.ksfile small{font-size:.6rem;color:var(--muted);white-space:nowrap}
+.ksfile.ok{border-color:color-mix(in srgb,#2fbf71 70%,var(--line))}.ksfile.live{border-color:color-mix(in srgb,#3b8cff 70%,var(--line))}.ksfile.err{border-color:#d64545}.ksfile.none,.ksfile.cpk{opacity:.6}
+.ksuact{gap:4px}
 .ksmock{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:12px;border-radius:12px;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--neon) 10%,var(--sunk)),var(--sunk));border:1px solid var(--line);width:100%}
 .ksmock figure{margin:0;display:grid;justify-items:center;gap:4px}.ksmock figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
 .ksmock canvas{width:200px;height:auto;filter:drop-shadow(0 6px 10px #0004)}

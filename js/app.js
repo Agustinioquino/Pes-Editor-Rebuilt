@@ -669,7 +669,7 @@ function renderTeams(m) {
 }
 function teamSheet(t) {
   const r = PD.roster(S.d, t);
-  const tabs = [...(isNat(t) ? [['call', 'Convocatoria']] : []), ['roster', 'Plantel'], ['tactics', 'Formación'], ['data', 'Datos y colores'], ['kits', 'Estudio de kits'], ['stadium', 'Estadio, rivales y banderas']];
+  const tabs = [...(isNat(t) ? [['call', 'Convocatoria']] : []), ['roster', 'Plantel'], ['tactics', 'Formación'], ['data', 'Datos y colores'], ['kits', 'Kit Studio Pro'], ['stadium', 'Estadio, rivales y banderas']];
   if (S.ttab === 'call' && !isNat(t)) S.ttab = 'roster';
   FACE_CTX.nat = isNat(t);
   const coach = tget(t, 'manager_id');

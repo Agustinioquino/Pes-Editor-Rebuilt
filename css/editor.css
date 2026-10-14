@@ -372,6 +372,23 @@ td.idc{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
 .ksk span{display:grid;line-height:1.2}.ksk small{color:var(--muted);font-size:.72rem}
 .ksord{display:flex;gap:0;padding-right:4px}
 .ksprev{display:grid;gap:8px;justify-items:start}
+/* Kit Studio Pro: Uniformes (todos los kits) y Editor (uno) */
+.ksmode button{font-family:var(--display);font-weight:700}.ksmode small{opacity:.7;font-weight:400;margin-left:2px}
+.kssel{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.kssel .kschip{flex:0 0 auto}.kssel .ksk{padding:4px 10px}
+.kscard:has(.kssel) .kslayout{grid-template-columns:1fr}
+.kssec{font-family:var(--display);margin:14px 0 8px;display:flex;align-items:baseline;gap:6px}.kssec small{color:var(--muted);font-family:var(--mono);font-size:.75rem}
+.ksugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ksucard{display:grid;gap:8px;padding:10px;border:1.5px solid var(--line);border-radius:12px;background:var(--sunk);transition:border-color .2s,box-shadow .2s,translate .2s}
+.ksucard:hover{translate:0 -2px;box-shadow:0 6px 18px #0002}.ksucard.on{border-color:var(--neon);box-shadow:0 0 0 1px var(--neon)}
+.ksuthumb{display:grid;place-items:center;aspect-ratio:1;width:100%;padding:0;border:0;border-radius:8px;cursor:pointer;overflow:hidden;background:repeating-conic-gradient(#0000 0 25%,#ffffff10 0 50%) 0 0/16px 16px,var(--panel)}
+.ksuthumb canvas{width:100%;height:100%;image-rendering:auto}.ksuph{display:grid;justify-items:center;gap:6px;color:var(--muted)}
+.ksuhead{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.ksuhead small{color:var(--muted);flex:1}.ksuhead .chip{font-size:.7rem}
+.ksfiles{display:flex;flex-wrap:wrap;gap:4px}
+.ksfile{display:grid;justify-items:center;gap:2px;padding:3px;border-radius:6px;border:1px solid var(--line);background:var(--panel);min-width:46px}
+.ksfile canvas,.ksfile i{height:26px;width:auto;max-width:48px;border-radius:3px;display:block}.ksfile i{width:26px;background:repeating-linear-gradient(45deg,#0000 0 4px,#8882 4px 8px)}
+.ksfile small{font-size:.6rem;color:var(--muted);white-space:nowrap}
+.ksfile.ok{border-color:color-mix(in srgb,#2fbf71 70%,var(--line))}.ksfile.live{border-color:color-mix(in srgb,#3b8cff 70%,var(--line))}.ksfile.err{border-color:#d64545}.ksfile.none,.ksfile.cpk{opacity:.6}
+.ksuact{gap:4px}
 .ksmock{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:12px;border-radius:12px;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--neon) 10%,var(--sunk)),var(--sunk));border:1px solid var(--line);width:100%}
 .ksmock figure{margin:0;display:grid;justify-items:center;gap:4px}.ksmock figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
 .ksmock canvas{width:200px;height:auto;filter:drop-shadow(0 6px 10px #0004)}
@@ -607,7 +624,16 @@ details.help>summary:focus-visible{outline:3px solid var(--accent);outline-offse
 .hb dd::first-letter{text-transform:uppercase}
 @media (max-width:600px){.hb dl>div{grid-template-columns:1fr}}
 /* ---- estudio de kits: visor 3D, texturas y modelos ---- */
-.ks3dwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,300px);gap:12px;align-items:start}
+.ks3dwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,300px);gap:12px;align-items:start;width:100%}
+/* visor ampliado: sin la lista de kits y más alto */
+.kscard.ksbig .kslayout{grid-template-columns:1fr}.kscard.ksbig .kslist{display:none}
+.kscard.ksbig #ks3d{height:min(84vh,1000px)}.kscard.ksbig .k3side{max-height:min(84vh,1000px)}
+/* pantalla completa: el visor ocupa todo y los paneles quedan al costado */
+.ks3dwrap:fullscreen{background:var(--bg,#0c1016);padding:12px;grid-template-columns:minmax(0,1fr) 320px;align-items:stretch}
+.ks3dwrap:fullscreen #ks3d{height:calc(100vh - 24px)}.ks3dwrap:fullscreen .k3side{max-height:calc(100vh - 24px)}
+/* fondo como la pantalla de Uniforme del juego */
+.ks3d.game{background:radial-gradient(ellipse at 62% 38%,#4aa3ff55 0,#0000 55%),repeating-linear-gradient(115deg,#ffffff0a 0 2px,#0000 2px 9px),linear-gradient(160deg,#2f8af5 0%,#1260dc 45%,#0a3fb0 100%)}
+.ks3d.game .k3floor{display:none}
 @media (max-width:1100px){.ks3dwrap{grid-template-columns:1fr}}
 .ks3d{position:relative;border-radius:var(--r,8px);overflow:hidden;background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--panel) 80%,#fff 6%) 0%,var(--sunk) 60%,color-mix(in srgb,var(--sunk) 70%,#000) 100%);border:1px solid var(--line)}
 #ks3d{width:100%;height:min(66vh,620px);display:block;cursor:grab;touch-action:none;position:relative;z-index:1}
@@ -1533,6 +1559,16 @@ html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
 .siother>summary,.siraw>summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--muted)}
 .siraw textarea{width:100%;font-family:var(--mono);font-size:.78rem;line-height:1.45;padding:8px 10px;border:1.5px solid var(--line);border-radius:calc(var(--r,8px) * .75);background:var(--sunk);color:var(--ink);resize:vertical;margin:8px 0;box-sizing:border-box}
 @media (max-width:700px){.sirow{grid-template-columns:auto auto 1fr}.siact{grid-column:1 / -1;justify-content:flex-end}.sisets{grid-template-columns:1fr}.siothers .siset{grid-template-columns:auto 1fr}.siothers .siset input{grid-column:1 / -1}}
+/* Kit Studio Pro › Uniformes: cargar un kit arrastrando un .zip */
+.ksdrop{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:10px 0 4px;border:2px dashed color-mix(in srgb,var(--neon) 55%,var(--line));border-radius:12px;background:var(--sunk);cursor:pointer;transition:border-color .2s,background .2s}
+.ksdrop:hover,.ksdrop:focus-visible{border-color:var(--neon);outline:none}.ksdrop.drag{border-color:var(--accent);background:var(--accent-soft)}
+.ksdrop .ksdropi{font-size:1.8rem}.ksdrop b{display:block}.ksdrop small{color:var(--muted);display:block;line-height:1.35}
+.kzlist{display:grid;gap:10px;margin:8px 0}.kzkit{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--sunk)}
+.kzprev{width:110px;height:110px;border-radius:8px;background:#2a3038}.kzinfo{display:grid;gap:6px;align-content:start}.kzinfo .mono{color:var(--muted);font-size:.75rem}
+.kzfiles{display:flex;flex-wrap:wrap;gap:4px}.kzchip{display:grid;justify-items:center;padding:3px 7px;border-radius:6px;border:1px solid var(--line);font-size:.74rem;line-height:1.15}.kzchip small{font-size:.66rem;color:var(--muted)}
+.kzchip.ok{border-color:color-mix(in srgb,#2fbf71 70%,var(--line))}.kzchip.gen{border-color:color-mix(in srgb,#3b8cff 70%,var(--line))}.kzchip.none{opacity:.55}
+.kzrep:not([hidden]){display:grid;gap:4px}
+@media (max-width:560px){.kzkit{grid-template-columns:1fr}.kzprev{width:90px;height:90px}}
 
 /* ventanita del video: barra para moverla y esquina para cambiar el tamaño (solo con el reproductor cerrado) */
 .mptvbar{position:absolute;left:50%;top:6px;translate:-50% 0;z-index:5;padding:3px 12px;border-radius:99px;background:#000b;color:#fff;font:600 .72rem var(--body);cursor:grab;user-select:none;touch-action:none;opacity:0;transition:opacity .2s}

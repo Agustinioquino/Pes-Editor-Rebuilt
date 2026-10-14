@@ -206,7 +206,7 @@ const SI_MODS = [ // módulos Lua conocidos: [nombre, qué hacen, tipo relaciona
 ];
 // herramientas del editor que usan cada tipo de contenido
 const SI_TOOLS = {
-  kits: ['Kits', 'Equipos › Kits de cada equipo, y el Estudio de kits', () => { S.ttab = 'kits'; setTab('teams'); }],
+  kits: ['Kits', 'Equipos › Kits de cada equipo, y el Kit Studio Pro', () => { S.ttab = 'kits'; setTab('teams'); }],
   escudos: ['Escudos', 'Equipos › el escudo de cada equipo (se guarda en esta carpeta)', () => { S.ttab = 'data'; setTab('teams'); }],
   fotos: ['Fotos', 'las fotos de los jugadores en planteles y fichas', () => setTab('teams')],
   base: ['Base del juego', 'nombres, valoraciones y planteles de todos los jugadores', () => setTab('players')]

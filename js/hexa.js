@@ -60,7 +60,7 @@ function hexaCard(p, compact) {
     </div>
   </div>`;
 }
-// jugador de la base del Parche (solo para ver)
+// jugador de la base del juego (solo para ver)
 function hexaRo(get, reg) {
   const axes = hexaAxes(reg), vals = hexaVals(get, axes);
   if (vals.every(v => v == null)) return '';

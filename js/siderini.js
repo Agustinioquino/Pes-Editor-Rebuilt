@@ -1,4 +1,4 @@
-// ===================== Pestaña Sider: qué hay en sider.ini y en las carpetas del Parche, y edición fácil de sider.ini =====================
+// ===================== Pestaña Sider: qué hay en sider.ini y en las carpetas del juego, y edición fácil de sider.ini =====================
 // Lee sider.ini (cpk.root, lua.module y los ajustes), mira adentro de livecpk\ y content\ para decir qué tipo de mod es cada
 // carpeta y qué herramienta del editor la usa, y deja activar, ordenar, agregar o quitar líneas sin tocar el texto a mano.
 // Nada se escribe hasta tocar "Guardar sider.ini"; la primera vez queda una copia en sider.ini.bak-pes-editor (la misma
@@ -114,7 +114,7 @@ const SI_TYPES = { // tipo: [nombre, ícono, herramienta del editor que lo usa, 
   escenas: ['Escenas y cinemáticas', '🎬', null, 'Escenas del partido: faltas, goles, entrada de los equipos, previa, jugador del partido y sala de prensa (common\\demo).'],
   publico: ['Público y costado de la cancha', '👥', null, 'Cantidad de gente, coreografías, fuegos artificiales, alcanzapelotas y suplentes.'],
   ligamaster: ['Liga Master', '📋', null, 'Personalización de la Liga Master: salas de prensa, fondos de las cinemáticas, vestuarios y ropa del técnico.'],
-  parches: ['Parches y brazaletes', '🎽', null, 'Logo de la liga o competición en la manga de la camiseta y brazalete de capitán.'],
+  parches: ['Logos de manga y brazaletes', '🎽', null, 'Logo de la liga o competición en la manga de la camiseta y brazalete de capitán.'],
   jugabilidad: ['Jugabilidad', '🎮', null, 'Cambios en cómo se juega: físicas, inteligencia artificial, velocidad.'],
   camara: ['Cámara', '🎥', null, 'Cámaras del partido y de las repeticiones.'],
   editor: ['Carpeta de PES Editor', '🛠️', null, 'La usa este editor para dejar sus archivos.'],
@@ -425,11 +425,11 @@ async function siSync() {
 
 // ---- pantalla ----
 const SI_SET = [ // [clave, etiqueta, tipo (b: sí/no, n: número, s: opciones), ayuda, opciones]
-  ['livecpk.enabled', 'Cargar las carpetas de contenido (livecpk)', 'b', 'Sin esto Sider no lee ninguna cpk.root y el juego corre sin el Parche.'],
+  ['livecpk.enabled', 'Cargar las carpetas de contenido (livecpk)', 'b', 'Sin esto Sider no lee ninguna cpk.root y el juego corre sin los mods.'],
   ['lua.enabled', 'Módulos Lua', 'b', 'Sin esto no corre ningún lua.module: ni el kit server ni edit21_db.'],
   ['luajit.ext.enabled', 'Extensiones de LuaJIT (ffi)', 'b', 'Las necesitan algunos módulos, entre ellos edit21_db.'],
   ['jit.enabled', 'JIT de Lua (más rápido)', 'b'],
-  ['lookup-cache.enabled', 'Caché de búsqueda de archivos', 'b', 'Acelera la carga del Parche.'],
+  ['lookup-cache.enabled', 'Caché de búsqueda de archivos', 'b', 'Acelera la carga de los mods.'],
   ['close.on.exit', 'Cerrar Sider cuando se cierra el juego', 'b'],
   ['start.minimized', 'Abrir Sider minimizado', 'b'],
   ['free.side.select', 'Elegir cualquier lado al jugar (local o visitante)', 'b'],
@@ -449,7 +449,7 @@ const siAct = (it, what) => `<div class="siact"><button class="btn icon small" t
 function siWarns(info) {
   const w = [];
   const v = k => siGet(k);
-  if (v('livecpk.enabled') === '0') w.push(['Sider no está leyendo las carpetas de contenido (livecpk.enabled = 0): el juego corre sin los archivos del Parche.', 'livecpk.enabled']);
+  if (v('livecpk.enabled') === '0') w.push(['Sider no está leyendo las carpetas de contenido (livecpk.enabled = 0): el juego corre sin los mods.', 'livecpk.enabled']);
   if (v('lua.enabled') === '0' && info.mods.some(x => !x.it.off)) w.push(['Los módulos Lua no corren (lua.enabled = 0): ni el kit server ni edit21_db.', 'lua.enabled']);
   if (v('luajit.ext.enabled') === '0' && info.mods.some(x => !x.it.off && /edit21_db/i.test(x.name))) w.push(['edit21_db necesita luajit.ext.enabled = 1 para poder guardar la copia de la base.', 'luajit.ext.enabled']);
   const miss = info.roots.filter(r => !r.it.off && !r.h && !r.outside); if (miss.length) w.push([`${miss.length} ${miss.length === 1 ? 'carpeta de cpk.root no existe' : 'carpetas de cpk.root no existen'}: Sider las salta. Revisá si cambiaron de nombre o quitá la línea.`]);
@@ -477,9 +477,9 @@ function renderSider(m) {
   const wrap = x => `<div class="sheet siwrap">${x}${helpCard('sider')}</div>`;
   if (SI.busy || (!info && !SI.err && !SI.perm && !h)) { m.innerHTML = wrap(`<div class="card"><div class="lmload"><span class="spin"></span> Leyendo tu carpeta Sider…</div></div>`); return; }
   if (!h) {
-    m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><p class="siintro">Sider es el programa que carga el Parche en el juego. Conectá tu carpeta Sider y acá vas a ver qué mods tiene (escudos, caras, kits, estadios…), qué módulos corre y vas a poder ordenar y prender o apagar cada cosa en sider.ini sin tocar el texto a mano.</p>
+    m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><p class="siintro">Sider es el programa que carga los mods en el juego. Conectá tu carpeta Sider y acá vas a ver qué mods tiene (escudos, caras, kits, estadios…), qué módulos corre y vas a poder ordenar y prender o apagar cada cosa en sider.ini sin tocar el texto a mano.</p>
       <div class="row"><button class="btn primary big siderbtn" type="button" id="siConnect"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button></div>
-      <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene sider.exe; en Football Life, la carpeta del juego).</p></div>`);
+      <p class="note">Elegí la carpeta de Sider de tu juego (la que tiene sider.exe; en Football Life, la carpeta del juego).</p></div>`);
     $('siConnect').onclick = () => connectKits().then(ok => { if (ok) siLoad(true); });
     return;
   }

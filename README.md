@@ -34,14 +34,14 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 ## ✨ Características
 
 ### 📁 Archivo y carpeta del juego
-- **Encuentra el EDIT solo.** Busca `KONAMI\eFootball PES 2021 SEASON UPDATE` en tu carpeta Documentos y abre el `EDIT00000000` más reciente (primero el del Parche, `drmp`).
+- **Encuentra el EDIT solo.** Busca `KONAMI\eFootball PES 2021 SEASON UPDATE` en tu carpeta Documentos y abre el `EDIT00000000` más reciente (primero el de la carpeta `drmp`).
 - **También como programa para Windows.** [PES Editor Rebuilt para Windows](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe) es el mismo editor en su propia ventana, y conecta la carpeta Sider aunque esté dentro de `C:\Program Files (x86)`, donde Chrome y Edge no dejan escribir. Se actualiza solo, igual que la página.
 - **Elegís la carpeta una sola vez.** Con "Permitir en cada visita", las veces siguientes entra directo.
 - **Varios EDIT.** En *Archivo* se ven todos los EDIT encontrados (`drmp`, `save`, otras cuentas de Steam) y podés cambiar de uno a otro.
 - **Guarda directo en el juego.** Hace una copia de respaldo del archivo anterior antes de cada guardado.
 - **Detecta cambios del juego.** Si el juego guardó el EDIT mientras el editor estaba abierto, lo recarga para que veas lo mismo que el juego.
 - **Deshacer y rehacer** (Ctrl+Z / Ctrl+Y) para cualquier cambio.
-- **Instala solo el módulo de Sider.** Al tocar *Conectar carpeta Sider*, el editor copia `edit21_db.lua` en `modules\` y lo suma a `sider.ini` si falta (con copia de respaldo del ini). Ese módulo es de solo lectura: cuando abrís el juego, guarda una copia de la base del Parche para que el editor tenga nombres, equipos y planteles completos.
+- **Instala solo el módulo de Sider.** Al tocar *Conectar carpeta Sider*, el editor copia `edit21_db.lua` en `modules\` y lo suma a `sider.ini` si falta (con copia de respaldo del ini). Ese módulo es de solo lectura: cuando abrís el juego, guarda una copia de la base del juego para que el editor tenga nombres, equipos y planteles completos.
 - **Avisa si la base no está cargada** y explica qué hacer: abrir el juego hasta el menú principal, entrar en *Partido › Amistoso* hasta la elección de equipos y cerrar. Si Windows no dejó escribir la copia, muestra el error que quedó en `sider.log` y cómo resolverlo.
 - **Pestaña WEPES.** Muestra los archivos de esa carpeta con miniaturas (png, jpg, dds, ftex), deja entrar a subcarpetas, ver en grande y copiar archivos nuevos.
 
@@ -53,7 +53,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
   - filtrar por texto, posición y situación (titulares, banco, reserva);
   - acciones sobre varios jugadores a la vez (incluida la **equipación**: mangas, medias, guantes, botines…), y el **capitán** se elige desde el menú *Acciones* de cada jugador (queda marcado con una **C**);
   - columnas a elección, tres densidades y exportar.
-- **Fotos de los jugadores** (minicaras del Parche) en el plantel y la formación.
+- **Fotos de los jugadores** (minicaras del juego) en el plantel y la formación.
 - **Formación sobre la cancha:**
   - arrastrás jugadores para moverlos o intercambiarlos;
   - plantillas de formación y tres planes;
@@ -62,8 +62,8 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Estrategia como en el Plan de juego.** Las mismas opciones y nombres que el juego, cada una con su explicación; las 4 instrucciones avanzadas (2 de ataque y 2 de defensa); las opciones tácticas rápidas y la Config. marcaje.
 - **Capitán y balón parado.** Tiros libres, córners, penales y los 3 jugadores ofensivos, a mano o automático según las habilidades.
 - **Valoración por rendimiento.** Usa los últimos partidos reales; los cambios se ven con una animación al aplicarlos.
-- **Plantel según la base del juego.** Si un equipo está vacío en tu EDIT, se ve el plantel que trae el Parche y se puede copiar al EDIT con un toque (se deshace con Ctrl+Z).
-- **Todos los jugadores del Parche en *Jugadores*.** Con la base copiada, la pestaña muestra los más de 27.000 jugadores del Parche además de los de tu EDIT: búsqueda por nombre, ID o equipo, ficha con cara, equipos, dorsal y todas las habilidades, y un botón para agregarlo a tu EDIT y editarlo.
+- **Plantel según la base del juego.** Si un equipo está vacío en tu EDIT, se ve el plantel que trae el juego y se puede copiar al EDIT con un toque (se deshace con Ctrl+Z).
+- **Todos los jugadores del juego en *Jugadores*.** Con la base copiada, la pestaña muestra los más de 27.000 jugadores del juego además de los de tu EDIT: búsqueda por nombre, ID o equipo, ficha con cara, equipos, dorsal y todas las habilidades, y un botón para agregarlo a tu EDIT y editarlo.
 - **Selecciones nacionales.** Convocatorias con los jugadores de cada país.
 - **Datos, colores, estadio, rivales y banderas** de cada equipo.
 
@@ -122,14 +122,14 @@ Hay dos formas de usar el mismo editor: en el navegador o con la app para Window
 1. Abrí **[PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** en **Chrome** o **Edge**. Firefox y Safari todavía no permiten que una página lea carpetas.
 2. Tocá **"📂 Elegir mi carpeta Documentos"** y después *Seleccionar carpeta*.
 3. En el aviso del navegador elegí **"Permitir en cada visita"** para no repetir el paso.
-4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del Parche (la que tiene `sider.exe`, dentro de la carpeta del juego). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
+4. **Tocá "Conectar carpeta Sider"** y elegí la carpeta de Sider del juego (la que tiene `sider.exe`, dentro de la carpeta del juego). Con eso se cargan los **nombres de los jugadores, sus valoraciones y valores**, las caras, los escudos y los kits. Se elige una sola vez.
 5. **La primera vez, prepará la base del juego.** El editor instala el módulo `edit21_db.lua` en Sider y te avisa. Abrí PES 2021 con Sider hasta el **menú principal**, entrá en **Partido › Amistoso** hasta la **elección de equipos** y cerrá el juego. Volvé al editor y tocá **"Ya lo hice"**.
 6. Editá y tocá **"Guardar en el juego"**. Cerrá el juego antes de guardar.
 
 > [!TIP]
-> **¿No ves nombres de jugadores ni valoraciones?** Si en el plantel aparece *"sin nombre · conectá la carpeta Sider"* o las columnas de valoración y valor están vacías, falta el paso 4: tocá **"Conectar carpeta Sider"** arriba y elegí la carpeta de Sider. El EDIT solo guarda tus cambios; los datos completos de cada jugador vienen de la base del Parche. Si ya la habías conectado y el navegador te pide permiso de nuevo, tocá **"Permitir"**.
+> **¿No ves nombres de jugadores ni valoraciones?** Si en el plantel aparece *"sin nombre · conectá la carpeta Sider"* o las columnas de valoración y valor están vacías, falta el paso 4: tocá **"Conectar carpeta Sider"** arriba y elegí la carpeta de Sider. El EDIT solo guarda tus cambios; los datos completos de cada jugador vienen de la base del juego. Si ya la habías conectado y el navegador te pide permiso de nuevo, tocá **"Permitir"**.
 >
-> **¿El aviso de la base no se va?** Mirá el `sider.log` en la carpeta de Sider y buscá las líneas `[edit21_db]`. Si dice `copiado ...`, la copia se hizo: tocá **"Ya lo hice"**. Si dice `ERROR no puedo escribir ... -> nil`, es el `io` de Sider, que en algunas instalaciones no deja guardar archivos: desde la v1.5 el módulo lo resuelve solo escribiendo con las funciones de Windows, siempre que `sider.ini` tenga `luajit.ext.enabled = 1` (el Parche ya lo trae). Si el error dice *Permission denied*, revisá **Seguridad de Windows › Protección contra ransomware › Acceso controlado a carpetas** y permití `PES2021.exe`.
+> **¿El aviso de la base no se va?** Mirá el `sider.log` en la carpeta de Sider y buscá las líneas `[edit21_db]`. Si dice `copiado ...`, la copia se hizo: tocá **"Ya lo hice"**. Si dice `ERROR no puedo escribir ... -> nil`, es el `io` de Sider, que en algunas instalaciones no deja guardar archivos: desde la v1.5 el módulo lo resuelve solo escribiendo con las funciones de Windows, siempre que `sider.ini` tenga `luajit.ext.enabled = 1` (el juego ya lo trae). Si el error dice *Permission denied*, revisá **Seguridad de Windows › Protección contra ransomware › Acceso controlado a carpetas** y permití `PES2021.exe`.
 
 **Instalarlo desde el navegador:** en Chrome o Edge tocá el ícono de instalar en la barra de direcciones (o menú ⋮ → *Instalar PES Editor Rebuilt*). Para conectar una carpeta Sider que está en Archivos de programa hace falta la app para Windows.
 

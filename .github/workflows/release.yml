@@ -1,4 +1,5 @@
 # Publica sola una release cada vez que cambia release/VERSION o release/NOTAS.md en main.
+# Si la release de esa versión ya existe, solo le actualiza el título y el texto (y no vuelve a armar la app).
 # La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha), el texto sale de release/NOTAS.md
 # y el subtítulo de release/TITULO (opcional). Adjunta el editor en .zip, el módulo de Sider y la app para Windows
 # (instalador y portátil, armados en windows-latest).
@@ -16,31 +17,38 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.pub.outputs.created }}
     steps:
       - uses: actions/checkout@v4
-      - name: Crear la release (si todavía no existe)
+      - name: Crear la release (o actualizar su texto si ya existe)
+        id: pub
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           V=$(tr -d ' \r\n' < release/VERSION)
           TAG="v${V}-alpha"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "La release $TAG ya existe: no hago nada."
-            exit 0
-          fi
           TITLE="PES Editor Rebuilt v${V} alpha"
           if [ -s release/TITULO ]; then TITLE="$TITLE · $(head -n1 release/TITULO | tr -d '\r')"; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "La release $TAG ya existe: actualizo el título y el texto."
+            gh release edit "$TAG" --title "$TITLE" --notes-file release/NOTAS.md
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # el editor completo para usar sin internet: descomprimir y abrir index.html con Chrome o Edge
           ZIP="pes-editor-rebuilt-v${V}.zip"
           zip -qr "$ZIP" index.html manifest.webmanifest sw.js css js icons LICENSE README.md
           FILES=("$ZIP")
           [ -f sider/edit21_db.lua ] && FILES+=("sider/edit21_db.lua")
           gh release create "$TAG" "${FILES[@]}" --target "$GITHUB_SHA" --title "$TITLE" --notes-file release/NOTAS.md --prerelease
+          echo "created=true" >> "$GITHUB_OUTPUT"
 
   # la app de escritorio: se arma en Windows y se suma a la release (si ya estaba, se reemplaza)
   app:
     needs: release
+    if: needs.release.outputs.created == 'true'
     runs-on: windows-latest
     defaults:
       run:

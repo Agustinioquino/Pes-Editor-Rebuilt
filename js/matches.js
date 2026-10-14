@@ -243,7 +243,7 @@ function lmComputeAdj(t) {
   const prevPpg = sd && sd.prev && sd.prev.pj >= 5 ? (sd.prev.w * 3 + sd.prev.d) / sd.prev.pj : null;
   const done = sd ? sd.done : 0;
   for (const [pid, a] of acc) {
-    // la exigencia se mide contra la media original del parche (no contra la ya modificada), así no se retroalimenta
+    // la exigencia se mide contra la media original del juego (no contra la ya modificada), así no se retroalimenta
     const b0 = pInfoBase(pid) || { r: 75, pos: 5 }, orig = S.names.get(pid), b = orig && orig.r ? Object.assign({}, b0, { r: orig.r }) : b0, age = b.a || 26, grp = POS_GRP[b.pos] || 'mf';
     const value = (playerValueBase(pid) || { v: 1 }).v, avg = a.w ? a.s / a.w : null, rel = Math.min(1, a.w / 2.5);
     // lo que se espera de él: más valoración y más valor de mercado = más exigencia
@@ -447,7 +447,7 @@ function lastMatchCard(t) {
         <li><b>📚 Historial:</b> sus temporadas anteriores moderan la actual (una racha de tres partidos no lo vuelve crack, ni un mal mes lo hunde) y premian al titular de siempre.</li>
         <li><b>🤕 Lesiones y ausencias:</b> lesionado −1 (−1,5 si lleva más de dos meses), en duda −0,5; el habitual que faltó a las últimas tres citaciones, −1.</li>
         <li><b>🎂 Edad:</b> multiplica el total: hasta 21 años sube ×1,3 y baja ×0,9; de 30 a 32 sube ×0,8 y baja ×1,15; de 33 sube ×0,6 y baja ×1,3. Topes: hasta +4 en jóvenes, +3 en general, +2 en mayores de 33; hasta -3 (-4 en veteranos).</li>
-        <li><b>⭐ Exigencia:</b> a los cracks se les pide más: el puntaje esperado sube con la valoración del parche y con el valor de mercado.</li>
+        <li><b>⭐ Exigencia:</b> a los cracks se les pide más: el puntaje esperado sube con la valoración del juego y con el valor de mercado.</li>
       </ul>
       <p><b>Fuentes:</b> con ESPN entran los últimos 6 partidos, toda la temporada, el plantel con sus lesionados, la campaña anterior y el historial de cada jugador (se guarda 7 días). Con API-Football solo entran los últimos partidos.</p>
       <p><b>Flechas:</b> ${adjHtml(3, null)} <span>muy en alza</span> · ${adjHtml(1, null)} <span>en alza</span> · ${adjHtml(0, {})} <span>estable</span> · ${adjHtml(-1, null)} <span>en baja</span> · ${adjHtml(-3, null)} <span>muy en baja</span>. <span>"Por rendimiento" aplica ese ajuste a la valoración en todo el editor; no cambia las habilidades guardadas en el juego hasta que tocás "Usar esta formación y este 11".</span></p>
@@ -672,7 +672,7 @@ function revealRatings() {
   });
   REVEAL.clear();
 }
-const APPLIED_LS = 'edit21-form-applied-v2'; // pid → ajuste ya guardado en el EDIT (respecto del parche)
+const APPLIED_LS = 'edit21-form-applied-v2'; // pid → ajuste ya guardado en el EDIT (respecto del juego)
 const APPLIED = (() => { try { return new Map(JSON.parse(localStorage.getItem(APPLIED_LS) || '[]')); } catch { return new Map(); } })();
 const saveApplied = () => { try { localStorage.setItem(APPLIED_LS, JSON.stringify([...APPLIED])); } catch { } };
 // diálogo con varias opciones (devuelve la clave elegida)
@@ -692,7 +692,7 @@ function lmRatingChanges(t, P) {
   for (const p of [...P.fx.xi, ...P.fx.subs.filter(q => q.min > 0)]) {
     const x = P.mm.get(p.id); if (!x || seen.has(x.pid)) continue; seen.add(x.pid);
     const f = LM.adj.get(x.pid), b = pInfoBase(x.pid); if (!f || !b) continue;
-    // objetivo = media del parche + forma; si ya se aplicó antes, solo se corrige la diferencia (no se acumula)
+    // objetivo = media del juego + forma; si ya se aplicó antes, solo se corrige la diferencia (no se acumula)
     const done = formDone(x.pid), delta = f.adj - done; if (!delta) continue;
     out.push({ pid: x.pid, name: playerName(x.pid) || 'ID ' + x.pid, from: b.r, to: Math.max(40, Math.min(rateCap(b.pos), b.r + delta)), adj: delta, total: f.adj, f, edit: S.ix.byId.has(x.pid) || canMakeEditPlayer(x.pid), isNew: !S.ix.byId.has(x.pid) });
   }
@@ -707,10 +707,10 @@ async function lmConfirmApply(t, fx, m) {
   const P = lmPlan(t, fx); if (!P) { toast('Ese partido no trae la ubicación de los jugadores o tu plantel no tiene 11.', 5000); return; }
   P.fx = fx;
   const ch = lmRatingChanges(t, P), w = ch.filter(c => c.edit), only = ch.filter(c => !c.edit);
-  const row = c => `<li>${adjHtml(c.adj, c.f)}<span class="mn">${esc(c.name)}</span><span class="mr"><b class="${vcls(c.from)}">${c.from}</b> → <b class="${vcls(c.to)}">${c.to}</b></span><span class="mw" title="${c.edit ? (c.isNew ? 'Se agrega a tu EDIT con sus habilidades nuevas; cara, nombre y lo demás siguen saliendo del parche' : 'Ya está en tu EDIT: se cambian sus habilidades') : 'No está en la base cargada: queda solo en el editor'}">${c.edit ? (c.isNew ? '💾＋' : '💾') : '🖥'}</span></li>`;
+  const row = c => `<li>${adjHtml(c.adj, c.f)}<span class="mn">${esc(c.name)}</span><span class="mr"><b class="${vcls(c.from)}">${c.from}</b> → <b class="${vcls(c.to)}">${c.to}</b></span><span class="mw" title="${c.edit ? (c.isNew ? 'Se agrega a tu EDIT con sus habilidades nuevas; cara, nombre y lo demás siguen saliendo del juego' : 'Ya está en tu EDIT: se cambian sus habilidades') : 'No está en la base cargada: queda solo en el editor'}">${c.edit ? (c.isNew ? '💾＋' : '💾') : '🖥'}</span></li>`;
   const html = `<p>Vas a poner la formación <b>${esc(fx.formation || '')}</b> y el 11 del partido ${fx.home ? 'contra' : 'en cancha de'} <b>${esc(fx.opp)}</b> (${fx.gf}-${fx.ga}).</p>
     ${ch.length ? `<p><b>Esto también modifica las valoraciones de los futbolistas.</b> ¿Estás seguro?</p><ul class="mdlrates">${ch.map(row).join('')}</ul>
-    <p class="note">💾 se guarda en el juego (${w.length})${w.some(c => c.isNew) ? ` · 💾＋ ${w.filter(c => c.isNew).length} se agregan a tu EDIT solo con sus habilidades (cara, nombre y lo demás siguen saliendo del parche)` : ''}${only.length ? ` · 🖥 ${only.length} quedan solo en el editor (no están en la base cargada: tocá "Conectar carpeta Sider")` : ''}. Se puede deshacer con Ctrl+Z.</p>` : '<p class="note">Ningún jugador del partido tiene cambios de valoración.</p>'}`;
+    <p class="note">💾 se guarda en el juego (${w.length})${w.some(c => c.isNew) ? ` · 💾＋ ${w.filter(c => c.isNew).length} se agregan a tu EDIT solo con sus habilidades (cara, nombre y lo demás siguen saliendo del juego)` : ''}${only.length ? ` · 🖥 ${only.length} quedan solo en el editor (no están en la base cargada: tocá "Conectar carpeta Sider")` : ''}. Se puede deshacer con Ctrl+Z.</p>` : '<p class="note">Ningún jugador del partido tiene cambios de valoración.</p>'}`;
   const k = await choiceBox({ title: '✔ Usar esta formación y este 11', html, options: [{ k: 'no', label: 'No' }, ...(ch.length ? [{ k: 'lineup', label: 'Sí, pero sin cambios de valoración' }] : []), { k: 'yes', label: 'Sí', cls: 'primary' }] });
   if (k === 'no') return;
   const mode0 = PREFS.rateMode; PREFS.rateMode = 'base'; RATE_GEN++; const before = (teamScore(t) || { raw: 0 }).raw;

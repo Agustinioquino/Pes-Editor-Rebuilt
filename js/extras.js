@@ -93,9 +93,9 @@ async function siderWhatIs(dir) {
   if (cpkLike >= 1 && cpkLike >= names.length / 2) return 'Esa carpeta parece la carpeta livecpk: elegí la de arriba, la que tiene sider.exe y sider.ini.';
   if (await hasDir(dir, 'kit-server') || await hasFile(dir, 'map.txt') || await hasDir(dir, 'edit21-db')) return 'Esa carpeta parece la carpeta content de Sider: elegí la de arriba, la que tiene sider.exe y sider.ini.';
   if (await hasFile(dir, 'PES2021.exe')) return 'Es la carpeta del juego, pero Sider no está adentro ni en sus subcarpetas: elegí la carpeta donde está sider.exe (con sider.ini).';
-  if (!names.length) return 'En esa carpeta no está Sider (sider.exe o sider.ini) y está vacía. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.';
+  if (!names.length) return 'En esa carpeta no está Sider (sider.exe o sider.ini) y está vacía. Elegí la carpeta de Sider de tu juego; en Football Life es la carpeta del juego.';
   // los nombres de las carpetas van fuera de la traducción (si no, una carpeta "Escudos" saldría como "Crests")
-  const tail = T('Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.');
+  const tail = T('Elegí la carpeta de Sider de tu juego; en Football Life es la carpeta del juego.');
   if (names.length > 6) return `${T('En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay')} ${names.length} ${T('carpetas, como')} ${names.slice(0, 5).join(', ')}. ${tail}`;
   return `${T('En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay:')} ${names.join(', ')}. ${tail}`;
 }
@@ -155,14 +155,14 @@ async function connectKits(dirIn) {
     if (content) {
       const h = await (await content.getDirectoryHandle('edit21-db')).getFileHandle('Player.bin');
       const m = await namesFromBin(new Uint8Array(await (await h.getFile()).arrayBuffer()));
-      S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++;
+      S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++;
       namesMsg = `${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = 'Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = 'Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
   if (!sider.readOnly) { try { const n = await siderFixPaths(sider); if (n) setTimeout(() => toast(`Arreglé las rutas de sider.ini que apuntaban a la carpeta vieja de Sider (${n}): ahora son relativas (copia en sider.ini.bak-pes-editor).`, 9000), 7400); } catch { } }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, !sider.readOnly); } catch { } }
   if (typeof siReset === 'function') siReset();
-  if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
+  if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el juego porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
   // el aviso se arma por partes (cada una se traduce sola) y se une con " · "
   const T = typeof tr === 'function' ? tr : x => x, parts = [];
   if (lay.sider !== dir) parts.push(T('Sider encontrado en') + ' ' + sider.name); // el nombre de la carpeta queda fuera de la traducción
@@ -209,7 +209,7 @@ function fullKitSvg(k, w = 54) {
 function kitStrip(t) {
   const k = teamKits(t), all = [...k.k, ...k.g];
   return `<div class="kitstrip">${all.map(x => `<figure>${fullKitSvg(x, 40)}<figcaption>${esc(KIT_LABEL(x.n))}</figcaption></figure>`).join('')}
-    ${k.fallback ? `<p class="note" style="align-self:center;max-width:32ch">Vista según los colores del equipo. <button class="btn small" type="button" data-kits>Conectar kits del Parche</button></p>` : ''}</div>`;
+    ${k.fallback ? `<p class="note" style="align-self:center;max-width:32ch">Vista según los colores del equipo. <button class="btn small" type="button" data-kits>Conectar kits del juego</button></p>` : ''}</div>`;
 }
 
 // ===================== Formations / tactics =====================
@@ -378,8 +378,8 @@ function tacticsCard(t) {
         <label class="chk"><input type="checkbox" id="fids" ${PREFS.showIds ? 'checked' : ''}> Mostrar IDs</label></div>
       <div class="row"><span class="lab">Valoración</span><div class="seg" id="fRate" title="Qué número se ve en cada jugador y en la valoración del equipo">${[['base', '🎮 Del juego'], ['form', '📈 Por rendimiento'], ['cmp', '⚖ Comparar']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${PREFS.rateMode === k}">${n}</button>`).join('')}</div>
         ${PD.roster(S.d, t).some(x => LM.adj.has(x.pid)) ? '' : '<span class="note">Para ver la forma, buscá los últimos partidos reales abajo.</span>'}</div>
-      ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del Parche</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del Parche</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
-        <span class="lab">Fotos de internet:</span><div class="seg mini" id="fsrc" role="group" aria-label="Fotos de internet">${Object.entries(PHOTO_SRC).map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${(PREFS.online ? PREFS.photoSrc || 'tsdb' : 'off') === k}" title="${{ tsdb: 'Solo fotos recortadas, sin fondo (TheSportsDB)', mix: 'Recortadas de TheSportsDB y, si no hay, la foto de Wikipedia', off: 'Solo las minifaces del Parche' }[k]}">${l}</button>`).join('')}</div>
+      ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del juego</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del juego</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
+        <span class="lab">Fotos de internet:</span><div class="seg mini" id="fsrc" role="group" aria-label="Fotos de internet">${Object.entries(PHOTO_SRC).map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${(PREFS.online ? PREFS.photoSrc || 'tsdb' : 'off') === k}" title="${{ tsdb: 'Solo fotos recortadas, sin fondo (TheSportsDB)', mix: 'Recortadas de TheSportsDB y, si no hay, la foto de Wikipedia', off: 'Solo las minifaces del juego' }[k]}">${l}</button>`).join('')}</div>
         ${PREFS.online ? `<span class="note">${PREFS.photoSrc === 'mix' ? 'Primero busca la foto recortada en TheSportsDB; si no la tiene, usa la de Wikipedia.' : 'Fotos recortadas de TheSportsDB (por nombre y club).'} Se guardan para no volver a buscarlas.${faceSrcStats() ? '<br>' + faceSrcStats() + '.' : ''}</span>` : ''}</div>` : ''}
       <div class="row"><span class="lab">Plantillas:</span>${Object.keys(FORM_PRESETS).map(k => `<button class="btn small" type="button" data-preset="${k}">${k}</button>`).join('')}</div>
     </div>

@@ -1,4 +1,4 @@
-// ===================== Faces: local minifaces (Parche) + optional online photos =====================
+// ===================== Faces: local minifaces (Sider) + optional online photos =====================
 const PREF_LS = 'edit21-prefs-v1';
 const PREFS = (() => { try { return Object.assign({ look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }, JSON.parse(localStorage.getItem(PREF_LS) || '{}')); } catch { return { look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }; } })();
 function savePrefs() { try { localStorage.setItem(PREF_LS, JSON.stringify(PREFS)); } catch { } }
@@ -9,7 +9,7 @@ try { FACES.online = new Map(JSON.parse(localStorage.getItem(ONLINE_LS) || '[]')
 const FACE_CTX = { nat: false }; // set while rendering a club or a national team
 const saveOnline = () => { try { localStorage.setItem(ONLINE_LS, JSON.stringify([...FACES.online])); } catch { } };
 
-// handle persistence (IndexedDB) so the Parche folder is remembered between sessions
+// handle persistence (IndexedDB) so the Sider folder is remembered between sessions
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open('edit21', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function idbSet(k, v) { try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch { } }
 async function idbGet(k) { if (k === 'sider' && typeof SIDER_RO !== 'undefined' && SIDER_RO) return SIDER_RO; try { const db = await idb(); return await new Promise((res, rej) => { const tx = db.transaction('kv'); const q = tx.objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch { return null; } }
@@ -54,7 +54,7 @@ function faceUrl(pid) {
   if (!FACES.loading.has(pid) && (FACES.idx.has(pid) || (PREFS.online && !FACES.online.has(pid)))) { FACES.loading.add(pid); FACES.queue.push(pid); pumpFaces(); }
   return null;
 }
-// varias búsquedas a la vez: las caras del Parche se leen al toque y las de internet no se esperan entre sí
+// varias búsquedas a la vez: las caras del juego se leen al toque y las de internet no se esperan entre sí
 async function pumpFaces() {
   if (FACES.busy >= 3) return; FACES.busy = (FACES.busy || 0) + 1;
   while (FACES.queue.length) {
@@ -163,7 +163,7 @@ function faceHtml(pid, kit, cls = '') {
   return `<span class="face ${url ? 'has' : ''}${url && isPhoto(pid) ? ' ph' : ''} ${cls}" style="${glow}"><img data-face="${pid || ''}" alt="" ${url ? `src="${url}"` : ''}>${shirtSvg(kit, '86%')}</span>`;
 }
 
-// ===================== Team badges: Parche flag/emblem PNGs + optional online fallback =====================
+// ===================== Team badges: Sider flag/emblem PNGs + optional online fallback =====================
 const BADGE_LS = 'edit21-online-badges-v1';
 const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), err: new Set(), queue: [], busy: false, count: 0 };
 try { BADGES.online = new Map(JSON.parse(localStorage.getItem(BADGE_LS) || '[]')); } catch { }
@@ -321,7 +321,7 @@ function setFaceKind(pid, k) {
 }
 function faceTools(pid) {
   const e = FACES.online.get(pid);
-  if (FACES.url.has(pid)) return '<p class="note">Foto: miniface del Parche.</p>';
+  if (FACES.url.has(pid)) return '<p class="note">Foto: miniface del juego.</p>';
   if (!e || !e.u) return '';
   const lab = { c: 'con camiseta del club', n: 'con camiseta de la selección', x: 'neutral (sin camiseta)', '?': 'sin clasificar' }[e.k] || '';
   return `<div class="facetools"><span class="note">Foto de internet ${lab}${e.m ? ' (marcada a mano)' : ''}. ¿Es correcta?</span>
@@ -330,5 +330,5 @@ function faceTools(pid) {
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider) sin mostrar nada
 async function loadDbQuiet(sider, force) {
-  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++; } } catch { }
+  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++; } } catch { }
 }

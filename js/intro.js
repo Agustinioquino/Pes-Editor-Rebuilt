@@ -3,7 +3,7 @@
 // (el selector ya se abre en Documentos) y después se recuerda. Desde ahí se busca
 // KONAMI\eFootball PES 2021 SEASON UPDATE\<número de Steam>\drmp (Parche) o \save → EDIT00000000, y la carpeta WEPES.
 // También la versión sin Steam (CPY y otras: ...\SEASON UPDATE\save\EDIT00000000), Football Life y cualquier otra
-// carpeta de guardado del parche; si no aparece nada, se busca el EDIT00000000 unos niveles más abajo.
+// carpeta de guardado del juego; si no aparece nada, se busca el EDIT00000000 unos niveles más abajo.
 const PESLOC = { root: null, season: null, edits: [], wepes: null, chosen: null };
 const SEASON_RE = /^(eFootball PES 20(21|20)( SEASON UPDATE)?|Football Life.*|PES 202[01].*)$/i;
 async function pesFind(root) {
@@ -42,7 +42,7 @@ async function pesFind(root) {
       }
     }
   }
-  // el más reciente primero; a igual fecha, el del Parche
+  // el más reciente primero; a igual fecha, el del juego
   out.edits.sort((a, b) => (b.mtime - a.mtime) || ((a.kind === 'drmp') ? -1 : 1));
   return out;
 }
@@ -147,7 +147,7 @@ async function pesOpen(root) {
     if (typeof wepesCount === 'function') wepesCount();
     await introSider(t0);
     introDone(`Listo: ${S.ix.teams.length} equipos y ${S.ix.players.length} jugadores editados.`);
-    if (f.edits.length > 1 && e === f.edits[0]) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'Parche' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
+    if (f.edits.length > 1 && e === f.edits[0]) toast(`Abrí el EDIT más reciente (${e.kind === 'drmp' ? 'drmp' : e.kind}). En la pestaña Archivo podés cambiar al otro.`, 6000);
   } catch (er) { introStep('No se pudo abrir el EDIT: ' + er.message, 'err'); introActions(`<button class="btn" type="button" id="introOther">Elegir otra carpeta</button>`, a => a.querySelector('#introOther').onclick = () => pesPick()); }
 }
 // ---- Sider: pedir la carpeta (o el permiso) y esperar a que carguen caras, escudos y nombres ----
@@ -165,18 +165,18 @@ async function introSider(t0) {
       introStep('Sider: hace falta tu permiso para volver a leer ' + h.name + '.', 'wait');
       for (;;) {
         const a = await introAsk(`<button class="btn primary big" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Permitir leer Sider</button><button class="btn ghost" type="button" data-a="new">Elegir otra carpeta Sider</button><button class="btn ghost" type="button" data-a="no">Seguir sin Sider</button>
-          <p class="note">De Sider salen las caras, los kits, los escudos y los nombres de todos los jugadores del Parche.</p>`);
+          <p class="note">De Sider salen las caras, los kits, los escudos y los nombres de todos los jugadores del juego.</p>`);
         if (a === 'no') break;
         if (a === 'new') { if (await connectKits()) { ready = true; break; } continue; }
         try { if ((await h.requestPermission({ mode: 'read' })) === 'granted') { FACES.needsPerm = null; FACES.ready = restoreFaces(); ready = true; break; } } catch { }
       }
     }
   } else {
-    introStep('Conectá tu carpeta Sider para ver caras, kits, escudos y nombres del Parche.', 'wait');
+    introStep('Conectá tu carpeta Sider para ver caras, kits, escudos y nombres del juego.', 'wait');
     let failed = !!INTRO_BROWSER; // en Chrome y Edge se avisa desde el principio
     for (;;) {
       let a = await introAsk(`<button class="btn primary big siderbtn" type="button" data-a="ok"><img src="${typeof SIDER_ICON !== 'undefined' ? SIDER_ICON : ''}" alt="" width="22" height="22"> Conectar carpeta Sider</button>${failed ? '<button class="btn" type="button" data-a="ro">📂 Abrir solo para ver</button>' : ''}${failed ? '<button class="btn ghost" type="button" data-a="how">Cómo moverla</button>' : ''}<button class="btn ghost" type="button" data-a="no">Ahora no</button>
-        <p class="note">Elegí la carpeta de Sider de tu Parche (la que tiene <b>sider.exe</b>; en Football Life, la carpeta del juego). Se hace una sola vez: después el editor la recuerda.</p>${failed ? introRoNote() : ''}`);
+        <p class="note">Elegí la carpeta de Sider de tu juego (la que tiene <b>sider.exe</b>; en Football Life, la carpeta del juego). Se hace una sola vez: después el editor la recuerda.</p>${failed ? introRoNote() : ''}`);
       if (a === 'no') break;
       if (a === 'how') {
         const b = await introAsk(`${siderMoveSteps(siderRoName(), 'Ya la moví: elegir la carpeta')}
@@ -202,11 +202,11 @@ async function introSider(t0) {
   } else introStep('Sin Sider por ahora: podés conectarlo después con el botón de arriba.');
   // fotos de internet para los que no tienen miniface: se elige una vez
   if (!PREFS.photoSrc) {
-    introStep('¿Qué fotos querés para los jugadores sin miniface del Parche?', 'wait');
+    introStep('¿Qué fotos querés para los jugadores sin miniface del juego?', 'wait');
     const a = await introAsk(`<div class="introchoice"><button class="btn primary big" type="button" data-a="tsdb">✂️ Recortadas<small>Fotos sin fondo de TheSportsDB. Las que no estén, quedan con la camiseta.</small></button><button class="btn big" type="button" data-a="mix">🧩 Mezcla<small>Recortadas de TheSportsDB y, si no hay, la foto real de Wikipedia.</small></button></div>
       <button class="btn ghost" type="button" data-a="off">Sin fotos de internet</button><p class="note">Lo podés cambiar cuando quieras en la Formación de cualquier equipo (vista Fotos).</p>`);
     setPhotoSrc(a); introActions(''); INTRO.el && INTRO.el.classList.add('busy');
-    introStep({ tsdb: 'Fotos: recortadas de TheSportsDB.', mix: 'Fotos: recortadas y, si faltan, de Wikipedia.', off: 'Fotos: solo las del Parche.' }[a]);
+    introStep({ tsdb: 'Fotos: recortadas de TheSportsDB.', mix: 'Fotos: recortadas y, si faltan, de Wikipedia.', off: 'Fotos: solo las del juego.' }[a]);
   }
   await introImages();
   if (typeof SI !== 'undefined' && SI.introProbs) { const probs = SI.introProbs; setTimeout(() => toast('Sider: ' + probs.join('; ') + '.', 12000, ['Ver en la pestaña Sider', () => setTab('sider')]), 2200); }
@@ -231,7 +231,7 @@ async function introImages() {
   const until = async (ok, ms) => { const t = Date.now(); while (!ok() && !out() && Date.now() - t < ms) await introWait(150); };
   const teams = S.ix.teams.filter(t => PD.roster(S.d, t).length || BADGES.idx.has(t.id));
   const cur = S.ix.teamById.get(S.team), roster = cur ? PD.roster(S.d, cur).map(r => r.pid) : [];
-  // 1) escudos de Sider (archivos locales) y caras del Parche del equipo que se abre
+  // 1) escudos de Sider (archivos locales) y caras del juego del equipo que se abre
   const local = teams.filter(t => BADGES.idx.has(t.id) && !BADGES.url.has(t.id));
   const facesLocal = roster.filter(pid => FACES.idx.has(pid) && !FACES.url.has(pid));
   total = local.length + facesLocal.length; say();

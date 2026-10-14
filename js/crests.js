@@ -2,7 +2,7 @@
 // El juego (con Sider) toma los escudos de livecpk\<carpeta>\common\render\symbol\flag\e_<ID de 6 cifras>_<tamaño>.png.
 // Con una imagen se arman todos los tamaños; si subís tus propios archivos e_XXXXXX_*.png, cada uno va a su lugar
 // y el ID se cambia al del equipo. Lo que ya había queda guardado como .bak-edit21 (solo la primera vez).
-const CREST_SET = [ // tamaño de cada archivo cuando la carpeta del Parche no trae otro escudo para copiar la medida
+const CREST_SET = [ // tamaño de cada archivo cuando la carpeta del juego no trae otro escudo para copiar la medida
   ['f', 256], ['f_l', 512], ['f_ll', 1024], ['r', 256], ['r_l', 256], ['r_ll', 1024],
   ['r_b_l', 256], ['r_b_ll', 1024], ['r_w', 256], ['r_w_l', 256], ['r_w_ll', 1024]];
 const CREST_FLAG = 'common/render/symbol/flag', CREST_ROOT = 'PESEditor-Escudos';
@@ -44,7 +44,7 @@ async function pngSize(h) { try { const b = new Uint8Array(await (await h.getFil
 async function crestSider(write) {
   const h = await idbGet('sider'); if (!h) throw new Error('Primero tocá "Conectar carpeta Sider".');
   const mode = write ? 'readwrite' : 'read';
-  if ((await h.queryPermission({ mode })) !== 'granted' && (await h.requestPermission({ mode })) !== 'granted') throw new Error(write ? 'Sin permiso para guardar en la carpeta del Parche.' : 'Sin permiso para leer la carpeta del Parche.');
+  if ((await h.queryPermission({ mode })) !== 'granted' && (await h.requestPermission({ mode })) !== 'granted') throw new Error(write ? 'Sin permiso para guardar en la carpeta del juego.' : 'Sin permiso para leer la carpeta del juego.');
   return h;
 }
 async function crestTarget(t, sider) {
@@ -87,12 +87,12 @@ function crestCard(t) {
       <div class="crestinfo">
         <p class="note" style="margin:0">Subí un PNG (mejor con fondo transparente). El editor arma los ${CREST_SET.length} archivos que usa el juego, cada uno con su tamaño, y les pone el ID <b>${crestId(t.id)}</b> de este equipo. También podés subir tus propios archivos <code>e_XXXXXX_f.png</code>, <code>e_XXXXXX_r_l.png</code>…: cada uno va a su lugar y el ID se corrige solo.</p>
         <div class="row"><button class="btn small" type="button" id="crestPick">📁 Elegir imagen o archivos</button>
-          <button class="btn small primary" type="button" id="crestSave" ${ready && !CR.busy ? '' : 'disabled'}>${CR.busy ? 'Guardando…' : '💾 Guardar escudo en el Parche'}</button>
+          <button class="btn small primary" type="button" id="crestSave" ${ready && !CR.busy ? '' : 'disabled'}>${CR.busy ? 'Guardando…' : '💾 Guardar escudo en el juego'}</button>
           ${ready ? '<button class="btn small ghost" type="button" id="crestClear">✕ Quitar</button>' : ''}</div>
         ${CR.err ? `<p class="note bad" role="alert">${esc(CR.err)}</p>` : ''}${CR.msg ? `<p class="note ${CR.done ? 'ok' : ''}" role="status">${CR.msg}</p>` : ''}
         ${own.length ? `<p class="note"><span>Tus archivos:</span> ${own.map(s => `<b>${s}</b>`).join(', ')}.${own.length < CREST_SET.length ? ' <span>Los demás tamaños salen de la imagen más grande.</span>' : ''}${CR.renamed ? ` <span>(${CR.renamed} con otro ID: se guardan con el ${crestId(t.id)})</span>` : ''}</p>` : ''}
         ${tg && tg.create && !CR.done ? '<p class="note warn">📂 Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk.</p>' : ''}
-        ${tget(t, 'e_emblem') ? '<p class="note warn">Este equipo usa un escudo hecho en el modo Editar del juego, que tapa al del Parche. <button class="btn small" type="button" id="crestUsePatch">Usar el escudo del Parche</button></p>' : ''}
+        ${tget(t, 'e_emblem') ? '<p class="note warn">Este equipo usa un escudo hecho en el modo Editar del juego, que tapa al de la carpeta Sider. <button class="btn small" type="button" id="crestUsePatch">Usar el escudo de Sider</button></p>' : ''}
       </div>
     </div>
     <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && tg.create ? '. <span>Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk</span>' : tg && !tg.listed ? '. <span>Esa carpeta no figura en sider.ini: al guardar la agrego para que Sider la lea</span>' : ''}. Si ya había un escudo, la primera vez se guarda una copia <code>.bak-edit21</code> al lado. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div></details>
@@ -142,7 +142,7 @@ function bindCrest(t) {
   $('crestPick').onclick = pick; $('crestDrop').onclick = pick;
   $('crestSave').onclick = () => crestSave(t);
   const cl = $('crestClear'); if (cl) cl.onclick = () => { crestReset(t); crestPaint(t); };
-  const up = $('crestUsePatch'); if (up) up.onclick = () => { setT(t, [['e_emblem', 0]], 'Escudo del Parche para ' + tget(t, 'name')); crestPaint(t); toast('Listo. Guardá el EDIT para que el juego use el escudo del Parche.'); };
+  const up = $('crestUsePatch'); if (up) up.onclick = () => { setT(t, [['e_emblem', 0]], 'Escudo de Sider para ' + tget(t, 'name')); crestPaint(t); toast('Listo. Guardá el EDIT para que el juego use el escudo de Sider.'); };
   card.ondragover = e => { e.preventDefault(); card.classList.add('drag'); };
   card.ondragleave = e => { if (!card.contains(e.relatedTarget)) card.classList.remove('drag'); };
   card.ondrop = async e => { e.preventDefault(); card.classList.remove('drag'); await crestFiles(t, [...e.dataTransfer.files]); crestPaint(t); };

@@ -12,11 +12,11 @@
 
 Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.044%20alpha-16d98a)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.045%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
 ![Navegador](https://img.shields.io/badge/Chrome%20%2F%20Edge-o%20app%20para%20Windows-555)
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Descargar para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Descargar para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 <sub>La app para Windows es el mismo editor en su propia ventana: se actualiza sola y conecta la carpeta Sider aunque esté en Archivos de programa. <a href="#-con-la-app-para-windows">Cómo instalarla</a></sub>
 
@@ -35,7 +35,7 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 
 ### 📁 Archivo y carpeta del juego
 - **Encuentra el EDIT solo.** Busca `KONAMI\eFootball PES 2021 SEASON UPDATE` en tu carpeta Documentos y abre el `EDIT00000000` más reciente (primero el del Parche, `drmp`).
-- **También como programa para Windows.** [PES Editor Rebuilt para Windows](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe) es el mismo editor en su propia ventana, y conecta la carpeta Sider aunque esté dentro de `C:\Program Files (x86)`, donde Chrome y Edge no dejan escribir. Se actualiza solo, igual que la página.
+- **También como programa para Windows.** [PES Editor Rebuilt para Windows](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe) es el mismo editor en su propia ventana, y conecta la carpeta Sider aunque esté dentro de `C:\Program Files (x86)`, donde Chrome y Edge no dejan escribir. Se actualiza solo, igual que la página.
 - **Elegís la carpeta una sola vez.** Con "Permitir en cada visita", las veces siguientes entra directo.
 - **Varios EDIT.** En *Archivo* se ven todos los EDIT encontrados (`drmp`, `save`, otras cuentas de Steam) y podés cambiar de uno a otro.
 - **Guarda directo en el juego.** Hace una copia de respaldo del archivo anterior antes de cada guardado.
@@ -135,7 +135,7 @@ Hay dos formas de usar el mismo editor: en el navegador o con la app para Window
 
 ### 💻 Con la app para Windows
 
-1. Descargá el **[instalador (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** o la **[versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)**, que se abre sin instalar nada.
+1. Descargá el **[instalador (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe)** o la **[versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Portable.exe)**, que se abre sin instalar nada.
 2. Si Windows muestra **"Windows protegió su PC"**, tocá **Más información › Ejecutar de todas formas**.
 3. Abrí **PES Editor Rebuilt**, tocá **"📂 Elegir mi carpeta Documentos"** y después **"Conectar carpeta Sider"**. La carpeta Sider se conecta donde está, aunque sea dentro de Archivos de programa, con permiso para guardar.
 4. Seguí con los pasos 5 y 6 de arriba: la base del juego y **"Guardar en el juego"**.
@@ -151,7 +151,7 @@ Hay dos formas de usar el mismo editor: en el navegador o con la app para Window
 
 **PES Editor Rebuilt for Windows** is the same editor as the web page, in its own window. It connects your Sider folder where it is, even inside `C:\Program Files (x86)`, where the browser can't save.
 
-1. Download the **[installer (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Setup.exe)** or the **[portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.044-alpha/PES-Editor-Rebuilt-Portable.exe)**, which runs without installing.
+1. Download the **[installer (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe)** or the **[portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Portable.exe)**, which runs without installing.
 2. If Windows shows **"Windows protected your PC"**, click **More info › Run anyway**.
 3. Open **PES Editor Rebuilt**, click **"📂 Pick my Documents folder"** and then **"Connect Sider folder"**.
 4. Then follow steps 5 and 6 above: the game database and **"Save to the game"**.

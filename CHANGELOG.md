@@ -2,6 +2,32 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.045 alpha · Pestaña Sider, música por link y cualquier Parche
+
+*14 de octubre de 2026, 06:30 (hora de Argentina)*
+
+La pestaña Sider muestra qué carga tu Parche y deja ordenar sider.ini sin tocar el texto. La carga espera los escudos y revisa sider.ini, se puede conectar el Sider de cualquier Parche y el EDIT sin Steam, y la música se suma pegando un link de YouTube o Spotify.
+
+- **Pestaña Sider: qué carga tu Parche** (Sider). Al lado de WEPES hay una pestaña nueva, Sider. Lee tu sider.ini y muestra cada carpeta de contenido (cpk.root) con lo que trae adentro (escudos, fotos de jugadores, caras, kits, estadios, balones…) y qué herramienta del editor la usa, los módulos Lua que corre (kit server, caras, cantos, marcadores…) y las carpetas de content. También la versión de Sider, el ejecutable del juego y las carpetas de livecpk que no están en sider.ini.
+  1. Conectá tu carpeta Sider (si ya estaba conectada, no hace falta nada).
+  2. Abrí la pestaña Sider.
+- **Prender, apagar, ordenar y agregar sin tocar el texto** (Sider). Cada carpeta y cada módulo tiene un interruptor (comenta la línea en sider.ini, no la borra, así se puede volver a prender), flechas para subir o bajar (el orden importa: si dos carpetas tienen el mismo archivo, manda la de más arriba) y una cruz para quitar la línea. Las carpetas de livecpk y los módulos que no están en sider.ini se agregan con un botón.
+- **Ajustes de Sider explicados** (Sider). Los ajustes de sider.ini (livecpk, módulos Lua, cerrar Sider al salir, lado libre, barras negras, cámara, overlay, detalle del registro…) están como interruptores y listas, con una línea que dice para qué sirve cada uno. Si livecpk o los módulos están apagados, o una carpeta de cpk.root no existe, o falta un módulo en modules, aparece un aviso arriba.
+- **Guardar con copia de seguridad** (Sider). Nada se escribe hasta tocar "Guardar sider.ini": antes, "Cambios sin guardar" y "Deshacer los cambios". La primera vez queda una copia en sider.ini.bak-pes-editor. Solo se reescriben las líneas que tocaste; los comentarios y el resto quedan igual, y el archivo se guarda con la misma codificación con la que estaba (UTF-8, UTF-16 o la del Bloc de notas con acentos). También podés ver y editar el texto completo.
+- **La pantalla de carga revisa sider.ini** (Sider). Al entrar, después de "Sider listo", el editor lee sider.ini y dice cuántas carpetas de contenido y módulos tiene y de qué tipo. Si una carpeta no existe, falta un módulo o livecpk o los módulos están apagados, aparece un paso ⚠ con el detalle y, al terminar, un aviso con un botón a la pestaña Sider.
+- **Cualquier Sider: Football Life, la carpeta del juego o Steam** (Archivo). Conectar Sider ya no exige el kit server de un Parche en particular. Vale la carpeta de Sider (aunque todavía no tenga sider.ini, como Football Life, que lleva livecpk y modules en la carpeta del juego), la carpeta del juego o una de más arriba (Steam, steamapps): el editor busca unos niveles hacia abajo sin confundir el common de Steam con el de un cpk. Las caras y los escudos salen de las carpetas de sider.ini y del resto de livecpk.
+- **Si elegiste la carpeta equivocada, te dice cuál es** (Archivo). Si la carpeta no sirve, el aviso dice qué parece ser (una carpeta de contenido, livecpk, content, el juego sin Sider, una carpeta vacía o una con tus cosas) y cuál tenés que elegir.
+- **El EDIT de la versión sin Steam** (Archivo). El editor también encuentra el EDIT en <temporada>\save, en cualquier subcarpeta de guardado y en carpetas tipo Football Life. Si no aparece, sigue unos niveles más abajo.
+- **Si el navegador oculta sider.ini, elegilo a mano** (Sider). Chrome, Edge, Opera y Brave no dejan que las páginas vean los archivos .ini, .exe ni .dll, ni siquiera listándolos. Si al conectar tu carpeta Sider el editor dice que no encuentra sider.ini aunque esté, la pestaña Sider muestra qué ve en la carpeta y el botón "📄 Elegir sider.ini a mano": lo elegís una vez con el selector de archivos y el editor lo recuerda para leer y guardar. En la app para Windows esto no hace falta. Está en prueba: avisá si con tu Parche no funciona.
+  1. Abrí la pestaña Sider y tocá "📄 Elegir sider.ini a mano".
+  2. Elegí el sider.ini que está dentro de tu carpeta Sider.
+- **Agregar por link: YouTube y Spotify, sin cuentas** (Música). En el reproductor, "🔗 Agregar por link" abre un solo cuadro: pegás el link de un video o una lista de YouTube, o de un tema, un disco o una lista de Spotify, y se suma a tu lista. Sin claves ni cuentas. Si escribís un nombre en vez de un link, se abre la búsqueda de YouTube o de Spotify en otra pestaña para que copies el link. Spotify completo necesita tu cuenta Premium iniciada; si no, suena un adelanto de 30 segundos.
+  1. Abrí el reproductor (abajo a la izquierda) y tocá "🔗 Agregar por link".
+  2. Pegá el link: se agrega solo.
+- **Buscar en YouTube desde la app** (Música). En PES Editor Rebuilt para Windows, si escribís un nombre en ese cuadro, la app busca en YouTube ahí mismo y tocás el resultado para sumarlo. Necesita el .exe nuevo de esta versión.
+- **La carga espera los escudos y las fotos** (Interfaz). La pantalla de carga ahora espera a que estén los escudos conocidos, las caras del equipo abierto y las imágenes que se ven, así el editor aparece completo y no de a pedazos. La primera vez, si tarda, a los 6 segundos aparece "Entrar ya" (tope de 45 segundos).
+- **Fotos de internet: segunda oportunidad** (Plantel). Un pedido de foto o escudo rechazado por el sitio ya no queda guardado como "sin foto" para siempre: se vuelve a intentar.
+
 ## v0.044 alpha · PES Editor Rebuilt llega a Windows como .exe
 
 *13 de octubre de 2026, 20:15 (hora de Argentina)*

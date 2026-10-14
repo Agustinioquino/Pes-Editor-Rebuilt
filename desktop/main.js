@@ -108,6 +108,8 @@ function ytParse(html) {
 handle('info', () => ({ app: app.getVersion(), electron: process.versions.electron, platform: process.platform }));
 
 
+const inApp = url => { try { const u = new URL(url); return u.protocol === 'https:' && (/^(accounts|open)\.spotify\.com$/.test(u.hostname) || /(^|\.)(spotify\.com|facebook\.com|google\.com|apple\.com)$/.test(u.hostname) && /login|auth|oauth|signin/i.test(u.pathname)); } catch { return false; } };
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1360, height: 860, minWidth: 900, minHeight: 600, backgroundColor: '#0b0d10', title: 'PES Editor Rebuilt',
@@ -115,8 +117,14 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false }
   });
   win.once('ready-to-show', () => win.show());
-  // los enlaces de afuera (ESPN, Wikipedia, GitHub, las búsquedas de YouTube y Spotify…) se abren en el navegador de siempre
-  win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  // los enlaces de afuera (ESPN, Wikipedia, GitHub, las búsquedas de YouTube y Spotify…) se abren en el navegador de siempre;
+  // el inicio de sesión que pide la ventanita de Spotify (para que suenen los temas completos con Premium) sí se abre en la app,
+  // así la sesión queda en la app, donde corre esa ventanita
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (inApp(url)) return { action: 'allow', overrideBrowserWindowOptions: { width: 480, height: 720, autoHideMenuBar: true, backgroundColor: '#121212', parent: win } };
+    if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' };
+  });
+  win.webContents.on('did-create-window', child => child.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url) && !inApp(url)) shell.openExternal(url); return { action: inApp(url) ? 'allow' : 'deny' }; }));
   win.webContents.on('will-navigate', (ev, url) => { try { if (new URL(url).origin !== ORIGIN) { ev.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } } catch { ev.preventDefault(); } });
   // la primera vez hace falta internet; después el editor queda guardado y abre sin conexión
   win.webContents.on('did-fail-load', (ev, code, desc, url, isMain) => { if (isMain && code !== -3) win.loadFile(path.join(__dirname, 'offline.html'), { query: { site: SITE } }); });

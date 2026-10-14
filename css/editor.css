@@ -607,7 +607,16 @@ details.help>summary:focus-visible{outline:3px solid var(--accent);outline-offse
 .hb dd::first-letter{text-transform:uppercase}
 @media (max-width:600px){.hb dl>div{grid-template-columns:1fr}}
 /* ---- estudio de kits: visor 3D, texturas y modelos ---- */
-.ks3dwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,300px);gap:12px;align-items:start}
+.ks3dwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,300px);gap:12px;align-items:start;width:100%}
+/* visor ampliado: sin la lista de kits y más alto */
+.kscard.ksbig .kslayout{grid-template-columns:1fr}.kscard.ksbig .kslist{display:none}
+.kscard.ksbig #ks3d{height:min(84vh,1000px)}.kscard.ksbig .k3side{max-height:min(84vh,1000px)}
+/* pantalla completa: el visor ocupa todo y los paneles quedan al costado */
+.ks3dwrap:fullscreen{background:var(--bg,#0c1016);padding:12px;grid-template-columns:minmax(0,1fr) 320px;align-items:stretch}
+.ks3dwrap:fullscreen #ks3d{height:calc(100vh - 24px)}.ks3dwrap:fullscreen .k3side{max-height:calc(100vh - 24px)}
+/* fondo como la pantalla de Uniforme del juego */
+.ks3d.game{background:radial-gradient(ellipse at 62% 38%,#4aa3ff55 0,#0000 55%),repeating-linear-gradient(115deg,#ffffff0a 0 2px,#0000 2px 9px),linear-gradient(160deg,#2f8af5 0%,#1260dc 45%,#0a3fb0 100%)}
+.ks3d.game .k3floor{display:none}
 @media (max-width:1100px){.ks3dwrap{grid-template-columns:1fr}}
 .ks3d{position:relative;border-radius:var(--r,8px);overflow:hidden;background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--panel) 80%,#fff 6%) 0%,var(--sunk) 60%,color-mix(in srgb,var(--sunk) 70%,#000) 100%);border:1px solid var(--line)}
 #ks3d{width:100%;height:min(66vh,620px);display:block;cursor:grab;touch-action:none;position:relative;z-index:1}

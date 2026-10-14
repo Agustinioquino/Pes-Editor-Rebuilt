@@ -368,7 +368,7 @@ function k3Fit(parts) {
 const hex3 = h => { const n = parseInt((h || '#888888').replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
 function k3Scene(cfg, fit, extra = {}) {
   const g = k => cfgGet(cfg, k) || '#888888', M = KMAT.LIST.find(x => x.k === (KS.mat || {}).fabric) || null, V = K3.view, L = K3.light;
-  return Object.assign({ fit, yaw: fit.yaw0 + V.yaw, pitch: V.pitch, dist: V.dist, panX: V.panX || 0, panY: V.panY || 0, fov: V.fov || 48, ortho: false, bg: L.bg !== 'none', bgBlur: L.bgBlur ?? 2, bump: L.bump ?? 1, nrm: L.nrm !== false, glossK: L.gloss ?? 1, debug: K3.debug || 0,
+  return Object.assign({ fit, yaw: fit.yaw0 + V.yaw, pitch: V.pitch, dist: V.dist, panX: V.panX || 0, panY: V.panY || 0, fov: V.fov || 48, ortho: false, bg: !L.bg || L.bg === 'env', bgBlur: L.bgBlur ?? 2, bump: L.bump ?? 1, nrm: L.nrm !== false, glossK: L.gloss ?? 1, debug: K3.debug || 0,
     defSpec: M ? M.spec / 255 : .3, defRough: M ? M.rough / 255 : .6,
     textured: new Set(['shirt', 'sleeve', 'shorts', 'collar', 'socks']),
     colors: { shirt: hex3(g('ShirtColor1')), sleeve: hex3(g('ShirtColor1')), collar: hex3(g('ShirtColor2')), shorts: hex3(g('ShortsColor')), socks: hex3(g('SocksColor')), arm: hex3(K3.skin) } }, extra);

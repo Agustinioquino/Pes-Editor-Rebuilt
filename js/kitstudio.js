@@ -108,9 +108,9 @@ async function ksOpenKit(name, dir) {
 }
 // ---- texturas del kit: cada "casilla" es un archivo que usa el juego ----
 const KS_SLOTS = [
-  { k: 'kit', n: 'Textura del kit', f: 'KitFile', suf: '', d: 'Colores y dibujos de camiseta, short y medias (y la cinta de capitán).', opaque: true, max: 1024 },
-  { k: 'nrm', n: 'Normal map', f: 'KitFile', suf: '_nrm', d: 'El relieve: la trama de la tela y los dibujos en relieve con la luz.', opaque: true, max: 1024, derived: true },
-  { k: 'srm', n: 'Brillo (SRM)', f: 'KitFile', suf: '_srm', d: 'Cuánto brilla y qué tan áspera es la tela.', opaque: true, max: 512, derived: true },
+  { k: 'kit', n: 'Textura del kit', f: 'KitFile', suf: '', d: 'Colores y dibujos de camiseta, short y medias (y la cinta de capitán).', opaque: true, max: 4096 },
+  { k: 'nrm', n: 'Normal map', f: 'KitFile', suf: '_nrm', d: 'El relieve: la trama de la tela y los dibujos en relieve con la luz.', opaque: true, max: 4096, derived: true },
+  { k: 'srm', n: 'Brillo (SRM)', f: 'KitFile', suf: '_srm', d: 'Cuánto brilla y qué tan áspera es la tela.', opaque: true, max: 4096, derived: true },
   { k: 'back', n: 'Números de la espalda', f: 'BackNumbersFile', suf: '_back', d: 'Los 10 números (0 a 9) de la espalda.', font: 'back', max: 2048 },
   { k: 'chest', n: 'Números del pecho', f: 'ChestNumbersFile', suf: '_chest', d: 'Número chico adelante. Si queda vacío, el kit no lleva número en el pecho.', font: 'chest', max: 2048 },
   { k: 'leg', n: 'Números del short', f: 'LegNumbersFile', suf: '_leg', d: 'Número del short.', font: 'leg', max: 2048 },
@@ -251,8 +251,9 @@ function ksFallbackTex(S = 1024) {
 function ksDisplayTex() {
   const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0, KS.hot || '']);
   if (KS.dispKey === key && KS.disp) return KS.disp;
-  const D = KS.decals = {}, box = (k, x, y, w, h) => { D[k] = { x, y, w: Math.max(w, 24), h: Math.max(h, 24) }; };
-  const S = 1024, c = KS.disp && KS.disp.width === S ? KS.disp : document.createElement('canvas'); c.width = S; c.height = S; const g = c.getContext('2d');
+  // la textura se muestra a su resolución completa (hasta 4096); las cajas de nombre y números se guardan en escala 1024
+  const S = base ? Math.min(4096, base.width) : 1024, kk = 1024 / S, D = KS.decals = {}, box = (k, x, y, w, h) => { D[k] = { x: x * kk, y: y * kk, w: Math.max(w * kk, 24), h: Math.max(h * kk, 24) }; };
+  const c = KS.disp && KS.disp.width === S ? KS.disp : document.createElement('canvas'); c.width = S; c.height = S; const g = c.getContext('2d');
   g.clearRect(0, 0, S, S); g.drawImage(base || ksFallbackTex(S), 0, 0, S, S);
   if (K3.light.decals !== false) {
     const [u0, u1, v0, v1] = UVR.back, bw = (u1 - u0) * S, bh = (v1 - v0) * S;
@@ -270,7 +271,7 @@ function ksDisplayTex() {
       const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
     }
   }
-  const hb = KS.hot && D[KS.hot]; if (hb) { g.save(); g.lineWidth = 3; g.setLineDash([10, 6]); g.strokeStyle = '#ffd84a'; g.strokeRect(hb.x - hb.w / 2 - 4, hb.y - hb.h / 2 - 4, hb.w + 8, hb.h + 8); g.restore(); }
+  const hb = KS.hot && D[KS.hot]; if (hb) { const q = S / 1024; g.save(); g.lineWidth = 3 * q; g.setLineDash([10 * q, 6 * q]); g.strokeStyle = '#ffd84a'; g.strokeRect((hb.x - hb.w / 2 - 4) * q, (hb.y - hb.h / 2 - 4) * q, (hb.w + 8) * q, (hb.h + 8) * q); g.restore(); }
   c.__rev = (c.__rev || 0) + 1; KS.disp = c; KS.dispKey = key; return c;
 }
 const ksMaps = () => ({ nrm: K3.light.nrm === false ? null : (KS.genNrm || ksTexOf('nrm')), srm: KS.genSrm || ksTexOf('srm'), gloss: ksGloss() });
@@ -472,7 +473,7 @@ function kitStudioCard(t) {
         ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
-  return `<div class="card kscard">
+  return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
     <div class="row" style="justify-content:space-between"><h3>Estudio de kits · ${esc(KS.path)}</h3>
       <div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
       <button class="btn" type="button" id="ksUndo" ${KS.dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty ? '' : 'disabled'}>Guardar kit</button></div></div>
@@ -483,7 +484,7 @@ function kitStudioCard(t) {
       <section class="ksprev">
         <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', 'Maqueta'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
           <div class="row ksample"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
-        ${KS.view === '3d' ? `<div class="ks3dwrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar, flechas del teclado"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
+        ${KS.view === '3d' ? `<div class="ks3dwrap" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar, flechas del teclado"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
               <div class="k3hud"><span>${K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'}</span></div></div>
             <aside class="k3side">
               <details class="k3pan" open><summary>Cámara</summary>
@@ -491,7 +492,8 @@ function kitStudioCard(t) {
                 ${slider('k3Fov', 'Lente', K3.view.fov || 48, 18, 80, 1, v => v + '°')}
                 <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="k3Auto"> Giro automático</label><button class="btn small" type="button" id="k3Spin">Vuelta 360°</button></div>
                 ${slider('k3AutoS', 'Velocidad del giro', K3.autoSpeed || 1, .2, 3, .1, v => v.toFixed(1) + '×')}
-                <div class="row" style="gap:4px"><button class="btn small ghost" type="button" id="k3Shot" title="Descargar la imagen tal como se ve">📷 Foto PNG</button></div></details>
+                <div class="row" style="gap:4px"><button class="btn small ghost" type="button" id="k3Shot" title="Descargar la imagen tal como se ve">📷 Foto PNG</button></div>
+                <div class="row" style="gap:4px"><button class="btn small primary" type="button" id="k3Game" title="Fondo azul, luz de estudio y la cámara de espalda como en la pantalla de Uniforme del juego">🎮 Vista del juego</button><button class="btn small" type="button" id="k3Big" aria-pressed="${!!KS.big}" title="Esconde la lista de kits y agranda el visor">${KS.big ? '↙ Achicar' : '↗ Ampliar'}</button><button class="btn small" type="button" id="k3Full" title="El visor ocupa toda la pantalla (Esc para salir)">⛶ Pantalla completa</button></div></details>
               <details class="k3pan" open><summary>Prendas</summary>
                 <div class="seg k3seg" id="k3Sleeve">${[['short', 'Manga corta'], ['long', 'Manga larga']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.sleeve === v}">${n}</button>`).join('')}</div>
                 <div class="seg k3seg" id="k3Socks">${[['long', 'Medias largas'], ['middle', 'Medianas'], ['short', 'Cortas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.socks === v}">${n}</button>`).join('')}</div>
@@ -503,7 +505,7 @@ function kitStudioCard(t) {
                 <div class="k3sun"><canvas id="k3Sphere" width="132" height="132" aria-label="Dirección de la luz principal: arrastrá el punto de luz"></canvas><div class="k3sunv">${slider('k3Int', 'Intensidad', L.int ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Amb', 'Luz ambiente', L.amb ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Exp', 'Exposición', L.exp ?? 1, .4, 2, .05, v => Math.round(v * 100) + '%')}</div></div>
                 <p class="note k3sunt" id="k3SunT">Luz principal: ${Math.round(L.az || 0)}° de giro, ${Math.round(L.el || 0) > 0 ? '+' : ''}${Math.round(L.el || 0)}° de altura. Arrastrá el punto en la esfera.</p>
                 ${slider('k3EnvI', 'Reflejos del entorno', L.envInt ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3EnvY', 'Girar el entorno', L.envYaw || 0, -180, 180, 5, v => v + '°')}
-                <div class="f"><span class="lab">Fondo</span><div class="seg k3seg" id="k3Bg">${[['env', 'Entorno'], ['none', 'Liso']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(L.bg || 'env') === v}">${n}</button>`).join('')}</div></div>
+                <div class="f"><span class="lab">Fondo</span><div class="seg k3seg" id="k3Bg">${[['env', 'Entorno'], ['game', 'Juego'], ['none', 'Liso']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(L.bg || 'env') === v}">${n}</button>`).join('')}</div></div>
                 ${slider('k3Blur', 'Desenfoque del fondo', L.bgBlur ?? 2, 0, 6, .25, v => v.toFixed(1))}</details>
               <details class="k3pan" ${KS.T.kit && KS.T.kit.c ? 'open' : ''}><summary>Brillo (alfa del kit)</summary>
                 ${KS.T.kit && KS.T.kit.c ? `<p class="note">En la textura del kit el alfa marca cuánto brilla cada parte en el juego: blanco brilla más, negro es mate. ${KS.T.kit.g ? 'Este kit trae su propio alfa.' : 'Este kit no trae alfa: se usa un brillo medio parejo.'}</p>
@@ -610,6 +612,10 @@ function bindKitStudio(t, m) {
   sh.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => V3() && V3()[b.dataset.cam]());
   on('k3Spin', 'onclick', () => V3() && V3().spin());
   on('k3Auto', 'onchange', e => V3() && V3().auto(e.target.checked));
+  // como la pantalla de Uniforme del juego: fondo azul, luz de estudio y el jugador de espalda, de la cintura para arriba
+  on('k3Game', 'onclick', () => { Object.assign(K3.light, { bg: 'game', preset: 'estudio' }); K3.view.fov = 30; savePrefs3(); renderTeams(m); requestAnimationFrame(() => { const v = V3(); if (v) { const f = v.fit(); v.go({ yaw: Math.PI, pitch: .04, dist: f.radius * 3.3, panX: 0, panY: f.radius * .28, fov: 30 }); } }); });
+  on('k3Big', 'onclick', () => { KS.big = !KS.big; renderTeams(m); });
+  on('k3Full', 'onclick', () => { const w = $('ks3dWrap'); if (!w) return; if (document.fullscreenElement) document.exitFullscreen(); else w.requestFullscreen && w.requestFullscreen().then(() => V3() && V3().redraw()).catch(e => toast('No se pudo poner en pantalla completa: ' + e.message, 5000)); });
   on('k3Shot', 'onclick', () => { if (!V3()) return; const a = document.createElement('a'); a.href = V3().shot(); a.download = (tget(t, 'name') + ' ' + KS.sel).replace(/[\\/:*?"<>|]/g, '') + '.png'; a.click(); });
   for (const [id, key] of [['k3Sleeve', 'sleeve'], ['k3Socks', 'socks'], ['k3Tuck', 'tuck']]) on(id, 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || K3[key] === b.dataset.v) return; K3[key] = b.dataset.v; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); ensureModel(); });
   on('k3Cap', 'onchange', e => { K3.cap = e.target.checked; ensureModel(); });
@@ -632,7 +638,7 @@ function bindKitStudio(t, m) {
   sl('k3EnvI', v => { K3.light.envInt = v; savePrefs3(); relight(); }, v => Math.round(v * 100) + '%');
   sl('k3EnvY', v => { K3.light.envYaw = v; savePrefs3(); relight(60); }, v => v + '°');
   sl('k3Blur', v => { K3.light.bgBlur = v; savePrefs3(); V3() && V3().redraw(); }, v => v.toFixed(1));
-  on('k3Bg', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; K3.light.bg = b.dataset.v; savePrefs3(); $('k3Bg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); sh.querySelector('.ks3d').classList.toggle('clear', b.dataset.v === 'none'); V3() && V3().redraw(); });
+  on('k3Bg', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; K3.light.bg = b.dataset.v; savePrefs3(); $('k3Bg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); const d3 = sh.querySelector('.ks3d'); d3.classList.toggle('clear', b.dataset.v === 'none'); d3.classList.toggle('game', b.dataset.v === 'game'); V3() && V3().redraw(); });
   sl('k3Bump', v => { K3.light.bump = v; savePrefs3(); V3() && V3().redraw(); }, v => Math.round(v * 100) + '%');
   sl('k3Spec', v => { K3.light.spec = v; savePrefs3(); relight(); }, v => Math.round(v * 100) + '%');
   // esfera de luz: arrastrar el punto mueve la luz principal

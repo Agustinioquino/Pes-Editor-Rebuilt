@@ -62,6 +62,11 @@ handle('stat', async (e, p) => {
   catch (er) { if (er.code === 'ENOENT' || er.code === 'ENOTDIR') return null; throw er; }
 });
 handle('read', async (e, p) => { const f = allowed(p), [data, s] = await Promise.all([fsp.readFile(f), fsp.stat(f)]); return { data, mtime: s.mtimeMs }; });
+// un pedazo de un archivo grande (los .cpk del juego pesan varios GB): solo lo pedido
+handle('readRange', async (e, p, off, len) => {
+  const f = allowed(p); if (!(off >= 0) || !(len >= 0) || len > 512 * 1048576) throw Object.assign(new Error('Pedido inválido'), { code: 'ERR' });
+  const fh = await fsp.open(f, 'r'); try { const b = Buffer.alloc(len), r = await fh.read(b, 0, len, off); return b.subarray(0, r.bytesRead); } finally { await fh.close(); }
+});
 // se escribe en un archivo aparte y después se reemplaza, así un corte a mitad de camino no deja el archivo roto
 handle('write', async (e, p, data) => {
   const f = allowed(p), buf = Buffer.from(data instanceof Uint8Array ? data : new Uint8Array(data || 0)), tmp = f + '.pes-editor-tmp';

@@ -3,7 +3,7 @@
     -------------------------------------------------------------------
     No modifica el juego. Cuando PES carga su base de datos (common\etc\pesdb\*.bin)
     guarda una copia de cada archivo tal como el juego lo usa (con todo lo que
-    agrega el Parche) en:
+    agregan los mods) en:
 
         <carpeta de sider>\content\edit21-db\
 
@@ -11,13 +11,18 @@
       - el io de Sider no deja escribir archivos en algunas instalaciones
         (io.open devuelve nil sin error, tambien a otros modulos). Si pasa eso,
         el modulo escribe con las funciones de Windows por medio de ffi
-        (necesita luajit.ext.enabled = 1 en sider.ini, que el Parche ya trae)
+        (necesita luajit.ext.enabled = 1 en sider.ini, que Sider ya trae)
       - crea la carpeta de salida si no existe
       - anota en sider.log que metodo de escritura uso
 
     v1.4: no toca archivos mientras Sider arranca; elige la carpeta al cargar la base.
     v1.3: carpeta de reserva content\pes-editor-db, estado.txt y errores en sider.log.
     v1.2: copia todos los archivos de pesdb y escribe index.txt.
+
+    Funciona con cualquier juego hecho sobre PES 2021 (tambien Football Life
+    2026, con FL_2026.exe y Sider en SiderAddons): Sider avisa de cada archivo
+    que el juego lee de cualquier .cpk (Data, download\data_s2526*.cpk) o de
+    livecpk, y el modulo se queda con los de common\etc\pesdb.
 
     Como completar la copia: abri el juego hasta el menu principal, entra en
     Partido > Amistoso hasta la eleccion de equipos (ahi el juego carga el

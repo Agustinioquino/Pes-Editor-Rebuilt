@@ -92,7 +92,7 @@ async function siderWhatIs(dir) {
   if (await isCpkContent(dir)) return 'Esa carpeta parece una carpeta de contenido (tiene common o Asset): elegí la carpeta de Sider, la que tiene sider.exe y sider.ini, dos niveles más arriba.';
   if (cpkLike >= 1 && cpkLike >= names.length / 2) return 'Esa carpeta parece la carpeta livecpk: elegí la de arriba, la que tiene sider.exe y sider.ini.';
   if (await hasDir(dir, 'kit-server') || await hasFile(dir, 'map.txt') || await hasDir(dir, 'edit21-db')) return 'Esa carpeta parece la carpeta content de Sider: elegí la de arriba, la que tiene sider.exe y sider.ini.';
-  if (await hasFile(dir, 'PES2021.exe')) return 'Es la carpeta del juego, pero Sider no está adentro ni en sus subcarpetas: elegí la carpeta donde está sider.exe (con sider.ini).';
+  if (await hasFile(dir, 'PES2021.exe') || (typeof gdbExe === 'function' && await gdbExe(dir))) return 'Es la carpeta del juego, pero Sider no está adentro ni en sus subcarpetas: elegí la carpeta donde está sider.exe (con sider.ini).';
   if (!names.length) return 'En esa carpeta no está Sider (sider.exe o sider.ini) y está vacía. Elegí la carpeta de Sider de tu juego; en Football Life es la carpeta del juego.';
   // los nombres de las carpetas van fuera de la traducción (si no, una carpeta "Escudos" saldría como "Crests")
   const tail = T('Elegí la carpeta de Sider de tu juego; en Football Life es la carpeta del juego.');
@@ -147,14 +147,14 @@ async function connectKits(dirIn) {
   if (root) { KITS.map = out; KITS.from = sider.name; KITS.when = Date.now(); kitsSaveCache(); RATE_GEN++; }
   try { await indexFaces(sider); if (!sider.readOnly) idbSet('sider', sider); FACES.needsPerm = null; } catch { }
   try { await indexBadges(sider); } catch { }
-  // names from the edit21_db Sider module dump (content\edit21-db\Player.bin)
+  // la carpeta del juego (si se eligió esa o una de más arriba): de ahí se lee la base sin abrir el juego
+  if (typeof gdbFindGame === 'function') { try { GDB.game = await gdbFindGame(dir, sider); GDB.scan = null; if (!sider.readOnly) idbSet('siderGame', GDB.game); } catch { } }
+  // nombres: de la copia del módulo edit21_db (content\edit21-db\Player.bin) o de los archivos del juego
   let namesMsg = '';
   try {
-    let content = null;
-    for (const p of ['content', '']) { try { const d = p ? await subDir(sider, p) : sider; await d.getDirectoryHandle('edit21-db'); content = d; break; } catch { } }
-    if (content) {
-      const h = await (await content.getDirectoryHandle('edit21-db')).getFileHandle('Player.bin');
-      const m = await namesFromBin(new Uint8Array(await (await h.getFile()).arrayBuffer()));
+    const st = await sdbCheck(sider, true), bytes = await sdbBin(st, 'Player.bin');
+    if (bytes) {
+      const m = await namesFromBin(bytes);
       S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++;
       namesMsg = `${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = 'Para los nombres, abrí el juego una vez con el módulo edit21_db activo';

@@ -25,6 +25,9 @@ if (PN) {
   class NativeFile {
     constructor(path, name) { this.kind = 'file'; this.path = path; this.name = name || base(path); this.native = true; }
     async getFile() { const r = await nCall('read', this.path); return new File([r.data], this.name, { lastModified: r.mtime }); }
+    // solo una parte del archivo (para los .cpk de varios GB); las versiones viejas de la app no lo tienen
+    async info() { return nCall('stat', this.path); }
+    get readRange() { return PN.readRange ? async (o, n) => new Uint8Array(await nCall('readRange', this.path, o, n)) : undefined; }
     async createWritable() {
       const parts = [], path = this.path;
       return {

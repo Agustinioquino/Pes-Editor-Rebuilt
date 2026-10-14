@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('pesNative', {
   list: p => call('list', p),
   stat: p => call('stat', p),
   read: p => call('read', p),
+  readRange: (p, o, n) => call('readRange', p, o, n),
   write: (p, d) => call('write', p, d),
   mkdir: p => call('mkdir', p),
   remove: (p, r) => call('remove', p, r),

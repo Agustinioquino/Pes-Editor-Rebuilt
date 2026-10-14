@@ -328,7 +328,7 @@ function faceTools(pid) {
     <div class="row"><button class="btn small" type="button" data-fk="c" data-pid="${pid}">Es del club</button><button class="btn small" type="button" data-fk="n" data-pid="${pid}">Es de la selección</button><button class="btn small" type="button" data-fk="del" data-pid="${pid}">Quitar foto</button></div></div>`;
 }
 
-// carga la base del juego (copia hecha por el módulo edit21_db de Sider) sin mostrar nada
+// carga la base del juego (copia hecha por el módulo edit21_db de Sider, o los archivos del juego) sin mostrar nada
 async function loadDbQuiet(sider, force) {
-  try { const d = typeof sdbDbDir === 'function' ? await sdbDbDir(sider) : await subDir(sider, 'content/edit21-db'), f = await (await d.getFileHandle('Player.bin')).getFile(); const m = await namesFromBin(new Uint8Array(await f.arrayBuffer())); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++; } } catch { }
+  try { const st = typeof sdbCheck === 'function' ? await sdbCheck(sider, force) : null, b = st && await sdbBin(st, 'Player.bin'); if (!b) return; const m = await namesFromBin(b); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++; } } catch { }
 }

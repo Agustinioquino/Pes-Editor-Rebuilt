@@ -336,7 +336,7 @@ async function siLoad(force, hIn) {
         const c = { name: n, type: siGuess(n), detail: '', mod: null, mods: [] };
         if (/kit/i.test(n) && await readText(d, 'map.txt') != null) { c.type = 'kits'; const nTeams = lines((await readText(d, 'map.txt')) || '').filter(l => /^\d+\s*,/.test(l)).length; c.detail = `${nTeams.toLocaleString('es-AR')} equipos en map.txt`; }
         else if (/edit21-db|pes-editor-db/i.test(n)) { c.type = 'base'; const nb = await siCount(d, /\.bin$/i); c.detail = nb ? `${nb} archivos .bin de la base` : /pes-editor-db/i.test(n) ? 'carpeta de reserva del módulo (vacía)' : 'todavía sin copia: abrí el juego una vez con Sider'; }
-        else { const nd = await siCount(d, null, 500); c.detail = nd ? `${nd >= 500 ? '500+' : nd} elementos` : 'vacía'; }
+        else { const nd = await siCount(d, null, 500); c.detail = nd ? `${nd >= 500 ? '500+' : nd} ${nd === 1 ? 'elemento' : 'elementos'}` : 'vacía'; }
         info.content.push(c);
       } } catch { }
       info.content.sort((a, b) => a.name.localeCompare(b.name));
@@ -412,9 +412,11 @@ async function siSync() {
   info.mods = mods; info.modFree = [...info.modAll.values()].filter(m => m.top && !modUsed.has(m.rel.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
   for (const c of info.content) { // qué módulo usa cada carpeta: el que la nombra en su código; si no, el del mismo nombre o el del mismo tipo
     const k = c.name.toLowerCase(), fk = flat(c.name);
-    c.mods = mods.filter(x => (x.refs || []).includes(k));
-    if (!c.mods.length) c.mods = mods.filter(x => fk.length > 3 && (flat(x.name) === fk || flat(x.name).includes(fk) || fk.includes(flat(x.name))));
-    if (!c.mods.length && c.type) c.mods = mods.filter(x => x.type && x.type === c.type).slice(0, 1);
+    const base = x => flat(x.name.split(/[\\/]/).pop());
+    c.mods = mods.filter(x => (x.refs || []).includes(k)); // 1) el módulo la nombra en su código
+    if (!c.mods.length) c.mods = mods.filter(x => fk.length > 3 && base(x) === fk); // 2) mismo nombre
+    if (!c.mods.length && c.type) c.mods = mods.filter(x => x.type && x.type === c.type).slice(0, 1); // 3) mismo tipo (kit-server → kserv)
+    if (!c.mods.length) c.mods = mods.filter(x => fk.length > 3 && (base(x).includes(fk) || fk.includes(base(x)))); // 4) nombre parecido
     c.mod = c.mods[0] || null;
     c.ltype = !c.type && c.mod && c.mod.type ? c.mod.type : null; // tipo tomado del módulo
   }

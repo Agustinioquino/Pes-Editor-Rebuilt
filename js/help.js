@@ -17,7 +17,7 @@ const HELP = {
       ['Equipación…', 'cambia mangas, medias, calzas, camiseta interior, guantes o botines de todos los seleccionados de una vez. Lo que dejes en "Sin cambiar" queda como estaba.'],
       ['Valor', 'es una estimación por valoración, edad, potencial y liga. Tocalo para poner el valor real (por ejemplo el de Transfermarkt).']]],
     ['Para tener en cuenta', [
-      ['🔒 Protección', 'el candadito al lado del nombre avisa que ese jugador no está protegido: el Parche puede pisar sus datos. "Proteger" lo marca como editado.'],
+      ['🔒 Protección', 'el candadito al lado del nombre avisa que ese jugador no está protegido: el juego puede pisar sus datos. "Proteger" lo marca como editado.'],
       ['Exportar', 'descarga un CSV para Excel o copia la tabla para pegar en Google Sheets. Sale exactamente lo que estás viendo.'],
       ['Deshacer', 'todo se puede deshacer con Ctrl+Z hasta que guardes.']]]] },
   tactics: { t: 'la formación', intro: 'Acá armás cómo se para el equipo en la cancha y quién juega. Es lo mismo que ves en "Plan de juego" dentro del juego.', groups: [
@@ -46,11 +46,11 @@ const HELP = {
       ['Config. marcaje', 'si algún jugador quedó marcando a un rival fijo, "Volver a automático" lo deja como viene.']]]] },
   data: { t: 'los datos del equipo', intro: 'Nombre, abreviatura, colores, país y entrenador. Son los datos que el juego muestra en menús, marcadores y radar.', groups: [
     ['Qué hace cada cosa', [
-      ['Nombre y abreviatura', 'se ven en menús y en el marcador. Al cambiarlos se activa "Proteger nombre" para que el Parche no los vuelva a pisar.'],
+      ['Nombre y abreviatura', 'se ven en menús y en el marcador. Al cambiarlos se activa "Proteger nombre" para que el juego no los vuelva a pisar.'],
       ['Colores', 'principal y secundario del equipo: los usa el juego en menús y el editor para escudos, cancha y la apariencia.'],
-      ['Usar los colores del kit', 'copia los colores del kit titular del Parche.'],
+      ['Usar los colores del kit', 'copia los colores del kit titular del juego.'],
       ['País y entrenador', 'el país sirve para ligas y selecciones; el entrenador es el DT que aparece en los partidos.']]]] },
-  kits: { t: 'el estudio de kits', intro: 'Edita los kits del Parche (content\\kit-server): el config.txt y todas sus texturas. Lo que ves está armado con los modelos reales del juego (camisetas, mangas, 116 cuellos, 16 shorts y medias, sacados del CometKITpreviewer).', groups: [
+  kits: { t: 'el estudio de kits', intro: 'Edita los kits del juego (content\\kit-server): el config.txt y todas sus texturas. Lo que ves está armado con los modelos reales del juego (camisetas, mangas, 116 cuellos, 16 shorts y medias, sacados del CometKITpreviewer).', groups: [
     ['Vistas', [
       ['3D', 'el uniforme completo. Arrastrá para girar, clic derecho (o Shift) para mover la cámara, rueda para acercar, flechas del teclado para girar de a poco y doble clic para volver al frente.'],
       ['Cámara', 'encuadres rápidos (frente, espalda, costados, 3/4, desde arriba, primer plano del pecho), lente más abierta o más cerrada y giro automático con velocidad.'],
@@ -67,7 +67,7 @@ const HELP = {
       ['Subir…', 'elegí una imagen (.png, .jpg, .dds o .ftex). Se convierte a .ftex (DXT5 con todos sus tamaños) y se guarda en la carpeta del kit con el nombre que espera el config.txt. La primera vez se guarda una copia .bak-edit21 de la anterior.'],
       ['Generador de fuentes', 'crea las letras del nombre y los números de espalda, pecho y short con cualquier fuente de tu compu (o un archivo .ttf/.otf), con relleno, dos bordes y sombra. Respeta las casillas de las plantillas de Photoshop.'],
       ['Tela y relieve', 'elegí la tela (malla, piqué, panal, acanalado…) y cuánto relieve tienen los dibujos. Se ve al instante en el 3D; "Guardar este relieve en el kit" escribe el normal map (_nrm) y el brillo (_srm).'],
-      ['Dentro de los .cpk', 'si la textura del kit está dentro de los .cpk del Parche no se puede leer (están cifrados). El 3D usa los colores del config hasta que subas la textura.']]],
+      ['Dentro de los .cpk', 'si la textura del kit está dentro de los .cpk del juego no se puede leer (están cifrados). El 3D usa los colores del config hasta que subas la textura.']]],
     ['Modelo y guardado', [
       ['Cuello y short', 'tocá la miniatura para ver todos los modelos del juego con tu textura y elegir uno.'],
       ['Guardar kit', 'escribe el config.txt (con copia la primera vez). Las texturas se guardan apenas las subís o generás. Hay que volver a abrir el juego para verlo.'],
@@ -91,7 +91,7 @@ const HELP = {
       ['Especiales', 'habilidades especiales y estilos de la IA.'],
       ['Apariencia y Movimientos', 'cuerpo, botines, accesorios y las animaciones (los números son los mismos del modo Editar del juego).']]],
     ['Proteger mis cambios', [
-      ['Para qué sirve', 'marca al jugador como editado: el juego usa tus valores aunque el Parche cargue otra base de datos. Se activa solo cuando cambiás algo.']]]] },
+      ['Para qué sirve', 'marca al jugador como editado: el juego usa tus valores aunque el juego cargue otra base de datos. Se activa solo cuando cambiás algo.']]]] },
   wepes: { t: 'la carpeta WEPES', intro: 'WEPES es la carpeta que el juego usa para intercambiar archivos con el modo Editar: está en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\WEPES.', groups: [
     ['Qué va acá', [
       ['Importar imágenes', 'las imágenes (PNG, JPG) que pongas acá aparecen en el modo Editar del juego, en "Importar imágenes", para escudos, uniformes, carteles y fotos.'],
@@ -100,7 +100,7 @@ const HELP = {
       ['Ver', 'cada archivo muestra una miniatura (también .dds y .ftex). Tocalo para verlo grande, con su tamaño en píxeles, y descargar una copia.'],
       ['Agregar archivos', 'copia los archivos que elijas a WEPES (o a la subcarpeta abierta). El juego los ve la próxima vez que entres a importar.'],
       ['Subcarpetas', 'tocá una carpeta para entrar; usá los nombres de arriba para volver.']]]] },
-  sider: { t: 'la pestaña Sider', intro: 'Sider es el programa que carga el Parche en el juego. Todo sale de sider.ini: cada cpk.root es una carpeta con archivos del juego cambiados (escudos, caras, kits, estadios…) y cada lua.module es un módulo que agrega funciones (kit server, caras desde content, marcadores…).', groups: [
+  sider: { t: 'la pestaña Sider', intro: 'Sider es el programa que carga los mods en el juego. Todo sale de sider.ini: cada cpk.root es una carpeta con archivos del juego cambiados (escudos, caras, kits, estadios…) y cada lua.module es un módulo que agrega funciones (kit server, caras desde content, marcadores…).', groups: [
     ['Qué muestra', [
       ['Carpetas de contenido', 'las líneas cpk.root en el orden en que las usa el juego: si dos carpetas tienen el mismo archivo, manda la de más arriba. El editor mira adentro de cada una y dice qué trae (escudos, fotos, kits…) y, si el editor la usa, para qué.'],
       ['Módulos Lua', 'las líneas lua.module. De cada uno dice qué hace (si lo conoce) y qué carpeta de content usa, y avisa si el archivo falta en modules.'],
@@ -115,12 +115,12 @@ const HELP = {
       ['Texto completo', 'si preferís, abajo está el archivo entero para editarlo como texto.']
     ]]
   ] },
-  file: { t: 'el archivo', intro: 'El EDIT00000000 es el archivo donde el juego guarda todas tus ediciones. El editor lo busca solo en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE: primero el del Parche (drmp) y si no, el de save.', groups: [
+  file: { t: 'el archivo', intro: 'El EDIT00000000 es el archivo donde el juego guarda todas tus ediciones. El editor lo busca solo en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE: primero el del juego (drmp) y si no, el de save.', groups: [
     ['Dónde lo busca', [
       ['La primera vez', 'el navegador pide que elijas tu carpeta Documentos una sola vez (la ventana ya se abre ahí). Después lo recuerda; si te vuelve a pedir permiso, elegí "Permitir en cada visita".'],
       ['Varios EDIT', 'si hay más de uno (drmp y save, u otra cuenta de Steam) se abre el más reciente, y en "Carpeta del juego" podés cambiar al otro.']]],
     ['La carpeta Sider y la base del juego', [
-      ['Conectar carpeta Sider', 'elegí la carpeta de Sider del Parche (la que tiene sider.exe). De ahí salen los kits, las caras, los escudos y la base del juego: nombres, valoraciones y planteles de todos los jugadores.'],
+      ['Conectar carpeta Sider', 'elegí la carpeta de Sider del juego (la que tiene sider.exe). De ahí salen los kits, las caras, los escudos y la base del juego: nombres, valoraciones y planteles de todos los jugadores.'],
       ['El módulo edit21_db.lua', 'el editor lo instala solo en modules\\ y agrega su línea en sider.ini (con copia de seguridad). Es de solo lectura: cuando el juego carga su base, la copia en content\\edit21-db.'],
       ['Si avisa que la base no está cargada', 'abrí PES 2021 con Sider hasta el menú principal, entrá en Partido › Amistoso hasta la elección de equipos y cerrá el juego. Después tocá "Ya lo hice". Ese paso hace falta una vez por versión del módulo.']]],
     ['Guardar sin perder nada', [

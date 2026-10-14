@@ -2,13 +2,13 @@
 
 <img alt="Los módulos Lua en el modo Moderno: cada uno dice qué hace. FreeHeartEngine.lu ofrece corregirse a FreeHeartEngine.lua, penaltyCam es la cámara de penales y Crowd-Server elige cuánta hinchada hay" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-modulos.png" width="100%">
 
-# 🧩 La pestaña Sider entiende tu Parche
+# 🧩 La pestaña Sider entiende tu juego
 
 **[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.046-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.046-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-La pestaña Sider llegó en la v0.045 mostrando qué carga tu Parche. Con un Parche de verdad, con decenas de carpetas y módulos, aparecieron las preguntas: **¿qué hace esta carpeta?**, **¿por qué dice que falta este módulo si está ahí?**, **¿por qué no pasa nada cuando toco agregar?** 🤔
+La pestaña Sider llegó en la v0.045 mostrando qué carga tu juego. Con un juego lleno de mods, con decenas de carpetas y módulos, aparecieron las preguntas: **¿qué hace esta carpeta?**, **¿por qué dice que falta este módulo si está ahí?**, **¿por qué no pasa nada cuando toco agregar?** 🤔
 
 Esta versión responde todo eso.
 
@@ -20,7 +20,7 @@ Cada carpeta de contenido, cada módulo y cada carpeta de content ahora tiene **
 - 🚩 **Banners de hinchadas**: banderas en las tribunas por equipo y competición (carpeta `common_ad`).
 - 🎬 **Escenas y cinemáticas**: faltas, goles, entradas, jugador del partido (FoulScenes, CutScenes…).
 - 👥 **Público**: cuánta hinchada hay del local y del visitante, coreografías, alcanzapelotas.
-- 🎽 **Parches de manga**, 📋 **Liga Master**, 🎮 **jugabilidad**, 🎥 **cámaras** y mucho más.
+- 🎽 **Logos de manga**, 📋 **Liga Master**, 🎮 **jugabilidad**, 🎥 **cámaras** y mucho más.
 
 Las **cámaras se describen por el nombre**: `penaltyCam` es la cámara de penales y `ReplayCamera` la de las repeticiones. Y si un módulo no está en la lista, el editor **lee el propio archivo** y usa lo que dice al principio.
 
@@ -30,7 +30,7 @@ Las **cámaras se describen por el nombre**: `penaltyCam` es la cámara de penal
 
 Además de las rutas de PES 2021, el editor busca **nombres de carpeta que delatan el contenido**, hasta 7 niveles adentro: `anime`, `common_ad`, `demo`, `scoreboard`, `turf`… Así un mod que se llama "edit mod" queda bien clasificado aunque el nombre no diga nada.
 
-**Funciona igual con PES 2021 base, con cualquier Parche o con Football Life.** Nada está atado a un Parche en particular.
+**Funciona igual con PES 2021 base, con mods o con Football Life.** Nada está atado a una instalación en particular.
 
 <img alt="Las carpetas de contenido en el modo Retro: edit mod como Animaciones y poses, Banner como Banners de hinchadas y una carpeta marcada como Repetida (fila 2)" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-carpetas.png" width="100%">
 
@@ -50,7 +50,7 @@ Tocabas "＋" en una carpeta de livecpk o en un módulo y… nada. El cambio est
 
 <img alt="En PES 6 Editar, la fila de FreeHeartEngine.lu con el botón ¿Es FreeHeartEngine.lua? Corregir" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-corregir.png" width="100%">
 
-> 🙌 Muchas de las descripciones salieron de las correcciones de un usuario con su propio Parche. Si ves un módulo o una carpeta mal descrita, [avisanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose) y la sumamos.
+> 🙌 Muchas de las descripciones salieron de las correcciones de un usuario con su propio juego. Si ves un módulo o una carpeta mal descrita, [avisanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose) y la sumamos.
 
 ## 🔜 Lo que viene
 

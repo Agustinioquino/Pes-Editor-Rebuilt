@@ -1,5 +1,5 @@
 // ===================== Estudio de kits (kit-server config.txt + texturas) =====================
-// Lee y escribe content\kit-server\<ruta>\<kit>\config.txt, order.ini y gk_order.ini del Parche,
+// Lee y escribe content\kit-server\<ruta>\<kit>\config.txt, order.ini y gk_order.ini del juego,
 // y muestra la textura del kit (.ftex del juego o .dds) con una maqueta aproximada.
 const KS = { team: null, kits: [], gk: [], sel: null, cfg: null, dirty: false, view: '3d', T: {}, sample: { name: 'JUGADOR', num: '10' }, mat: { fabric: 'malla', repeat: 48, fabricStrength: .5, emboss: .5 }, busy: false, err: '', tex: new Map(), texIdx: null, sync: true, side: 'front' };
 
@@ -51,11 +51,11 @@ const KEY_ES = {
   ShortsModel: 'Modelo de short', ShortsNumberSide: 'Lado del número en el short', ShortsNumberX: 'Número del short: horizontal', ShortsNumberY: 'Número del short: vertical', ShortsNumberSize: 'Número del short: tamaño',
   KitFile: 'Textura del kit', BackNumbersFile: 'Números de la espalda', ChestNumbersFile: 'Números del pecho', LegNumbersFile: 'Números del short', NameFontFile: 'Letras del nombre',
   ShirtColor1: 'Color principal (radar)', ShirtColor2: 'Color secundario (radar)', UndershirtColor: 'Camiseta interior', ShortsColor: 'Short', SocksColor: 'Medias',
-  RightShortX: 'Parche manga corta der.: X', RightShortY: 'Parche manga corta der.: Y', RightLongX: 'Parche manga larga der.: X', RightLongY: 'Parche manga larga der.: Y',
-  LeftShortX: 'Parche manga corta izq.: X', LeftShortY: 'Parche manga corta izq.: Y', LeftLongX: 'Parche manga larga izq.: X', LeftLongY: 'Parche manga larga izq.: Y',
+  RightShortX: 'Logo manga corta der.: X', RightShortY: 'Logo manga corta der.: Y', RightLongX: 'Logo manga larga der.: X', RightLongY: 'Logo manga larga der.: Y',
+  LeftShortX: 'Logo manga corta izq.: X', LeftShortY: 'Logo manga corta izq.: Y', LeftLongX: 'Logo manga larga izq.: X', LeftLongY: 'Logo manga larga izq.: Y',
   UniColor_Color1: 'Color 1 del menú', UniColor_Color2: 'Color 2 del menú', CaptainArmband: 'Cinta de capitán', Unk_Offset0x1C_Bits0to1: 'Valor sin identificar (0x1C)',
 };
-const SEC_ES = { 'shirt parameters': 'Camiseta', 'shirt - back side': 'Espalda: nombre y número', 'shirt - front side': 'Pecho', 'shorts parameters': 'Short', 'texture files': 'Archivos de textura', 'kit colors': 'Colores', 'sleeve badge positions': 'Parches de las mangas', 'kit colors from UniColor.bin': 'Colores del menú (UniColor)', 'values added by kserv.lua': 'Otros (kserv)' };
+const SEC_ES = { 'shirt parameters': 'Camiseta', 'shirt - back side': 'Espalda: nombre y número', 'shirt - front side': 'Pecho', 'shorts parameters': 'Short', 'texture files': 'Archivos de textura', 'kit colors': 'Colores', 'sleeve badge positions': 'Logos de las mangas', 'kit colors from UniColor.bin': 'Colores del menú (UniColor)', 'values added by kserv.lua': 'Otros (kserv)' };
 const OPT_ES = { Off: 'No', On: 'Sí', Normal: 'Normal', Straight: 'Recto', 'Light curve': 'Curva suave', 'Medium curve': 'Curva media', 'Extreme curve': 'Curva fuerte', Left: 'Izquierda', Right: 'Derecha', 'Forced two-digit': 'Siempre dos dígitos', 'Normal & Undershirt': 'Normal + camiseta interior', 'Only Undershirt': 'Solo camiseta interior', 'Semi-long short sleeves': 'Manga semilarga', Legacy: 'Clásica', 'Kappa (players)': 'Kappa (ajustada)', 'Normal (players)': 'Normal', 'Referee kits only': 'Solo árbitros' };
 function fieldType(f) {
   if (/^#[0-9a-f]{6}$/i.test(f.value.trim())) return { t: 'color' };
@@ -73,14 +73,14 @@ function fieldType(f) {
 async function ksRoot(write) {
   const h = await idbGet('sider'); if (!h) throw new Error('Primero tocá "Conectar carpeta Sider".');
   const mode = write ? 'readwrite' : 'read';
-  if ((await h.queryPermission({ mode })) !== 'granted' && (await h.requestPermission({ mode })) !== 'granted') throw new Error(write ? 'Sin permiso para guardar en la carpeta del Parche.' : 'Sin permiso para leer la carpeta del Parche.');
+  if ((await h.queryPermission({ mode })) !== 'granted' && (await h.requestPermission({ mode })) !== 'granted') throw new Error(write ? 'Sin permiso para guardar en la carpeta del juego.' : 'Sin permiso para leer la carpeta del juego.');
   const lay = await siderLayout(h); if (lay && lay.kit) return { sider: h, kit: lay.kit };
-  throw new Error('Tu Sider no tiene kit-server (content\\kit-server\\map.txt): los kits de este parche no se pueden editar acá.');
+  throw new Error('Tu Sider no tiene kit-server (content\\kit-server\\map.txt): los kits de este juego no se pueden editar acá.');
 }
 async function ksLoad(t) {
   KS.err = ''; KS.busy = true;
   try {
-    const k = KITS.map.get(t.id); if (!k || !k.path) throw new Error('Este equipo no tiene kits en el kit-server del Parche (o falta conectarlo).');
+    const k = KITS.map.get(t.id); if (!k || !k.path) throw new Error('Este equipo no tiene kits en el kit-server del juego (o falta conectarlo).');
     const { kit } = await ksRoot(false), dir = await subDir(kit, k.path);
     const ord = lines(await readText(dir, 'order.ini')), gk = lines(await readText(dir, 'gk_order.ini'));
     const all = []; for await (const [name, h] of dir.entries()) if (h.kind === 'directory') all.push(name);
@@ -370,7 +370,7 @@ async function ksPicker(kind, m) {
     const on = btns.find(b => b.classList.contains('on')); if (on) on.scrollIntoView({ block: 'center' });
     const choose = v => { sel = +v; btns.forEach(b => b.classList.toggle('on', +b.dataset.v === sel)); M.querySelector('#kpName').textContent = (isC ? 'Cuello ' : 'Short ') + sel; M.querySelector('#kpNote').textContent = sel === cur ? 'El que tiene el kit ahora.' : 'Vista previa: todavía no está en el config.'; M.querySelector('#kpUse').disabled = sel === cur; if (V) V.swap(modelWith(sel), M.querySelector('#kpVF')); };
     const use = () => { if (sel === cur) { close(); return; } if (isC) { KS.setVal('Collar', sel); if (M.querySelector('#kpWinter').checked) KS.setVal('WinterCollar', sel); } else KS.setVal('ShortsModel', sel);
-      toast(`${isC ? 'Cuello' : 'Short'} ${sel} puesto en el config.txt. Tocá "Guardar kit" para escribirlo en el Parche.`, 5000); const f = document.querySelector(`[data-pick="${kind}"]`); if (f) { f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); } V && V.dispose(); close(); };
+      toast(`${isC ? 'Cuello' : 'Short'} ${sel} puesto en el config.txt. Tocá "Guardar kit" para escribirlo en el juego.`, 5000); const f = document.querySelector(`[data-pick="${kind}"]`); if (f) { f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); } V && V.dispose(); close(); };
     M.querySelector('#kpGrid').onclick = e => { const b = e.target.closest('.kpi'); if (b) choose(b.dataset.v); };
     M.querySelector('#kpGrid').ondblclick = e => { const b = e.target.closest('.kpi'); if (b) { choose(b.dataset.v); use(); } };
     M.querySelector('#kpUse').onclick = use;
@@ -401,9 +401,9 @@ function ksUpload(S, m) {
 // ---- tarjeta ----
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
-  if (!k || !k.path) return `<div class="card"><h3>Estudio de kits</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu Parche. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+  if (!k || !k.path) return `<div class="card"><h3>Estudio de kits</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
   if (KS.team !== t.id && !KS.busy) { KS.team = t.id; KS.cfg = null; KS.sel = null; ksLoad(t).then(() => ksRerender()); }
-  if (KS.busy || (!KS.cfg && !KS.err)) return '<div class="card"><div class="lmload"><span class="spin"></span> Leyendo los kits del Parche…</div></div>';
+  if (KS.busy || (!KS.cfg && !KS.err)) return '<div class="card"><div class="lmload"><span class="spin"></span> Leyendo los kits del juego…</div></div>';
   if (!KS.cfg) return `<div class="card"><h3>Estudio de kits</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
   const roleName = (n, i, gk) => gk ? (i ? 'Arquero alternativo ' + (i + 1) : 'Arquero') : ['Titular', 'Suplente', 'Alternativa', 'Cuarto kit'][i] || 'Kit ' + (i + 1);
   const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.4em')}<span><b>${esc(n)}</b><small>${roleName(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button>
@@ -419,7 +419,7 @@ function kitStudioCard(t) {
   };
   const L = K3.light, slider = (id, lab, v, min, max, step, fmt) => `<div class="f k3s"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" class="k3r" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}" style="--p:${((v - min) / (max - min) * 100).toFixed(1)}%"></div>`;
   const slotCard = S => { const T = KS.T[S.k] || {}, file = ksSlotFile(S);
-    const st = T.c ? (T.where === 'kit' ? 'En la carpeta del kit' : T.where === 'live' ? 'Suelta en livecpk' : 'Generada, sin guardar') : T.none ? (S.font ? 'No usa (campo vacío)' : 'Sin textura') : T.missing ? 'Dentro de los .cpk del Parche' : T.err ? 'No se pudo leer' : 'Buscando…';
+    const st = T.c ? (T.where === 'kit' ? 'En la carpeta del kit' : T.where === 'live' ? 'Suelta en livecpk' : 'Generada, sin guardar') : T.none ? (S.font ? 'No usa (campo vacío)' : 'Sin textura') : T.missing ? 'Dentro de los .cpk del juego' : T.err ? 'No se pudo leer' : 'Buscando…';
     return `<div class="ksslot ${T.c ? 'has' : ''}"><div class="kst">${T.c ? `<canvas data-slot="${S.k}" width="160" height="${S.font ? 50 : 160}"></canvas>` : `<span>${S.k === 'nrm' || S.k === 'srm' ? '◌' : '?'}</span>`}</div>
       <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small><span class="note">${S.d}</span>
         <div class="row" style="gap:4px"><button class="btn small" type="button" data-upl="${S.k}" title="Elegí una imagen (.png, .jpg, .dds o .ftex): se convierte a .ftex y se guarda en la carpeta del kit">Subir…</button>
@@ -546,7 +546,7 @@ function bindKitStudio(t, m) {
   on('ksSync', 'onchange', e => { KS.sync = e.target.checked; });
   on('ksView', 'onclick', e => { const b = e.target.closest('[data-v]'); if (b && KS.view !== b.dataset.v) { KS.view = b.dataset.v; renderTeams(m); } });
   on('ksUndo', 'onclick', () => { KS.cfg = cfgParse(KS.orig); KS.dirty = false; KS.dispKey = ''; renderTeams(m); });
-  on('ksSave', 'onclick', async () => { try { await ksSave(); RATE_GEN++; toast('Kit ' + KS.sel + ' guardado en el Parche.'); renderTeams(m); } catch (e) { toast('No se pudo guardar: ' + e.message, 7000); } });
+  on('ksSave', 'onclick', async () => { try { await ksSave(); RATE_GEN++; toast('Kit ' + KS.sel + ' guardado en el juego.'); renderTeams(m); } catch (e) { toast('No se pudo guardar: ' + e.message, 7000); } });
   on('ksName', 'oninput', e => { KS.sample.name = e.target.value.toUpperCase().replace(/[^A-Z. ]/g, ''); draw(); });
   on('ksNum', 'oninput', e => { KS.sample.num = e.target.value.replace(/\D/g, '').slice(0, 2); draw(); });
   // vista 3D

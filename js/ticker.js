@@ -11,7 +11,7 @@ const TICKER_IDEAS = [
 // lo nuevo de la última versión, contado para la barra
 const TICKER_NEW = [
   'Novedad v0.044: PES Editor Rebuilt ya se descarga como programa para Windows (.exe).',
-  'Novedad v0.044: la app conecta tu carpeta Sider aunque esté en Archivos de programa, y guarda en el Parche.',
+  'Novedad v0.044: la app conecta tu carpeta Sider aunque esté en Archivos de programa, y guarda en el juego.',
   'Novedad v0.044: la app se actualiza sola, igual que la página, y abre también sin internet.',
   'Novedad v0.044: el editor estrena nombre, PES Editor Rebuilt.'
 ];
@@ -19,7 +19,7 @@ const TICKER_SAGA = [
   'PES nació en 2001 en PlayStation 2. En Japón la saga se llamaba Winning Eleven.',
   'PES 6 salió en 2006 y para muchos sigue siendo el mejor de la saga: por eso este estilo.',
   'Sin licencias, PES inventaba nombres: Man Red, Merseyside Red y London FC son clásicos de la saga.',
-  'El modo Editar de PES permitía arreglar nombres, camisetas y escudos: el origen de los parches que usamos hoy.',
+  'El modo Editar de PES permitía arreglar nombres, camisetas y escudos: el origen de los mods que usamos hoy.',
   'eFootball PES 2021 Season Update fue la última edición con el nombre PES; después la saga pasó a llamarse eFootball.',
   'Shingo "Seabass" Takatsuka fue durante años el productor de la saga.',
   'La Liga Master es uno de los modos más queridos de PES: armar un equipo desde abajo y llevarlo a la cima.'

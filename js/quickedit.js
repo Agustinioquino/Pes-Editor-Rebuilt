@@ -36,7 +36,7 @@ function qeHtml(pid) {
     return `${head}<div class="qero">
       <div class="qebig"><b class="${vcls(r || 0)}">${r || '–'}</b><span>Media</span></div>
       ${get ? hexaRo(get, pos) : ''}
-      <p class="note">Este jugador está en la base del Parche pero todavía no en tu EDIT. Para cambiarle la media, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del Parche.</p>
+      <p class="note">Este jugador está en la base del juego pero todavía no en tu EDIT. Para cambiarle la media, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del juego.</p>
       <div class="row qefoot"><button class="btn" type="button" data-qx>Cerrar</button><button class="btn primary" type="button" data-qadd ${canMakeEditPlayer(pid) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button></div></div>`;
   }
   const r = rating(p), d = r - QE.start.r;

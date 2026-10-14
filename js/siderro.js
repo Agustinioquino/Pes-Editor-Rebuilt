@@ -1,11 +1,11 @@
 // ===================== Sider en "Archivos de programa" =====================
 // Chrome y Edge no dejan elegir con permiso de escritura una carpeta que esté dentro de C:\Program Files o
-// C:\Program Files (x86) ("contiene archivos del sistema"). Ahí está Steam por defecto, y muchos Parches ponen su
+// C:\Program Files (x86) ("contiene archivos del sistema"). Ahí está Steam por defecto, y muchos ponen su
 // carpeta Sider dentro del juego. Plan B: el selector de carpetas "para subir archivos", que sí la deja leer.
-// Así se ven kits, caras, escudos y nombres. Para guardar en el Parche alcanza con mover la carpeta Sider fuera de
+// Así se ven kits, caras, escudos y nombres. Para guardar en el juego alcanza con mover la carpeta Sider fuera de
 // Archivos de programa: Sider funciona desde cualquier carpeta (se engancha al juego por el nombre del .exe).
 var SIDER_RO = null;
-const RO_MSG = 'Abriste la carpeta Sider solo para ver (está dentro de Archivos de programa). Para guardar en el Parche, mové la carpeta Sider a otro lugar, por ejemplo C:\\PES2021.';
+const RO_MSG = 'Abriste la carpeta Sider solo para ver (está dentro de Archivos de programa). Para guardar en el juego, mové la carpeta Sider a otro lugar, por ejemplo C:\\PES2021.';
 const roErr = () => Object.assign(new Error(RO_MSG), { name: 'NotAllowedError' });
 class RoFile { constructor(f) { this.kind = 'file'; this.name = f.name; this.f = f; } async getFile() { return this.f; } async createWritable() { throw roErr(); } async queryPermission(o) { return o && o.mode === 'readwrite' ? 'denied' : 'granted'; } async requestPermission(o) { if (o && o.mode === 'readwrite') throw roErr(); return 'granted'; } }
 class RoDir {
@@ -52,11 +52,11 @@ const APP_DL_URL = () => `https://github.com/Agustinioquino/Pes-Editor-Rebuilt/r
 function siderBlockedHelp() {
   const name = siderRoName();
   ksModal('¿Chrome no te dejó abrir la carpeta Sider?', `<p>Si te apareció <b>"Esta carpeta no se puede abrir… contiene archivos del sistema"</b>, es porque tu carpeta Sider está dentro de <code>C:\\Program Files (x86)</code> (por ejemplo en <code>Steam\\steamapps\\common\\eFootball PES 2021</code>). Chrome y Edge no dejan que ninguna página escriba ahí, y no hay forma de saltearlo desde el editor.</p>
-    <p><b>La solución: PES Editor Rebuilt para Windows.</b> Es este mismo editor, como programa: conecta tu carpeta Sider donde está y guarda en el Parche sin mover nada. Se actualiza solo, igual que la página.</p>
+    <p><b>La solución: PES Editor Rebuilt para Windows.</b> Es este mismo editor, como programa: conecta tu carpeta Sider donde está y guarda en el juego sin mover nada. Se actualiza solo, igual que la página.</p>
     <p><a class="btn primary" href="${APP_DL_URL()}" target="_blank" rel="noopener">⬇️ Descargar para Windows (.exe)</a></p>
     <details><summary><b>Otra opción: sacar la carpeta Sider de Archivos de programa</b></summary><p>Sider funciona desde cualquier carpeta, no hace falta que esté junto al juego, y el juego queda donde está.</p>
     ${siderMoveSteps(name, 'Elegir otra carpeta')}</details>
-    <p><b>Si querés verla ya:</b> abrila solo para ver. Vas a tener kits, caras, escudos y nombres, pero el editor no puede guardar en el Parche (kits, escudos, módulo).</p>
+    <p><b>Si querés verla ya:</b> abrila solo para ver. Vas a tener kits, caras, escudos y nombres, pero el editor no puede guardar en el juego (kits, escudos, módulo).</p>
     <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn ghost" type="button" data-x>Cerrar</button><button class="btn" type="button" id="roOpen">📂 Abrir solo para ver</button><button class="btn primary" type="button" id="roRetry">Elegir otra carpeta</button></div>`,
     (box, close) => { box.querySelector('#roOpen').onclick = () => { close(); connectSiderRO(); }; box.querySelector('#roRetry').onclick = () => { close(); connectKits(); }; });
 }

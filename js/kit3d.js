@@ -1,6 +1,6 @@
 // ===================== Visor 3D de kits: modelos .fmdl del juego + textura del kit =====================
 // Formato FMDL (Fox Engine) según FMDL Studio v2 (BobDoleOwndU, MIT). Se leen solo las piezas de la ropa
-// (camiseta, mangas, short, medias, brazos y cuellos) de las carpetas sueltas del Parche.
+// (camiseta, mangas, short, medias, brazos y cuellos) de las carpetas sueltas del juego.
 const FMDL = (() => {
   const h2f = h => { const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, f = h & 1023; return e === 0 ? s * 6.103515625e-5 * (f / 1024) : e === 31 ? (f ? NaN : s * Infinity) : s * 2 ** (e - 15) * (1 + f / 1024); };
   function parse(buf) {

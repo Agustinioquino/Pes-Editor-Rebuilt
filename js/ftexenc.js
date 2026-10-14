@@ -1,5 +1,5 @@
 // ===================== Escritura de texturas .ftex (las que lee el juego / kitserver) =====================
-// Formato igual al de los kits del Parche: cabecera de 64 bytes, tabla de mips (16 bytes c/u),
+// Formato igual al de los kits del juego: cabecera de 64 bytes, tabla de mips (16 bytes c/u),
 // mips guardados del más chico al más grande, cada uno en pedazos de 16 KB comprimidos con zlib.
 const FTEXW = (() => {
   // ---- compresión DXT por bloques de 4x4 (caja de colores con un poco de recorte) ----

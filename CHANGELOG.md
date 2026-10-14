@@ -2,36 +2,36 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
-## v0.046 alpha · La pestaña Sider entiende tu Parche
+## v0.046 alpha · La pestaña Sider entiende tu juego
 
 *14 de octubre de 2026, 12:45 (hora de Argentina)*
 
 La pestaña Sider ahora dice qué hace cada carpeta y cada módulo, se actualiza al instante al agregar o quitar, encuentra los módulos en subcarpetas y sugiere el nombre correcto si uno está mal escrito.
 
 - **Agregar, quitar y mover se ve al instante** (Sider). Al tocar "＋" en una carpeta de livecpk o en un módulo, aparece al final de su lista, resaltado, con un aviso, y el botón desaparece. Quitar, mover con las flechas, deshacer y aplicar el texto también se ven en el momento. Antes los cambios estaban, pero la lista no se actualizaba hasta volver a leer el archivo.
-- **Qué hace cada carpeta y cada módulo** (Sider). Cada carpeta de contenido, cada módulo y cada carpeta de content tiene una línea que dice qué cambia en el juego. Hay más de 40 categorías (animaciones, banners de hinchadas, escenas, público, parches de manga, Liga Master, jugabilidad, cámaras…) y más de 60 módulos conocidos. Las cámaras se describen por el nombre: penaltyCam es la cámara de penales. Si un módulo no está en la lista, se usa lo que dice su propio archivo.
-- **Mira adentro de cada carpeta** (Sider). Además de las rutas conocidas de PES 2021, busca nombres de carpeta que delatan el contenido hasta 7 niveles adentro: anime (poses del modo Editar y la previa), common_ad (banners de hinchadas), demo (escenas), scoreboard, turf y más. Funciona igual con PES 2021 base, con cualquier Parche o con Football Life.
+- **Qué hace cada carpeta y cada módulo** (Sider). Cada carpeta de contenido, cada módulo y cada carpeta de content tiene una línea que dice qué cambia en el juego. Hay más de 40 categorías (animaciones, banners de hinchadas, escenas, público, logos de manga, Liga Master, jugabilidad, cámaras…) y más de 60 módulos conocidos. Las cámaras se describen por el nombre: penaltyCam es la cámara de penales. Si un módulo no está en la lista, se usa lo que dice su propio archivo.
+- **Mira adentro de cada carpeta** (Sider). Además de las rutas conocidas de PES 2021, busca nombres de carpeta que delatan el contenido hasta 7 niveles adentro: anime (poses del modo Editar y la previa), common_ad (banners de hinchadas), demo (escenas), scoreboard, turf y más. Funciona igual con PES 2021 base, con mods o con Football Life.
 - **Módulos en subcarpetas y mods que viven en content** (Sider). Los módulos guardados en subcarpetas de modules (como modules\GRAND\Crowd-Server.lua) ya no aparecen como faltantes. Las carpetas de content se unen al módulo que las nombra en su código, y si ningún módulo las usa, lo dice.
 - **¿Es FreeHeartEngine.lua? Corregir** (Sider). Si un lua.module está mal escrito (le falta una letra, tiene un guion en vez de un guion bajo…), la fila sugiere el archivo que sí está en modules y un botón lo corrige. Las comillas de más o de menos en una ruta ya no hacen que una carpeta aparezca como que no existe.
 - **Carpetas repetidas, con sus filas** (Sider). El aviso de carpetas repetidas dice qué ruta se repite y en qué filas, y cada fila repetida lleva "Repetida (fila N)". Sider usa la primera; las otras se pueden apagar o quitar.
 
-## v0.045 alpha · Pestaña Sider, música por link y cualquier Parche
+## v0.045 alpha · Pestaña Sider, música por link y cualquier Sider
 
 *14 de octubre de 2026, 06:30 (hora de Argentina)*
 
-La pestaña Sider muestra qué carga tu Parche y deja ordenar sider.ini sin tocar el texto. La carga espera los escudos y revisa sider.ini, se puede conectar el Sider de cualquier Parche y el EDIT sin Steam, y la música se suma pegando un link de YouTube o Spotify.
+La pestaña Sider muestra qué carga tu juego y deja ordenar sider.ini sin tocar el texto. La carga espera los escudos y revisa sider.ini, se puede conectar cualquier Sider y el EDIT sin Steam, y la música se suma pegando un link de YouTube o Spotify.
 
-- **Pestaña Sider: qué carga tu Parche** (Sider). Al lado de WEPES hay una pestaña nueva, Sider. Lee tu sider.ini y muestra cada carpeta de contenido (cpk.root) con lo que trae adentro (escudos, fotos de jugadores, caras, kits, estadios, balones…) y qué herramienta del editor la usa, los módulos Lua que corre (kit server, caras, cantos, marcadores…) y las carpetas de content. También la versión de Sider, el ejecutable del juego y las carpetas de livecpk que no están en sider.ini.
+- **Pestaña Sider: qué carga tu juego** (Sider). Al lado de WEPES hay una pestaña nueva, Sider. Lee tu sider.ini y muestra cada carpeta de contenido (cpk.root) con lo que trae adentro (escudos, fotos de jugadores, caras, kits, estadios, balones…) y qué herramienta del editor la usa, los módulos Lua que corre (kit server, caras, cantos, marcadores…) y las carpetas de content. También la versión de Sider, el ejecutable del juego y las carpetas de livecpk que no están en sider.ini.
   1. Conectá tu carpeta Sider (si ya estaba conectada, no hace falta nada).
   2. Abrí la pestaña Sider.
 - **Prender, apagar, ordenar y agregar sin tocar el texto** (Sider). Cada carpeta y cada módulo tiene un interruptor (comenta la línea en sider.ini, no la borra, así se puede volver a prender), flechas para subir o bajar (el orden importa: si dos carpetas tienen el mismo archivo, manda la de más arriba) y una cruz para quitar la línea. Las carpetas de livecpk y los módulos que no están en sider.ini se agregan con un botón.
 - **Ajustes de Sider explicados** (Sider). Los ajustes de sider.ini (livecpk, módulos Lua, cerrar Sider al salir, lado libre, barras negras, cámara, overlay, detalle del registro…) están como interruptores y listas, con una línea que dice para qué sirve cada uno. Si livecpk o los módulos están apagados, o una carpeta de cpk.root no existe, o falta un módulo en modules, aparece un aviso arriba.
 - **Guardar con copia de seguridad** (Sider). Nada se escribe hasta tocar "Guardar sider.ini": antes, "Cambios sin guardar" y "Deshacer los cambios". La primera vez queda una copia en sider.ini.bak-pes-editor. Solo se reescriben las líneas que tocaste; los comentarios y el resto quedan igual, y el archivo se guarda con la misma codificación con la que estaba (UTF-8, UTF-16 o la del Bloc de notas con acentos). También podés ver y editar el texto completo.
 - **La pantalla de carga revisa sider.ini** (Sider). Al entrar, después de "Sider listo", el editor lee sider.ini y dice cuántas carpetas de contenido y módulos tiene y de qué tipo. Si una carpeta no existe, falta un módulo o livecpk o los módulos están apagados, aparece un paso ⚠ con el detalle y, al terminar, un aviso con un botón a la pestaña Sider.
-- **Cualquier Sider: Football Life, la carpeta del juego o Steam** (Archivo). Conectar Sider ya no exige el kit server de un Parche en particular. Vale la carpeta de Sider (aunque todavía no tenga sider.ini, como Football Life, que lleva livecpk y modules en la carpeta del juego), la carpeta del juego o una de más arriba (Steam, steamapps): el editor busca unos niveles hacia abajo sin confundir el common de Steam con el de un cpk. Las caras y los escudos salen de las carpetas de sider.ini y del resto de livecpk.
+- **Cualquier Sider: Football Life, la carpeta del juego o Steam** (Archivo). Conectar Sider ya no exige un kit server en particular. Vale la carpeta de Sider (aunque todavía no tenga sider.ini, como Football Life, que lleva livecpk y modules en la carpeta del juego), la carpeta del juego o una de más arriba (Steam, steamapps): el editor busca unos niveles hacia abajo sin confundir el common de Steam con el de un cpk. Las caras y los escudos salen de las carpetas de sider.ini y del resto de livecpk.
 - **Si elegiste la carpeta equivocada, te dice cuál es** (Archivo). Si la carpeta no sirve, el aviso dice qué parece ser (una carpeta de contenido, livecpk, content, el juego sin Sider, una carpeta vacía o una con tus cosas) y cuál tenés que elegir.
 - **El EDIT de la versión sin Steam** (Archivo). El editor también encuentra el EDIT en <temporada>\save, en cualquier subcarpeta de guardado y en carpetas tipo Football Life. Si no aparece, sigue unos niveles más abajo.
-- **Si el navegador oculta sider.ini, elegilo a mano** (Sider). Chrome, Edge, Opera y Brave no dejan que las páginas vean los archivos .ini, .exe ni .dll, ni siquiera listándolos. Si al conectar tu carpeta Sider el editor dice que no encuentra sider.ini aunque esté, la pestaña Sider muestra qué ve en la carpeta y el botón "📄 Elegir sider.ini a mano": lo elegís una vez con el selector de archivos y el editor lo recuerda para leer y guardar. En la app para Windows esto no hace falta. Está en prueba: avisá si con tu Parche no funciona.
+- **Si el navegador oculta sider.ini, elegilo a mano** (Sider). Chrome, Edge, Opera y Brave no dejan que las páginas vean los archivos .ini, .exe ni .dll, ni siquiera listándolos. Si al conectar tu carpeta Sider el editor dice que no encuentra sider.ini aunque esté, la pestaña Sider muestra qué ve en la carpeta y el botón "📄 Elegir sider.ini a mano": lo elegís una vez con el selector de archivos y el editor lo recuerda para leer y guardar. En la app para Windows esto no hace falta. Está en prueba: avisá si con tu juego no funciona.
   1. Abrí la pestaña Sider y tocá "📄 Elegir sider.ini a mano".
   2. Elegí el sider.ini que está dentro de tu carpeta Sider.
 - **Agregar por link: YouTube y Spotify, sin cuentas** (Música). En el reproductor, "🔗 Agregar por link" abre un solo cuadro: pegás el link de un video o una lista de YouTube, o de un tema, un disco o una lista de Spotify, y se suma a tu lista. Sin claves ni cuentas. Si escribís un nombre en vez de un link, se abre la búsqueda de YouTube o de Spotify en otra pestaña para que copies el link. Spotify completo necesita tu cuenta Premium iniciada; si no, suena un adelanto de 30 segundos.
@@ -45,13 +45,13 @@ La pestaña Sider muestra qué carga tu Parche y deja ordenar sider.ini sin toca
 
 *13 de octubre de 2026, 20:15 (hora de Argentina)*
 
-¡El editor ahora también es un programa para Windows! Descargás un .exe, lo abrís y conecta tu carpeta Sider aunque esté dentro de Archivos de programa, con permiso para guardar en el Parche. Y estrenamos nombre: PES Editor Rebuilt.
+¡El editor ahora también es un programa para Windows! Descargás un .exe, lo abrís y conecta tu carpeta Sider aunque esté dentro de Archivos de programa, con permiso para guardar en el juego. Y estrenamos nombre: PES Editor Rebuilt.
 
 - **PES Editor Rebuilt para Windows** (Archivo). El editor ahora también se descarga como programa para Windows (.exe). Es exactamente el mismo editor de la página, en su propia ventana, con su logo y su acceso directo en el escritorio y en el menú Inicio. Hay un instalador y una versión portátil, que no se instala.
   1. Abrí la release v0.044 en GitHub y descargá PES-Editor-Rebuilt-Setup.exe (o PES-Editor-Rebuilt-Portable.exe).
   2. Si aparece "Windows protegió tu PC", tocá Más información › Ejecutar de todas formas.
   3. Abrí PES Editor Rebuilt desde el escritorio o el menú Inicio.
-- **Sider en Archivos de programa, con permiso para guardar** (Archivo). Chrome y Edge no dejan que una página escriba en C:\Program Files (x86), que es donde Steam instala PES 2021 y donde muchos Parches tienen su carpeta Sider. La app sí puede: conecta tu carpeta Sider donde está, sin moverla, y guarda kits, escudos y el módulo edit21_db como siempre.
+- **Sider en Archivos de programa, con permiso para guardar** (Archivo). Chrome y Edge no dejan que una página escriba en C:\Program Files (x86), que es donde Steam instala PES 2021 y donde muchos tienen su carpeta Sider. La app sí puede: conecta tu carpeta Sider donde está, sin moverla, y guarda kits, escudos y el módulo edit21_db como siempre.
   1. Abrí la app y elegí tu carpeta Documentos.
   2. Tocá Conectar carpeta Sider.
   3. Elegí tu carpeta Sider en el selector de Windows: queda conectada para la próxima.
@@ -74,14 +74,14 @@ Cambiar la media de un jugador ahora es visual: un hexágono que se arrastra y u
 - **Mover un área sin desarmar al jugador** (Plantel). Al mover una punta, todas las habilidades de esa área suben o bajan lo mismo, así se mantienen las diferencias entre ellas (un buen cabeceador sigue cabeceando mejor de lo que patea). Mientras arrastrás, la valoración aproximada se actualiza en vivo con el +/− que suma o resta. Cada movimiento es un solo paso de Deshacer.
 - **Cómo estaba antes** (Plantel). Una línea punteada dentro del hexágono muestra cómo estaba el jugador al abrir el archivo, y al lado de cada área aparece cuánto cambió (+5, −3). Así ves de un vistazo qué tocaste.
 - **Hexágono también con el teclado** (Plantel). Tocá una punta (o llegá con Tab) y usá las flechas: arriba o derecha suben 1, abajo o izquierda bajan 1, y RePág o AvPág mueven 5 de una.
-- **Hexágono de los jugadores del Parche** (Plantel). La ficha de un jugador que está en la base del Parche pero no en tu EDIT también muestra su hexágono, solo para ver.
+- **Hexágono de los jugadores del juego** (Plantel). La ficha de un jugador que está en la base del juego pero no en tu EDIT también muestra su hexágono, solo para ver.
 - **Editar la media desde el plantel** (Plantel). En la tabla del plantel, la valoración (columna Val.) de cada jugador ahora es un botón con un lápiz ✎. Al tocarlo se abre una ventana encima de la página con la media en grande, botones −5, −1, +1 y +5, una barra para elegirla entre 40 y 99 y el hexágono del jugador para ajustar cada área.
   1. Abrí un equipo: aparece en Plantel.
   2. Tocá el número de la columna Val. de un jugador.
   3. Usá los botones, la barra o el hexágono.
   4. Tocá Listo (o Esc) y el plantel se actualiza.
 - **Qué toca la media rápida** (Plantel). En los jugadores de campo, cambiar la media sube o baja por igual todas las habilidades de juego; las de arquero no se tocan. En los arqueros se mueven las habilidades de arquero y el salto. El editor busca el cambio que deja la media lo más cerca posible de la que elegiste y, si las habilidades ya están en el tope (99) o en el piso (40), te avisa.
-- **Volver atrás sin miedo** (Plantel). La ventana muestra cuánto cambió la media desde que la abriste. "Volver a como estaba" deshace todo lo de esa ventana (queda en Rehacer), Ctrl+Z y Ctrl+Y funcionan adentro y "Abrir ficha completa" te lleva a la pestaña Habilidades del jugador. Si el jugador es del Parche y no está en tu EDIT, la ventana ofrece agregarlo para poder editarlo.
+- **Volver atrás sin miedo** (Plantel). La ventana muestra cuánto cambió la media desde que la abriste. "Volver a como estaba" deshace todo lo de esa ventana (queda en Rehacer), Ctrl+Z y Ctrl+Y funcionan adentro y "Abrir ficha completa" te lleva a la pestaña Habilidades del jugador. Si el jugador es del juego y no está en tu EDIT, la ventana ofrece agregarlo para poder editarlo.
 - **El aviso de versión nueva, más rápido y seguro** (Velocidad). Con la pestaña a la vista, el editor revisa cada 3 minutos si hay una versión nueva (antes cada 10), y también apenas volvés a la pestaña. Además mira el último cambio publicado en GitHub: cuando aparece uno, revisa cada 30 segundos hasta que la página nueva está lista. Las revisiones piden los archivos con una marca única, así ni el navegador ni GitHub pueden contestar con una copia vieja. El aviso muestra el título del cambio.
 - **Actualizar trae todo de nuevo** (Velocidad). "Actualizar ahora" recarga la página pidiendo cada archivo otra vez a GitHub, así no queda ninguna parte de la versión anterior.
 - **Antes de recargar, te pregunta** (Archivo). Si tocás "Actualizar ahora" o "Borrar caché" con cambios sin guardar, aparece un cuadro con tus opciones: Guardar en el caché y recargar, Guardar en el juego y recargar (o Guardar copia, si abriste el archivo a mano), Actualizar sin guardar o Cancelar. Si al guardar en el juego algo falla, no recarga.
@@ -121,9 +121,9 @@ Escudos propios en un par de clics, el editor que se actualiza solo y una salida
   1. Conectá la carpeta Sider.
   2. Abrí un equipo y entrá en Datos y colores.
   3. En Escudo tocá "Elegir imagen o archivos" (o arrastrá el PNG).
-  4. Tocá "Guardar escudo en el Parche" y abrí el juego de nuevo.
+  4. Tocá "Guardar escudo en el juego" y abrí el juego de nuevo.
 - **Carpeta de escudos automática** (Plantel). Si tu Sider no tiene ninguna carpeta con escudos, el editor crea livecpk\PESEditor-Escudos y la agrega a sider.ini, antes de las otras, para que tus escudos manden. Guarda una copia del sider.ini como sider.ini.bak-pes-editor.
-- **Sider dentro de Archivos de programa** (Archivo). Chrome y Edge no dejan abrir para escribir carpetas dentro de C:\Program Files, donde Steam instala el juego. Ahora la pantalla de carga lo explica y ofrece "Abrir solo para ver": se ven kits, caras, escudos y nombres. Para poder guardar en el Parche, mové el juego a otra biblioteca de Steam.
+- **Sider dentro de Archivos de programa** (Archivo). Chrome y Edge no dejan abrir para escribir carpetas dentro de C:\Program Files, donde Steam instala el juego. Ahora la pantalla de carga lo explica y ofrece "Abrir solo para ver": se ven kits, caras, escudos y nombres. Para poder guardar en el juego, mové el juego a otra biblioteca de Steam.
 - **Siempre la última versión** (Velocidad). El editor revisa sus archivos contra GitHub cada vez que abre, así ya no queda una copia vieja después de una actualización. Si se publica algo nuevo con la página abierta, aparece arriba "Hay una versión nueva del editor" con Actualizar ahora o Más tarde.
 - **Fotos y escudos guardados** (Velocidad). Las fotos y escudos de internet se descargan una sola vez y después cargan al instante, también sin conexión.
 - **Versión a la vista y Borrar caché** (Interfaz). Debajo de la versión, arriba, se ve la fecha de la versión que estás usando. En Apariencia hay una sección Caché con la versión, cuántas fotos hay guardadas, el espacio usado y el botón Borrar caché, en los 4 modos gráficos.
@@ -185,32 +185,32 @@ La pestaña Formación usa las mismas opciones y nombres que el Plan de juego de
 - **Comparar con otro EDIT más claro** (Archivo). Nombra cada lanzador, cada instrucción avanzada y la Config. marcaje.
 - **Adaptado a cada modo gráfico** (Interfaz). La Estrategia cambia de look en Moderno, Clásico, Retro y PES 6 Editar.
 
-## v0.019 alpha · Todos los jugadores del Parche en Jugadores
+## v0.019 alpha · Todos los jugadores del juego en Jugadores
 
 *13 de octubre de 2026, 06:55 (hora de Argentina)*
 
-La pestaña Jugadores ya no muestra solo los que están en tu EDIT: con la base del Parche copiada, se ven los más de 27.000 jugadores del Parche.
+La pestaña Jugadores ya no muestra solo los que están en tu EDIT: con la base del juego copiada, se ven los más de 27.000 jugadores del juego.
 
-- **Mi EDIT o la base del Parche** (Plantel). Arriba de la lista hay dos botones: "Mi EDIT" (los jugadores que el EDIT guarda y se editan como siempre) y "Del Parche" (todos los de la base del Parche). Si tu EDIT no tiene jugadores, arranca directo en la base. La pestaña muestra el total de la base, y al pasar el mouse dice cuántos hay en cada lado.
+- **Mi EDIT o la base del juego** (Plantel). Arriba de la lista hay dos botones: "Mi EDIT" (los jugadores que el EDIT guarda y se editan como siempre) y "Del juego" (todos los de la base del juego). Si tu EDIT no tiene jugadores, arranca directo en la base. La pestaña muestra el total de la base, y al pasar el mouse dice cuántos hay en cada lado.
   1. Conectá la carpeta Sider y dejá que el juego copie la base (si todavía no lo hiciste, el editor te avisa cómo).
-  2. Entrá en Jugadores y tocá "Del Parche".
+  2. Entrá en Jugadores y tocá "Del juego".
   3. Buscá por nombre, ID o equipo, o filtrá por posición o por "Solo los que no están en mi EDIT".
-- **Ficha de solo lectura con todo lo del Parche** (Plantel). Cada jugador de la base muestra su cara, posición, nacionalidad, edad, altura, valoración, sus equipos con el dorsal (tocá uno para ir al plantel) y todas las habilidades en barras, más pierna mala, estado de forma y resistencia a lesiones. Es lo que usa el juego.
-- **Agregar a mi EDIT para editarlo** (Plantel). El botón "Agregar a mi EDIT para editarlo" copia al jugador con todas sus habilidades y abre su ficha editable; la cara y el nombre siguen saliendo del Parche. Ctrl+Z lo deshace.
-- **El buscador de arriba también encuentra jugadores de la base** (Plantel). Con / o el buscador de arriba aparecen los jugadores del Parche que no están en ningún plantel de tu EDIT, marcados como "Base del Parche"; al elegir uno se abre su ficha.
+- **Ficha de solo lectura con todo lo del juego** (Plantel). Cada jugador de la base muestra su cara, posición, nacionalidad, edad, altura, valoración, sus equipos con el dorsal (tocá uno para ir al plantel) y todas las habilidades en barras, más pierna mala, estado de forma y resistencia a lesiones. Es lo que usa el juego.
+- **Agregar a mi EDIT para editarlo** (Plantel). El botón "Agregar a mi EDIT para editarlo" copia al jugador con todas sus habilidades y abre su ficha editable; la cara y el nombre siguen saliendo del juego. Ctrl+Z lo deshace.
+- **El buscador de arriba también encuentra jugadores de la base** (Plantel). Con / o el buscador de arriba aparecen los jugadores del juego que no están en ningún plantel de tu EDIT, marcados como "Base del juego"; al elegir uno se abre su ficha.
 
 ## v0.018 alpha · La copia de la base ya se guarda y el video va arriba del reproductor
 
 *13 de octubre de 2026, 06:30 (hora de Argentina)*
 
-Arreglo del módulo edit21_db.lua (en algunas instalaciones Sider no deja que los módulos guarden archivos), planteles de la base verificados con los archivos reales del Parche y un lugar mejor para el video de YouTube.
+Arreglo del módulo edit21_db.lua (en algunas instalaciones Sider no deja que los módulos guarden archivos), planteles de la base verificados con los archivos reales del juego y un lugar mejor para el video de YouTube.
 
-- **Escritura con las funciones de Windows** (Archivo). En algunas instalaciones, el io de Sider no deja crear ni sobrescribir archivos: abrir un archivo para escribir devuelve vacío y sin error (en el sider.log se ve como "-> nil", y le pasa también a otros módulos, como PostProcessingEditor y UIColors). La v1.5 lo detecta y en ese caso escribe la copia con las funciones de Windows, por medio del ffi de LuaJIT que el Parche ya deja activado (luajit.ext.enabled = 1 en sider.ini). En sider.log queda anotado qué método usó.
+- **Escritura con las funciones de Windows** (Archivo). En algunas instalaciones, el io de Sider no deja crear ni sobrescribir archivos: abrir un archivo para escribir devuelve vacío y sin error (en el sider.log se ve como "-> nil", y le pasa también a otros módulos, como PostProcessingEditor y UIColors). La v1.5 lo detecta y en ese caso escribe la copia con las funciones de Windows, por medio del ffi de LuaJIT que el juego ya deja activado (luajit.ext.enabled = 1 en sider.ini). En sider.log queda anotado qué método usó.
   1. Tocá "Conectar carpeta Sider": el editor reemplaza el módulo viejo por la v1.5 (guarda el anterior como edit21_db.lua.anterior).
   2. Abrí el juego hasta el menú principal, entrá en Partido › Amistoso hasta la elección de equipos y cerralo.
   3. Volvé al editor y tocá "Ya lo hice: volver a leer".
 - **Nada de archivos al arrancar** (Archivo). El módulo ya no toca ningún archivo mientras Sider arranca: elige la carpeta recién cuando el juego carga el primer archivo de la base, la crea si no existe y, si algo falla, vuelve a probar con el siguiente.
-- **Planteles de la base verificados** (Plantel). Con la copia real de PlayerAssignment.bin se confirmó cómo guarda el juego cada fila (registro de 16 bytes: número de fila, jugador, equipo, dorsal y orden). El editor ahora lo reconoce directo, y el dorsal se calibra comparando con los planteles de tu EDIT: el juego lo guarda empezando desde 0, así que el 1 figura como 0. En la prueba con el Parche coincidieron los 20.174 jugadores de los 748 equipos.
+- **Planteles de la base verificados** (Plantel). Con la copia real de PlayerAssignment.bin se confirmó cómo guarda el juego cada fila (registro de 16 bytes: número de fila, jugador, equipo, dorsal y orden). El editor ahora lo reconoce directo, y el dorsal se calibra comparando con los planteles de tu EDIT: el juego lo guarda empezando desde 0, así que el 1 figura como 0. En la prueba con el juego coincidieron los 20.174 jugadores de los 748 equipos.
 - **Video de YouTube arriba del reproductor** (Música). Con el reproductor minimizado, el video ahora va arriba de la barra, en el espacio libre de la izquierda, y toma el ancho que haya (mínimo 200 × 200, lo que exige YouTube). Si la pantalla es angosta y no hay hueco, sigue al costado del reproductor para no tapar la lista de equipos.
 - **Aviso más preciso** (Archivo). Si el sider.log muestra el error de una versión anterior del módulo, el aviso ya no manda a revisar la protección contra ransomware de Windows: explica qué pasó y que alcanza con repetir los pasos. Las líneas de ayuda que el módulo deja en el registro ya no se confunden con un error de permisos.
 
@@ -225,7 +225,7 @@ Al conectar la carpeta Sider, el editor instala solo el módulo que copia la bas
   2. Si el editor te pide permiso para escribir en esa carpeta, aceptá: lo necesita para instalar el módulo.
 - **Aviso cuando la base no está cargada** (Archivo). Si es la primera vez, si el módulo se acaba de instalar o si en content\edit21-db faltan archivos, el editor muestra qué hacer: abrir PES 2021 con Sider hasta el menú principal, entrar en Partido › Amistoso hasta la elección de equipos y cerrar el juego. Después, "Ya lo hice" vuelve a leer la base. También avisa al arrancar si la copia está incompleta.
 - **Módulo v1.3: copia toda la base y avisa si algo falla** (Archivo). Si Windows no le deja escribir en content\edit21-db, el módulo prueba en content\pes-editor-db, anota el error exacto en sider.log y deja un estado.txt; el editor lee ese registro y te dice qué pasó y cómo arreglarlo (por ejemplo, el "Acceso controlado a carpetas" de Windows). Además copia todos los archivos de pesdb que el juego carga (Player, Team, PlayerAssignment, Coach, Stadium, Country, Competition, Tactics…), no solo una lista fija, y escribe index.txt con el nombre, tamaño y hora de cada uno. Los archivos de la elección de equipos (como PlayerAssignment.bin) recién se copian al entrar en el amistoso: por eso ese paso.
-- **Planteles de la base para equipos vacíos** (Plantel). Con PlayerAssignment.bin y Team.bin copiados, el editor sabe qué jugadores tiene cada equipo en el Parche y el nombre y la sigla de los 750 equipos. Si un equipo está vacío en tu EDIT, la pestaña Plantel muestra el plantel que trae el Parche, con dorsales, fotos y valoraciones.
+- **Planteles de la base para equipos vacíos** (Plantel). Con PlayerAssignment.bin y Team.bin copiados, el editor sabe qué jugadores tiene cada equipo en el juego y el nombre y la sigla de los 750 equipos. Si un equipo está vacío en tu EDIT, la pestaña Plantel muestra el plantel que trae el juego, con dorsales, fotos y valoraciones.
   1. Abrí un equipo sin plantel (activá "Incluir sin plantel" en la lista).
   2. Tocá un jugador para abrirlo; si no estaba en tu EDIT, el editor ofrece agregarlo con sus habilidades.
   3. Con "Copiar este plantel a mi EDIT" se agregan todos de una vez (hasta 40). Se puede deshacer con Ctrl+Z.
@@ -369,7 +369,7 @@ Primera versión con música, el logo nítido a cualquier tamaño y las fotos de
 - **Logo de la barra en vector (SVG)** (Interfaz). El logo de arriba usa los archivos vectoriales: plateado en modo oscuro y negro en modo claro. Se ve nítido con cualquier zoom y al cambiar de modo pasa de uno al otro con un fundido.
 - **Paso suave de la carga a la página** (Interfaz). Cuando termina de cargar el EDIT, el fondo de la introducción se agranda y se desenfoca mientras se desvanece, la página aparece de a poco y el logo vuela hasta su lugar en la barra.
 - **Fotos en la tabla del plantel** (Plantel). Cada jugador muestra su foto (la misma minicara que usa la Formación) dentro de un círculo con los colores del equipo. Antes solo aparecían si la Formación estaba en modo Fotos y eran muy chicas. Si un jugador no tiene foto, queda la camiseta. Al pasar el mouse por la fila, la foto se agranda un poco.
-  1. Tocá "Conectar carpeta Sider" para que el editor encuentre las minicaras del Parche.
+  1. Tocá "Conectar carpeta Sider" para que el editor encuentre las minicaras del juego.
   2. Abrí un equipo: las fotos aparecen solas en la pestaña Plantel.
 
 ## v0.007 alpha · Intro con neón y sección Novedades
@@ -381,7 +381,7 @@ La pantalla de carga se volvió más llamativa y se agregó esta sección.
 - **Intro con efectos** (Interfaz). El logo entra con un zoom, un destello de luz, rayos que giran detrás, chispas que suben, un piso con grilla tipo estadio de noche y un reflejo debajo.
 - **Brillo neón que se prende y se apaga** (Interfaz). El contorno de las letras, las barras y las estrellas se iluminan como un tubo de neón: se enciende con parpadeos, queda prendido, se apaga despacio y vuelve a prenderse. Mientras carga el EDIT late más rápido y al terminar queda fijo. Usa el color de acento de la página (cambia con los colores del equipo). Si Windows tiene activado "reducir animaciones", se muestra fijo y sin efectos.
 - **Pestaña Novedades** (Interfaz). Al lado de Archivo. Cuando hay una versión que todavía no viste aparece un punto que titila en la pestaña; se apaga cuando entrás.
-- **Botón "Conectar carpeta Sider"** (Kits). El botón que antes decía "Conectar Parche" ahora se llama "Conectar carpeta Sider" y tiene el ícono del martillo y la llave. Hace lo mismo: elegís la carpeta de Sider del Parche y el editor lee kits, caras, escudos y nombres de jugadores.
+- **Botón "Conectar carpeta Sider"** (Kits). El botón que antes decía "Conectar Parche" ahora se llama "Conectar carpeta Sider" y tiene el ícono del martillo y la llave. Hace lo mismo: elegís la carpeta de Sider del juego y el editor lee kits, caras, escudos y nombres de jugadores.
 
 ## v0.006 alpha · El EDIT se encuentra solo
 
@@ -389,7 +389,7 @@ La pantalla de carga se volvió más llamativa y se agregó esta sección.
 
 Ya no hace falta buscar el archivo a mano: el editor lo encuentra en tu carpeta Documentos.
 
-- **Búsqueda automática del EDIT** (Archivo). El editor busca KONAMI\eFootball PES 2021 SEASON UPDATE dentro de Documentos (aunque esté en otra subcarpeta) y abre el EDIT00000000 más reciente. Si hay dos con la misma fecha, prefiere el del Parche (carpeta drmp) antes que el del juego sin parche (save).
+- **Búsqueda automática del EDIT** (Archivo). El editor busca KONAMI\eFootball PES 2021 SEASON UPDATE dentro de Documentos (aunque esté en otra subcarpeta) y abre el EDIT00000000 más reciente. Si hay dos con la misma fecha, prefiere el de la carpeta drmp antes que el de la carpeta save.
   1. La primera vez tocá "📂 Elegir mi carpeta Documentos". La ventana ya se abre en Documentos: solo tocá "Seleccionar carpeta".
   2. En el aviso del navegador elegí "Permitir en cada visita" para que la próxima vez entre directo.
 - **Cambiar entre EDITs** (Archivo). En la pestaña Archivo, la tarjeta "Carpeta del juego" lista todos los EDIT encontrados (drmp, save u otras cuentas de Steam) con fecha y tamaño. "Abrir este" cambia al otro; si tenés cambios sin guardar, primero te pregunta.
@@ -436,7 +436,7 @@ El estudio de kits se acercó a cómo se ve la camiseta en el juego.
 
 *12 de octubre de 2026, 21:28 (hora de Argentina)*
 
-Se armó un estudio para ver y editar los kits del kit-server del Parche.
+Se armó un estudio para ver y editar los kits del kit-server del juego.
 
 - **Visor 3D con los modelos reales** (Kits). La camiseta, las mangas, más de 100 cuellos, los 16 shorts y las medias salen del CometKIT previewer, con iluminación tipo estadio.
 - **Editar el config.txt sin escribir** (Kits). Los valores del config del kit (cuello, short, colores y demás) se cambian con controles y el 3D se actualiza al instante.

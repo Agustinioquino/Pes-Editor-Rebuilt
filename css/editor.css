@@ -750,6 +750,7 @@ html.introing,html.introing body{overflow:hidden}
 .introsteps li[data-s="ok"]::before{content:"✓";width:auto;height:auto;color:var(--accent);font-weight:700}
 .introsteps li[data-s="wait"]{color:var(--ink)}.introsteps li[data-s="wait"]::before{background:var(--warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 25%,transparent);animation:introPulse 1.4s ease-in-out infinite}
 .introsteps li[data-s="err"]{color:var(--bad)}.introsteps li[data-s="err"]::before{content:"✕";width:auto;height:auto;font-weight:700}
+.introsteps li[data-s="warn"]{color:var(--warn)}.introsteps li[data-s="warn"]::before{content:"⚠";width:auto;height:auto;font-weight:700}.intro.dk .introsteps li[data-s="warn"]{color:#ffd166}
 @keyframes introPulse{50%{box-shadow:0 0 0 8px transparent}}
 @keyframes introSpin{to{rotate:360deg}}
 .introbar{width:min(520px,100%);height:5px;border-radius:99px;background:color-mix(in srgb,var(--line) 60%,transparent);overflow:visible;position:relative}

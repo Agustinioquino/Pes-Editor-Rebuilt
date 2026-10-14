@@ -17,14 +17,18 @@ function parseKitCfg(txt, n) {
 // Lo único obligatorio es que sea Sider; el kit-server (los kits editables) es opcional.
 const hasFile = async (d, n) => { try { await d.getFileHandle(n); return true; } catch { return false; } };
 const hasDir = async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } };
-const isSiderDir = async d => await hasFile(d, 'sider.ini') || await hasFile(d, 'sider.exe') || await hasFile(d, 'sider.dll');
+const isSiderDir = async d => await hasFile(d, 'sider.ini') || await hasFile(d, 'sider.exe') || await hasFile(d, 'sider.dll') || !!(await hasDir(d, 'livecpk') && (await hasDir(d, 'modules') || await hasDir(d, 'content')));
+const SKIP_DIR = /^(\.|\$|livecpk$|content$|modules$|download$|data$|movie|sound$|asset$|node_modules$|System Volume Information$)/i;
+// una carpeta common de contenido cpk (render, character0, etc…), distinta de la carpeta common de Steam (steamapps\common)
+const isCpkCommon = async d => !!(await hasDir(d, 'render') || await hasDir(d, 'character0') || await hasDir(d, 'character1') || await hasDir(d, 'etc') || await hasDir(d, 'bg') || await hasDir(d, 'menu') || await hasDir(d, 'sound') || await hasDir(d, 'bgm'));
+const isCpkContent = async d => { const c = await hasDir(d, 'common'); if (c && await isCpkCommon(c)) return true; const a = await hasDir(d, 'Asset'); return !!(a && (await hasDir(a, 'model') || await hasDir(a, 'texture') || await hasDir(a, 'bg'))); };
 async function siderLayout(dir) {
   let sider = await isSiderDir(dir) ? dir : null;
   if (!sider) { // unos niveles hacia abajo (la carpeta del juego, steamapps\common…)
     const q = [[dir, 0]]; let seen = 0;
-    while (q.length && !sider && seen < 300) {
+    while (q.length && !sider && seen < 600) {
       const [d, depth] = q.shift();
-      try { for await (const [n, h] of d.entries()) { if (h.kind !== 'directory' || /^(\.|\$|livecpk$|content$|modules$|download$|data$|movie|sound|common$|asset)/i.test(n)) continue; seen++; if (await isSiderDir(h)) { sider = h; break; } if (depth < 2) q.push([h, depth + 1]); } } catch { }
+      try { for await (const [n, h] of d.entries()) { if (h.kind !== 'directory' || SKIP_DIR.test(n) || (/^common$/i.test(n) && await isCpkCommon(h))) continue; seen++; if (await isSiderDir(h)) { sider = h; break; } if (depth < 3) q.push([h, depth + 1]); } } catch { }
     }
   }
   const base = sider || dir;
@@ -33,16 +37,29 @@ async function siderLayout(dir) {
   for (const [d, p] of [[base, 'content/kit-server'], [base, 'kit-server'], [base, ''], [dir, 'content/kit-server'], [dir, 'kit-server'], [dir, '']]) { try { const k = p ? await subDir(d, p) : d; if (await readText(k, 'map.txt') != null) { kit = k; break; } } catch { } }
   if (!kit) { const c = await hasDir(base, 'content'); if (c) { try { for await (const [n, h] of c.entries()) if (h.kind === 'directory' && /kit/i.test(n) && await readText(h, 'map.txt') != null) { kit = h; break; } } catch { } } }
   const live = await hasDir(base, 'livecpk');
-  if (!sider && !kit && !live) return null;
+  if (!sider && !live && kit !== dir) return null; // ni Sider ni livecpk: solo sirve si eligió la carpeta kit-server misma
   return { sider: base, kit, live };
 }
 // las carpetas de contenido de Sider en el orden en que las usa el juego: primero las cpk.root de sider.ini (rutas
 // relativas, o completas que apunten dentro de esta misma Sider), después el resto de livecpk
+// cuando la carpeta elegida no es (ni contiene) Sider: qué parece ser, para decir qué carpeta elegir
+async function siderWhatIs(dir) {
+  const names = []; let cpkLike = 0;
+  try { for await (const [n, h] of dir.entries()) { if (h.kind !== 'directory') continue; names.push(n); if (names.length <= 12 && await isCpkContent(h)) cpkLike++; } } catch { }
+  if (await isCpkContent(dir)) return 'Esa carpeta parece una carpeta de contenido (tiene common o Asset): elegí la carpeta de Sider, la que tiene sider.exe y sider.ini, dos niveles más arriba.';
+  if (cpkLike >= 1 && cpkLike >= names.length / 2) return 'Esa carpeta parece la carpeta livecpk: elegí la de arriba, la que tiene sider.exe y sider.ini.';
+  if (await hasDir(dir, 'kit-server') || await hasFile(dir, 'map.txt') || await hasDir(dir, 'edit21-db')) return 'Esa carpeta parece la carpeta content de Sider: elegí la de arriba, la que tiene sider.exe y sider.ini.';
+  if (await hasFile(dir, 'PES2021.exe')) return 'Es la carpeta del juego, pero Sider no está adentro ni en sus subcarpetas: elegí la carpeta donde está sider.exe (con sider.ini).';
+  if (!names.length) return 'En esa carpeta no está Sider (sider.exe o sider.ini) y está vacía. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.';
+  if (names.length > 6) return `En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay ${names.length} carpetas, como ${names.slice(0, 5).join(', ')}. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.`;
+  return `En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay: ${names.join(', ')}. Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.`;
+}
 async function siderCpkRoots(sider) {
   const out = [], seen = new Set(), add = (h, key) => { if (h && !seen.has(key.toLowerCase())) { seen.add(key.toLowerCase()); out.push(h); } };
-  const ini = await readText(sider, 'sider.ini'), me = (sider.name || '').toLowerCase();
+  const ini = typeof siReadIni === 'function' ? await siReadIni(sider) : await readText(sider, 'sider.ini'), me = (sider.name || '').toLowerCase();
   for (const l of (ini || '').split(/\r?\n/)) {
     const m = l.match(/^\s*cpk\.root\s*=\s*"?([^"\r\n;]+?)"?\s*(;.*)?$/i); if (!m) continue;
+    if (typeof siResolve === 'function') { const r = await siResolve(sider, m[1]); if (r.h && r.rel != null) add(r.h, r.rel); continue; }
     let p = m[1].trim().replace(/\//g, '\\');
     if (/^([A-Za-z]:|\\\\)/.test(p)) { // ruta completa: sirve si está dentro de esta carpeta Sider
       const parts = p.split('\\').filter(Boolean), k = parts.map(x => x.toLowerCase()).lastIndexOf(me);
@@ -64,7 +81,7 @@ async function connectKits(dirIn) {
     catch (e) { if (e.name !== 'AbortError') toast('No se pudo abrir: ' + e.message); else if (!window.pesNative) toast('¿El navegador no te dejó abrir la carpeta?', 9000, ['Ver qué hacer', siderBlockedHelp]); return; }
   }
   const lay = await siderLayout(dir);
-  if (!lay) { toast('En esa carpeta no está Sider (sider.exe o sider.ini). Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.', 9000); return; }
+  if (!lay) { toast(await siderWhatIs(dir), 11000); return; }
   if (SIDER_RO && SIDER_RO === dir && lay.sider !== dir) { lay.sider.readOnly = true; SIDER_RO = lay.sider; }
   const root = lay.kit, sider = lay.sider;
   const map = !root ? [] : lines(await readText(root, 'map.txt')).map(l => l.match(/^(\d+)\s*,\s*"([^"]+)"/)).filter(Boolean).map(m => [+m[1], m[2]]);
@@ -94,14 +111,21 @@ async function connectKits(dirIn) {
       const h = await (await content.getDirectoryHandle('edit21-db')).getFileHandle('Player.bin');
       const m = await namesFromBin(new Uint8Array(await (await h.getFile()).arrayBuffer()));
       S.names = m; S.namesFrom = 'Parche (base del juego)'; namesSave(); RATE_GEN++;
-      namesMsg = ` y ${m.size.toLocaleString('es-AR')} nombres de jugadores`;
-    } else namesMsg = '. Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
-  } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
+      namesMsg = `${m.size.toLocaleString('es-AR')} nombres de jugadores`;
+    } else namesMsg = 'Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
+  } catch { namesMsg = 'Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
   if (!sider.readOnly) { try { const n = await siderFixPaths(sider); if (n) setTimeout(() => toast(`Arreglé las rutas de sider.ini que apuntaban a la carpeta vieja de Sider (${n}): ahora son relativas (copia en sider.ini.bak-pes-editor).`, 9000), 7400); } catch { } }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, !sider.readOnly); } catch { } }
   if (typeof siReset === 'function') siReset();
   if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
-  toast(`${root ? `Kits cargados: ${out.size} equipos` : 'Sider conectado (sin kit-server: los kits no se pueden editar acá)'}${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
+  // el aviso se arma por partes (cada una se traduce sola) y se une con " · "
+  const T = typeof tr === 'function' ? tr : x => x, parts = [];
+  if (lay.sider !== dir) parts.push(T(`Sider encontrado en ${sider.name}`));
+  parts.push(T(root ? `Kits cargados: ${out.size} equipos` : 'Sider conectado (sin kit-server: los kits no se pueden editar acá)'));
+  if (namesMsg) parts.push(T(namesMsg));
+  if (FACES.count) parts.push(T(`${FACES.count.toLocaleString('es-AR')} minifaces`));
+  if (BADGES.count) parts.push(T(`${BADGES.count} escudos locales`));
+  toast(parts.join(' · ') + '.', 7000); render(); return true;
 }
 // el botón de arriba dice "Reconectar" cuando la carpeta Sider ya está conectada (en la carga o antes)
 function siderBtnLabel() {

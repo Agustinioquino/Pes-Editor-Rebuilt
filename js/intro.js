@@ -194,6 +194,11 @@ async function introSider(t0) {
     introStep('Cargando caras, escudos y la base del juego desde Sider…');
     await Promise.race([FACES.ready || Promise.resolve(), introWait(12000)]);
     introStep(`Sider listo: ${(FACES.count || 0).toLocaleString('es-AR')} caras y ${(BADGES.count || 0).toLocaleString('es-AR')} escudos.`);
+    // qué dice sider.ini y si todo lo que nombra existe (carpetas de contenido, módulos, kit-server, edit21-db)
+    if (typeof siIntroCheck === 'function') {
+      const sh = (typeof SIDER_RO !== 'undefined' && SIDER_RO) || h || await idbGet('sider').catch(() => null);
+      if (sh) { introStep('Revisando sider.ini…'); const c = await Promise.race([siIntroCheck(sh).catch(() => null), introWait(20000)]); introStep(c ? c.text : 'sider.ini: la revisión sigue en la pestaña Sider.', 'ok'); if (c && c.warn) introStep(c.warn, 'warn'); }
+    }
   } else introStep('Sin Sider por ahora: podés conectarlo después con el botón de arriba.');
   // fotos de internet para los que no tienen miniface: se elige una vez
   if (!PREFS.photoSrc) {
@@ -204,6 +209,7 @@ async function introSider(t0) {
     introStep({ tsdb: 'Fotos: recortadas de TheSportsDB.', mix: 'Fotos: recortadas y, si faltan, de Wikipedia.', off: 'Fotos: solo las del Parche.' }[a]);
   }
   await introImages();
+  if (typeof SI !== 'undefined' && SI.introProbs) { const probs = SI.introProbs; setTimeout(() => toast('Sider: ' + probs.join('; ') + '.', 12000, ['Ver en la pestaña Sider', () => setTab('sider')]), 2200); }
   // un momento más para que terminen de cargar las fuentes y el logo
   introStep('Preparando la pantalla…');
   await Promise.race([Promise.all([document.fonts ? document.fonts.ready : null, introWait(Math.max(0, t0 + 2600 - Date.now()))]), introWait(8000)]);

@@ -7,7 +7,8 @@ const LUA_VERSION = (typeof EDIT21_LUA === 'string' && EDIT21_LUA.match(/v(\d+\.
 const DB_NEEDED = ['Player.bin', 'Team.bin', 'PlayerAssignment.bin'];
 
 async function sdbFile(dir, name) { try { return await (await dir.getFileHandle(name)).getFile(); } catch { return null; } }
-async function sdbWrite(dir, name, text) { const h = await dir.getFileHandle(name, { create: true }); const w = await h.createWritable(); await w.write(text); await w.close(); }
+// sider.ini se escribe con la misma codificación con la que se leyó (siReadIni la anota en SI.enc)
+async function sdbWrite(dir, name, text) { const h = await dir.getFileHandle(name, { create: true }); const w = await h.createWritable(); await w.write(/^sider\.ini/i.test(name) && typeof siEncode === 'function' && typeof SI !== 'undefined' ? siEncode(text, SI.enc) : text); await w.close(); }
 
 // ---- instalación del módulo (necesita permiso de escritura en la carpeta Sider) ----
 async function sdbInstall(sider) {
@@ -21,7 +22,7 @@ async function sdbInstall(sider) {
   if (!cur) { await sdbWrite(mods, LUA_NAME, EDIT21_LUA); r.module = 'nuevo'; r.changed = true; }
   else if (parseFloat(curVer) < parseFloat(LUA_VERSION)) { try { await sdbWrite(mods, LUA_NAME + '.anterior', await cur.text()); } catch { } await sdbWrite(mods, LUA_NAME, EDIT21_LUA); r.module = 'actualizado'; r.changed = true; }
   // 2) sider.ini: lua.enabled = 1 y la línea del módulo
-  let text = await ini.text(), orig = text;
+  let text = typeof siReadIni === 'function' ? await siReadIni(sider) : await ini.text(), orig = text;
   if (!/^\s*lua\.module\s*=\s*"?edit21_db\.lua"?\s*$/mi.test(text)) {
     const nl = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/); let last = -1;

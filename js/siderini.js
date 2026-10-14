@@ -4,7 +4,25 @@
 // Nada se escribe hasta tocar "Guardar sider.ini"; la primera vez queda una copia en sider.ini.bak-pes-editor (la misma
 // copia que usan los otros arreglos automáticos del editor).
 const SI = { h: null, items: null, nl: '\r\n', orig: '', info: null, busy: null, err: null, perm: false, seq: 0, open: { raw: false, other: false } };
-const siReset = () => { SI.info = null; SI.items = null; };
+const siReset = () => { SI.info = null; SI.items = null; SI.err = null; SI.perm = false; }; // también el error: tras reconectar otra carpeta se vuelve a leer
+// sider.ini suele ser ASCII o UTF-8, pero el Bloc de notas lo puede guardar en UTF-16 o en Windows-1252 (acentos en los
+// comentarios). Se detecta al leer y al guardar se escribe igual, para que Sider lo siga leyendo como antes.
+function siDecode(b) {
+  if (b.length >= 2 && b[0] === 0xFF && b[1] === 0xFE) return { enc: 'utf-16le', text: new TextDecoder('utf-16le').decode(b.subarray(2)) };
+  if (b.length >= 2 && b[0] === 0xFE && b[1] === 0xFF) return { enc: 'utf-16be', text: new TextDecoder('utf-16be').decode(b.subarray(2)) };
+  if (b.length >= 4 && b[1] === 0 && b[3] === 0 && b[0] && b[2]) return { enc: 'utf-16le', text: new TextDecoder('utf-16le').decode(b) }; // sin BOM pero con ceros intercalados
+  const u = new TextDecoder('utf-8').decode(b);
+  if (/\uFFFD/.test(u)) { try { return { enc: 'cp1252', text: new TextDecoder('windows-1252').decode(b) }; } catch { } }
+  return { enc: b.length >= 3 && b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 'utf-8-bom' : 'utf-8', text: u.replace(/^\uFEFF/, '') };
+}
+function siEncode(t, enc) {
+  if (enc === 'utf-16le' || enc === 'utf-16be') { const b = new Uint8Array(2 + t.length * 2); b[0] = 0xFF; b[1] = 0xFE; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[2 + i * 2] = c & 255; b[3 + i * 2] = c >> 8; } return b; }
+  if (enc === 'cp1252') { const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[i] = c < 256 ? c : 63; } return b; }
+  if (enc === 'utf-8-bom') return new TextEncoder().encode('\uFEFF' + t);
+  return new TextEncoder().encode(t);
+}
+async function siReadIni(h) { const f = await sdbFile(h, 'sider.ini'); if (!f) return null; const d = siDecode(new Uint8Array(await f.arrayBuffer())); SI.enc = d.enc; return d.text; }
+async function siWrite(dir, name, text) { const h = await dir.getFileHandle(name, { create: true }); const w = await h.createWritable(); await w.write(siEncode(text, SI.enc)); await w.close(); }
 
 // ---- sider.ini: cada línea queda como está salvo las que se tocan ----
 // kv: clave = valor (con o sin comillas, con comentario al final). Una línea comentada (; clave = valor) con una clave con
@@ -59,7 +77,7 @@ const SI_TYPES = {
   trofeos: ['Trofeos', '🏆'], tuneles: ['Túneles', '🚪'], tecnicos: ['Entrenadores', '🧑‍💼'], cantos: ['Cantos de hinchada', '🎶'], prensa: ['Sala de prensa', '🎤'],
   clima: ['Clima', '🌦️'], competiciones: ['Competiciones', '🏅'], editor: ['Carpeta de PES Editor', '🛠️'], comun: ['Librería común para otros módulos', '🧩']
 };
-const SI_PATHS = [ // [ruta dentro de la carpeta, tipo, contar archivos]
+const SI_PATHS = [ // [ruta dentro de la carpeta, tipo, contar (archivos; en caras, una carpeta por jugador)]
   ['common/render/symbol/flag', 'escudos', 1], ['common/render/symbol/player', 'minifaces', 1], ['common/character0/model/character/face/real', 'caras', 1],
   ['common/character0/model/character/uniform', 'kits', 0], ['common/character0/model/character/boots', 'botines', 0], ['common/character0/model/character/glove', 'guantes', 0],
   ['common/character0/model/character/ball', 'balones', 0], ['common/render/thumbnail/ball', 'balones', 0], ['Asset/model/bg', 'estadios', 0], ['common/bg/model/bg', 'estadios', 0],
@@ -96,18 +114,30 @@ const siGuess = name => { for (const [re, t] of SI_NAMES) if (re.test(name)) ret
 async function siScanRoot(d, name) {
   const found = new Map();
   for (const [p, t, cnt] of SI_PATHS) {
-    try { const x = await subDir(d, p); let n = 0; for await (const [, e] of x.entries()) { if (!cnt) { n = 1; break; } if (e.kind === 'file') n++; if (n >= 3000) break; } if (n) { const cur = found.get(t); if (!cur || n > cur.count) found.set(t, { sure: true, count: cnt ? n : 0 }); } } catch { }
+    try { const x = await subDir(d, p); let n = 0; for await (const [, e] of x.entries()) { if (!cnt) { n = 1; break; } if (e.kind === 'file' || t === 'caras') n++; if (n >= 3000) break; } if (n) { const cur = found.get(t); if (!cur || n > cur.count) found.set(t, { sure: true, count: cnt ? n : 0 }); } } catch { }
   }
   if (!found.size) { const g = siGuess(name); if (g) found.set(g, { sure: false, count: 0 }); }
   return [...found].map(([t, v]) => Object.assign(siType(t), v));
 }
-// la carpeta de una línea cpk.root: ruta relativa (.\livecpk\X) o completa que caiga dentro de esta misma Sider
+// la carpeta de una línea cpk.root: ruta relativa (.\livecpk\X, livecpk\X, ./livecpk/X) o completa. Una ruta completa
+// se busca adentro de esta Sider aunque la carpeta haya cambiado de nombre o de lugar: primero lo que sigue al nombre de
+// la carpeta Sider, después cada final de la ruta (…\livecpk\X, …\X), y por último livecpk\<última carpeta>.
 async function siResolve(sider, val) {
-  let p = val.trim().replace(/\//g, '\\'), rel = p; const abs = /^([A-Za-z]:|\\\\)/.test(p), me = (sider.name || '').toLowerCase();
-  if (abs) { const parts = p.split('\\').filter(Boolean), k = parts.map(x => x.toLowerCase()).lastIndexOf(me), lv = parts.findIndex(x => /^livecpk$/i.test(x)); rel = k >= 0 ? parts.slice(k + 1).join('\\') : lv >= 0 ? parts.slice(lv).join('\\') : null; }
-  if (rel != null) rel = rel.replace(/^\.\\?/, '').replace(/\\+$/, '');
-  let h = null; if (rel != null) { try { h = rel ? await subDir(sider, rel) : sider; } catch { } }
-  return { abs, rel, h, outside: abs && rel == null, name: (rel || p).split('\\').filter(Boolean).pop() || p };
+  let p = val.trim().replace(/\//g, '\\').replace(/\\+$/, ''); const abs = /^([A-Za-z]:|\\\\)/.test(p), me = (sider.name || '').toLowerCase();
+  const parts = p.split('\\').filter(Boolean), last = parts[parts.length - 1] || p;
+  let rel = null, h = null, outside = false;
+  const tryRel = async r => { try { const x = r ? await subDir(sider, r) : sider; h = x; rel = r; return true; } catch { return false; } };
+  const relOf = r => { rel = r; return tryRel(r); }; // relativa: se anota aunque no exista
+  if (abs) {
+    const low = parts.map(x => x.toLowerCase()), k = low.lastIndexOf(me), cands = [];
+    if (k >= 0) cands.push(parts.slice(k + 1).join('\\'));
+    for (let i = 1; i < parts.length - 1; i++) cands.push(parts.slice(i).join('\\')); // finales de dos o más carpetas
+    if (last && !/^livecpk$/i.test(last)) cands.push('livecpk\\' + last);
+    for (const c of cands) if (await tryRel(c)) break;
+    if (!h) { const lv = low.indexOf('livecpk'); rel = lv >= 0 ? parts.slice(lv).join('\\') : null; outside = rel == null; }
+  } else if (/^\.\.(\\|$)/.test(p)) outside = true; // sube un nivel: el navegador no puede mirar ahí
+  else await relOf(p.replace(/^\.(\\|$)/, ''));
+  return { abs, rel, h, outside, name: ((rel != null ? rel : p).split('\\').filter(Boolean).pop()) || p };
 }
 async function siCount(d, re, cap = 500) { let n = 0; try { for await (const [nm, e] of d.entries()) { if (!re || (e.kind === 'file' && re.test(nm))) n++; if (n >= cap) break; } } catch { } return n; }
 async function siVersion(h) {
@@ -116,15 +146,15 @@ async function siVersion(h) {
 }
 
 // ---- leer todo: sider.ini + carpetas ----
-async function siLoad(force) {
+async function siLoad(force, hIn) {
   if (SI.busy) return SI.busy;
   if (SI.info && !force) return;
   SI.busy = (async () => {
     SI.err = null; SI.perm = false; SI.info = null; SI.items = null;
-    let h = (typeof SIDER_RO !== 'undefined' && SIDER_RO) || await idbGet('sider').catch(() => null);
+    let h = hIn || (typeof SIDER_RO !== 'undefined' && SIDER_RO) || await idbGet('sider').catch(() => null);
     SI.h = h; if (!h) return;
     try { if (h.queryPermission && (await h.queryPermission({ mode: 'read' })) !== 'granted') { SI.perm = true; return; } } catch { }
-    const text = await readText(h, 'sider.ini');
+    const text = await siReadIni(h);
     if (text == null) { SI.err = 'no-ini'; return; }
     SI.orig = text; siParse(text);
     const info = { name: h.name || 'Sider', ro: !!h.readOnly, ver: await siVersion(h), roots: [], live: [], mods: [], modFree: [], content: [], game: siKv('exe.name').map(x => x.val), inGame: await hasFile(h, 'PES2021.exe'), bak: !!await sdbFile(h, 'sider.ini.bak-pes-editor') };
@@ -296,11 +326,31 @@ async function siSave() {
   if (h.readOnly) { toast(RO_MSG, 8000); return; }
   try { if (h.queryPermission && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted' && (await h.requestPermission({ mode: 'readwrite' })) !== 'granted') { toast('Sin permiso para escribir en la carpeta Sider.', 6000); return; } } catch { }
   try {
-    if (!await sdbFile(h, 'sider.ini.bak-pes-editor')) await sdbWrite(h, 'sider.ini.bak-pes-editor', SI.orig);
-    await sdbWrite(h, 'sider.ini', text);
+    if (!await sdbFile(h, 'sider.ini.bak-pes-editor')) await siWrite(h, 'sider.ini.bak-pes-editor', SI.orig);
+    await siWrite(h, 'sider.ini', text);
   } catch (e) { toast('No se pudo guardar sider.ini: ' + e.message, 7000); return; }
   toast('sider.ini guardado (copia en sider.ini.bak-pes-editor). Abrí el juego de nuevo con Sider para que tome los cambios.', 7000);
   await siLoad(true);
   // las fotos y los escudos del editor siguen el orden de sider.ini
   try { if (typeof indexBadges === 'function') indexBadges(h).catch(() => { }); if (typeof indexFaces === 'function') indexFaces(h).catch(() => { }); } catch { }
+}
+
+// ---- pantalla de carga: qué se leyó de sider.ini y qué falta (cada parte se traduce por separado) ----
+async function siIntroCheck(h) {
+  const T = typeof tr === 'function' ? tr : x => x;
+  try { await siLoad(true, h); } catch { }
+  const info = SI.info; SI.introProbs = null;
+  if (!info) return { ok: false, text: T(SI.err === 'no-ini' ? 'Sider: en la carpeta no hay sider.ini (abrí Sider una vez para que lo cree).' : 'Sider: no se pudo leer sider.ini.') };
+  const roots = info.roots.filter(r => !r.it.off), miss = roots.filter(r => !r.h && !r.outside), out = roots.filter(r => r.outside);
+  const mods = info.mods.filter(x => !x.it.off), mmiss = mods.filter(x => !x.exists);
+  const kinds = []; for (const r of roots) for (const t of r.types) if (!kinds.includes(t.n)) kinds.push(t.n);
+  const kit = info.content.some(c => c.type === 'kits'), db = info.content.some(c => /edit21-db/i.test(c.name));
+  const probs = [];
+  if (siGet('livecpk.enabled') === '0') probs.push(T('livecpk apagado (livecpk.enabled = 0)'));
+  if (siGet('lua.enabled') === '0' && mods.length) probs.push(T('módulos apagados (lua.enabled = 0)'));
+  if (miss.length) probs.push(`${miss.length} ${T(miss.length === 1 ? 'carpeta no existe' : 'carpetas no existen')} (${miss.map(r => r.name).slice(0, 3).join(', ')}${miss.length > 3 ? '…' : ''})`);
+  if (mmiss.length) probs.push(`${mmiss.length} ${T(mmiss.length === 1 ? 'módulo falta' : 'módulos faltan')} (${mmiss.map(x => x.name).slice(0, 3).join(', ')}${mmiss.length > 3 ? '…' : ''})`);
+  const base = `${T(`sider.ini leído: ${roots.length} ${roots.length === 1 ? 'carpeta de contenido' : 'carpetas de contenido'} y ${mods.length} ${mods.length === 1 ? 'módulo' : 'módulos'}`)}${kinds.length ? ' · ' + kinds.slice(0, 6).map(T).join(', ') : ''}${kit ? ' · kit-server' : ' · ' + T('sin kit-server')}${db ? ' · edit21-db' : ''}${out.length ? ` · ${out.length} ${T('en otra carpeta')}` : ''}`;
+  SI.introProbs = probs.length ? probs : null;
+  return { ok: !probs.length, probs, text: base + '.', warn: probs.length ? `${T('Revisar')}: ${probs.join('; ')}.` : '' };
 }

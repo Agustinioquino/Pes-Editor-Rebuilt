@@ -1,0 +1,58 @@
+name: Anunciar release en Discord
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar resumen a Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TAG: ${{ github.event.release.tag_name }}
+          NAME: ${{ github.event.release.name }}
+          BODY: ${{ github.event.release.body }}
+          URL: ${{ github.event.release.html_url }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          # Toma los ítems de lista del release (máx. 8), les pone emoji según el tipo
+          # y limpia prefijos tipo "feat(scope):" y el "by @user in https://..." de las notas automáticas.
+          RESUMEN=$(printf '%s\n' "$BODY" \
+            | grep -E '^\s*[-*] ' \
+            | sed -E 's/^\s*[-*] //; s/ by @[^ ]+ in https?:\/\/[^ ]+$//' \
+            | head -n 8 \
+            | while IFS= read -r l; do
+                low=$(echo "$l" | tr '[:upper:]' '[:lower:]')
+                case "$low" in
+                  feat*|add*|nuev*|agreg*)   e="✨" ;;
+                  fix*|corrig*|arregl*|bug*) e="🐛" ;;
+                  perf*|optim*)              e="⚡" ;;
+                  doc*)                      e="📝" ;;
+                  secur*|segur*)             e="🔒" ;;
+                  refactor*)                 e="♻️" ;;
+                  style*|ui*|diseñ*)         e="🎨" ;;
+                  *)                         e="🔹" ;;
+                esac
+                clean=$(echo "$l" | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?:\s*//')
+                echo "$e $clean"
+              done)
+
+          [ -z "$RESUMEN" ] && RESUMEN="🔹 Mirá los detalles en el release"
+
+          jq -n \
+            --arg t "🚀 $REPO ${NAME:-$TAG}" \
+            --arg d "$RESUMEN" \
+            --arg u "$URL" \
+            '{
+              username: "Releases",
+              embeds: [{
+                title: $t,
+                url: $u,
+                description: ($d | .[0:1500]),
+                color: 5814783,
+                footer: { text: "Nueva versión publicada 🎉" }
+              }]
+            }' \
+          | curl -sS -f -H "Content-Type: application/json" -d @- "$WEBHOOK"

@@ -3323,4 +3323,6 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "Sirve el link de un video o una lista de YouTube, y el de un tema, disco o lista de Spotify. Si escribís un nombre, te abro la búsqueda para que copies el link.":"A link to a YouTube video or playlist works, and so does one to a Spotify track, album or playlist. If you type a name, I open the search so you can copy the link.",
 "Buscar en YouTube":"Search on YouTube",
 "Buscar en Spotify":"Search on Spotify",
-"Se abre en otra pestaña: copiá el link del que te guste (en Spotify: Compartir › Copiar link) y pegalo acá.":"It opens in another tab: copy the link of the one you like (on Spotify: Share › Copy link) and paste it here."};
+"Se abre en otra pestaña: copiá el link del que te guste (en Spotify: Compartir › Copiar link) y pegalo acá.":"It opens in another tab: copy the link of the one you like (on Spotify: Share › Copy link) and paste it here.",
+"No reconozco ese link de YouTube. Pegá el de una lista (con \"list=\") o el de un video.":"I don't recognise that YouTube link. Paste a playlist link (with \"list=\") or a video link.",
+"Falta el reproductor":"The player is missing"};

@@ -2,7 +2,7 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
-## v0.050 alpha · Football Life 2026 en el editor
+## v0.050 alpha · ¡Football Life 2026 es compatible!
 
 *14 de octubre de 2026, 16:45 (hora de Argentina)*
 

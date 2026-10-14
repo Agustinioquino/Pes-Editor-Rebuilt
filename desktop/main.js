@@ -8,7 +8,9 @@ const path = require('path'), fs = require('fs'), fsp = fs.promises;
 // Algunos sitios de fotos y escudos frenan a los programas que no se ven como un navegador común.
 app.userAgentFallback = app.userAgentFallback.replace(/\) [^()]*?Chrome\//, ') Chrome/').replace(/ Electron\/\S+/, '');
 
-const SITE = process.env.PES_EDITOR_URL || 'https://agustinioquino.github.io/Pes-Editor-Rebuilt/';
+// Para probar otra versión del editor (por ejemplo la rama de un PR) sin tocar la página: --url=https://… al abrir la app,
+// o la variable de entorno PES_EDITOR_URL. Sin eso, carga la página publicada.
+const SITE = (process.argv.find(a => a.startsWith('--url=')) || '').slice(6).trim() || process.env.PES_EDITOR_URL || 'https://agustinioquino.github.io/Pes-Editor-Rebuilt/';
 const ORIGIN = new URL(SITE).origin;
 
 // Solo se puede leer y escribir dentro de las carpetas que la persona eligió con el selector de Windows.

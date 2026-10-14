@@ -31,7 +31,7 @@ async function sdbInstall(sider) {
     text = lines.join(nl); r.ini = 'agregado';
   }
   if (/^\s*lua\.enabled\s*=\s*0\s*$/m.test(text)) { text = text.replace(/^(\s*lua\.enabled\s*=\s*)0(\s*)$/m, '$11$2'); r.ini = 'agregado'; }
-  if (text !== orig) { if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig); await sdbWrite(sider, 'sider.ini', text); r.changed = true; }
+  if (text !== orig) { if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig); await sdbWrite(sider, 'sider.ini', text); r.changed = true; if (typeof siReset === 'function') siReset(); }
   // 3) content\edit21-db (el módulo no puede crear carpetas)
   const content = await sider.getDirectoryHandle('content', { create: true }); await content.getDirectoryHandle('pes-editor-db', { create: true }); const out = await content.getDirectoryHandle('edit21-db', { create: true });
   if (!await sdbFile(out, 'LEEME.txt')) await sdbWrite(out, 'LEEME.txt', 'Carpeta de salida del modulo edit21_db.lua (PES Editor).\r\nAca se guarda una copia de la base de datos que carga el juego (Player.bin, Team.bin, PlayerAssignment.bin, etc.).\r\nNo borres esta carpeta: si falta, el modulo no puede escribir.\r\n');

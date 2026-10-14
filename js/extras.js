@@ -99,6 +99,7 @@ async function connectKits(dirIn) {
   } catch { namesMsg = '. Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
   if (!sider.readOnly) { try { const n = await siderFixPaths(sider); if (n) setTimeout(() => toast(`Arreglé las rutas de sider.ini que apuntaban a la carpeta vieja de Sider (${n}): ahora son relativas (copia en sider.ini.bak-pes-editor).`, 9000), 7400); } catch { } }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, !sider.readOnly); } catch { } }
+  if (typeof siReset === 'function') siReset();
   if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el Parche porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
   toast(`${root ? `Kits cargados: ${out.size} equipos` : 'Sider conectado (sin kit-server: los kits no se pueden editar acá)'}${namesMsg}${FACES.count ? ', ' + FACES.count.toLocaleString('es-AR') + ' minifaces' : ''}${BADGES.count ? ' y ' + BADGES.count + ' escudos locales' : ''}.`, 7000); render(); return true;
 }

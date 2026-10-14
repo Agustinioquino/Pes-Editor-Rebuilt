@@ -78,5 +78,5 @@ async function siderFixPaths(sider) {
   }
   if (!n) return 0;
   if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
-  await sdbWrite(sider, 'sider.ini', lines.join(nl)); return n;
+  await sdbWrite(sider, 'sider.ini', lines.join(nl)); if (typeof siReset === 'function') siReset(); return n;
 }

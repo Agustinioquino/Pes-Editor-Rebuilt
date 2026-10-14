@@ -14,7 +14,7 @@ async function crestIniAdd(sider, root) {
   const i = lines.findIndex(l => /^\s*cpk\.root\s*=/i.test(l));
   if (i >= 0) lines.splice(i, 0, '; PES Editor: escudos propios', line); else lines.push('', '; PES Editor: escudos propios', line);
   if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
-  await sdbWrite(sider, 'sider.ini', lines.join(nl)); return true;
+  await sdbWrite(sider, 'sider.ini', lines.join(nl)); if (typeof siReset === 'function') siReset(); return true;
 }
 const CR = { team: null, main: null, own: {}, renamed: 0, prev: null, target: null, busy: false, msg: '', err: '', done: false };
 const crestId = id => String(id).padStart(6, '0');

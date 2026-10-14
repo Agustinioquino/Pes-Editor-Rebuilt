@@ -1485,3 +1485,54 @@ html[data-gfx="pes6"] .hxring.max{fill:#fbfaf5}
 @media (max-width:760px){.qebody{grid-template-columns:1fr}.qebig b{font-size:3.6rem}}
 html[data-gfx="retro"] .modal.qemodal{border-radius:0;border:2px solid var(--neon)}
 html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
+/* ---- pestaña Sider: sider.ini, carpetas de contenido y módulos ---- */
+.siwrap{max-width:1040px}
+.sititle{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--display);font-size:1.25rem;font-weight:700;margin-top:4px}
+.sititle img{border-radius:6px}
+.siintro{margin:0;font-size:.95rem;line-height:1.5}
+.sisave{justify-content:flex-end}
+.siwarns{display:grid;gap:6px}
+.sirow{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--sunk);margin-top:6px;text-align:left}
+.sirow.off{opacity:.55}
+.sirow.off .simain b{text-decoration:line-through}
+.sirow.miss{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.sinum{font-family:var(--mono);font-size:.72rem;color:var(--muted);min-width:1.4em;text-align:right}
+.simain{display:grid;gap:4px;min-width:0}
+.siname{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.siname b{font-size:.95rem}
+.sipath,.sikey{font-family:var(--mono);font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.sidesc{font-size:.8rem;color:var(--muted)}
+.sitypes{display:flex;flex-wrap:wrap;gap:4px}
+.chip.sitype.guess{border-style:dashed}
+.chip.sitool{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--ink);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.siact{display:flex;gap:3px}
+.sifree{margin-top:10px;display:grid;gap:5px}
+.sw{position:relative;display:inline-block;width:34px;height:20px;flex:none;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+.sw i::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px #0004;transition:translate .15s}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i::after{translate:14px 0}
+.sw input:focus-visible+i{outline:3px solid var(--accent);outline-offset:2px}
+.sw.big{width:40px;height:22px}.sw.big i::after{width:18px;height:18px}.sw.big input:checked+i::after{translate:18px 0}
+.sigrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.sifold{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--sunk);text-align:left}
+.siico{font-size:1.5rem;line-height:1}
+.sifbody{display:grid;gap:2px;min-width:0}
+.sifbody b{font-size:.95rem;overflow:hidden;text-overflow:ellipsis}
+.sifwhat{font-size:.8rem}
+.sitoolline{color:var(--accent)}
+.sisets{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:8px 20px}
+.siset{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:6px 0;border-bottom:1px solid var(--line);text-align:left}
+.siset.miss{opacity:.8}
+.siset.off{opacity:.55}
+.sisetl{display:grid;gap:2px;min-width:0}
+.sisetl span:first-child{font-size:.9rem;font-weight:600}
+.sisetl code{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.siset select,.siset .sinum-in{width:auto;min-width:120px;font-size:.82rem;padding:.2rem .4rem}
+.siothers{display:grid;gap:4px;margin-top:8px}
+.siothers .siset{grid-template-columns:auto 220px 1fr;align-items:center}
+.siothers input[type=text]{font-family:var(--mono);font-size:.8rem;padding:.25rem .45rem}
+.siother>summary,.siraw>summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--muted)}
+.siraw textarea{width:100%;font-family:var(--mono);font-size:.78rem;line-height:1.45;padding:8px 10px;border:1.5px solid var(--line);border-radius:calc(var(--r,8px) * .75);background:var(--sunk);color:var(--ink);resize:vertical;margin:8px 0;box-sizing:border-box}
+@media (max-width:700px){.sirow{grid-template-columns:auto auto 1fr}.siact{grid-column:1 / -1;justify-content:flex-end}.sisets{grid-template-columns:1fr}.siothers .siset{grid-template-columns:auto 1fr}.siothers .siset input{grid-column:1 / -1}}

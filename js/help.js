@@ -100,6 +100,21 @@ const HELP = {
       ['Ver', 'cada archivo muestra una miniatura (también .dds y .ftex). Tocalo para verlo grande, con su tamaño en píxeles, y descargar una copia.'],
       ['Agregar archivos', 'copia los archivos que elijas a WEPES (o a la subcarpeta abierta). El juego los ve la próxima vez que entres a importar.'],
       ['Subcarpetas', 'tocá una carpeta para entrar; usá los nombres de arriba para volver.']]]] },
+  sider: { t: 'la pestaña Sider', intro: 'Sider es el programa que carga el Parche en el juego. Todo sale de sider.ini: cada cpk.root es una carpeta con archivos del juego cambiados (escudos, caras, kits, estadios…) y cada lua.module es un módulo que agrega funciones (kit server, caras desde content, marcadores…).', groups: [
+    ['Qué muestra', [
+      ['Carpetas de contenido', 'las líneas cpk.root en el orden en que las usa el juego: si dos carpetas tienen el mismo archivo, manda la de más arriba. El editor mira adentro de cada una y dice qué trae (escudos, fotos, kits…) y, si el editor la usa, para qué.'],
+      ['Módulos Lua', 'las líneas lua.module. De cada uno dice qué hace (si lo conoce) y qué carpeta de content usa, y avisa si el archivo falta en modules.'],
+      ['Carpeta content', 'lo que usan los módulos: kit-server (los kits, que el editor edita en Equipos › Kits), edit21-db (la copia de la base para el editor), caras, cantos…'],
+      ['Ajustes', 'los interruptores de Sider explicados en castellano: livecpk, módulos, overlay, cámara, barras negras… Lo que no está en tu archivo aparece como "por defecto".']
+    ]],
+    ['Editar sider.ini', [
+      ['Prender o apagar', 'el interruptor de cada línea la comenta (;) o la descomenta: no se borra nada.'],
+      ['Ordenar', 'las flechas suben o bajan la carpeta o el módulo. La primera carpeta manda.'],
+      ['Agregar', 'las carpetas de livecpk y los módulos de modules que no están en sider.ini aparecen abajo de cada lista con un botón para agregarlos.'],
+      ['Guardar', 'nada se escribe hasta que tocás Guardar sider.ini. La primera vez queda una copia en sider.ini.bak-pes-editor, que podés volver a cargar desde el texto. Después abrí el juego de nuevo con Sider para que tome los cambios.'],
+      ['Texto completo', 'si preferís, abajo está el archivo entero para editarlo como texto.']
+    ]]
+  ] },
   file: { t: 'el archivo', intro: 'El EDIT00000000 es el archivo donde el juego guarda todas tus ediciones. El editor lo busca solo en Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE: primero el del Parche (drmp) y si no, el de save.', groups: [
     ['Dónde lo busca', [
       ['La primera vez', 'el navegador pide que elijas tu carpeta Documentos una sola vez (la ventana ya se abre ahí). Después lo recuerda; si te vuelve a pedir permiso, elegí "Permitir en cada visita".'],

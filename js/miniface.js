@@ -6,10 +6,10 @@ const MNF_ROOT = 'PESEditor-Minifaces', MNF_DIR = 'common/render/symbol/player',
 const MNF_SIZES = [2048, 1024, 512, 256];
 // dónde va la cabeza dentro del cuadro (medido en minifaces del juego): pelo al 4% de arriba, mentón al 77%, ancho 55%
 const MNF_HEAD = { top: .04, chin: .77, w: .55 };
-const MNF = { kit: null, pid: null, file: '', img: null, src: null, alpha: false, bg: false, tol: 45, s: 1, x: 0, y: 0, guide: true, busy: false, prog: 0, msg: '', err: '', done: false, own: null, size: 2048 };
+const MNF = { kit: null, wand: [], wandOn: false, pid: null, file: '', img: null, src: null, alpha: false, bg: false, tol: 45, s: 1, x: 0, y: 0, guide: true, busy: false, prog: 0, msg: '', err: '', done: false, own: null, size: 2048 };
 try { const j = JSON.parse(localStorage.getItem(MNF_LS) || '{}'); if (MNF_SIZES.includes(j.size)) MNF.size = j.size; if (j.guide === false) MNF.guide = false; } catch { }
 const mnfPrefs = () => { try { localStorage.setItem(MNF_LS, JSON.stringify({ size: MNF.size, guide: MNF.guide })); } catch { } };
-function mnfReset(pid) { Object.assign(MNF, { pid, file: '', img: null, src: null, alpha: false, bg: false, s: 1, x: 0, y: 0, busy: false, prog: 0, msg: '', err: '', done: false, own: null }); }
+function mnfReset(pid) { Object.assign(MNF, { pid, wand: [], wandOn: false, file: '', img: null, src: null, alpha: false, bg: false, s: 1, x: 0, y: 0, busy: false, prog: 0, msg: '', err: '', done: false, own: null }); }
 
 // ---- imagen ----
 function mnfShrink(src, max) { // lleva la imagen a un tamaño de trabajo (de a la mitad, se ve más nítido)
@@ -22,36 +22,49 @@ function mnfHasAlpha(c) {
   const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data;
   for (let i = 3; i < d.length; i += 4 * 7) if (d[i] < 250) return true; return false;
 }
-// saca el fondo liso (o en degradé) desde los bordes de arriba y de los costados: los hombros que tocan abajo quedan.
-// Cada paso compara con el píxel vecino (sigue los degradés) y con el color del borde de donde salió (no se mete en la cara).
-function mnfCutBg(src, tol) {
-  const W = src.width, H = src.height, c = document.createElement('canvas'); c.width = W; c.height = H;
-  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
-  const im = g.getImageData(0, 0, W, H), d = im.data, n = W * H, seen = new Uint8Array(n), seed = new Int32Array(n), q = new Int32Array(n);
-  const step = Math.max(8, tol * .6), cap = tol * 2; let qt = 0, qh = 0;
+// Borrado de fondo. Cada paso compara con el píxel vecino (sigue los degradés) y con el color de donde arrancó (no se mete en la cara).
+// Automático: arranca desde los bordes de arriba y de los costados (los hombros que tocan abajo quedan).
+// Con un clic: arranca donde tocaste y borra lo de ese color que esté pegado.
+function mnfFill(d, W, H, seen, starts, tol) {
+  const n = W * H, seed = new Int32Array(n), q = new Int32Array(n), step = Math.max(8, tol * .6), cap = tol * 2; let qt = 0, qh = 0;
   const near = (a, b, t) => Math.abs(d[a * 4] - d[b * 4]) + Math.abs(d[a * 4 + 1] - d[b * 4 + 1]) + Math.abs(d[a * 4 + 2] - d[b * 4 + 2]) <= t;
-  // solo arrancan los bordes del color que más se repite (si el pelo toca arriba, no se lo come)
-  const border = []; for (let x = 0; x < W; x++) border.push(x); for (let y = 1; y < Math.round(H * .6); y++) border.push(y * W, y * W + W - 1);
-  const med = k => { const v = border.map(i => d[i * 4 + k]).sort((a, b) => a - b); return v[v.length >> 1]; }, mr = med(0), mg = med(1), mb = med(2);
-  for (const i of border) if (!seen[i] && Math.abs(d[i * 4] - mr) + Math.abs(d[i * 4 + 1] - mg) + Math.abs(d[i * 4 + 2] - mb) <= cap) { seen[i] = 1; seed[i] = i; q[qt++] = i; }
+  for (const i of starts) if (seen[i] !== 1) { seen[i] = 1; seed[i] = i; q[qt++] = i; }
   while (qh < qt) {
-    const i = q[qh++], x = i % W, s = seed[i];
+    const i = q[qh++], x = i % W, s0 = seed[i];
     for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) {
-      if (j < 0 || j >= n || seen[j]) continue;
-      if (near(j, i, step) && near(j, s, cap)) { seen[j] = 1; seed[j] = s; q[qt++] = j; }
+      if (j < 0 || j >= n || seen[j] === 1) continue;
+      if (near(j, i, step) && near(j, s0, cap)) { seen[j] = 1; seed[j] = s0; q[qt++] = j; }
     }
   }
+}
+function mnfCutBg(src, tol, auto, wand) {
+  const W = src.width, H = src.height, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
+  const im = g.getImageData(0, 0, W, H), d = im.data, n = W * H, seen = new Uint8Array(n);
+  if (auto) {
+    // solo arrancan los bordes del color que más se repite (si el pelo toca arriba, no se lo come)
+    const border = []; for (let x = 0; x < W; x++) border.push(x); for (let y = 1; y < Math.round(H * .6); y++) border.push(y * W, y * W + W - 1);
+    const med = k => { const v = border.map(i => d[i * 4 + k]).sort((a, b) => a - b); return v[v.length >> 1]; }, mr = med(0), mg = med(1), mb = med(2);
+    mnfFill(d, W, H, seen, border.filter(i => Math.abs(d[i * 4] - mr) + Math.abs(d[i * 4 + 1] - mg) + Math.abs(d[i * 4 + 2] - mb) <= tol * 2), tol);
+  }
+  for (const [x, y, t] of wand || []) if (x >= 0 && y >= 0 && x < W && y < H) mnfFill(d, W, H, seen, [y * W + x], t);
   for (let i = 0; i < n; i++) if (seen[i] === 1) d[i * 4 + 3] = 0;
-  // borde suave: medio transparente lo que toca el fondo
+  // borde suave: medio transparente lo que toca lo borrado
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * W + x; if (seen[i]) continue; const k = (seen[i - 1] ? 1 : 0) + (seen[i + 1] ? 1 : 0) + (seen[i - W] ? 1 : 0) + (seen[i + W] ? 1 : 0); if (k) d[i * 4 + 3] = Math.min(d[i * 4 + 3], 255 - k * 40); }
   g.putImageData(im, 0, 0); return c;
 }
-function mnfApplyBg() { MNF.src = MNF.bg ? mnfCutBg(MNF.img, MNF.tol) : MNF.img; }
+function mnfApplyBg() { MNF.src = MNF.bg || MNF.wand.length ? mnfCutBg(MNF.img, MNF.tol, MNF.bg, MNF.wand) : MNF.img; }
+// clic con la varita: el punto de la vista previa pasa a píxel de la imagen
+function mnfWandAt(fx, fy) {
+  const W = MNF.img.width, x = Math.floor((fx - MNF.x) / MNF.s * W), y = Math.floor((fy - MNF.y) / MNF.s * W);
+  if (x < 0 || y < 0 || x >= W || y >= MNF.img.height) return false;
+  MNF.wand.push([x, y, MNF.tol]); mnfApplyBg(); return true;
+}
 // encuadre automático: busca la cabeza (lo visible arriba de todo) y la lleva a la guía
 function mnfAuto() {
   const c = MNF.src; if (!c) return; const W = c.width, H = c.height;
   const cover = () => { MNF.s = Math.max(1, W / H); MNF.x = (1 - MNF.s) / 2; MNF.y = 0; };
-  if (!MNF.bg && !MNF.alpha) return cover();
+  if (!MNF.bg && !MNF.alpha && !MNF.wand.length) return cover();
   const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data, row = y => { let l = -1, r = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 128) { if (l < 0) l = x; r = x; } return [l, r]; };
   let top = -1, x0 = W, x1 = -1;
   for (let y = 0; y < H; y++) { const [l, r] = row(y); if (r - l > 2) { if (top < 0) top = y; if (l < x0) x0 = l; if (r > x1) x1 = r; } }
@@ -141,15 +154,17 @@ function mnfCard(pid, kit) {
   return `<div class="card mfcard" id="mnfCard" data-pid="${pid}"><h3>🙂 Miniface</h3>
     <div class="mfrow">
       <div class="mfbox"><span class="lab">Ahora</span><div class="mfnow">${faceHtml(pid, MNF.kit, 'pl')}</div></div>
-      <div class="mfbox"><span class="lab">Nueva</span><div class="mfstage${has ? '' : ' empty'}" id="mnfStage" title="${has ? 'Arrastrá para mover, rueda del mouse para acercar' : 'Elegir imagen'}">${has ? `<canvas id="mnfCv" width="480" height="480"></canvas>${MNF.guide ? MNF_GUIDE : ''}` : '<span>Soltá acá un PNG o JPG<br>o tocá Elegir</span>'}</div></div>
+      <div class="mfbox"><span class="lab">Nueva</span><div class="mfstage${has ? '' : ' empty'}${MNF.wandOn ? ' wand' : ''}" id="mnfStage" title="${has ? (MNF.wandOn ? 'Tocá el fondo para borrarlo' : 'Arrastrá para mover, rueda del mouse para acercar') : 'Elegir imagen'}">${has ? `<canvas id="mnfCv" width="480" height="480"></canvas>${MNF.guide ? MNF_GUIDE : ''}` : '<span>Soltá acá un PNG o JPG<br>o tocá Elegir</span>'}</div></div>
       <div class="mfinfo">
-        <p class="note" style="margin:0">Subí una foto PNG o JPG del jugador. El editor la deja cuadrada con fondo transparente, la convierte en <b>${pid}.dds</b> (DXT3, como tus minifaces) y la guarda en la carpeta de Sider.</p>
+        <p class="note" style="margin:0">Subí una foto PNG o JPG del jugador. El editor la deja cuadrada con fondo transparente, la convierte en <b>${pid}.dds</b> (DXT3, el formato de las minifaces del juego) y la guarda en la carpeta de Sider.</p>
         <div class="row"><button class="btn small" type="button" id="mnfPick">📁 Elegir imagen</button>${has ? '<button class="btn small" type="button" id="mnfAuto" title="Lleva la cabeza a la guía">🎯 Encuadrar solo</button><button class="btn small ghost" type="button" id="mnfClear">✕ Quitar</button>' : ''}</div>
         ${has ? `<label class="mfline"><span>Zoom</span><input type="range" id="mnfZoom" min="20" max="400" value="${Math.max(20, Math.min(400, zoom))}" aria-label="Zoom"></label>
-        <label class="chk"><input type="checkbox" id="mnfBg" ${MNF.bg ? 'checked' : ''}> Quitar el fondo${MNF.alpha ? ' (tu imagen ya trae transparencia)' : ''}</label>
-        ${MNF.bg ? `<label class="mfline"><span>Tolerancia</span><input type="range" id="mnfTol" min="10" max="120" value="${MNF.tol}" aria-label="Tolerancia del fondo"></label>` : ''}
+        <label class="chk"><input type="checkbox" id="mnfBg" ${MNF.bg ? 'checked' : ''}> Quitar el fondo automáticamente${MNF.alpha ? ' (tu imagen ya trae transparencia)' : ''}</label>
+        <div class="row"><button class="btn small${MNF.wandOn ? ' primary' : ''}" type="button" id="mnfWand" aria-pressed="${MNF.wandOn}">🪄 Borrar fondo con un clic</button>${MNF.wand.length ? `<button class="btn small ghost" type="button" id="mnfUndo">↶ Deshacer (${MNF.wand.length})</button>` : ''}</div>
+        ${MNF.wandOn ? '<p class="note" style="margin:0">Tocá en la imagen la parte del fondo que querés borrar. Si borra de más, deshacé y bajá la tolerancia; si borra poco, subila.</p>' : ''}
+        <label class="mfline"><span>Tolerancia</span><input type="range" id="mnfTol" min="10" max="120" value="${MNF.tol}" aria-label="Tolerancia del fondo"></label>
         <label class="chk"><input type="checkbox" id="mnfGuide" ${MNF.guide ? 'checked' : ''}> Ver la guía de la cabeza</label>` : ''}
-        <label class="mfline"><span>Tamaño</span><select id="mnfSize" aria-label="Tamaño de la miniface">${MNF_SIZES.map(s => `<option value="${s}" ${s === MNF.size ? 'selected' : ''}>${s}×${s}${s === 2048 ? ' (como tu preset)' : ''}</option>`).join('')}</select></label>
+        <label class="mfline"><span>Tamaño</span><select id="mnfSize" aria-label="Tamaño de la miniface">${MNF_SIZES.map(s => `<option value="${s}" ${s === MNF.size ? 'selected' : ''}>${s}×${s}${s === 2048 ? ' (recomendado)' : ''}</option>`).join('')}</select></label>
         <div class="row"><button class="btn small primary" type="button" id="mnfSave" ${has && !MNF.busy ? '' : 'disabled'}>${MNF.busy ? 'Armando el DDS…' : '💾 Guardar en el juego'}</button><button class="btn small" type="button" id="mnfDl" ${has && !MNF.busy ? '' : 'disabled'}>⬇ Descargar .dds</button></div>
         ${MNF.busy ? `<div class="mfprog" role="progressbar" aria-label="Armando el DDS"><b style="width:${Math.round(MNF.prog * 100)}%"></b></div>` : ''}
         ${MNF.err ? `<p class="note bad" role="alert">${esc(MNF.err)}</p>` : ''}${MNF.msg ? `<p class="note ${MNF.done ? 'ok' : ''}" role="status">${MNF.msg}</p>` : ''}
@@ -176,6 +191,8 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     if (id === 'mnfPick' || (id === 'mnfStage' && !MNF.src)) mnfPick();
     else if (id === 'mnfAuto') { mnfAuto(); mnfPaint(); }
     else if (id === 'mnfClear') { const pid = MNF.pid, own = MNF.own; mnfReset(pid); MNF.own = own; mnfPaint(); }
+    else if (id === 'mnfWand') { MNF.wandOn = !MNF.wandOn; mnfPaint(); }
+    else if (id === 'mnfUndo') { MNF.wand.pop(); mnfApplyBg(); mnfPaint(); }
     else if (id === 'mnfSave') mnfSave();
     else if (id === 'mnfDl') mnfDownload();
     else if (id === 'mnfDel') mnfDelete();
@@ -197,7 +214,12 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     try { st.setPointerCapture(e.pointerId); } catch { }
   });
   document.addEventListener('pointermove', e => { if (!drag) return; MNF.x = drag.ox + (e.clientX - drag.x) / drag.w; MNF.y = drag.oy + (e.clientY - drag.y) / drag.h; mnfDraw(); });
-  document.addEventListener('pointerup', () => { drag = null; });
+  document.addEventListener('pointerup', e => {
+    const d = drag; drag = null; if (!d || !MNF.wandOn || Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) return;
+    // con la varita, un toque sin arrastrar borra el fondo en ese lugar (y la imagen vuelve a su lugar si se movió apenas)
+    MNF.x = d.ox; MNF.y = d.oy; const st = document.getElementById('mnfStage'), r = st && st.getBoundingClientRect();
+    if (r && mnfWandAt((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height)) mnfPaint(); else mnfDraw();
+  });
   document.addEventListener('wheel', e => {
     const st = e.target.closest && e.target.closest('#mnfStage'); if (!st || !MNF.src) return;
     e.preventDefault(); const r = st.getBoundingClientRect(); mnfZoomAt(MNF.s * (e.deltaY < 0 ? 1.06 : 1 / 1.06), (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);

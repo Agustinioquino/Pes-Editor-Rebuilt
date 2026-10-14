@@ -3,7 +3,7 @@ const PREF_LS = 'edit21-prefs-v1';
 const PREFS = (() => { try { return Object.assign({ look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }, JSON.parse(localStorage.getItem(PREF_LS) || '{}')); } catch { return { look: 'kits', online: false, apiKey: '3', theme: 'clasico', showIds: true, onlineBadges: true }; } })();
 function savePrefs() { try { localStorage.setItem(PREF_LS, JSON.stringify(PREFS)); } catch { } }
 const ONLINE_LS = 'edit21-online-faces-v1';
-const FACES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: 0, dir: null, count: 0 };
+const FACES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), err: new Set(), queue: [], busy: 0, dir: null, count: 0 };
 // online photo entries: { u: url, k: 'c' club kit | 'n' national-team kit | 'x' neutral headshot | '?' unknown, m: manual }
 try { FACES.online = new Map(JSON.parse(localStorage.getItem(ONLINE_LS) || '[]').map(([id, v]) => [id, typeof v === 'string' ? { u: v, k: '?' } : v])); } catch { }
 const FACE_CTX = { nat: false }; // set while rendering a club or a national team
@@ -21,13 +21,8 @@ async function indexFaceDir(d) {
 }
 async function indexFaces(sider) {
   FACES.idx.clear(); FACES.url.clear(); FACES.dir = sider;
-  // 1) livecpk roots (Sider priority order is unknown here; folders named "Faces" first)
-  try {
-    const live = await sider.getDirectoryHandle('livecpk'); const roots = [];
-    for await (const [name, h] of live.entries()) if (h.kind === 'directory') roots.push([name, h]);
-    roots.sort((a, b) => (/face/i.test(b[0]) - /face/i.test(a[0])));
-    for (const [, h] of roots) { try { await indexFaceDir(await subDir(h, 'common/render/symbol/player')); } catch { } }
-  } catch { }
+  // 1) las carpetas de contenido de Sider, en el orden de sider.ini (la primera manda) y después el resto de livecpk
+  try { for (const h of await siderCpkRoots(sider)) { try { await indexFaceDir(await subDir(h, 'common/render/symbol/player')); } catch { } } } catch { }
   // 2) miniface_server module content
   try {
     const mf = await subDir(sider, 'content/miniface_server/MiniFaces');
@@ -73,7 +68,7 @@ async function pumpFaces() {
         if (!res) { FACES.online.set(pid, { u: '', k: '?' }); saveOnline(); }
         else { const k = await classifyPhoto(pid, res.u); FACES.online.set(pid, { u: res.u, k, tm: res.tm, s: res.src }); saveOnline(); const u = onlineFor(pid); if (u) paintFace(pid, u); }
       }
-    } catch { }
+    } catch { FACES.err.add(pid); } // no contestó: queda para la próxima sesión
   }
   FACES.busy--;
 }
@@ -170,7 +165,7 @@ function faceHtml(pid, kit, cls = '') {
 
 // ===================== Team badges: Parche flag/emblem PNGs + optional online fallback =====================
 const BADGE_LS = 'edit21-online-badges-v1';
-const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), queue: [], busy: false, count: 0 };
+const BADGES = { idx: new Map(), url: new Map(), online: new Map(), loading: new Set(), err: new Set(), queue: [], busy: false, count: 0 };
 try { BADGES.online = new Map(JSON.parse(localStorage.getItem(BADGE_LS) || '[]')); } catch { }
 // los escudos que TheSportsDB no encontró se vuelven a buscar una vez, ahora también en Wikipedia
 try { if (!localStorage.getItem('edit21-badges-wiki')) { for (const [k, v] of BADGES.online) if (!v) BADGES.online.delete(k); localStorage.setItem(BADGE_LS, JSON.stringify([...BADGES.online])); localStorage.setItem('edit21-badges-wiki', '1'); } } catch { }
@@ -196,13 +191,7 @@ async function indexBadgeDir(d, best) {
 }
 async function indexBadges(sider) {
   const best = new Map();
-  try {
-    const live = await sider.getDirectoryHandle('livecpk');
-    for await (const [, root] of live.entries()) {
-      if (root.kind !== 'directory') continue;
-      for (const sub of ['common/render/symbol/flag']) { try { await indexBadgeDir(await subDir(root, sub), best); } catch { } }
-    }
-  } catch { }
+  try { for (const root of await siderCpkRoots(sider)) { try { await indexBadgeDir(await subDir(root, 'common/render/symbol/flag'), best); } catch { } } } catch { }
   BADGES.idx = new Map([...best].map(([id, v]) => [id, v.h])); for (const u of BADGES.url.values()) URL.revokeObjectURL(u); BADGES.url.clear(); BADGES.loading.clear(); BADGES.count = BADGES.idx.size;
   return BADGES.count;
 }
@@ -230,7 +219,7 @@ async function pumpBadges() {
     if (BADGES.idx.has(id) || BADGES.online.has(id)) continue;
     const t = S.ix && S.ix.teamById.get(id); if (!t) continue;
     let url = null, ok = true;
-    try { url = await onlineBadge(t); } catch { ok = false; }
+    try { url = await onlineBadge(t); } catch { ok = false; BADGES.err.add(id); }
     if (ok) { BADGES.online.set(id, url || ''); saveOnlineBadges(); if (url) paintBadge(id, url); }
     await new Promise(r => setTimeout(r, ok ? 2100 : 8000)); // free API: ~30 requests per minute
   }

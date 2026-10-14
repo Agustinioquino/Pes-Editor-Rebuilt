@@ -3329,4 +3329,15 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay":"Sider (sider.exe or sider.ini) isn't in that folder or its subfolders. Inside there are",
 "carpetas, como":"folders, such as",
 "En esa carpeta no está Sider (sider.exe o sider.ini) ni en sus subcarpetas. Adentro hay:":"Sider (sider.exe or sider.ini) isn't in that folder or its subfolders. Inside there is:",
-"Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.":"Pick your Patch's Sider folder; in Football Life it's the game folder."};
+"Elegí la carpeta de Sider de tu Parche; en Football Life es la carpeta del juego.":"Pick your Patch's Sider folder; in Football Life it's the game folder.",
+"elementos":"items",
+"nada (está vacía o no se pudo listar)":"nothing (it's empty, or it couldn't be listed)",
+"Adentro veo":"Inside I see",
+"se leyó bien":"it was read fine",
+"al pedir el archivo":"when asking for the file",
+"al abrir el archivo":"when opening the file",
+"Adentro de":"Inside",
+"veo":"I see",
+"Al buscar sider.ini":"When looking for sider.ini",
+"Mandá una captura de esto si el archivo sí está en la carpeta.":"Send a screenshot of this if the file is really in the folder."
+};

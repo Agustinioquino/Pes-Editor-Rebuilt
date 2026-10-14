@@ -3,8 +3,8 @@
 // carpeta y qué herramienta del editor la usa, y deja activar, ordenar, agregar o quitar líneas sin tocar el texto a mano.
 // Nada se escribe hasta tocar "Guardar sider.ini"; la primera vez queda una copia en sider.ini.bak-pes-editor (la misma
 // copia que usan los otros arreglos automáticos del editor).
-const SI = { h: null, items: null, nl: '\r\n', orig: '', info: null, busy: null, err: null, perm: false, seq: 0, open: { raw: false, other: false } };
-const siReset = () => { SI.info = null; SI.items = null; SI.err = null; SI.perm = false; }; // también el error: tras reconectar otra carpeta se vuelve a leer
+const SI = { h: null, items: null, nl: '\r\n', orig: '', info: null, busy: null, err: null, detail: null, perm: false, seq: 0, open: { raw: false, other: false } };
+const siReset = () => { SI.info = null; SI.items = null; SI.err = null; SI.detail = null; SI.perm = false; }; // también el error: tras reconectar otra carpeta se vuelve a leer
 // sider.ini suele ser ASCII o UTF-8, pero el Bloc de notas lo puede guardar en UTF-16 o en Windows-1252 (acentos en los
 // comentarios). Se detecta al leer y al guardar se escribe igual, para que Sider lo siga leyendo como antes.
 // Windows-1252: los bytes 0x80–0x9F son €, …, ‘’, “”, – y otros; el resto coincide con el código Unicode
@@ -151,6 +151,29 @@ async function siVersion(h) {
   return null;
 }
 
+// Cuando no aparece sider.ini: qué hay en la carpeta y qué error dio al pedir el archivo, para entender el caso en vez de
+// adivinar (si el archivo se llama sider.ini.txt, si la carpeta elegida es otra, si el navegador no deja leerlo…).
+const siErrMsg = e => (e && e.name ? e.name + (e.message ? ': ' + e.message : '') : String(e)).replace(/\.$/, '');
+async function siNoIniDetail(h) {
+  const d = { n: 0, names: [], err: '', lerr: '' };
+  try { const f = await h.getFileHandle('sider.ini'); try { await f.getFile(); } catch (e) { d.err = 'al abrir el archivo: ' + siErrMsg(e); } }
+  catch (e) { d.err = 'al pedir el archivo: ' + siErrMsg(e); }
+  try { for await (const [n, x] of h.entries()) { d.n++; if (d.names.length < 14) d.names.push(x.kind === 'directory' ? n + '\\' : n); } } catch (e) { d.lerr = siErrMsg(e); }
+  return d;
+}
+// la misma información en una línea de texto (para el aviso al conectar la carpeta)
+function siNoIniText(d) {
+  const T = typeof tr === 'function' ? tr : x => x;
+  const what = d.n ? `${d.n} ${T('elementos')}: ${d.names.join(', ')}${d.n > d.names.length ? '…' : ''}` : T('nada (está vacía o no se pudo listar)') + (d.lerr ? ' (' + d.lerr + ')' : '');
+  return `${T('Adentro veo')} ${what}. ${T('sider.ini')}: ${d.err ? T(d.err.split(': ')[0]) + d.err.slice(d.err.indexOf(': ')) : T('se leyó bien')}.`;
+}
+
+function siNoIniHtml(d, h) {
+  const what = d.n ? `${d.n} <span>elementos</span>: <code>${esc(d.names.join(', '))}${d.n > d.names.length ? '…' : ''}</code>` : `<span>nada (está vacía o no se pudo listar)</span>${d.lerr ? ` <code>${esc(d.lerr)}</code>` : ''}`;
+  const err = d.err ? `<span>${esc(d.err.split(': ')[0])}</span><code>${esc(d.err.slice(d.err.indexOf(': ')))}</code>` : '<span>se leyó bien</span>';
+  return `<span>Adentro de</span> <b>${esc(h.name)}</b> <span>veo</span> ${what}.<br><span>Al buscar sider.ini</span>: ${err}. <span>Mandá una captura de esto si el archivo sí está en la carpeta.</span>`;
+}
+
 // ---- leer todo: sider.ini + carpetas ----
 async function siLoad(force, hIn) {
   if (SI.busy) return SI.busy;
@@ -161,7 +184,7 @@ async function siLoad(force, hIn) {
     SI.h = h; if (!h) return;
     try { if (h.queryPermission && (await h.queryPermission({ mode: 'read' })) !== 'granted') { SI.perm = true; return; } } catch { }
     const text = await siReadIni(h);
-    if (text == null) { SI.err = 'no-ini'; return; }
+    if (text == null) { SI.err = 'no-ini'; SI.detail = await siNoIniDetail(h).catch(e => ({ n: 0, names: [], err: siErrMsg(e), lerr: '' })); return; }
     SI.orig = text; siParse(text);
     const info = { name: h.name || 'Sider', ro: !!h.readOnly, ver: await siVersion(h), roots: [], live: [], mods: [], modFree: [], content: [], game: siKv('exe.name').map(x => x.val), inGame: await hasFile(h, 'PES2021.exe'), bak: !!await sdbFile(h, 'sider.ini.bak-pes-editor') };
     const used = new Set();
@@ -247,7 +270,7 @@ function renderSider(m) {
     return;
   }
   if (SI.err) {
-    m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><div class="warnbox">${SI.err === 'no-ini' ? `No hay sider.ini en <b>${esc(h.name)}</b>. Si tu Sider nunca se abrió, abrilo una vez para que lo cree; si no, elegí la carpeta que tiene sider.exe.` : 'No se pudo leer la carpeta Sider: ' + esc(SI.err)}</div><div class="row"><button class="btn" type="button" id="siAgain">Volver a leer</button><button class="btn ghost" type="button" id="siOther">Elegir otra carpeta</button></div></div>`);
+    m.innerHTML = wrap(`<div class="card"><h3>Sider</h3><div class="warnbox">${SI.err === 'no-ini' ? `No hay sider.ini en <b>${esc(h.name)}</b>. Si tu Sider nunca se abrió, abrilo una vez para que lo cree; si no, elegí la carpeta que tiene sider.exe.` : 'No se pudo leer la carpeta Sider: ' + esc(SI.err)}</div>${SI.err === 'no-ini' && SI.detail ? `<p class="note sidiag">${siNoIniHtml(SI.detail, h)}</p>` : ''}<div class="row"><button class="btn" type="button" id="siAgain">Volver a leer</button><button class="btn ghost" type="button" id="siOther">Elegir otra carpeta</button></div></div>`);
     $('siAgain').onclick = () => siLoad(true); $('siOther').onclick = () => connectKits().then(ok => { if (ok) siLoad(true); });
     return;
   }

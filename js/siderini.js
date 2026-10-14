@@ -149,7 +149,7 @@ const SI_MARKERS = [
   ['flag', 'escudos'], ['emblemlc', 'competiciones'], ['legend', 'leyendas'], ['weather', 'clima'], ['sky', 'clima'], ['shader', 'graficos'], ['lut', 'graficos'], ['game2d', 'menu'], ['bgm', 'sonido']
 ];
 const SI_NAMES = [ // pistas por el nombre de la carpeta o del módulo (gana la primera que coincide, por eso los casos especiales van antes)
-  [/pes-?editor|edit21/i, 'editor'], [/master.?league|\bml.?(my|sel|man)|mlmyteam/i, 'ligamaster'], [/banner|common_ad/i, 'banners'], [/sleeve|armband|brazalete|badge.?serv|captain.?band/i, 'parches'],
+  [/pes-?editor|edit21/i, 'editor'], [/ultra.?graphic|graphic.?config/i, 'graficos'], [/master.?league|\bml.?(my|sel|man)|mlmyteam/i, 'ligamaster'], [/banner|common_ad/i, 'banners'], [/sleeve|armband|brazalete|badge.?serv|captain.?band/i, 'parches'],
   [/refer|arbitr|refkit|refcolor/i, 'arbitros'], [/ui.?colou?r|cursor|menu|graphic|gfx|\bui\b|interface|hud/i, 'menu'],
   [/scene|escena|cut.?scene|replay|intro|entrance|pre.?match|potm|halftime|derby/i, 'escenas'], [/crowd|attendance|choreo|firework|ball.?boy|staff|bib|sub.?board/i, 'publico'],
   [/mini|photo|foto/i, 'minifaces'], [/shader|light|sweetfx|reshade|colou?r|postprocess|\bppe\b|overlay|\blut\b/i, 'graficos'], [/face|cara/i, 'caras'], [/appear|aparien|physique/i, 'apariencia'], [/\bbody|\bskin|cuerpo|piel/i, 'cuerpos'],
@@ -164,6 +164,7 @@ const SI_NAMES = [ // pistas por el nombre de la carpeta o del módulo (gana la 
 ];
 const SI_MODS = [ // módulos Lua conocidos: [nombre, qué hacen, tipo relacionado]. Los casos especiales van antes que los generales (RefKitServer antes que kit server)
   [/net.?block/i, 'NetBlock: saca el aviso de fin del servicio online de PES', 'menu'],
+  [/ultra.?graphic|graphic.?config/i, 'Ultra Graphics Config: define los valores de gráficos del juego con código FoxScript', 'graficos'],
   [/master.?league|\bml.?(my.?team|sel|manager)|mlmyteam/i, 'Liga Master personalizada: salas de prensa, fondos de las cinemáticas, vestuarios, carteles y ropa del técnico por equipo', 'ligamaster'],
   [/crowd/i, 'Crowd server: elegís cuánta hinchada hay del local y del visitante', 'publico'],
   [/goal.?sound/i, 'Ruido de la hinchada al hacer un gol', 'sonido'], [/goal.?song/i, 'GoalSong server: una canción al hacer un gol, según el equipo', 'sonido'],

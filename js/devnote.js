@@ -21,9 +21,14 @@ function devPop(force) {
   let seen = 0; try { seen = +localStorage.getItem(DEV_LS) || 0; } catch { }
   if (!force && seen >= NEWS_VER) return;
   const d = document.createElement('aside'); d.className = 'devpop'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'En desarrollo');
-  d.innerHTML = `<div class="row" style="justify-content:space-between"><h3>🚧 En desarrollo</h3><button class="btn ghost small" type="button" data-dx aria-label="Cerrar">✕</button></div>${devList()}
-    <div class="row devbtns"><button class="btn small" type="button" data-dnews>Ver novedades</button><button class="btn small primary" type="button" data-dok>Entendido</button></div>`;
+  d.innerHTML = `<div class="row" style="justify-content:space-between"><h3>🚧 En desarrollo</h3><span class="row devtop"><button class="btn ghost small" type="button" data-dmin aria-label="Minimizar" title="Minimizar">▁</button><button class="btn ghost small" type="button" data-dx aria-label="Cerrar" title="Cerrar">✕</button></span></div><div class="devbody">${devList()}
+    <div class="row devbtns"><button class="btn small" type="button" data-dnews>Ver novedades</button><button class="btn small primary" type="button" data-dok>Entendido</button></div></div>`;
   const close = () => { try { localStorage.setItem(DEV_LS, NEWS_VER); } catch { } d.classList.remove('on'); setTimeout(() => d.remove(), 300); };
+  // minimizado queda como una pestañita abajo a la derecha (y así sigue la próxima vez); tocándola se abre de nuevo
+  const mini = on => { d.classList.toggle('min', on); const m = d.querySelector('[data-dmin]'); m.textContent = on ? '▢' : '▁'; m.title = on ? 'Mostrar' : 'Minimizar'; m.setAttribute('aria-label', m.title); try { localStorage.setItem(DEV_LS + '-min', on ? '1' : ''); } catch { } };
+  d.querySelector('[data-dmin]').onclick = e => { e.stopPropagation(); mini(!d.classList.contains('min')); };
+  d.querySelector('h3').onclick = () => { if (d.classList.contains('min')) mini(false); };
+  try { if (localStorage.getItem(DEV_LS + '-min')) mini(true); } catch { }
   d.querySelector('[data-dx]').onclick = close; d.querySelector('[data-dok]').onclick = close;
   d.querySelector('[data-dnews]').onclick = () => { close(); if (typeof setTab === 'function') setTab('news'); };
   document.body.appendChild(d); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('on')));

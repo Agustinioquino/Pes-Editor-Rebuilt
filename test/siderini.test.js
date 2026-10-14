@@ -23,7 +23,7 @@ const ctx = vm.createContext({ TextDecoder, TextEncoder, console,
   readText: async (d, n) => { try { return await (await (await d.getFileHandle(n)).getFile()).text(); } catch { return null; } },
   idbGet: async () => null, S: { tab: 'x' }, $: () => null, render: () => {} });
 const J = x => JSON.parse(JSON.stringify(x)); // los objetos nacen en el otro contexto del vm
-const X = vm.runInContext(code + '\n;({ SI, siParse, siText, siDirty, siAdd, siSet, siMove, siKv, siGet, siById, siResolve, siScanRoot, siDecode, siEncode, siReadIni, siLoad, siSync })', ctx);
+const X = vm.runInContext(code + '\n;({ SI, siParse, siText, siDirty, siAdd, siSet, siMove, siKv, siGet, siById, siResolve, siScanRoot, siDecode, siEncode, siReadIni, siLoad, siSync, siParseLine })', ctx);
 
 const INI = '[sider]\r\n; debug level\r\ndebug = 0\r\nlivecpk.enabled = 1\r\nlua.enabled = 1 ; comentario\r\nexe.name = "\\PES2021.exe"\r\n\r\ncpk.root = ".\\livecpk\\A"\r\ncpk.root = ".\\livecpk\\B" ; escudos\r\n; cpk.root = ".\\livecpk\\C"\r\n# cpk.root = "D:\\X\\livecpk\\D"\r\nlua.module = "kserv.lua"\r\nlua.module = "chants.lua"\r\n';
 
@@ -141,4 +141,17 @@ test('categorías: rutas precisas le ganan a las generales y los nombres nuevos 
   const names = { 'Football Life': [], 'Legends-Pack': ['leyendas?'], 'Transfers-Octubre': ['plantillas?'], 'Gameplay-Mod': ['jugabilidad?'], 'Camera-Mod': ['camara?'], 'Commentary-ES': ['relatos?'], 'Intro-Videos': ['videos?'], 'Nets-HD': ['redes?'], 'Reshade-Preset': ['graficos?'], 'Faces-Pack': ['caras?'], 'Balls-2026': ['balones?'] };
   for (const [n, want] of Object.entries(names)) assert.deepStrictEqual(J(await X.siScanRoot(new FDir(n, {}), n)).map(x => x.t + (x.sure ? '' : '?')), want, n);
   assert.strictEqual(J(await X.siScanRoot(new FDir('Trophies', {}), 'Trophies'))[0].desc, 'Trofeos y medallas de la ceremonia final.', 'cada tipo trae su descripción');
+});
+
+test('marcadores profundos: anime = animaciones, common_ad = banners, y las comillas raras no rompen la ruta', async () => {
+  const edit = new FDir('edit mod', { common: { character0: { model: { character: { anime: { interface: { 'edit_idle.gani': null, 'match_away07.gani': null } } } } } } });
+  assert.deepStrictEqual(J(await X.siScanRoot(edit, 'edit mod')).map(x => x.t + (x.sure ? '' : '?')), ['animaciones']);
+  const ban = new FDir('Banner', { Asset: { model: { bg: { common_ad: { 'x.ftex': null } } } } });
+  assert.deepStrictEqual(J(await X.siScanRoot(ban, 'Banner')).map(x => x.t + (x.sure ? '' : '?')), ['banners']);
+  assert.deepStrictEqual(J(await X.siScanRoot(new FDir('Banners NO LOGO', {}), 'Banners NO LOGO')).map(x => x.t + (x.sure ? '' : '?')), ['banners?']);
+  for (const l of ['cpk.root = ".\\livecpk\\Global Model Efootball 5.0"', 'cpk.root = “.\\livecpk\\Global Model Efootball 5.0”', 'cpk.root = ".\\livecpk\\Global Model Efootball 5.0""']) {
+    const it = X.siParseLine(l, 0); assert.deepStrictEqual([it.val, it.quoted, it.cmt], ['.\\livecpk\\Global Model Efootball 5.0', true, ''], l);
+  }
+  const sd = new FDir('Sider', { livecpk: { 'Global Model Efootball 5.0': {} } });
+  assert.strictEqual(!!(await X.siResolve(sd, '".\\livecpk\\Global Model Efootball 5.0"')).h, true, 'aunque el valor llegue con comillas, la carpeta se encuentra');
 });

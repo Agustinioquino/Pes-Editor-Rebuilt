@@ -36,8 +36,9 @@ function siParseLine(raw, i) {
   const m = raw.match(/^(\s*)(?:([;#])\s*)?([A-Za-z][\w\-]*(?:\.[\w\-]+)*)\s*=\s*(.*)$/);
   if (!m || (m[2] && !/\./.test(m[3]) && !/^debug$/i.test(m[3]))) return { i, raw, kind: raw.trim() ? 'txt' : 'blank' };
   let val, quoted = false, cmt = '';
-  const q = m[4].match(/^"([^"]*)"\s*(.*)$/);
+  const q = m[4].match(/^["\u201c\u201d]([^"\u201c\u201d]*)["\u201c\u201d]+\s*(.*)$/); // también comillas "inteligentes" del Bloc de notas o Word
   if (q) { quoted = true; val = q[1]; cmt = q[2].trim(); } else { const c = m[4].match(/^(.*?)\s*([;#].*)?$/); val = c[1].trim(); cmt = (c[2] || '').trim(); }
+  if (!quoted && /^["\u201c\u201d']/.test(val)) { quoted = true; val = val.replace(/^["\u201c\u201d']+|["\u201c\u201d']+$/g, '').trim(); } // comillas sueltas o repetidas: se queda lo de adentro
   if (cmt && !/^[;#]/.test(cmt)) cmt = '; ' + cmt; // texto suelto después de las comillas: se guarda como comentario para no perderlo
   return { i, raw, kind: 'kv', off: !!m[2], key: m[3].toLowerCase(), k0: m[3], val, quoted, cmt, ind: m[1] };
 }
@@ -87,6 +88,8 @@ const SI_TYPES = { // tipo: [nombre, ícono, herramienta del editor que lo usa, 
   cesped: ['Césped', '🌱', null, 'Texturas del césped y las líneas del campo.'],
   redes: ['Redes', '🥅', null, 'Redes y arcos.'],
   carteles: ['Carteles publicitarios', '🪧', null, 'Carteles de publicidad al costado de la cancha (adboards).'],
+  banners: ['Banners de hinchadas', '🚩', null, 'Banners y banderas de las hinchadas en las tribunas, adaptados a cada equipo y competición (carpeta common_ad).'],
+  animaciones: ['Animaciones y poses', '🕺', null, 'Animaciones de los jugadores (carpeta anime): poses del modo Editar (anime\\interface\\edit_*), la previa del partido (match_*) y objetos de la Liga Master.'],
   tuneles: ['Túneles', '🚪', null, 'Túneles de salida de los jugadores.'],
   marcadores: ['Marcadores', '📺', null, 'Marcadores del partido, repeticiones y gráficos de TV por competición.'],
   trofeos: ['Trofeos', '🏆', null, 'Trofeos y medallas de la ceremonia final.'],
@@ -124,11 +127,19 @@ const SI_PATHS = [ // [ruta dentro de la carpeta, tipo, contar (archivos; en car
   ['common/render/font', 'fuentes', 0], ['common/shader', 'graficos', 0], ['Asset/shader', 'graficos', 0],
   ['common/demo', 'videos', 0], ['common/movie', 'videos', 0], ['common/sound', 'sonido', 0], ['common/bgm', 'sonido', 0]
 ];
+// nombres de carpeta que delatan el contenido estén donde estén (se buscan hasta 7 niveles adentro): [nombre, tipo]
+const SI_MARKERS = [
+  ['anime', 'animaciones'], ['common_ad', 'banners'], ['adboard', 'carteles'], ['adboards', 'carteles'], ['billboard', 'carteles'], ['scoreboard', 'marcadores'], ['tunnel', 'tuneles'],
+  ['turf', 'cesped'], ['nets', 'redes'], ['goalnet', 'redes'], ['trophy', 'trofeos'], ['trophies', 'trofeos'], ['referee', 'arbitros'], ['manager', 'tecnicos'], ['coach', 'tecnicos'],
+  ['font', 'fuentes'], ['fonts', 'fuentes'], ['chant', 'cantos'], ['chants', 'cantos'], ['commentary', 'relatos'], ['callname', 'relatos'], ['movie', 'videos'], ['demo', 'videos'],
+  ['pesdb', 'base'], ['pressroom', 'prensa'], ['tattoo', 'tatuajes'], ['hair', 'peinados'], ['glove', 'guantes'], ['boots', 'botines'], ['ball', 'balones'], ['uniform', 'kits'],
+  ['flag', 'escudos'], ['legend', 'leyendas'], ['weather', 'clima'], ['sky', 'clima'], ['shader', 'graficos'], ['bgm', 'sonido']
+];
 const SI_NAMES = [ // pistas por el nombre de la carpeta o del módulo (gana la primera que coincide)
-  [/pes-?editor|edit21/i, 'editor'], [/mini|photo|foto/i, 'minifaces'], [/graphic|menu|gfx|\bui\b|interface|hud/i, 'menu'],
+  [/pes-?editor|edit21/i, 'editor'], [/banner|common_ad/i, 'banners'], [/mini|photo|foto/i, 'minifaces'], [/graphic|menu|gfx|\bui\b|interface|hud/i, 'menu'],
   [/shader|light|sweetfx|reshade|colou?r|postprocess|\bppe\b|overlay/i, 'graficos'], [/face|cara/i, 'caras'], [/appear|aparien|physique/i, 'apariencia'], [/\bbody|\bskin|cuerpo|piel/i, 'cuerpos'],
   [/kit|uniform|camiset/i, 'kits'], [/badge|logo|emblem|escudo|crest|flag|bandera/i, 'escudos'], [/stadi|estadio/i, 'estadios'], [/(^|[^t])ball|balon|pelota/i, 'balones'],
-  [/boot|botin/i, 'botines'], [/glove|guante/i, 'guantes'], [/scoreboard|marcador|\btv\b|broadcast/i, 'marcadores'], [/adboard|cartel|banner|\bads?\b/i, 'carteles'], [/\bnets?\b|redes/i, 'redes'],
+  [/boot|botin/i, 'botines'], [/glove|guante/i, 'guantes'], [/scoreboard|marcador|\btv\b|broadcast/i, 'marcadores'], [/adboard|cartel|\bads?\b/i, 'carteles'], [/anim|anime|pose|edit.?mod/i, 'animaciones'], [/\bnets?\b|redes/i, 'redes'],
   [/tattoo|tatu/i, 'tatuajes'], [/chant|canto|hincha|crowd/i, 'cantos'], [/comment|relat|narra|callname/i, 'relatos'], [/music|sound|song|audio|bgm|anthem|himno/i, 'sonido'],
   [/video|movie|intro|cinematic/i, 'videos'], [/refer|arbitr/i, 'arbitros'], [/legend|leyenda|classic|clasic|retro|historic/i, 'leyendas'],
   [/transfer|roster|squad|plantill|traspaso|option.?file|\bof\b|season|temporada|update|actualiz/i, 'plantillas'], [/gameplay|jugab|physics|\bai\b/i, 'jugabilidad'], [/camera|\bcam\b/i, 'camara'],
@@ -140,7 +151,7 @@ const SI_MODS = [ // módulos Lua conocidos: [nombre, qué hacen, tipo relaciona
   [/kserv|kit.?serv/i, 'Kit server: carga los kits desde content\\kit-server, sin meterlos en cpk', 'kits'], [/edit21_db/i, 'PES Editor: copia la base del juego en content\\edit21-db (solo lectura)', 'base'],
   [/face.?serv/i, 'Face server: caras desde content', 'caras'], [/ball.?serv/i, 'Ball server: balones desde content', 'balones'], [/stadium.?serv/i, 'Stadium server: estadios desde content', 'estadios'],
   [/scoreboard/i, 'Scoreboard server: marcadores por competición', 'marcadores'], [/glove/i, 'Gloves server: guantes', 'guantes'], [/boot/i, 'Boots server: botines', 'botines'],
-  [/troph/i, 'Trophy server: trofeos', 'trofeos'], [/adboard/i, 'Adboards server: carteles publicitarios', 'carteles'], [/tunnel/i, 'Tunnel server: túneles de salida', 'tuneles'],
+  [/troph/i, 'Trophy server: trofeos', 'trofeos'], [/adboard/i, 'Adboards server: carteles publicitarios', 'carteles'], [/banner/i, 'Banner server: banners de hinchadas en las tribunas por equipo y competición', 'banners'], [/anim/i, 'Animaciones', 'animaciones'], [/tunnel/i, 'Tunnel server: túneles de salida', 'tuneles'],
   [/chant/i, 'Chants: cantos de hinchada por equipo', 'cantos'], [/comment|callname/i, 'Relatos y nombres de jugadores cantados', 'relatos'], [/music|bgm|song|anthem/i, 'Música o himnos', 'sonido'],
   [/press/i, 'Sala de prensa', 'prensa'], [/turf|pitch|grass/i, 'Césped y campo', 'cesped'], [/\bnets?\b/i, 'Redes de los arcos', 'redes'], [/weather|clima/i, 'Clima', 'clima'],
   [/camera|cam\b/i, 'Cámara', 'camara'], [/time|clock|duration/i, 'Duración del partido', null], [/uniparam/i, 'Parámetros de uniformes (UniParam)', 'kits'], [/sleeve|armband|brazalete/i, 'Parches de manga y brazaletes', 'kits'],
@@ -160,6 +171,20 @@ const SI_TOOLS = {
 const siType = t => { const x = SI_TYPES[t] || [t, '📁']; return { t, n: x[0], ico: x[1], tool: x[2] && SI_TOOLS[x[2]] ? x[2] : null, desc: x[3] || '' }; };
 const siModInfo = n => { const k = SI_MODS.find(([re]) => re.test(n)); return { name: n, desc: k ? k[1] : null, type: k ? k[2] : siGuess(n.replace(/\.lua$/i, '')) }; };
 const siGuess = name => { for (const [re, t] of SI_NAMES) if (re.test(name)) return t; return null; };
+// recorre las carpetas (hasta 7 niveles, 400 carpetas) buscando nombres que delatan el contenido: anime, common_ad, scoreboard…
+async function siMarkers(d) {
+  const types = new Set(), q = [[d, 0]]; let seen = 0;
+  while (q.length && seen < 400) {
+    const [dir, depth] = q.shift(); let kids = 0;
+    try { for await (const [n, e] of dir.entries()) {
+      if (e.kind !== 'directory') continue; seen++; kids++;
+      const k = SI_MARKERS.find(([m]) => m === n.toLowerCase()); if (k) types.add(k[1]);
+      if (depth < 7 && kids <= 40 && !/^\d+$/.test(n)) q.push([e, depth + 1]); // las carpetas numeradas (una por jugador o estadio) no se recorren
+      if (seen >= 400) break;
+    } } catch { }
+  }
+  return [...types];
+}
 async function siScanRoot(d, name) {
   const found = new Map(), hits = [];
   for (const [p, t, cnt] of SI_PATHS) {
@@ -169,6 +194,12 @@ async function siScanRoot(d, name) {
     if (hits.some(o => o.t !== h.t && o.p.startsWith(h.p + '/'))) continue;
     const cur = found.get(h.t); if (!cur || h.n > cur.count) found.set(h.t, { sure: true, count: h.n });
   }
+  for (const t of await siMarkers(d)) if (!found.has(t)) found.set(t, { sure: true, count: 0 });
+  if (found.has('estadios')) { // Asset/model/bg con solo common_ad, adboard, turf… es un mod de estadio parcial, no un estadio
+    let only = true;
+    for (const p of ['Asset/model/bg', 'common/bg/model/bg']) { try { for await (const [n, e] of (await subDir(d, p)).entries()) if (e.kind === 'directory' && !SI_MARKERS.some(([m]) => m === n.toLowerCase())) { only = false; break; } } catch { } }
+    if (only && found.size > 1) found.delete('estadios');
+  }
   if (!found.size) { const g = siGuess(name); if (g) found.set(g, { sure: false, count: 0 }); }
   return [...found].map(([t, v]) => Object.assign(siType(t), v));
 }
@@ -176,7 +207,7 @@ async function siScanRoot(d, name) {
 // se busca adentro de esta Sider aunque la carpeta haya cambiado de nombre o de lugar: primero lo que sigue al nombre de
 // la carpeta Sider, después cada final de la ruta (…\livecpk\X, …\X), y por último livecpk\<última carpeta>.
 async function siResolve(sider, val) {
-  let p = val.trim().replace(/\//g, '\\').replace(/\\+$/, ''); const abs = /^([A-Za-z]:|\\\\)/.test(p), me = (sider.name || '').toLowerCase();
+  let p = val.trim().replace(/^["\u201c\u201d']+|["\u201c\u201d']+$/g, '').replace(/\//g, '\\').replace(/\\+$/, ''); const abs = /^([A-Za-z]:|\\\\)/.test(p), me = (sider.name || '').toLowerCase();
   const parts = p.split('\\').filter(Boolean), last = parts[parts.length - 1] || p;
   let rel = null, h = null, outside = false;
   const tryRel = async r => { try { const x = r ? await subDir(sider, r) : sider; h = x; rel = r; return true; } catch { return false; } };

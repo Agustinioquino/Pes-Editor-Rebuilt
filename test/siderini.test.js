@@ -102,6 +102,11 @@ test('sider.ini en UTF-8, UTF-16 y Windows-1252 se lee bien y se guarda igual', 
   assert.deepStrictEqual([X.siDecode(u16).enc, X.siDecode(u16).text], ['utf-16le', txt]);
   const cp = X.siEncode(txt, 'cp1252'); assert.strictEqual(cp[txt.indexOf('ñ')], 0xF1, 'ñ en un byte');
   const d = X.siDecode(cp); assert.deepStrictEqual([d.enc, d.text], ['cp1252', txt]);
+  // Windows-1252: € … – ’ (bytes 0x80–0x9F) se leen y se vuelven a escribir con el mismo byte
+  const hi = new Uint8Array([0x3b, 0x20, 0x85, 0x20, 0x96, 0x20, 0x92, 0x20, 0x80, 0x20, 0xf1]); const dh = X.siDecode(hi);
+  assert.deepStrictEqual([dh.enc, dh.text], ['cp1252', '; \u2026 \u2013 \u2019 \u20ac \u00f1']);
+  assert.deepStrictEqual(Array.from(X.siEncode(dh.text, 'cp1252')), Array.from(hi), 'los bytes altos vuelven iguales');
+  assert.strictEqual(X.siEncode('\u4e2d', 'cp1252')[0], 63, 'lo que no entra en cp1252 queda como ?');
   const noBom16 = u16.subarray(2); assert.strictEqual(X.siDecode(noBom16).text, txt, 'UTF-16 sin BOM');
   const dir = new FDir('S', { 'sider.ini': cp }); assert.strictEqual(await X.siReadIni(dir), txt); assert.strictEqual(X.SI.enc, 'cp1252');
 });

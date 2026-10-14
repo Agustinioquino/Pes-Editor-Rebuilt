@@ -17,19 +17,22 @@ function parseKitCfg(txt, n) {
 // Lo único obligatorio es que sea Sider; el kit-server (los kits editables) es opcional.
 const hasFile = async (d, n) => { try { await d.getFileHandle(n); return true; } catch { return false; } };
 const hasDir = async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } };
-const isSiderDir = async d => await hasFile(d, 'sider.ini') || await hasFile(d, 'sider.exe') || await hasFile(d, 'sider.dll') || !!(await hasDir(d, 'livecpk') && (await hasDir(d, 'modules') || await hasDir(d, 'content')));
+const isSiderDir = async d => await hasFile(d, 'sider.ini') || await hasFile(d, 'sider.exe') || await hasFile(d, 'sider.dll');
+// parece Sider aunque no tenga sider.exe ni sider.ini (Football Life, o una Sider que nunca se abrió): vale solo si no hay una de verdad
+const isSiderLike = async d => !!(await hasDir(d, 'livecpk') && (await hasDir(d, 'modules') || await hasDir(d, 'content')));
 const SKIP_DIR = /^(\.|\$|livecpk$|content$|modules$|download$|data$|movie|sound$|asset$|node_modules$|System Volume Information$)/i;
 // una carpeta common de contenido cpk (render, character0, etc…), distinta de la carpeta common de Steam (steamapps\common)
 const isCpkCommon = async d => !!(await hasDir(d, 'render') || await hasDir(d, 'character0') || await hasDir(d, 'character1') || await hasDir(d, 'etc') || await hasDir(d, 'bg') || await hasDir(d, 'menu') || await hasDir(d, 'sound') || await hasDir(d, 'bgm'));
 const isCpkContent = async d => { const c = await hasDir(d, 'common'); if (c && await isCpkCommon(c)) return true; const a = await hasDir(d, 'Asset'); return !!(a && (await hasDir(a, 'model') || await hasDir(a, 'texture') || await hasDir(a, 'bg'))); };
 async function siderLayout(dir) {
-  let sider = await isSiderDir(dir) ? dir : null;
-  if (!sider) { // unos niveles hacia abajo (la carpeta del juego, steamapps\common…)
+  let sider = await isSiderDir(dir) ? dir : null, like = null;
+  if (!sider) { // unos niveles hacia abajo (la carpeta del juego, steamapps\common…); una carpeta solo parecida se usa si no aparece una Sider de verdad
     const q = [[dir, 0]]; let seen = 0;
     while (q.length && !sider && seen < 600) {
       const [d, depth] = q.shift();
-      try { for await (const [n, h] of d.entries()) { if (h.kind !== 'directory' || SKIP_DIR.test(n) || (/^common$/i.test(n) && await isCpkCommon(h))) continue; seen++; if (await isSiderDir(h)) { sider = h; break; } if (depth < 3) q.push([h, depth + 1]); } } catch { }
+      try { for await (const [n, h] of d.entries()) { if (h.kind !== 'directory' || SKIP_DIR.test(n) || (/^common$/i.test(n) && await isCpkCommon(h))) continue; seen++; if (await isSiderDir(h)) { sider = h; break; } if (!like && await isSiderLike(h)) like = h; if (depth < 3) q.push([h, depth + 1]); } } catch { }
     }
+    if (!sider) sider = await isSiderLike(dir) ? dir : like;
   }
   const base = sider || dir;
   // kit-server: content\kit-server\map.txt (Dream Patch) o cualquier carpeta de content con map.txt

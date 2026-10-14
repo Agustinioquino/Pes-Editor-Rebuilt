@@ -7,17 +7,21 @@ const SI = { h: null, items: null, nl: '\r\n', orig: '', info: null, busy: null,
 const siReset = () => { SI.info = null; SI.items = null; SI.err = null; SI.perm = false; }; // también el error: tras reconectar otra carpeta se vuelve a leer
 // sider.ini suele ser ASCII o UTF-8, pero el Bloc de notas lo puede guardar en UTF-16 o en Windows-1252 (acentos en los
 // comentarios). Se detecta al leer y al guardar se escribe igual, para que Sider lo siga leyendo como antes.
+// Windows-1252: los bytes 0x80–0x9F son €, …, ‘’, “”, – y otros; el resto coincide con el código Unicode
+const CP1252_HI = [0x20AC, 0x81, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x8D, 0x017D, 0x8F, 0x90, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x9D, 0x017E, 0x0178];
+const CP1252_REV = new Map(CP1252_HI.map((c, i) => [c, 0x80 + i]));
+const cp1252Decode = b => { let s = ''; for (let i = 0; i < b.length; i++) { const c = b[i]; s += String.fromCharCode(c >= 0x80 && c <= 0x9F ? CP1252_HI[c - 0x80] : c); } return s; };
 function siDecode(b) {
   if (b.length >= 2 && b[0] === 0xFF && b[1] === 0xFE) return { enc: 'utf-16le', text: new TextDecoder('utf-16le').decode(b.subarray(2)) };
   if (b.length >= 2 && b[0] === 0xFE && b[1] === 0xFF) return { enc: 'utf-16be', text: new TextDecoder('utf-16be').decode(b.subarray(2)) };
   if (b.length >= 4 && b[1] === 0 && b[3] === 0 && b[0] && b[2]) return { enc: 'utf-16le', text: new TextDecoder('utf-16le').decode(b) }; // sin BOM pero con ceros intercalados
   const u = new TextDecoder('utf-8').decode(b);
-  if (/\uFFFD/.test(u)) { try { return { enc: 'cp1252', text: new TextDecoder('windows-1252').decode(b) }; } catch { } }
+  if (/\uFFFD/.test(u)) return { enc: 'cp1252', text: cp1252Decode(b) };
   return { enc: b.length >= 3 && b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF ? 'utf-8-bom' : 'utf-8', text: u.replace(/^\uFEFF/, '') };
 }
 function siEncode(t, enc) {
   if (enc === 'utf-16le' || enc === 'utf-16be') { const b = new Uint8Array(2 + t.length * 2); b[0] = 0xFF; b[1] = 0xFE; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[2 + i * 2] = c & 255; b[3 + i * 2] = c >> 8; } return b; }
-  if (enc === 'cp1252') { const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[i] = c < 256 ? c : 63; } return b; }
+  if (enc === 'cp1252') { const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); b[i] = c < 256 ? c : CP1252_REV.get(c) ?? 63; } return b; }
   if (enc === 'utf-8-bom') return new TextEncoder().encode('\uFEFF' + t);
   return new TextEncoder().encode(t);
 }
@@ -312,7 +316,7 @@ function renderSider(m) {
     else if (a === 'reload') { if (siDirty() && !await confirmBox('Hay cambios sin guardar. ¿Volver a leer el archivo y perderlos?')) return; siLoad(true); render(); }
     else if (a === 'change') connectKits().then(ok => { if (ok) siLoad(true); });
     else if (a === 'applyraw') { siParse($('siRaw').value); render(); toast(siDirty() ? 'Texto aplicado. Tocá Guardar para escribirlo en sider.ini.' : 'El texto es igual al archivo.', 3500); }
-    else if (a === 'bak') { const f = await sdbFile(SI.h, 'sider.ini.bak-pes-editor'); if (!f) return; siParse((await f.text()).replace(/^﻿/, '')); SI.open.raw = true; render(); toast('Copia de seguridad cargada: revisala y tocá Guardar para dejarla como sider.ini.', 6000); }
+    else if (a === 'bak') { const f = await sdbFile(SI.h, 'sider.ini.bak-pes-editor'); if (!f) return; siParse(siDecode(new Uint8Array(await f.arrayBuffer())).text); /* misma codificación que sider.ini */ SI.open.raw = true; render(); toast('Copia de seguridad cargada: revisala y tocá Guardar para dejarla como sider.ini.', 6000); }
   };
   m.onchange = e => {
     const t = e.target;

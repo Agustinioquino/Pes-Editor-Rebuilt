@@ -9,7 +9,7 @@ const TS = load('teamsearch.js', 'TS');
 const msrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'matches.js'), 'utf8');
 const ns = msrc.match(/function nameScore\([\s\S]*?\n}\n/)[0];
 const fetched = [];
-const F = load('faces.js', `${ns};({ faceName, faceNameOk, faceTeamLike, espnPick, tsdbPick, wikiPick, tsdbGet, TSDB, FACES })`, {
+const F = load('faces.js', `${ns};({ sofifaUrls, faceName, faceNameOk, faceTeamLike, espnPick, tsdbPick, wikiPick, tsdbGet, TSDB, FACES })`, {
   TS, setTimeout, clearTimeout, performance, PREFS: undefined,
   fetch: async u => { fetched.push(u.split('/').pop()); return { ok: true, status: 200, json: async () => ({ player: [] }) }; },
 });
@@ -88,4 +88,11 @@ test('TheSportsDB: una sola cola, 2,1 s entre pedidos y primero lo que se pidió
   await Promise.all([a, b, c]);
   assert.deepEqual(done, ['A', 'C', 'B']);
   assert.ok(Date.now() - t0 >= 4100, 'respeta el ritmo de TheSportsDB gratis');
+});
+
+test('SoFIFA: del link del jugador sale la dirección de su foto', () => {
+  assert.equal(F.sofifaUrls('https://sofifa.com/player/231478/lautaro-martinez/260001/')[0], 'https://cdn.sofifa.net/players/231/478/26_120.png');
+  assert.equal(F.sofifaUrls('sofifa.com/player/20801')[0], 'https://cdn.sofifa.net/players/020/801/26_120.png');
+  assert.equal(F.sofifaUrls('231478')[1], 'https://cdn.sofifa.net/players/231/478/25_120.png');
+  assert.equal(F.sofifaUrls('https://upload.wikimedia.org/x.jpg'), null);
 });

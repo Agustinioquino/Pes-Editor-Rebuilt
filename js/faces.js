@@ -43,7 +43,7 @@ async function grantFaces() {
   const h = FACES.needsPerm; if (!h) return;
   try { if ((await h.requestPermission({ mode: 'read' })) === 'granted') { FACES.needsPerm = null; const n = await indexFaces(h); await indexBadges(h); toast(n.toLocaleString('es-AR') + ' minifaces disponibles.'); render(); } } catch { }
 }
-const isPhoto = pid => !FACES.url.has(pid) && (FACES.online.get(pid) || {}).s === 'wiki'; // foto rectangular (no recortada): va en círculo
+const isPhoto = pid => !FACES.url.has(pid) && /^(wiki|link)$/.test((FACES.online.get(pid) || {}).s || ''); // foto rectangular (no recortada): va en círculo
 function paintFace(pid, url) { const ph = isPhoto(pid); document.querySelectorAll(`img[data-face="${pid}"]`).forEach(i => { i.src = url; const f = i.closest('.face'); if (f) { f.classList.add('has'); f.classList.toggle('ph', ph); } }); }
 function onlineFor(pid) {
   const e = FACES.online.get(pid); if (!e || !e.u) return null;
@@ -477,10 +477,27 @@ function setFaceKind(pid, k) {
 function faceTools(pid) {
   const e = FACES.online.get(pid);
   if (FACES.url.has(pid)) return '<p class="note">Foto: miniface del juego.</p>';
-  if (!e || !e.u) return '';
+  const link = `<div class="row"><input type="text" id="faceLink" data-pid="${pid}" placeholder="Link de SoFIFA o de una foto" style="flex:1;min-width:10em"><button class="btn small" type="button" id="faceLinkGo" data-pid="${pid}">Usar esta foto</button></div>`;
+  if (!e || !e.u) return `<div class="facetools"><span class="note">Sin foto de internet. Pegá el link del jugador en SoFIFA (sofifa.com/player/…) o el de cualquier foto.</span>${link}</div>`;
   const lab = { c: 'con camiseta del club', n: 'con camiseta de la selección', x: 'neutral (sin camiseta)', '?': 'sin clasificar' }[e.k] || '';
-  return `<div class="facetools"><span class="note">Foto de internet ${lab}${e.m ? ' (marcada a mano)' : ''}. ¿Es correcta?</span>
-    <div class="row"><button class="btn small" type="button" data-fk="c" data-pid="${pid}">Es del club</button><button class="btn small" type="button" data-fk="n" data-pid="${pid}">Es de la selección</button><button class="btn small" type="button" data-fk="del" data-pid="${pid}">Quitar foto</button></div></div>`;
+  const from = { sofifa: 'Foto de SoFIFA', link: 'Foto de tu link' }[e.s];
+  return `<div class="facetools"><span class="note">${from ? from + ' (elegida a mano).' : `Foto de internet ${lab}${e.m ? ' (marcada a mano)' : ''}. ¿Es correcta?`}</span>
+    <div class="row"><button class="btn small" type="button" data-fk="c" data-pid="${pid}">Es del club</button><button class="btn small" type="button" data-fk="n" data-pid="${pid}">Es de la selección</button><button class="btn small" type="button" data-fk="del" data-pid="${pid}">Quitar foto</button></div>${link}</div>`;
+}
+// ---- foto elegida a mano: link de SoFIFA (sofifa.com/player/231478/…) o de cualquier imagen ----
+// SoFIFA no tiene API ni deja que otra página lea sus búsquedas, pero la foto de cada jugador tiene una dirección fija según su número.
+const imgOk = u => new Promise(res => { const i = new Image(), t = setTimeout(() => res(false), 8000); i.onload = () => { clearTimeout(t); res(i.naturalWidth > 1); }; i.onerror = () => { clearTimeout(t); res(false); }; i.src = u; });
+function sofifaUrls(text) {
+  const s = String(text || '').trim(), m = s.match(/sofifa\.com\/player\/(\d+)/i) || s.match(/^(\d{3,7})$/);
+  if (!m) return null;
+  const id = m[1].padStart(6, '0'), a = id.slice(0, -3), b = id.slice(-3);
+  return ['26', '25', '24', '23', '22'].map(v => `https://cdn.sofifa.net/players/${a}/${b}/${v}_120.png`); // la más nueva que tenga
+}
+async function faceFromLink(pid, text) {
+  const s = String(text || '').trim(), sf = sofifaUrls(s), list = sf || (/^https?:\/\/\S+$/i.test(s) ? [s] : null);
+  if (!list) throw new Error('Eso no parece un link de SoFIFA ni de una foto.');
+  for (const u of list) if (await imgOk(u)) { FACES.online.set(pid, { u, k: 'x', m: 1, s: sf ? 'sofifa' : 'link' }); saveOnline(); paintFace(pid, u); return u; }
+  throw new Error(sf ? 'SoFIFA no devolvió la foto de ese jugador. Probá abrir el link en el navegador y copiar la dirección de la foto.' : 'No se pudo cargar esa imagen.');
 }
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider, o los archivos del juego) sin mostrar nada

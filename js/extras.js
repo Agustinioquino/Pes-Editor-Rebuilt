@@ -470,6 +470,8 @@ function bindTactics(t, m) {
   const frt = $('fRate'); if (frt) frt.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; PREFS.rateMode = b.dataset.v; savePrefs(); RATE_GEN++; renderTeams(m); };
   bindLastMatch(t, m); bindTm(t, m);
   sh.querySelectorAll('[data-fk]').forEach(b => b.onclick = () => { setFaceKind(+b.dataset.pid, b.dataset.fk); toast(b.dataset.fk === 'del' ? 'Foto quitada: no se vuelve a buscar.' : b.dataset.fk === 'n' ? 'Marcada como foto de selección: no se mostrará en clubes.' : 'Marcada como foto de club.'); renderTeams(m); });
+  const flg = $('faceLinkGo'), fli = $('faceLink');
+  if (flg && fli) { const go = async () => { flg.disabled = true; try { await faceFromLink(+flg.dataset.pid, fli.value); toast('Foto guardada: queda para este jugador.'); renderTeams(m); } catch (e) { flg.disabled = false; toast(e.message, 6000); } }; flg.onclick = go; fli.onkeydown = e => { if (e.key === 'Enter') go(); }; }
   const fz = $('fluid'); if (fz) fz.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const on = b.dataset.v === '1';
     if (on) { FLUID.set(fluidKey(t), true); S.fvar = 1; toast('Formación fluida activada: ajustá "Ataque" y "Defensa" por separado.'); }
     else { edit('Formación fluida desactivada en ' + tn, 't' + t.id, regT(t), () => { const base = readForm(t, S.fplan, 0); writeForm(t, S.fplan, 1, base); writeForm(t, S.fplan, 2, base); }); FLUID.set(fluidKey(t), false); S.fvar = 0; }

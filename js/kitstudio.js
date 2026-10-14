@@ -154,7 +154,7 @@ const ksTexOf = k => KS.T && KS.T[k] && KS.T[k].c || null;
 // escribe una textura en la carpeta del kit (la primera vez guarda copia de la anterior) y actualiza el config si hacía falta
 async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), kd = await dir.getDirectoryHandle(KS.sel);
-  let file = ksSlotFile(S);
+  let file = ksSlotFile(S); const wasDirty = KS.dirty;
   if (!file) { file = ksSlotDefault(S); if (S.derived) { if (!(cfgGet(KS.cfg, 'KitFile') || '').trim()) cfgSet(KS.cfg, 'KitFile', ksBase()); } else cfgSet(KS.cfg, S.f, file); }
   if (!bytes) bytes = await FTEXW.fromCanvas(canvas, { dxt5: S.k !== 'srm', progress });
   for (const e of ['.ftex', '.dds', '.png']) { if (e === ext) continue; try { await kd.getFileHandle(file + e); /* otra extensión vieja: se deja, el kitserver prioriza .ftex */ } catch { } }
@@ -162,6 +162,8 @@ async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   const fh = await kd.getFileHandle(file + ext, { create: true }), w = await fh.createWritable(); await w.write(bytes); await w.close();
   const prev = KS.T[S.k] || {}; KS.T[S.k] = { c: canvas || prev.c, g: prev.g, file: file + ext, where: 'kit' };
   KS.tex.set(KS.path + '/' + KS.sel + ':' + file, KS.T[S.k]); KS.dispKey = '';
+  // si el config solo cambió para anotar el nombre de esta textura, se guarda ya: así no se pierde al cambiar de kit
+  if (!wasDirty && KS.dirty) await ksSave();
   return file + ext;
 }
 async function ksSave() {
@@ -179,13 +181,31 @@ async function ksWriteOrder(file, list) {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path);
   const fh = await dir.getFileHandle(file, { create: true }), w = await fh.createWritable(); await w.write(list.join('\r\n') + '\r\n'); await w.close();
 }
-async function ksDuplicate(name) {
-  const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), gk = /^g/i.test(name);
+// copia un kit a uno nuevo; asGk elige si la copia va a la lista de arqueros (por ejemplo, un kit de jugador como base del arquero)
+async function ksDuplicate(name, asGk) {
+  const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), gk = asGk === undefined ? /^g/i.test(name) : asGk;
   let n = 1, nn; do nn = (gk ? "g" : "p") + n++; while (KS.all.includes(nn) || KS.kits.includes(nn) || KS.gk.includes(nn));
   const src = await dir.getDirectoryHandle(name), dst = await dir.getDirectoryHandle(nn, { create: true });
-  for await (const [fn, h] of src.entries()) { if (h.kind !== 'file' || /\.bak-edit21$/.test(fn)) continue; const f = await h.getFile(), o = await dst.getFileHandle(fn, { create: true }), w = await o.createWritable(); await w.write(await f.arrayBuffer()); await w.close(); }
+  await ksCopyDir(src, dst);
   const list = gk ? KS.gk : KS.kits; list.push(nn); KS.all.push(nn); await ksWriteOrder(gk ? 'gk_order.ini' : 'order.ini', list);
-  return nn;
+  try { const c = await readText(dst, 'config.txt'); if (c) KS.meta[nn] = parseKitCfg(c, nn); } catch { }
+  ksRefreshKitsMap(); return nn;
+}
+async function ksCopyDir(src, dst) {
+  for await (const [fn, h] of src.entries()) { if (h.kind !== 'file' || /\.bak-edit21$/.test(fn)) continue; const f = await h.getFile(), o = await dst.getFileHandle(fn, { create: true }), w = await o.createWritable(); await w.write(await f.arrayBuffer()); await w.close(); }
+}
+// borra un kit: lo saca de order.ini / gk_order.ini y mueve su carpeta a _borrados (se puede recuperar a mano)
+async function ksDelete(name) {
+  const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), gk = KS.gk.includes(name), list = gk ? KS.gk : KS.kits;
+  if (!gk && list.length < 2) throw new Error('El equipo necesita al menos un kit de jugador.');
+  const trash = await dir.getDirectoryHandle('_borrados', { create: true }); let tn = name, i = 2;
+  for (;;) { try { await trash.getDirectoryHandle(tn); tn = name + '-' + i++; } catch { break; } }
+  const src = await dir.getDirectoryHandle(name); await ksCopyDir(src, await trash.getDirectoryHandle(tn, { create: true }));
+  list.splice(list.indexOf(name), 1); await ksWriteOrder(gk ? 'gk_order.ini' : 'order.ini', list);
+  await dir.removeEntry(name, { recursive: true });
+  KS.all = KS.all.filter(x => x !== name); delete KS.meta[name];
+  for (const k of [...KS.tex.keys()]) if (k.startsWith(KS.path + '/' + name + ':')) KS.tex.delete(k);
+  ksRefreshKitsMap(); return tn;
 }
 let ksRerender = () => { };
 // ---- textura que se muestra: la del kit + número, nombre y número del short dibujados con las fuentes del kit ----
@@ -298,7 +318,7 @@ function ksModal(title, html, bind) {
 }
 const KS_FONTS = ['Saira Condensed', 'Bahnschrift', 'Impact', 'Arial Black', 'Arial Narrow', 'Franklin Gothic Medium', 'Haettenschweiler', 'Agency FB', 'Segoe UI Black', 'Trebuchet MS', 'Verdana', 'Tahoma', 'Georgia', 'Century Gothic', 'Eras Bold ITC', 'Rockwell', 'Copperplate Gothic Bold', 'Stencil', 'Bebas Neue', 'Oswald', 'Anton', 'Teko'];
 function ksFontModal(m) {
-  const O = KS.fontOpt || (KS.fontOpt = { font: 'Saira Condensed', weight: 800, italic: false, width: 1, fill: '#ffffff', stroke1: 0, color1: '#000000', stroke2: 0, color2: '#ffffff', shadow: 0, shadowColor: '#000000', kinds: { name: true, back: true, chest: !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim(), leg: true } });
+  const O = KS.fontOpt || (KS.fontOpt = { font: 'Saira Condensed', weight: 800, italic: false, width: 1, fill: '#ffffff', stroke1: 0, color1: '#000000', stroke2: 0, color2: '#ffffff', shadow: 0, shadowColor: '#000000', legOwn: false, legFill: '#000000', kinds: { name: true, back: true, chest: !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim(), leg: true } });
   const avail = KS_FONTS.filter(f => { try { return document.fonts.check(`16px "${f}"`) && (f === 'Saira Condensed' || ksFontInstalled(f)); } catch { return false; } });
   if (KS.userFont && !avail.includes(KS.userFont)) avail.unshift(KS.userFont);
   const html = `<div class="ksgen">
@@ -311,18 +331,20 @@ function ksFontModal(m) {
       <div class="grid2"><div class="f"><label for="kfS1">Borde <output>${O.stroke1}</output></label><div class="row" style="flex-wrap:nowrap"><input type="range" id="kfS1" min="0" max="16" value="${O.stroke1}"><input type="color" id="kfC1" value="${O.color1}"></div></div>
         <div class="f"><label for="kfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row" style="flex-wrap:nowrap"><input type="range" id="kfS2" min="0" max="16" value="${O.stroke2}"><input type="color" id="kfC2" value="${O.color2}"></div></div></div>
       <div class="f"><span class="lab">Qué texturas crear</span><div class="fchips" id="kfKinds">${[['name', 'Nombre'], ['back', 'Espalda'], ['chest', 'Pecho'], ['leg', 'Short']].map(([k, n]) => `<button type="button" data-k="${k}" aria-pressed="${!!O.kinds[k]}">${n}</button>`).join('')}</div></div>
+      <div class="f"><label class="chk"><input type="checkbox" id="kfLegOwn" ${O.legOwn ? 'checked' : ''}> Número del short con otro color</label><div class="row" style="flex-wrap:nowrap"><input type="color" id="kfLegFill" value="${O.legFill}" aria-label="Color del número del short" ${O.legOwn ? '' : 'disabled'}><small class="note">El juego usa una textura aparte para el short (LegNumbersFile), así que puede tener su propio color.</small></div></div>
       <p class="note">Las letras y números se ubican en las mismas casillas que las plantillas de Photoshop (Letters / Numbers Template), con fondo transparente, como las espera el juego.</p>
     </div>
     <div class="ksgenr"><canvas id="kfPrev" width="560" height="300" aria-label="Vista previa del nombre y el número"></canvas><canvas id="kfStrip" width="560" height="140" aria-label="Textura de letras generada"></canvas></div>
   </div>
   <div class="mdlbtns"><button class="btn" type="button" data-x>Cancelar</button><button class="btn" type="button" id="kfTry">Probar en el kit</button><button class="btn primary" type="button" id="kfSave">Guardar en el kit</button></div>`;
   ksModal('Generador de fuentes', html, (M, close) => {
-    const gen = () => { const r = {}; for (const k of ['name', 'back', 'chest', 'leg']) if (O.kinds[k]) r[k] = KFONT.generate(k, O); return r; };
+    const gen = () => { const r = {}; for (const k of ['name', 'back', 'chest', 'leg']) if (O.kinds[k]) r[k] = KFONT.generate(k, k === 'leg' && O.legOwn ? { ...O, fill: O.legFill } : O); return r; };
     const prev = () => {
       const T = gen(), pc = M.querySelector('#kfPrev'), g = pc.getContext('2d'), c1 = cfgGet(KS.cfg, 'ShirtColor1') || '#1e3576';
       g.fillStyle = c1; g.fillRect(0, 0, pc.width, pc.height); g.fillStyle = '#0002'; for (let x = 0; x < pc.width; x += 16) g.fillRect(x, 0, 6, pc.height);
       KFONT.drawText(g, T.name || ksTexOf('name'), 'name', KS.sample.name || 'JUGADOR', pc.width / 2, 58, 52, {});
       KFONT.drawText(g, T.back || ksTexOf('back'), 'back', KS.sample.num || '10', pc.width / 2, 185, 170, {});
+      if (T.leg) { g.fillStyle = cfgGet(KS.cfg, 'ShortsColor') || '#1e3576'; g.fillRect(pc.width - 104, pc.height - 92, 92, 80); KFONT.drawText(g, T.leg, 'leg', KS.sample.num || '10', pc.width - 58, pc.height - 52, 52, {}); g.fillStyle = '#fffa'; g.font = '11px sans-serif'; g.fillText('Short', pc.width - 100, pc.height - 80); }
       const st = M.querySelector('#kfStrip'), sg = st.getContext('2d'); sg.clearRect(0, 0, st.width, st.height);
       for (let y = 0; y < st.height; y += 10) for (let x = 0; x < st.width; x += 10) { sg.fillStyle = (x + y) / 10 % 2 ? '#2a2f36' : '#353b44'; sg.fillRect(x, y, 10, 10); }
       const src = T.name || T.back || T.leg || T.chest; if (src) sg.drawImage(src, 0, 0, st.width, st.width * src.height / src.width);
@@ -331,7 +353,7 @@ function ksFontModal(m) {
     const upd = () => { if (upd.r) return; upd.r = requestAnimationFrame(() => { upd.r = 0; prev(); }); };
     const on = (id, fn) => { const el = M.querySelector('#' + id); el.oninput = el.onchange = () => { fn(el); const o = el.parentElement.parentElement.querySelector('output') || el.parentElement.querySelector('output'); if (o && el.type === 'range') o.textContent = id === 'kfWidth' ? el.value + '%' : el.value; upd(); }; };
     on('kfFont', el => O.font = el.value); on('kfW', el => O.weight = +el.value); on('kfWidth', el => O.width = el.value / 100); on('kfIt', el => O.italic = el.checked);
-    on('kfFill', el => O.fill = el.value); on('kfSh', el => O.shadow = +el.value); on('kfShC', el => O.shadowColor = el.value);
+    on('kfFill', el => O.fill = el.value); on('kfLegOwn', el => { O.legOwn = el.checked; M.querySelector('#kfLegFill').disabled = !el.checked; if (el.checked && !O.kinds.leg) { O.kinds.leg = true; M.querySelector('#kfKinds [data-k="leg"]').setAttribute('aria-pressed', true); } }); on('kfLegFill', el => O.legFill = el.value); on('kfSh', el => O.shadow = +el.value); on('kfShC', el => O.shadowColor = el.value);
     on('kfS1', el => O.stroke1 = +el.value); on('kfC1', el => O.color1 = el.value); on('kfS2', el => O.stroke2 = +el.value); on('kfC2', el => O.color2 = el.value);
     M.querySelector('#kfKinds').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; O.kinds[b.dataset.k] = !O.kinds[b.dataset.k]; b.setAttribute('aria-pressed', O.kinds[b.dataset.k]); upd(); };
     M.querySelector('#kfLoad').onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.ttf,.otf,.woff,.woff2'; inp.onchange = async () => { const f = inp.files[0]; if (!f) return; try { const fam = f.name.replace(/\.[^.]+$/, ''); const ff = new FontFace(fam, await f.arrayBuffer()); await ff.load(); document.fonts.add(ff); KS.userFont = fam; O.font = fam; const sel = M.querySelector('#kfFont'); sel.insertAdjacentHTML('afterbegin', `<option selected>${esc(fam)}</option>`); upd(); toast('Fuente ' + fam + ' cargada.'); } catch (e) { toast('No se pudo usar esa fuente: ' + e.message, 6000); } }; inp.click(); };
@@ -391,7 +413,7 @@ function ksUpload(S, m) {
       if (!bytes) { const P2 = FTEXW.pow2Pixels(new Uint8Array(img.data.buffer, img.data.byteOffset, img.data.length), img.w, img.h, 4096); bytes = await FTEXW.fromPixels(P2.px, P2.w, P2.h, { dxt5: S.k !== 'srm', progress: p => { const t = $('toast'); if (t && t.firstChild) t.firstChild.textContent = `Convirtiendo ${f.name} a .ftex… ${Math.round(p * 100)}%`; } }); }
       const file = await ksWriteTex(S, null, { bytes });
       const small = ksShrink(img, S.max), gls = S.k === 'kit' ? ksAlphaCanvas(small) : null; if (S.opaque) for (let i = 3; i < small.data.length; i += 4) small.data[i] = 255;
-      KS.T[S.k] = { c: imgToCanvas(small), g: gls, file, where: 'kit' }; if (S.k === 'kit') KS.gl = null; if (S.k === 'nrm') KS.genNrm = null; if (S.k === 'srm') KS.genSrm = null; KS.texRev = (KS.texRev || 0) + 1;
+      Object.assign(KS.T[S.k], { c: imgToCanvas(small), g: gls, file, where: 'kit' }); /* mismo objeto que quedó en la caché: al volver a este kit se sigue viendo */ if (S.k === 'kit') KS.gl = null; if (S.k === 'nrm') KS.genNrm = null; if (S.k === 'srm') KS.genSrm = null; KS.texRev = (KS.texRev || 0) + 1;
       toast(`${S.n}: guardada como ${file} en la carpeta del kit.` + (KS.dirty ? ' Tocá "Guardar kit" para anotarla en el config.txt.' : ''), 7000); renderTeams(m);
     } catch (e) { toast('No se pudo cargar la textura: ' + e.message, 7000); }
   };
@@ -407,7 +429,7 @@ function kitStudioCard(t) {
   if (!KS.cfg) return `<div class="card"><h3>Estudio de kits</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
   const roleName = (n, i, gk) => gk ? (i ? 'Arquero alternativo ' + (i + 1) : 'Arquero') : ['Titular', 'Suplente', 'Alternativa', 'Cuarto kit'][i] || 'Kit ' + (i + 1);
   const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.4em')}<span><b>${esc(n)}</b><small>${roleName(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button>
-    <span class="ksord"><button type="button" class="btn ghost small" data-up="${esc(n)}" title="Subir" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn ghost small" data-dup="${esc(n)}" title="Duplicar como kit nuevo">⧉</button></span></div>`; };
+    <span class="ksord"><button type="button" class="btn ghost small" data-up="${esc(n)}" title="Subir" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn ghost small" data-dup="${esc(n)}" title="Duplicar como kit nuevo">⧉</button>${gk ? '' : `<button type="button" class="btn ghost small" data-dupgk="${esc(n)}" title="Copiar como kit de arquero (con los mismos números, nombre y texturas)">🧤</button>`}<button type="button" class="btn ghost small" data-del="${esc(n)}" title="Borrar este kit" ${!gk && KS.kits.length < 2 ? 'disabled' : ''}>🗑</button></span></div>`; };
   const groups = []; for (const f of KS.cfg.fields) { let g = groups.find(x => x.s === f.section); if (!g) groups.push(g = { s: f.section, f: [] }); g.f.push(f); }
   const ctl = f => {
     const ty = fieldType(f), id = 'ks_' + f.key, v = f.value.trim(), lab = `<label for="${id}">${esc(KEY_ES[f.key] || f.key)}</label>`;
@@ -433,7 +455,7 @@ function kitStudioCard(t) {
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
     <div class="kslayout">
       <aside class="kslist"><h4>Jugadores</h4>${KS.kits.map((n, i) => chip(n, i, false)).join('')}<h4>Arqueros</h4>${KS.gk.map((n, i) => chip(n, i, true)).join('') || '<p class="note">Sin kits de arquero.</p>'}
-        <p class="note">El orden es el de order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…) para empezar un kit nuevo.</p></aside>
+        <p class="note">El orden es el de order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…) para empezar un kit nuevo, 🧤 copia un kit de jugador como kit de arquero y 🗑 borra el kit (su carpeta queda guardada en _borrados).</p></aside>
       <section class="ksprev">
         <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', 'Maqueta'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
           <div class="row ksample"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
@@ -659,8 +681,16 @@ function bindKitStudio(t, m) {
     try { await ksWriteOrder(gk ? 'gk_order.ini' : 'order.ini', list); ksRefreshKitsMap(); RATE_GEN++; toast('Orden de kits guardado.'); } catch (e) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; toast('No se pudo guardar el orden: ' + e.message, 6000); }
     renderTeams(m);
   });
-  sh.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => {
-    try { const nn = await ksDuplicate(b.dataset.dup); await ksOpenKit(nn); toast('Kit ' + nn + ' creado como copia de ' + b.dataset.dup + '.'); } catch (e) { toast('No se pudo duplicar: ' + e.message, 6000); }
+  sh.querySelectorAll('[data-dup], [data-dupgk]').forEach(b => b.onclick = async () => {
+    if (KS.dirty && !await confirmBox('Hay cambios sin guardar en ' + KS.sel + '. ¿Descartarlos?')) return;
+    const from = b.dataset.dup || b.dataset.dupgk, toGk = !!b.dataset.dupgk;
+    try { const nn = await ksDuplicate(from, toGk ? true : undefined); await ksOpenKit(nn); RATE_GEN++; toast(toGk ? 'Kit de arquero ' + nn + ' creado como copia de ' + from + '. Cambiale los colores y guardalo.' : 'Kit ' + nn + ' creado como copia de ' + from + '.', 6000); } catch (e) { toast('No se pudo duplicar: ' + e.message, 6000); }
+    renderTeams(m);
+  });
+  sh.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const n = b.dataset.del;
+    if (!await confirmBox('¿Borrar el kit ' + n + '? Deja de aparecer en el juego. Su carpeta se guarda en ' + KS.path + '\\_borrados por si lo querés recuperar.')) return;
+    try { const tn = await ksDelete(n); if (KS.sel === n) { KS.dirty = false; await ksOpenKit(KS.kits[0] || KS.gk[0]); } RATE_GEN++; toast('Kit ' + n + ' borrado. Copia en _borrados\\' + tn + '.', 6000); } catch (e) { toast('No se pudo borrar: ' + e.message, 6000); }
     renderTeams(m);
   });
 }

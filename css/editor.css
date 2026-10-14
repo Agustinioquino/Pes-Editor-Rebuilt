@@ -1490,6 +1490,8 @@ html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
 .sirow.off{opacity:.55}
 .sirow.off .simain b{text-decoration:line-through}
 .sirow.miss{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.sirow.flash{animation:siflash 1.8s ease-out}
+@keyframes siflash{0%,40%{background:color-mix(in srgb,var(--accent) 28%,var(--sunk));border-color:var(--accent)}100%{background:var(--sunk)}}
 .sinum{font-family:var(--mono);font-size:.72rem;color:var(--muted);min-width:1.4em;text-align:right}
 .simain{display:grid;gap:4px;min-width:0}
 .siname{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}

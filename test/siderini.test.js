@@ -138,7 +138,7 @@ test('la lista que se ve se rearma al agregar, quitar, mover y deshacer (sin vol
 test('categorías: rutas precisas le ganan a las generales y los nombres nuevos se reconocen', async () => {
   const d = new FDir('X', { common: { etc: { pesdb: { 'a.bin': null }, 'otro.bin': null }, render: { ui: { scoreboard: { 'x.dds': null } } } } });
   assert.deepStrictEqual(J(await X.siScanRoot(d, 'X')).map(x => x.t).sort(), ['base', 'marcadores'], 'common/etc y common/render/ui no cuentan si adentro hay algo más preciso');
-  const names = { 'Football Life': [], 'Legends-Pack': ['leyendas?'], 'Transfers-Octubre': ['plantillas?'], 'Gameplay-Mod': ['jugabilidad?'], 'Camera-Mod': ['camara?'], 'Commentary-ES': ['relatos?'], 'Intro-Videos': ['videos?'], 'Nets-HD': ['redes?'], 'Reshade-Preset': ['graficos?'], 'Faces-Pack': ['caras?'], 'Balls-2026': ['balones?'] };
+  const names = { 'Football Life': [], 'Legends-Pack': ['leyendas?'], 'Transfers-Octubre': ['plantillas?'], 'Gameplay-Mod': ['jugabilidad?'], 'Camera-Mod': ['camara?'], 'Commentary-ES': ['relatos?'], 'Intro-Videos': ['escenas?'], 'Movie-Pack': ['videos?'], 'RefKitServer': ['arbitros?'], 'BallBoysServer': ['publico?'], 'UIColors': ['menu?'], 'FoulScenes': ['escenas?'], 'Nets-HD': ['redes?'], 'Reshade-Preset': ['graficos?'], 'Faces-Pack': ['caras?'], 'Balls-2026': ['balones?'] };
   for (const [n, want] of Object.entries(names)) assert.deepStrictEqual(J(await X.siScanRoot(new FDir(n, {}), n)).map(x => x.t + (x.sure ? '' : '?')), want, n);
   assert.strictEqual(J(await X.siScanRoot(new FDir('Trophies', {}), 'Trophies'))[0].desc, 'Trofeos y medallas de la ceremonia final.', 'cada tipo trae su descripción');
 });
@@ -158,13 +158,14 @@ test('marcadores profundos: anime = animaciones, common_ad = banners, y las comi
 
 test('módulos: subcarpetas, rutas con modules\\, encabezado del .lua y carpetas de content que nombra', async () => {
   const enc = t => new TextEncoder().encode(t);
-  const ini = '[sider]\r\nlua.enabled = 1\r\nlua.module = "FoulScenes.lua"\r\nlua.module = "modules\\lib\\helper.lua"\r\nlua.module = "camera"\r\nlua.module = "nada.lua"\r\n';
+  const ini = '[sider]\r\nlua.enabled = 1\r\nlua.module = "FoulScenes.lua"\r\nlua.module = "modules\\lib\\helper.lua"\r\nlua.module = "camera"\r\nlua.module = "nada.lua"\r\nlua.module = "Rarisimo.lua"\r\n';
   const sd = new FDir('Sider', { 'sider.ini': enc(ini),
-    modules: { 'FoulScenes.lua': enc('-- FoulScenes: muestra escenas de faltas y tarjetas\r\nlocal root = ctx.sider_dir .. "content\\\\foul-scenes\\\\"\r\n'), 'camera.lua': enc('--\r\n-- Camera module\r\n'), lib: { 'helper.lua': null }, 'otro.lua': null },
+    modules: { 'Rarisimo.lua': enc('-- Rarisimo: cambia el color del cielo\r\n'), 'FoulScenes.lua': enc('-- FoulScenes: muestra escenas de faltas y tarjetas\r\nlocal root = ctx.sider_dir .. "content\\\\foul-scenes\\\\"\r\n'), 'camera.lua': enc('--\r\n-- Camera module\r\n'), lib: { 'helper.lua': null }, 'otro.lua': null },
     content: { 'foul-scenes': { a: {} }, 'sin-uso': {} } });
   X.SI.info = null; await X.siLoad(true, sd); const info = X.SI.info;
-  assert.deepStrictEqual(J(info.mods.map(m => [m.name, m.exists])), [['FoulScenes.lua', true], ['modules\\lib\\helper.lua', true], ['camera', true], ['nada.lua', false]]);
-  assert.strictEqual(info.mods[0].desc, 'FoulScenes: muestra escenas de faltas y tarjetas', 'si no lo conozco, uso lo que dice el archivo');
+  assert.deepStrictEqual(J(info.mods.map(m => [m.name, m.exists])), [['FoulScenes.lua', true], ['modules\\lib\\helper.lua', true], ['camera', true], ['nada.lua', false], ['Rarisimo.lua', true]]);
+  assert.strictEqual(info.mods[4].desc, 'Rarisimo: cambia el color del cielo', 'si no lo conozco, uso lo que dice el archivo');
+  assert.strictEqual(info.mods[0].desc, 'FoulScenes: escenas nuevas de faltas (y revisión del VAR en la versión con VAR)', 'lo conozco: uso mi descripción');
   assert.deepStrictEqual(J(info.modFree.map(m => m.name)), ['otro.lua'], 'los de subcarpetas no se ofrecen para agregar');
   const fc = info.content.find(c => c.name === 'foul-scenes');
   assert.deepStrictEqual(J(fc.mods.map(m => m.name)), ['FoulScenes.lua'], 'el módulo nombra content\\foul-scenes en su código');
@@ -176,4 +177,11 @@ test('módulo mal escrito: sugiere el archivo que sí está', async () => {
   const sd = new FDir('Sider', { 'sider.ini': enc('[sider]\r\nlua.module = "FreeHeartEngine.lu"\r\nlua.module = "AI-Tweaks.lua"\r\nlua.module = "Nada.lua"\r\n'), modules: { 'FreeHeartEngine.lua': null, 'AI_Tweaks.lua': null, FreeHeartEngine: {} } });
   X.SI.info = null; await X.siLoad(true, sd);
   assert.deepStrictEqual(J(X.SI.info.mods.map(m => [m.name, m.exists, m.sug])), [['FreeHeartEngine.lu', false, 'FreeHeartEngine.lua'], ['AI-Tweaks.lua', false, 'AI_Tweaks.lua'], ['Nada.lua', false, null]]);
+});
+
+test('descripciones corregidas: crowd server, cámaras por el nombre, Liga Master', () => {
+  const C = vm.runInContext('siModInfo', ctx), d = n => J(C(n));
+  assert.deepStrictEqual([d('GRAND\\Crowd-Server.lua').type, d('penaltyCam.lua').desc, d('ReplayCamera.lua').desc, d('Campeones.lua').type], ['publico', 'Cámara de penales', 'Cámara de las repeticiones', null]);
+  assert.strictEqual(d('masterleague.lua').type, 'ligamaster');
+  assert.strictEqual(d('netblock.lua').desc, 'NetBlock: saca el aviso de fin del servicio online de PES');
 });

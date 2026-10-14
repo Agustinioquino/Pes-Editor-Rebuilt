@@ -110,56 +110,98 @@ const SI_TYPES = { // tipo: [nombre, ícono, herramienta del editor que lo usa, 
   relatos: ['Relatos', '🎙️', null, 'Relatores, comentarios y nombres de jugadores cantados.'],
   prensa: ['Sala de prensa', '🎤', null, 'Fondos de la sala de prensa y de las conferencias.'],
   clima: ['Clima', '🌦️', null, 'Lluvia, nieve, cielo y horarios del partido.'],
-  videos: ['Videos', '🎬', null, 'Videos de entrada, presentaciones y logos al iniciar el juego.'],
+  videos: ['Videos', '📼', null, 'Videos de entrada y logos al iniciar el juego.'],
+  escenas: ['Escenas y cinemáticas', '🎬', null, 'Escenas del partido: faltas, goles, entrada de los equipos, previa, jugador del partido y sala de prensa (common\\demo).'],
+  publico: ['Público y costado de la cancha', '👥', null, 'Cantidad de gente, coreografías, fuegos artificiales, alcanzapelotas y suplentes.'],
+  ligamaster: ['Liga Master', '📋', null, 'Personalización de la Liga Master: salas de prensa, fondos de las cinemáticas, vestuarios y ropa del técnico.'],
+  parches: ['Parches y brazaletes', '🎽', null, 'Logo de la liga o competición en la manga de la camiseta y brazalete de capitán.'],
   jugabilidad: ['Jugabilidad', '🎮', null, 'Cambios en cómo se juega: físicas, inteligencia artificial, velocidad.'],
   camara: ['Cámara', '🎥', null, 'Cámaras del partido y de las repeticiones.'],
   editor: ['Carpeta de PES Editor', '🛠️', null, 'La usa este editor para dejar sus archivos.'],
   comun: ['Librería común para otros módulos', '🧩', null, 'No cambia nada por sí sola: la necesitan otros módulos para funcionar.']
 };
-const SI_PATHS = [ // [ruta dentro de la carpeta, tipo, contar (archivos; en caras y apariencia, una carpeta o archivo por jugador)]
-  ['common/render/symbol/flag', 'escudos', 1], ['common/render/symbol/player', 'minifaces', 1], ['common/character0/model/character/face/real', 'caras', 1],
-  ['common/character0/model/character/appearance', 'apariencia', 1], ['common/character0/model/character/uniform', 'kits', 0], ['common/character0/model/character/boots', 'botines', 0],
-  ['common/character0/model/character/glove', 'guantes', 0], ['common/character0/model/character/hair', 'peinados', 0], ['common/character0/model/character/tattoo', 'tatuajes', 0],
-  ['common/character0/model/character/ball', 'balones', 0], ['Asset/model/character/ball', 'balones', 0], ['common/render/thumbnail/ball', 'balones', 0],
-  ['common/character1', 'arbitros', 0], ['Asset/model/bg', 'estadios', 0], ['common/bg/model/bg', 'estadios', 0],
+const SI_PATHS = [ // [ruta dentro de la carpeta, tipo, contar (archivos; en caras, una carpeta por jugador)]. PES 2021 usa Asset\model\character; common\character0 es de PES 2016-2019
+  ['common/render/symbol/flag', 'escudos', 1], ['common/render/symbol/player', 'minifaces', 1], ['common/render/symbol/emblemLc', 'competiciones', 0],
+  ['Asset/model/character/face/real', 'caras', 1], ['common/character0/model/character/face/real', 'caras', 1],
+  ['common/character0/model/character/appearance', 'apariencia', 1],
+  ['Asset/model/character/uniform', 'kits', 0], ['common/character0/model/character/uniform/team', 'kits', 0], ['common/character0/model/character/uniform', 'kits', 0],
+  ['Asset/model/character/boots', 'botines', 0], ['common/character0/model/character/boots', 'botines', 0], ['common/render/thumbnail/spike', 'botines', 0],
+  ['Asset/model/character/glove', 'guantes', 0], ['common/character0/model/character/glove', 'guantes', 0],
+  ['common/character0/model/character/hair', 'peinados', 0], ['common/character0/model/character/tattoo', 'tatuajes', 0], ['Asset/model/character/parts/polo', 'tecnicos', 0],
+  ['Asset/model/character/ball', 'balones', 0], ['common/character0/model/character/ball', 'balones', 0], ['common/render/thumbnail/ball', 'balones', 0],
+  ['common/character1', 'arbitros', 0],
+  ['Asset/model/bg/common/pitch', 'cesped', 0], ['Asset/model/bg/common/turf3d', 'cesped', 0], ['Asset/model/bg/common/goal', 'redes', 0], ['Asset/model/bg/common/lut', 'graficos', 0],
+  ['common/bg/model/bg/bill', 'carteles', 0], ['Asset/model/bg', 'estadios', 0], ['common/bg/model/bg', 'estadios', 0], ['common/render/model/bg/hit/stadium', 'estadios', 0], ['common/render/thumbnail/stadium', 'estadios', 0],
   ['common/etc/pesdb', 'base', 0], ['common/etc', 'datapack', 0],
-  ['Asset/model/ui/scoreboard', 'marcadores', 0], ['common/render/ui/scoreboard', 'marcadores', 0], ['Asset/model/ui', 'menu', 0], ['common/render/ui', 'menu', 0], ['common/menu', 'menu', 0],
+  ['common/demo/fixdemoobj', 'escenas', 0], ['common/demo', 'escenas', 0],
+  ['Asset/model/ui/scoreboard', 'marcadores', 0], ['common/render/ui/scoreboard', 'marcadores', 0], ['Asset/model/game2d', 'menu', 0], ['Asset/model/ui', 'menu', 0], ['common/render/ui', 'menu', 0],
+  ['common/menu', 'menu', 0], ['common/script/flow', 'menu', 0],
   ['common/render/font', 'fuentes', 0], ['common/shader', 'graficos', 0], ['Asset/shader', 'graficos', 0],
-  ['common/demo', 'videos', 0], ['common/movie', 'videos', 0], ['common/sound', 'sonido', 0], ['common/bgm', 'sonido', 0]
+  ['common/movie', 'videos', 0], ['common/sound', 'sonido', 0], ['common/bgm', 'sonido', 0]
 ];
 // nombres de carpeta que delatan el contenido estén donde estén (se buscan hasta 7 niveles adentro): [nombre, tipo]
 const SI_MARKERS = [
-  ['anime', 'animaciones'], ['common_ad', 'banners'], ['adboard', 'carteles'], ['adboards', 'carteles'], ['billboard', 'carteles'], ['scoreboard', 'marcadores'], ['tunnel', 'tuneles'],
-  ['turf', 'cesped'], ['nets', 'redes'], ['goalnet', 'redes'], ['trophy', 'trofeos'], ['trophies', 'trofeos'], ['referee', 'arbitros'], ['manager', 'tecnicos'], ['coach', 'tecnicos'],
-  ['font', 'fuentes'], ['fonts', 'fuentes'], ['chant', 'cantos'], ['chants', 'cantos'], ['commentary', 'relatos'], ['callname', 'relatos'], ['movie', 'videos'], ['demo', 'videos'],
-  ['pesdb', 'base'], ['pressroom', 'prensa'], ['tattoo', 'tatuajes'], ['hair', 'peinados'], ['glove', 'guantes'], ['boots', 'botines'], ['ball', 'balones'], ['uniform', 'kits'],
-  ['flag', 'escudos'], ['legend', 'leyendas'], ['weather', 'clima'], ['sky', 'clima'], ['shader', 'graficos'], ['bgm', 'sonido']
+  ['anime', 'animaciones'], ['common_ad', 'banners'], ['adboard', 'carteles'], ['adboards', 'carteles'], ['billboard', 'carteles'], ['bill', 'carteles'], ['scoreboard', 'marcadores'], ['tunnel', 'tuneles'],
+  ['turf', 'cesped'], ['turf3d', 'cesped'], ['pitch', 'cesped'], ['nets', 'redes'], ['goalnet', 'redes'], ['trophy', 'trofeos'], ['trophies', 'trofeos'], ['referee', 'arbitros'], ['refcolor', 'arbitros'],
+  ['manager', 'tecnicos'], ['coach', 'tecnicos'], ['polo', 'tecnicos'], ['font', 'fuentes'], ['fonts', 'fuentes'], ['chant', 'cantos'], ['chants', 'cantos'], ['commentary', 'relatos'], ['callname', 'relatos'],
+  ['movie', 'videos'], ['demo', 'escenas'], ['fixdemo', 'escenas'], ['fixdemoobj', 'escenas'], ['foulscenes', 'escenas'], ['goalscenes', 'escenas'], ['changescenes', 'escenas'], ['scenes', 'escenas'], ['cut-scenes', 'escenas'],
+  ['pesdb', 'base'], ['pressroom', 'prensa'], ['tattoo', 'tatuajes'], ['hair', 'peinados'], ['glove', 'guantes'], ['boots', 'botines'], ['spike', 'botines'], ['ball', 'balones'], ['uniform', 'kits'],
+  ['flag', 'escudos'], ['emblemlc', 'competiciones'], ['legend', 'leyendas'], ['weather', 'clima'], ['sky', 'clima'], ['shader', 'graficos'], ['lut', 'graficos'], ['game2d', 'menu'], ['bgm', 'sonido']
 ];
-const SI_NAMES = [ // pistas por el nombre de la carpeta o del módulo (gana la primera que coincide)
-  [/pes-?editor|edit21/i, 'editor'], [/banner|common_ad/i, 'banners'], [/mini|photo|foto/i, 'minifaces'], [/graphic|menu|gfx|\bui\b|interface|hud/i, 'menu'],
-  [/shader|light|sweetfx|reshade|colou?r|postprocess|\bppe\b|overlay/i, 'graficos'], [/face|cara/i, 'caras'], [/appear|aparien|physique/i, 'apariencia'], [/\bbody|\bskin|cuerpo|piel/i, 'cuerpos'],
-  [/kit|uniform|camiset/i, 'kits'], [/badge|logo|emblem|escudo|crest|flag|bandera/i, 'escudos'], [/stadi|estadio/i, 'estadios'], [/(^|[^t])ball|balon|pelota/i, 'balones'],
-  [/boot|botin/i, 'botines'], [/glove|guante/i, 'guantes'], [/scoreboard|marcador|\btv\b|broadcast/i, 'marcadores'], [/adboard|cartel|\bads?\b/i, 'carteles'], [/anim|anime|pose|edit.?mod/i, 'animaciones'], [/\bnets?\b|redes/i, 'redes'],
-  [/tattoo|tatu/i, 'tatuajes'], [/chant|canto|hincha|crowd/i, 'cantos'], [/comment|relat|narra|callname/i, 'relatos'], [/music|sound|song|audio|bgm|anthem|himno/i, 'sonido'],
-  [/video|movie|intro|cinematic/i, 'videos'], [/refer|arbitr/i, 'arbitros'], [/legend|leyenda|classic|clasic|retro|historic/i, 'leyendas'],
-  [/transfer|roster|squad|plantill|traspaso|option.?file|\bof\b|season|temporada|update|actualiz/i, 'plantillas'], [/gameplay|jugab|physics|\bai\b/i, 'jugabilidad'], [/camera|\bcam\b/i, 'camara'],
+const SI_NAMES = [ // pistas por el nombre de la carpeta o del módulo (gana la primera que coincide, por eso los casos especiales van antes)
+  [/pes-?editor|edit21/i, 'editor'], [/master.?league|\bml.?(my|sel|man)|mlmyteam/i, 'ligamaster'], [/banner|common_ad/i, 'banners'], [/sleeve|armband|brazalete|badge.?serv|captain.?band/i, 'parches'],
+  [/refer|arbitr|refkit|refcolor/i, 'arbitros'], [/ui.?colou?r|cursor|menu|graphic|gfx|\bui\b|interface|hud/i, 'menu'],
+  [/scene|escena|cut.?scene|replay|intro|entrance|pre.?match|potm|halftime|derby/i, 'escenas'], [/crowd|attendance|choreo|firework|ball.?boy|staff|bib|sub.?board/i, 'publico'],
+  [/mini|photo|foto/i, 'minifaces'], [/shader|light|sweetfx|reshade|colou?r|postprocess|\bppe\b|overlay|\blut\b/i, 'graficos'], [/face|cara/i, 'caras'], [/appear|aparien|physique/i, 'apariencia'], [/\bbody|\bskin|cuerpo|piel/i, 'cuerpos'],
+  [/kit|uniform|camiset|tight/i, 'kits'], [/logo|emblem|escudo|crest|flag|bandera|badge/i, 'escudos'], [/stadi|estadio|aerial|corner.?flag/i, 'estadios'], [/ballon.?d.?or/i, 'trofeos'], [/(^|[^t])ball|balon|pelota/i, 'balones'],
+  [/boot|botin|spike/i, 'botines'], [/glove|guante/i, 'guantes'], [/scoreboard|marcador|\btv\b|broadcast/i, 'marcadores'], [/adboard|cartel|\bads?\b|billboard/i, 'carteles'], [/anim|anime|pose|edit.?mod|reaction/i, 'animaciones'], [/\bnets?\b|redes/i, 'redes'],
+  [/tattoo|tatu/i, 'tatuajes'], [/chant|canto|hincha/i, 'cantos'], [/comment|relat|narra|callname/i, 'relatos'], [/music|sound|song|audio|bgm|anthem|himno|soundtrack/i, 'sonido'],
+  [/video|movie|cinematic/i, 'videos'], [/legend|leyenda|classic|clasic|retro|historic/i, 'leyendas'],
+  [/transfer|roster|squad|plantill|traspaso|option.?file|\bof\b|season|temporada|update|actualiz/i, 'plantillas'], [/gameplay|jugab|physic|\bai\b|ai.?tweak|longshot|strictness|heart.?engine|away.?goal/i, 'jugabilidad'], [/camera|\bcam\b|fanview/i, 'camara'],
   [/\bdb\b|database|pesdb|base/i, 'base'], [/hair|peinad/i, 'peinados'], [/tunnel|tunel/i, 'tuneles'], [/troph|trofeo|medal/i, 'trofeos'], [/press|prensa|conference/i, 'prensa'],
   [/turf|pitch|cesped|grass/i, 'cesped'], [/weather|clima|rain|snow/i, 'clima'], [/manager|coach|tecnic|entrenador/i, 'tecnicos'], [/font|fuente/i, 'fuentes'],
-  [/datapack|\bdlc\b|\bdp\d|\bdata\b/i, 'datapack'], [/comp|cup|league|liga|torneo|tournament|copa/i, 'competiciones'], [/common|lib|util|helper/i, 'comun']
+  [/datapack|\bdlc\b|\bdp\d|\bdata\b/i, 'datapack'], [/comp|cup|league|liga|torneo|tournament|copa|exhibition/i, 'competiciones'], [/common|lib|util|helper/i, 'comun']
 ];
-const SI_MODS = [ // módulos Lua conocidos: [nombre, qué hacen, tipo relacionado]
-  [/kserv|kit.?serv/i, 'Kit server: carga los kits desde content\\kit-server, sin meterlos en cpk', 'kits'], [/edit21_db/i, 'PES Editor: copia la base del juego en content\\edit21-db (solo lectura)', 'base'],
-  [/face.?serv/i, 'Face server: caras desde content', 'caras'], [/ball.?serv/i, 'Ball server: balones desde content', 'balones'], [/stadium.?serv/i, 'Stadium server: estadios desde content', 'estadios'],
-  [/scoreboard/i, 'Scoreboard server: marcadores por competición', 'marcadores'], [/glove/i, 'Gloves server: guantes', 'guantes'], [/boot/i, 'Boots server: botines', 'botines'],
-  [/troph/i, 'Trophy server: trofeos', 'trofeos'], [/adboard/i, 'Adboards server: carteles publicitarios', 'carteles'], [/banner/i, 'Banner server: banners de hinchadas en las tribunas por equipo y competición', 'banners'], [/anim/i, 'Animaciones', 'animaciones'], [/tunnel/i, 'Tunnel server: túneles de salida', 'tuneles'],
-  [/chant/i, 'Chants: cantos de hinchada por equipo', 'cantos'], [/comment|callname/i, 'Relatos y nombres de jugadores cantados', 'relatos'], [/music|bgm|song|anthem/i, 'Música o himnos', 'sonido'],
-  [/press/i, 'Sala de prensa', 'prensa'], [/turf|pitch|grass/i, 'Césped y campo', 'cesped'], [/\bnets?\b/i, 'Redes de los arcos', 'redes'], [/weather|clima/i, 'Clima', 'clima'],
-  [/camera|cam\b/i, 'Cámara', 'camara'], [/time|clock|duration/i, 'Duración del partido', null], [/uniparam/i, 'Parámetros de uniformes (UniParam)', 'kits'], [/sleeve|armband|brazalete/i, 'Parches de manga y brazaletes', 'kits'],
-  [/refer/i, 'Árbitros', 'arbitros'], [/overlay|ui.?colo|postprocess|\bppe\b|reshade/i, 'Gráficos dentro del juego', 'graficos'], [/tattoo/i, 'Tatuajes', 'tatuajes'], [/manager|coach/i, 'Entrenadores', 'tecnicos'],
-  [/legend|classic/i, 'Leyendas y jugadores clásicos', 'leyendas'], [/video|movie|intro/i, 'Videos de entrada', 'videos'], [/gameplay|physics/i, 'Jugabilidad: cambia cómo se juega', 'jugabilidad'],
+const SI_MODS = [ // módulos Lua conocidos: [nombre, qué hacen, tipo relacionado]. Los casos especiales van antes que los generales (RefKitServer antes que kit server)
+  [/net.?block/i, 'NetBlock: saca el aviso de fin del servicio online de PES', 'menu'],
+  [/master.?league|\bml.?(my.?team|sel|manager)|mlmyteam/i, 'Liga Master personalizada: salas de prensa, fondos de las cinemáticas, vestuarios, carteles y ropa del técnico por equipo', 'ligamaster'],
+  [/crowd/i, 'Crowd server: elegís cuánta hinchada hay del local y del visitante', 'publico'],
+  [/goal.?sound/i, 'Ruido de la hinchada al hacer un gol', 'sonido'], [/goal.?song/i, 'GoalSong server: una canción al hacer un gol, según el equipo', 'sonido'],
+  [/tv.?screen|screen.?name/i, 'Pantallas de TV del estadio', 'estadios'], [/entrance.?fix/i, 'Arreglos en la entrada de los equipos', 'escenas'],
+  [/font/i, 'Font server: cambia la tipografía del juego según la competición y otros factores', 'fuentes'],
+  [/custom.?exhibition|exhibition/i, 'Convierte los amistosos en partidos de copa, de competición o finales', 'competiciones'],
+  [{ test: n => { const b = n.replace(/\.lua$/i, ''); return /(^|[\W_])cam(era)?([\W_]|$)/i.test(b) || /[a-z]Cam(era)?([A-Z\W_]|$)/.test(b) || /^[Cc]am(era)?([A-Z\W_]|$)/.test(b) || /[a-z]camera/i.test(b); } }, null, 'camara'], // la descripción se arma con el nombre: penaltyCam = cámara de penales
+  [/edit21_db/i, 'PES Editor: copia la base del juego en content\\edit21-db (solo lectura)', 'base'],
+  [/ref.?kit|referee.?kit/i, 'RefKitServer: uniformes de árbitros por competición, desde content\\referee_kit-server', 'arbitros'], [/referee.?strict|strictness/i, 'Árbitro más o menos estricto: cuántas faltas y tarjetas cobra', 'jugabilidad'],
+  [/refer/i, 'Árbitros', 'arbitros'],
+  [/sleeve.?badge|armband|badge.?serv/i, 'Logo de la liga o competición en la manga de la camiseta, según dónde juega cada equipo', 'parches'], [/captain.?band/i, 'Brazalete de capitán', 'parches'],
+  [/kserv|kit.?serv/i, 'Kit server: carga los kits desde content\\kit-server, sin meterlos en cpk', 'kits'], [/tight.?kit/i, 'Kits más ajustados al cuerpo', 'kits'], [/uniparam/i, 'Parámetros de uniformes (UniParam)', 'kits'],
+  [/face.?serv/i, 'Face server: caras desde content', 'caras'], [/mini.?face/i, 'MiniFace server: fotos de jugadores desde content', 'minifaces'],
+  [/ball.?boy/i, 'Alcanzapelotas al costado de la cancha', 'publico'], [/ball.?physic/i, 'Física de la pelota', 'jugabilidad'], [/ball.?serv/i, 'Ball server: balones desde content\\ball-server', 'balones'],
+  [/stadium.?serv/i, 'Stadium server: estadios por equipo y competición desde content\\stadium-server', 'estadios'], [/aerial|stadium.?background|mock.?stadium/i, 'Vistas y fondo del estadio', 'estadios'],
+  [/stadium.?banner/i, 'Banners del estadio', 'banners'], [/stadium.?board/i, 'Publicidad que se ve en los estadios', 'carteles'], [/corner.?flag/i, 'Banderín del córner', 'estadios'],
+  [/scoreboard/i, 'Scoreboard server: marcadores por competición, con himno de entrada (content\\scoreboard-server)', 'marcadores'], [/logo.?halftime/i, 'Logo de la competición en el entretiempo', 'marcadores'],
+  [/glove/i, 'Gloves server: guantes', 'guantes'], [/boot/i, 'Boots server: botines', 'botines'],
+  [/ballon.?d.?or|troph/i, 'Trophy server: trofeos', 'trofeos'], [/adboard/i, 'Adboards server: carteles publicitarios', 'carteles'], [/banner/i, 'Banner server: banners de hinchadas en las tribunas por equipo y competición', 'banners'],
+  [/foul.?scene/i, 'FoulScenes: escenas nuevas de faltas (y revisión del VAR en la versión con VAR)', 'escenas'], [/goal.?scene/i, 'Escenas de festejo de gol', 'escenas'], [/change.?scene/i, 'Escenas de cambios de jugadores', 'escenas'],
+  [/cut.?scene|\bscenes\b/i, 'CutScenes: escenas del partido desde content\\cut-scenes', 'escenas'], [/potm/i, 'Jugador del partido (POTM)', 'escenas'],
+  [/intro|pre.?match/i, 'Presentación antes del partido', 'escenas'], [/entrance/i, 'Entrada de los equipos a la cancha', 'escenas'], [/replay/i, 'Repeticiones', 'escenas'], [/derby/i, 'Clásicos y derbis con escenas propias', 'escenas'],
+  [/anim|reaction/i, 'Animaciones y reacciones de los jugadores', 'animaciones'], [/tunnel/i, 'Tunnel server: túneles de salida', 'tuneles'],
+  [/chant/i, 'Chants: cantos de hinchada por equipo', 'cantos'], [/choreo/i, 'Coreografías de la hinchada', 'publico'], [/firework/i, 'Fuegos artificiales', 'publico'], [/attendance/i, 'Cantidad de público en las tribunas', 'publico'],
+  [/staff|\bbib/i, 'Personal y suplentes con pechera al costado de la cancha', 'publico'], [/sub.?board/i, 'Cartel de cambios del cuarto árbitro', 'publico'],
+  [/comment|callname/i, 'Relatos y nombres de jugadores cantados (content\\commentary-server)', 'relatos'], [/goal.?song/i, 'Canción de gol por equipo', 'sonido'], [/soundtrack|music|bgm|song|anthem/i, 'Música del menú e himnos (content\\soundtrack-server)', 'sonido'],
+  [/press/i, 'Sala de prensa', 'prensa'], [/turf/i, 'TurfLoader: césped por estadio desde content\\turf-loader', 'cesped'], [/pitch|grass/i, 'Césped y campo', 'cesped'], [/net.?physic/i, 'Física de las redes', 'redes'], [/\bnets?\b/i, 'Redes de los arcos', 'redes'],
+  [/weather|clima/i, 'WeatherConditions: clima por equipo desde content\\weather-conditions', 'clima'],
+  [/time|clock|duration/i, 'Duración del partido', null],
+  [/ui.?colou?r/i, 'Colores del menú y del marcador', 'menu'], [/cursor/i, 'Cursor que sigue a los jugadores en el partido', 'menu'], [/menu/i, 'Menús', 'menu'],
+  [/overlay|postprocess|\bppe\b|reshade/i, 'Gráficos dentro del juego', 'graficos'], [/tattoo/i, 'Tatuajes', 'tatuajes'], [/manager|coach/i, 'Entrenadores', 'tecnicos'],
+  [/legend|classic/i, 'Leyendas y jugadores clásicos', 'leyendas'], [/video|movie/i, 'Videos de entrada', 'videos'],
+  [/ai.?tweak/i, 'Ajustes de la inteligencia artificial de los rivales', 'jugabilidad'], [/long.?shot/i, 'Más tiros de media y larga distancia', 'jugabilidad'], [/heart.?engine/i, 'FreeHeartEngine: cambia cómo se juega', 'jugabilidad'],
+  [/away.?goal/i, 'Regla del gol de visitante', 'jugabilidad'], [/gameplay|physics/i, 'Jugabilidad: cambia cómo se juega', 'jugabilidad'],
+  [/training/i, 'Campo de entrenamiento', 'estadios'], 
   [/transfer|roster|squad/i, 'Plantillas y traspasos', 'plantillas'], [/\bstats?\b|rating|overall|valorac/i, 'Valoraciones y estadísticas', 'base'], [/lineup|formation|alineac/i, 'Alineaciones y formaciones', null],
-  [/replay|highlight/i, 'Repeticiones', null], [/cursor|select/i, 'Selección de equipos y cursor', null], [/comp|league|cup|tournament/i, 'Competiciones (nombres, logos, balones por torneo)', 'competiciones'],
-  [/common|lib|util|helper/i, 'Librería que usan otros módulos', 'comun'], [/debug|log/i, 'Depuración (anota en sider.log)', null], [/speed|tempo/i, 'Velocidad del juego', null], [/crash|fix/i, 'Arreglo de estabilidad', null]
+  [/highlight/i, 'Resúmenes', 'escenas'], [/select/i, 'Selección de equipos', 'menu'], [/comp|league|cup|tournament/i, 'Competiciones (nombres, logos, balones por torneo)', 'competiciones'],
+  [/common|lib|util|helper/i, 'Librería que usan otros módulos', 'comun'], [/debug|\blog\b|logger/i, 'Depuración (anota en sider.log)', null], [/speed|tempo/i, 'Velocidad del juego', null], [/crash|fix/i, 'Arreglo de estabilidad', null]
 ];
 // herramientas del editor que usan cada tipo de contenido
 const SI_TOOLS = {
@@ -169,7 +211,11 @@ const SI_TOOLS = {
   base: ['Base del juego', 'nombres, valoraciones y planteles de todos los jugadores', () => setTab('players')]
 };
 const siType = t => { const x = SI_TYPES[t] || [t, '📁']; return { t, n: x[0], ico: x[1], tool: x[2] && SI_TOOLS[x[2]] ? x[2] : null, desc: x[3] || '' }; };
-const siModInfo = n => { const k = SI_MODS.find(([re]) => re.test(n)); return { name: n, desc: k ? k[1] : null, type: k ? k[2] : siGuess(n.replace(/\.lua$/i, '')) }; };
+const SI_CAM = [[/penal/i, 'de penales'], [/free.?kick|tiro.?libre|\bfk/i, 'de tiros libres'], [/corner/i, 'de córners'], [/goal.?kick/i, 'de saques de arco'], [/goal/i, 'del gol'],
+  [/replay|repet/i, 'de las repeticiones'], [/fan.?view|fan\b|crowd/i, 'desde la tribuna'], [/broadcast|\btv\b/i, 'de transmisión'], [/wide|amplia/i, 'amplia'], [/player|jugador/i, 'del jugador'],
+  [/kick.?off|saque/i, 'del saque inicial'], [/cinema|cutscene|scene/i, 'de las escenas'], [/dynamic/i, 'dinámica'], [/tele/i, 'de televisión'], [/stadium/i, 'del estadio'], [/bench|banco/i, 'del banco']];
+const siCamDesc = n => { const b = n.replace(/\.lua$/i, '').split(/[\\/]/).pop(), w = SI_CAM.filter(([re]) => re.test(b)).map(x => x[1]); return w.length ? 'Cámara ' + w.join(' y ') : 'Cámara del partido'; };
+const siModInfo = n => { const k = SI_MODS.find(([re]) => re.test(n.split(/[\\/]/).pop())); return { name: n, desc: k ? (k[1] || (k[2] === 'camara' ? siCamDesc(n) : null)) : null, type: k ? k[2] : siGuess(n.replace(/\.lua$/i, '')) }; };
 const siGuess = name => { for (const [re, t] of SI_NAMES) if (re.test(name)) return t; return null; };
 // recorre las carpetas (hasta 7 niveles, 400 carpetas) buscando nombres que delatan el contenido: anime, common_ad, scoreboard…
 async function siMarkers(d) {
@@ -309,7 +355,7 @@ async function siModRead(fh) {
     for (const l of t.split(/\r?\n/).slice(0, 25)) {
       const c = l.match(/^\s*--+\s*(.*?)\s*-*\s*$/); if (!c) { if (l.trim()) break; continue; }
       const x = c[1].replace(/^\[\[|\]\]$/g, '').trim();
-      if (x.length < 6 || /^(version|v\d|author|by\b|copyright|license|http|=+$)/i.test(x)) continue;
+      if (x.length < 6 || /^(version|v\d|author|by\b|copyright|license|http|=+$)/i.test(x) || /^[\w.\- ]{1,40}\s+(by|por|v\d[\w.]*)\b[\w.\- ]*$/i.test(x)) continue; // "crowd_server by grand" no dice qué hace
       head = x.length > 140 ? x.slice(0, 137) + '…' : x; break;
     }
     return { refs: [...refs], head };

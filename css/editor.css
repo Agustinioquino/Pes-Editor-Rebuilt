@@ -869,9 +869,6 @@ tr:hover .face.pl{scale:1.12;box-shadow:inset 0 0 0 2px var(--accent),0 4px 12px
 /* buscador de música (YouTube y Spotify) */
 .mpfind{display:grid;gap:8px;padding:10px;border-radius:12px;background:color-mix(in srgb,var(--sunk) 75%,transparent);border:1px solid var(--line);min-width:0}
 .mpfind[hidden]{display:none}
-.mpsrc{width:100%}.mpsrc button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.mpsrc button[aria-pressed="true"]{background:var(--mpc);color:#fff}
-.mfdot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}.mfdot.yt{background:#f03}.mfdot.sp{background:#1ed760}
 .mfq{display:flex;gap:6px}.mfq input{flex:1;min-width:0}
 .mpres{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:300px;overflow-y:auto;overscroll-behavior:contain}
 .mpres:empty{display:none}
@@ -885,10 +882,6 @@ tr:hover .face.pl{scale:1.12;box-shadow:inset 0 0 0 2px var(--accent),0 4px 12px
 .mfr.in .mfadd{background:var(--mpc);color:#fff}
 .mfload{display:flex;justify-content:center;gap:6px;padding:14px}.mfload i{width:8px;height:8px;border-radius:50%;background:var(--mpc);animation:mfDot 1s ease-in-out infinite}.mfload i:nth-child(2){animation-delay:.15s}.mfload i:nth-child(3){animation-delay:.3s}
 @keyframes mfDot{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:none}}
-.mfkeys summary{cursor:pointer;font-size:.75rem;color:var(--muted)}
-.mfkbody{display:grid;gap:12px;margin-top:8px;text-align:left}
-.mfk{display:grid;gap:5px}.mfk>b{display:flex;align-items:center;gap:6px;font-size:.82rem}.mfk label{font-size:.72rem;color:var(--muted)}.mfk input{min-width:0}.mfk .btn{justify-self:start}
-.mfcopy{display:flex;gap:6px;align-items:center;min-width:0}.mfcopy code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;padding:4px 6px;border-radius:6px;background:var(--sunk)}
 .mp.sp .mptv{background:#121212}
 .mptv{position:absolute;left:0;bottom:calc(100% + 10px);width:200px;height:200px;z-index:3;border-radius:12px;overflow:hidden;background:#000;border:1px solid color-mix(in srgb,var(--mpc) 40%,var(--line));box-shadow:0 14px 34px -14px #000c;display:none;transition:left .3s,top .3s,width .3s,height .3s,border-radius .3s}
 .mp.yt .mptv{display:block}

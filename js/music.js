@@ -191,7 +191,7 @@ function mpMount() {
       <div class="mpmix"><span class="lab">Pase entre canciones</span><div class="seg" id="mpMode">${[['corte', 'Corte'], ['suave', 'Suave'], ['remix', 'Remix']].map(([k, n]) => `<button type="button" data-v="${k}">${n}</button>`).join('')}</div>
         <label class="mpfade"><span>Duración <b id="mpFadeV"></b></span><input type="range" id="mpFade" min="2" max="14" step="1" aria-label="Duración del pase"></label><p class="mpnote" id="mpNote"></p></div>
       <ol class="mplist" id="mpList"></ol>
-      <div class="mpfoot"><button type="button" class="btn small" id="mpAdd">＋ Agregar canciones</button><button type="button" class="btn small" id="mpYtB" aria-expanded="false">🔎 Buscar música</button><button type="button" class="btn small ghost" id="mpCoverB">🖼 Carátula</button></div>
+      <div class="mpfoot"><button type="button" class="btn small" id="mpAdd">＋ Agregar canciones</button><button type="button" class="btn small" id="mpYtB" aria-expanded="false">🔗 Agregar por link</button><button type="button" class="btn small ghost" id="mpCoverB">🖼 Carátula</button></div>
       ${mfHtmlPanel()}
     </div>
     <div class="mptv" id="mpTv" aria-label="Video de YouTube"><button type="button" class="mptvcov" id="mpTvCov" title="Ver el video otra vez"><img alt=""><span>▶ Ver video</span></button><button type="button" class="mptvx" id="mpTvX" title="Sacar el video (sigue sonando la música)" aria-label="Sacar el video">✕</button><div class="mptvp" data-n="0"><div id="mpYt0"></div></div><div class="mptvp" data-n="1"><div id="mpYt1"></div></div><div class="mptvp" data-n="sp"><div id="mpSp"></div></div></div>

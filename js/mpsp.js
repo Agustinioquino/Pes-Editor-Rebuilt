@@ -88,15 +88,9 @@ function spItem(r, o = {}) {
 async function mpSpAdd(s, note) {
   const r = spParse(s), say = t => { if (note) note.textContent = t; };
   if (!r) { if (/spotify\.link|spoti\.fi/.test(s)) say('Ese es un link corto de Spotify: abrilo en el navegador y copiá el link largo (open.spotify.com/…).'); else say('No reconozco ese link de Spotify.'); return 0; }
-  let items = null;
-  // con tu cuenta conectada, las listas y discos se abren tema por tema
-  if ((r.type === 'playlist' || r.type === 'album') && spToken()) { say('Leyendo la lista en Spotify…'); items = await spExpand(r).catch(() => null); }
-  if (!items) {
-    say('Buscando el nombre en Spotify…');
-    const j = await spOembed(r.url);
-    items = [spItem(r, j ? { t: j.title, cover: j.thumbnail_url, g: r.type === 'track' ? 'Spotify' : SP_KIND[r.type] + ' · Spotify' } : {})];
-  }
-  return mpAddItems(items, say);
+  say('Buscando el nombre en Spotify…');
+  const j = await spOembed(r.url); // listas y discos van enteros en la ventanita de Spotify (no hace falta cuenta)
+  return mpAddItems([spItem(r, j ? { t: j.title, cover: j.thumbnail_url, g: r.type === 'track' ? 'Spotify' : SP_KIND[r.type] + ' · Spotify' } : {})], say);
 }
 // suma temas a la lista (sin repetir) y arranca el primero
 function mpAddItems(items, say = () => { }) {
@@ -106,80 +100,4 @@ function mpAddItems(items, say = () => { }) {
   mpBuildList(); mpSaveCustom(); mpRenderList();
   const k = MP.list.findIndex(t => t.k === items[0].k); if (k >= 0) { MP.st.on = true; mpGo(k); }
   return n;
-}
-
-// ---- tu cuenta de Spotify (para buscar) ----
-// Spotify pide que cada página que busca tenga su "app" registrada (gratis, en developer.spotify.com). El Client ID
-// de esa app se pega acá una vez; la cuenta se conecta en una ventanita de Spotify y queda recordada en este navegador.
-const SP_AUTH = { k: 'edit21-spotify' };
-const spCfg = () => { try { return JSON.parse(localStorage.getItem(SP_AUTH.k) || '{}'); } catch { return {}; } };
-const spCfgSet = o => { try { localStorage.setItem(SP_AUTH.k, JSON.stringify(Object.assign(spCfg(), o))); } catch { } };
-const spRedirect = () => new URL('spotify.html', location.href.replace(/[?#].*$/, '')).href;
-const spToken = () => { const c = spCfg(); return c.access && c.refresh ? c : null; };
-const b64url = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-async function spConnect() {
-  const id = (spCfg().client || '').trim(); if (!/^[0-9a-f]{32}$/i.test(id)) { toast('Primero pegá el Client ID de tu app de Spotify (32 letras y números).', 6000); return false; }
-  const ver = b64url(crypto.getRandomValues(new Uint8Array(48))), state = b64url(crypto.getRandomValues(new Uint8Array(12)));
-  const chal = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ver)));
-  try { localStorage.setItem('edit21-spotify-pkce', JSON.stringify({ ver, state })); localStorage.removeItem('edit21-spotify-code'); } catch { }
-  const u = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({ client_id: id, response_type: 'code', redirect_uri: spRedirect(), code_challenge_method: 'S256', code_challenge: chal, state });
-  const w = open(u, 'spotify-login', 'width=480,height=720');
-  if (!w) { toast('El navegador bloqueó la ventana de Spotify. Permití las ventanas emergentes para esta página.', 7000); return false; }
-  // la ventanita vuelve a spotify.html, que avisa con un mensaje (o, si se perdió la conexión entre ventanas, por localStorage)
-  const got = await new Promise(res => {
-    const fin = v => { removeEventListener('message', onMsg); removeEventListener('storage', onSt); clearInterval(t); res(v); };
-    const onMsg = e => { if (e.origin === location.origin && e.data && e.data.spotify) fin(e.data.spotify); };
-    const onSt = e => { if (e.key === 'edit21-spotify-code' && e.newValue) { try { fin(JSON.parse(e.newValue)); } catch { } } };
-    addEventListener('message', onMsg); addEventListener('storage', onSt);
-    const t = setInterval(() => { if (w.closed) setTimeout(() => fin(null), 600); }, 800);
-  });
-  let pk = {}; try { pk = JSON.parse(localStorage.getItem('edit21-spotify-pkce') || '{}'); localStorage.removeItem('edit21-spotify-pkce'); localStorage.removeItem('edit21-spotify-code'); } catch { }
-  if (!got) return false;
-  if (got.error || !got.code) { toast(got.error === 'access_denied' ? 'No se conectó: cancelaste en Spotify.' : 'Spotify no dejó conectar: ' + (got.error || 'sin código'), 7000); return false; }
-  if (got.state !== pk.state) { toast('La respuesta de Spotify no coincide. Probá conectar de nuevo.', 6000); return false; }
-  const ok = await spTokenReq({ grant_type: 'authorization_code', code: got.code, redirect_uri: spRedirect(), client_id: id, code_verifier: pk.ver });
-  if (ok) toast('Spotify conectado. Ya podés buscar temas.');
-  return ok;
-}
-async function spTokenReq(body) {
-  try {
-    const r = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body) });
-    const j = await r.json();
-    if (!r.ok || !j.access_token) { if (body.grant_type === 'refresh_token') spCfgSet({ access: '', refresh: '' }); toast('Spotify: ' + (j.error_description || j.error || r.status), 7000); return false; }
-    spCfgSet({ access: j.access_token, refresh: j.refresh_token || spCfg().refresh, exp: Date.now() + (j.expires_in - 60) * 1000 });
-    return true;
-  } catch (e) { toast('No se pudo hablar con Spotify: ' + e.message, 6000); return false; }
-}
-function spDisconnect() { spCfgSet({ access: '', refresh: '', exp: 0 }); }
-async function spGet(path) {
-  let c = spToken(); if (!c) throw Object.assign(new Error('Conectá tu cuenta de Spotify para buscar.'), { code: 'LOGIN' });
-  if (Date.now() > (c.exp || 0)) { if (!await spTokenReq({ grant_type: 'refresh_token', refresh_token: c.refresh, client_id: c.client })) throw Object.assign(new Error('Volvé a conectar tu cuenta de Spotify.'), { code: 'LOGIN' }); c = spCfg(); }
-  const r = await fetch('https://api.spotify.com/v1/' + path, { headers: { Authorization: 'Bearer ' + c.access } });
-  if (r.status === 401) { spCfgSet({ exp: 0 }); throw Object.assign(new Error('Spotify cerró la sesión: volvé a conectar.'), { code: 'LOGIN' }); }
-  if (r.status === 403) throw new Error('Spotify no deja usar tu app con esta cuenta. En developer.spotify.com, en tu app, agregá tu correo en "User Management".');
-  if (r.status === 429) throw new Error('Spotify pide esperar un rato antes de buscar de nuevo.');
-  if (!r.ok) throw new Error('Spotify respondió ' + r.status);
-  return r.json();
-}
-const spImg = a => { const im = (a && a.images) || []; return (im.find(x => x.width && x.width <= 320) || im[0] || {}).url || ''; };
-const spArtists = t => (t.artists || []).map(a => a.name).join(', ');
-async function spSearch(q) {
-  const j = await spGet('search?' + new URLSearchParams({ q, type: 'track,playlist,album', limit: '10' }));
-  const out = [];
-  for (const t of (j.tracks && j.tracks.items) || []) if (t) out.push({ kind: 'track', id: t.id, t: t.name, g: spArtists(t), y: (t.album && t.album.release_date || '').slice(0, 4), img: spImg(t.album), dur: t.duration_ms / 1000 });
-  for (const a of (j.albums && j.albums.items) || []) if (a) out.push({ kind: 'album', id: a.id, t: a.name, g: spArtists(a), y: (a.release_date || '').slice(0, 4), img: spImg(a) });
-  for (const p of (j.playlists && j.playlists.items) || []) if (p) out.push({ kind: 'playlist', id: p.id, t: p.name, g: (p.owner && p.owner.display_name) || 'Spotify', img: spImg(p), n: p.tracks && p.tracks.total });
-  return out;
-}
-// una lista o un disco, tema por tema (las listas armadas por Spotify a veces no se pueden leer: quedan enteras)
-async function spExpand(r) {
-  const out = [];
-  if (r.type === 'album') {
-    const a = await spGet('albums/' + r.id), img = spImg(a), y = (a.release_date || '').slice(0, 4);
-    for (const t of (a.tracks && a.tracks.items) || []) out.push(spItem({ type: 'track', id: t.id, uri: 'spotify:track:' + t.id }, { t: t.name, g: spArtists(t), y, cover: img }));
-  } else {
-    let j; try { j = await spGet('playlists/' + r.id + '/tracks?limit=100'); } catch { j = await spGet('playlists/' + r.id + '/items?limit=100'); }
-    for (const it of j.items || []) { const t = it && (it.track || it.item); if (!t || !t.id || t.type === 'episode' && !t.uri) continue; out.push(spItem({ type: t.type || 'track', id: t.id, uri: t.uri || 'spotify:track:' + t.id }, { t: t.name, g: spArtists(t) || 'Spotify', y: (t.album && t.album.release_date || '').slice(0, 4), cover: spImg(t.album) })); }
-  }
-  return out.length ? out : null;
 }

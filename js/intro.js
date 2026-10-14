@@ -242,7 +242,7 @@ async function introImages() {
   const firstIds = [...new Set([...document.querySelectorAll('img[data-badge]')].filter(i => { const r = i.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }).slice(0, 24).map(i => +i.dataset.badge))];
   if (PREFS.onlineBadges) firstIds.forEach(id => { const t = S.ix.teamById.get(id); if (t && !BADGES.idx.has(id) && !BADGES.online.has(id)) badgeUrl(t, true); });
   if (PREFS.online) roster.forEach(pid => { if (!FACES.idx.has(pid) && !FACES.online.has(pid)) faceUrl(pid); });
-  const pend = () => firstIds.filter(id => PREFS.onlineBadges && !BADGES.idx.has(id) && !BADGES.online.has(id) && !BADGES.err.has(id)).length + (PREFS.online ? roster.filter(pid => !FACES.idx.has(pid) && !FACES.online.has(pid) && !FACES.err.has(pid)).length : 0);
+  const pend = () => firstIds.filter(id => PREFS.onlineBadges && !BADGES.idx.has(id) && !BADGES.online.has(id) && !BADGES.err.has(id)).length + (PREFS.online ? roster.filter(pid => !FACES.idx.has(pid) && !FACES.online.has(pid) && !FACES.err.has(pid) && playerName(pid)).length : 0);
   const p0 = pend();
   if (p0) { total += p0; done = total - p0; say(); await until(() => { const p = pend(); done = total - p; say(); return !p; }, CAP); }
   // 3) todas las imágenes ya conocidas (escudos y caras), descargadas y listas para dibujar

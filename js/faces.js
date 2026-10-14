@@ -52,15 +52,18 @@ function onlineFor(pid) {
   return e.u;
 }
 // cada vez que algo se dibuja y todavía no tiene foto, sube su turno: lo último que se ve en pantalla se busca primero
-let WANT = 0;
+// (todo lo de una misma pantalla comparte turno y va en el orden en que aparece, de arriba hacia abajo)
+let WANT = 0, wantOpen = false;
+const wantNow = () => { if (!wantOpen) { wantOpen = true; WANT++; setTimeout(() => { wantOpen = false; }, 0); } return WANT; };
 Object.assign(FACES, { want: new Map(), oq: [], obusy: 0 });
 function faceUrl(pid) {
   if (FACES.url.has(pid)) return FACES.url.get(pid);
   const ou = onlineFor(pid); if (ou) return ou;
-  if (FACES.loading.has(pid)) { FACES.want.set(pid, ++WANT); return null; }
+  if (FACES.loading.has(pid)) { FACES.want.set(pid, wantNow()); return null; }
   if (FACES.online.has(pid)) return null;
   if (FACES.idx.has(pid)) { FACES.loading.add(pid); FACES.queue.push(pid); pumpFaces(); }
-  else if (PREFS.online) { FACES.loading.add(pid); FACES.want.set(pid, ++WANT); FACES.oq.push(pid); pumpOnline(); }
+  // sin nombre (la base del juego todavía no cargó) no se busca: antes quedaba anotado como "sin foto" para siempre
+  else if (PREFS.online && playerName(pid)) { FACES.loading.add(pid); FACES.want.set(pid, wantNow()); FACES.oq.push(pid); pumpOnline(); }
   return null;
 }
 // caras del juego: se leen al toque, varias a la vez
@@ -121,7 +124,7 @@ function faceSrcStats() {
 }
 async function faceSearch(pid) {
   if (navigator.onLine === false) throw new Error('sin internet');
-  const mix = PREFS.photoSrc === 'mix', nm = faceName(playerName(pid)); if (!nm) { faceMiss(pid); return; }
+  const mix = PREFS.photoSrc === 'mix', nm = faceName(playerName(pid)); if (!nm) { FACES.loading.delete(pid); return; } // sin nombre todavía (falta la base del juego): se busca cuando aparezca
   const e = await faceTimed('espn', () => espnHint(pid, nm)), hint = e && !e.err ? e : null;
   if (hint && hint.sure && hint.img) { await faceDone(pid, { u: hint.img, tm: hint.team, src: 'espn' }); return; }
   // Wikipedia: la foto (en "Mezcla") o el nombre completo para TheSportsDB si ESPN no lo dio seguro

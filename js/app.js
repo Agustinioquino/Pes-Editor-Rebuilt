@@ -1493,10 +1493,23 @@ $('gq').oninput = e => gsearch(e.target.value);
 $('gq').onkeydown = e => { if (e.key === 'Enter') { const b = $('gres').querySelector('button'); if (b) gpick(b); } if (e.key === 'Escape') { $('gres').hidden = true; e.target.blur(); } };
 $('gres').onclick = e => { const b = e.target.closest('button'); if (b) gpick(b); };
 document.addEventListener('click', e => { if (!e.target.closest('.gsearch')) $('gres').hidden = true; if (!e.target.closest('.picker') && $('addRes')) $('addRes').hidden = true; });
-window.addEventListener('beforeunload', e => { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
+// Cambios sin guardar al cerrar o recargar: el navegador muestra su aviso de siempre. En la app de Windows ese aviso no aparece
+// (la ventana se queda sin cerrar y sin decir nada), así que ahí se frena y se muestra el cuadro del editor con las opciones.
+let UNLOAD_OK = false, UNLOAD_ASK = false, UNLOAD_RELOAD = 0;
+window.addEventListener('beforeunload', e => {
+  if (UNLOAD_OK || !pending()) return;
+  e.preventDefault(); e.returnValue = '';
+  if (window.pesNative && !UNLOAD_ASK) unloadAsk();
+});
+async function unloadAsk() {
+  const reload = Date.now() - UNLOAD_RELOAD < 3000; UNLOAD_ASK = true;
+  try { if (!await sessAsk(reload ? 'reload' : 'close')) return; } finally { UNLOAD_ASK = false; }
+  UNLOAD_OK = true; if (reload) location.reload(); else window.close();
+}
 document.addEventListener('keydown', e => {
   const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
   const k = e.key.toLowerCase();
+  if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && k === 'r')) UNLOAD_RELOAD = Date.now(); // F5 o Ctrl+R: recargar, no salir
   if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if (pending()) save(); }
   else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && k === 'z' && !typing) { e.preventDefault(); undo(); }
   else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (e.shiftKey && k === 'z')) && !typing) { e.preventDefault(); redo(); }

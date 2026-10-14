@@ -64,6 +64,7 @@ function updBar(when) {
 const updUnsaved = () => !!(typeof S !== 'undefined' && S.f && pending());
 // recarga pidiendo todo de nuevo a GitHub: la marca ?fresh= hace que el service worker no use ninguna copia guardada
 function updGo() {
+  UNLOAD_OK = true; // ya se preguntó qué hacer con los cambios: que el aviso de salida no frene la recarga
   const u = new URL(location.href); u.searchParams.set('fresh', Date.now().toString(36)); location.replace(u.href);
 }
 async function updReload() {
@@ -129,14 +130,14 @@ function sessDrop() {
 async function sessAsk(why) {
   if (typeof S === 'undefined' || !S.f) return true;
   if (!pending()) { await sessSave(); return true; } // nada que preguntar: igual se guarda dónde estabas y el Deshacer
-  const n = S.savedHp < 0 ? 0 : Math.abs(S.hp - S.savedHp), upd = why === 'upd';
+  const n = S.savedHp < 0 ? 0 : Math.abs(S.hp - S.savedHp), upd = why === 'upd', bye = why === 'close';
   setTimeout(() => { const c = document.querySelector('.sesscard'); if (c) c.focus(); }, 60);
   const k = await choiceBox({
-    title: upd ? '⬆️ ' + tr('Actualizar el editor') : '🧹 ' + tr('Borrar caché y recargar'),
-    html: `<p>${n ? tr(n === 1 ? 'Tenés 1 cambio sin guardar en el EDIT.' : `Tenés ${n} cambios sin guardar en el EDIT.`) : tr('Tenés cambios sin guardar en el EDIT.')} ${tr('¿Querés guardarlos antes de recargar la página?')}</p>
-      <div class="sessopts"><button type="button" class="sesscard" data-k="cache"><b>🗂 ${tr('Guardar en el caché y recargar')}</b><span>${tr('Quedan guardados en este navegador y al recargar vuelven solos, con Deshacer incluido. El EDIT del juego no se toca.')}</span></button>
-      <button type="button" class="sesscard" data-k="game"><b>💾 ${tr(S.dir ? 'Guardar en el juego y recargar' : 'Guardar copia y recargar')}</b><span>${tr(S.dir ? 'Se escriben en el EDIT del juego, como con el botón Guardar.' : 'Se descarga el EDIT con tus cambios, como con el botón Guardar.')}</span></button></div>`,
-    options: [{ k: 'drop', label: tr(upd ? 'Actualizar sin guardar' : 'Recargar sin guardar'), cls: 'ghost' }, { k: 'no', label: tr('Cancelar') }],
+    title: upd ? '⬆️ ' + tr('Actualizar el editor') : bye ? '🚪 ' + tr('Salir del editor') : why === 'reload' ? '🔄 ' + tr('Recargar el editor') : '🧹 ' + tr('Borrar caché y recargar'),
+    html: `<p>${n ? tr(n === 1 ? 'Tenés 1 cambio sin guardar en el EDIT.' : `Tenés ${n} cambios sin guardar en el EDIT.`) : tr('Tenés cambios sin guardar en el EDIT.')} ${tr(bye ? '¿Querés guardarlos antes de salir?' : '¿Querés guardarlos antes de recargar la página?')}</p>
+      <div class="sessopts"><button type="button" class="sesscard" data-k="cache"><b>🗂 ${tr(bye ? 'Guardar en el caché y salir' : 'Guardar en el caché y recargar')}</b><span>${tr(bye ? 'Quedan guardados en la app y vuelven solos la próxima vez que abras este EDIT (durante un día), con Deshacer incluido. El EDIT del juego no se toca.' : 'Quedan guardados en este navegador y al recargar vuelven solos, con Deshacer incluido. El EDIT del juego no se toca.')}</span></button>
+      <button type="button" class="sesscard" data-k="game"><b>💾 ${tr(bye ? (S.dir ? 'Guardar en el juego y salir' : 'Guardar copia y salir') : S.dir ? 'Guardar en el juego y recargar' : 'Guardar copia y recargar')}</b><span>${tr(S.dir ? 'Se escriben en el EDIT del juego, como con el botón Guardar.' : 'Se descarga el EDIT con tus cambios, como con el botón Guardar.')}</span></button></div>`,
+    options: [{ k: 'drop', label: tr(upd ? 'Actualizar sin guardar' : bye ? 'Salir sin guardar' : 'Recargar sin guardar'), cls: 'ghost' }, { k: 'no', label: tr('Cancelar') }],
   });
   if (k === 'no') return false;
   if (k === 'drop') { sessDrop(); return true; } // el cuadro ya lo dice: se pierden

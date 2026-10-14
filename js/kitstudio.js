@@ -219,6 +219,27 @@ const KS_POS = {
   chest: () => ({ x: .2 + ksN('ChestNumberX') / 29 * .6, y: .05 + ksN('ChestNumberY') / 29 * .35, h: .04 + ksN('ChestNumberSize') / 28 * .1 }),
   leg: () => ({ x: ksN('ShortsNumberX') / 31, y: ksN('ShortsNumberY') / 31, h: .25 + ksN('ShortsNumberSize') / 28 * .5 }),
 };
+// ---- mover nombre y números directo sobre el modelo 3D: la posición tocada se pasa a los valores del config.txt ----
+function ksDecalAt(u, v) {
+  const D = KS.decals || {}, x = u * 1024, y = v * 1024; let best = null;
+  for (const [k, b] of Object.entries(D)) { const pw = b.w * .65 + 10, ph = b.h * .65 + 10; if (Math.abs(x - b.x) <= pw && Math.abs(y - b.y) <= ph && (!best || b.w * b.h < D[best].w * D[best].h)) best = k; }
+  return best;
+}
+// valores del config para que el centro de cada cosa quede en (x, y) de la textura (inversa de KS_POS)
+function ksDecalVals(k, x, y) { const out = ksDecalVals0(k, x, y); for (const key of Object.keys(out)) out[key] = ksClampKey(key, out[key]); return out; }
+// el rango de cada valor sale del comentario del config.txt (algunos kits traen, por ejemplo, ChestNumberY de 0 a 6)
+function ksClampKey(key, v) { const f = KS.cfg && KS.cfg.fields.find(x => x.key === key), ty = f && fieldType(f); return ty && ty.t === 'range' ? Math.max(ty.min, Math.min(ty.max, v)) : v; }
+function ksDecalVals0(k, x, y) {
+  const S = 1024, cl = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
+  if (k === 'name' || k === 'num') { const [, , v0, v1] = UVR.back, f = (v1 * S - y) / ((v1 - v0) * S);
+    return k === 'name' ? { NameY: cl(39 - (f - .07) / .35 * 39, 0, 39) } : { BackNumberY: cl(29 - (f - .22) / .35 * 29, 0, 29) }; }
+  if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29) }; }
+  if (k === 'leg' && KS.legM) { const [a, b, c, d, e, f] = KS.legM, px = x / S - e, py = y / S - f, det = a * d - b * c, lx = (d * px - c * py) / det, ly = (-b * px + a * py) / det;
+    return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29) }; }
+  return {};
+}
+const KS_DECAL_SIZE = { name: ['NameSize', 20], num: ['BackNumberSize', 28], chest: ['ChestNumberSize', 28], leg: ['ShortsNumberSize', 28] };
+const KS_DECAL_N = { name: 'Nombre', num: 'Número de la espalda', chest: 'Número del pecho', leg: 'Número del short' };
 function ksFallbackTex(S = 1024) {
   const c = document.createElement('canvas'); c.width = S; c.height = S; const g = c.getContext('2d'), col = k => cfgGet(KS.cfg, k) || '#888888';
   g.fillStyle = col('ShirtColor1'); g.fillRect(0, 0, S, S);
@@ -228,25 +249,28 @@ function ksFallbackTex(S = 1024) {
   return c;
 }
 function ksDisplayTex() {
-  const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0]);
+  const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0, KS.hot || '']);
   if (KS.dispKey === key && KS.disp) return KS.disp;
+  const D = KS.decals = {}, box = (k, x, y, w, h) => { D[k] = { x, y, w: Math.max(w, 24), h: Math.max(h, 24) }; };
   const S = 1024, c = KS.disp && KS.disp.width === S ? KS.disp : document.createElement('canvas'); c.width = S; c.height = S; const g = c.getContext('2d');
   g.clearRect(0, 0, S, S); g.drawImage(base || ksFallbackTex(S), 0, 0, S, S);
   if (K3.light.decals !== false) {
     const [u0, u1, v0, v1] = UVR.back, bw = (u1 - u0) * S, bh = (v1 - v0) * S;
     g.save(); g.translate(u1 * S, v1 * S); g.rotate(Math.PI); // espalda: girada 180° en la textura
-    if (cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: p.stretch, curve: p.curve }); }
-    if (KS.sample.num) { const p = KS_POS.num(); KFONT.drawText(g, ksTexOf('back'), 'back', KS.sample.num, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); }
+    if (cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: p.stretch, curve: p.curve }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
+    if (KS.sample.num) { const p = KS_POS.num(); KFONT.drawText(g, ksTexOf('back'), 'back', KS.sample.num, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.num.length * p.h * bh * .62, p.h * bh); }
     g.restore();
-    if ((cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && KS.sample.num) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); }
+    if ((cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && KS.sample.num) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
     if (ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && KS.sample.num) {
       // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna)
       const L = cfgGet(KS.cfg, 'ShortsNumberSide') !== '1', M = L ? [.0007, -.0063, .0065, .0007, .944, .865] : [.0008, .0066, -.0066, .001, .053, .862];
       g.save(); g.setTransform(M[0] * S, M[1] * S, M[2] * S, M[3] * S, M[4] * S, M[5] * S);
       const dx = (ksN('ShortsNumberX') - 15) / 15 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksN('ShortsNumberY') / 29 * 8, hh = 3 + ksN('ShortsNumberSize') / 28 * 5;
       KFONT.drawText(g, ksTexOf('leg') || ksTexOf('back'), ksTexOf('leg') ? 'leg' : 'back', KS.sample.num, dx, dy, hh); g.restore();
+      const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
     }
   }
+  const hb = KS.hot && D[KS.hot]; if (hb) { g.save(); g.lineWidth = 3; g.setLineDash([10, 6]); g.strokeStyle = '#ffd84a'; g.strokeRect(hb.x - hb.w / 2 - 4, hb.y - hb.h / 2 - 4, hb.w + 8, hb.h + 8); g.restore(); }
   c.__rev = (c.__rev || 0) + 1; KS.disp = c; KS.dispKey = key; return c;
 }
 const ksMaps = () => ({ nrm: K3.light.nrm === false ? null : (KS.genNrm || ksTexOf('nrm')), srm: KS.genSrm || ksTexOf('srm'), gloss: ksGloss() });
@@ -460,7 +484,7 @@ function kitStudioCard(t) {
         <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', 'Maqueta'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
           <div class="row ksample"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
         ${KS.view === '3d' ? `<div class="ks3dwrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar, flechas del teclado"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
-              <div class="k3hud"><span>${K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'}</span></div></div>
+              <div class="k3hud"><span>${K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'}</span></div></div>
             <aside class="k3side">
               <details class="k3pan" open><summary>Cámara</summary>
                 <div class="k3cam">${[['front', 'Frente'], ['back', 'Espalda'], ['left', 'Izq.'], ['right', 'Der.'], ['threeq', '3/4'], ['top', 'Arriba'], ['close', 'Pecho'], ['reset', '↺ Inicio']].map(([k, n]) => `<button class="btn small" type="button" data-cam="${k}">${n}</button>`).join('')}</div>
@@ -472,7 +496,7 @@ function kitStudioCard(t) {
                 <div class="seg k3seg" id="k3Sleeve">${[['short', 'Manga corta'], ['long', 'Manga larga']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.sleeve === v}">${n}</button>`).join('')}</div>
                 <div class="seg k3seg" id="k3Socks">${[['long', 'Medias largas'], ['middle', 'Medianas'], ['short', 'Cortas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.socks === v}">${n}</button>`).join('')}</div>
                 <div class="seg k3seg" id="k3Tuck">${[['out', 'Camiseta afuera'], ['in', 'Adentro']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.tuck === v}">${n}</button>`).join('')}</div>
-                <label class="chk"><input type="checkbox" id="k3Cap" ${K3.cap ? 'checked' : ''}> Cinta de capitán</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label></details>
+                <label class="chk"><input type="checkbox" id="k3Cap" ${K3.cap ? 'checked' : ''}> Cinta de capitán</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label><label class="chk" title="Arrastrá el nombre o un número sobre el modelo para moverlo y usá la rueda encima para cambiar su tamaño: se anota en el config.txt del kit"><input type="checkbox" id="k3Place" ${K3.place ? 'checked' : ''}> ✥ Mover nombre y números en el 3D</label></details>
               <details class="k3pan" open><summary>Iluminación</summary>
                 <div class="k3envs" id="k3Preset">${Object.entries(K3LIGHTS).filter(([k]) => k !== 'hdri' || K3.envUser).map(([k, p]) => `<button type="button" data-v="${k}" aria-pressed="${L.preset === k}"><canvas width="96" height="48" data-envthumb="${k}"></canvas><span>${k === 'hdri' ? esc(K3.envUser.name) : p.n}</span></button>`).join('')}</div>
                 <div class="row" style="gap:4px"><button class="btn small" type="button" id="k3Hdri" title="Panorama 360° en .hdr (Radiance) o una imagen equirectangular .jpg/.png">Cargar HDRI…</button><span class="note">Un .hdr da luz y reflejos reales.</span></div>
@@ -540,7 +564,17 @@ function bindKitStudio(t, m) {
     if (a && get('collar')) { const th = k3Thumb([get('shirt'), get('collar')].filter(Boolean), tex, 'collar', 72, maps); a.getContext('2d').clearRect(0, 0, 72, 72); th && a.getContext('2d').drawImage(th, 0, 0); }
     if (b && get('shorts')) { const th = k3Thumb([get('shorts'), get('socks')].filter(Boolean), tex, 'shorts', 72, maps); b.getContext('2d').clearRect(0, 0, 72, 72); th && b.getContext('2d').drawImage(th, 0, 0); }
     if (K3.off) K3.off.model = null; };
-  const startViewer = () => { const cv = $('ks3d'); if (!cv || !KS.model || K3.viewer) return; K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; } });
+  const startViewer = () => { const cv = $('ks3d'); if (!cv || !KS.model || K3.viewer) return; const place = () => K3.place && !K3.paint && K3.light.decals !== false;
+    const hud = t => { const h = sh.querySelector('.k3hud span'); if (h) h.textContent = t; };
+    const hudIdle = () => hud(K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda');
+    const setHot = k => { if (KS.hot === (k || null)) return; KS.hot = k || null; draw(); };
+    let grab = null;
+    K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
+      onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
+      onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; setHot(k); return true; },
+      onGrabMove: hit => { if (!grab) return; const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
+      onGrabEnd: () => { grab = null; },
+      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; } });
     if (!K3.viewer) { const i = $('k3Info'); if (i) i.textContent = 'Este navegador no tiene WebGL activado: no se puede mostrar la vista 3D.'; }
     cv.addEventListener('pointerdown', e => { if (K3.paint && e.button === 0 && !e.shiftKey) ksGlossPush(); }, true); };
   const modelKey = () => ['TightKit', 'ShortsModel', 'Collar', 'ShortSleevesModel'].map(k => cfgGet(KS.cfg, k)).join('|') + '|' + K3.sleeve + K3.socks + K3.tuck + K3.cap + KS.sel;
@@ -580,6 +614,7 @@ function bindKitStudio(t, m) {
   for (const [id, key] of [['k3Sleeve', 'sleeve'], ['k3Socks', 'socks'], ['k3Tuck', 'tuck']]) on(id, 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || K3[key] === b.dataset.v) return; K3[key] = b.dataset.v; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); ensureModel(); });
   on('k3Cap', 'onchange', e => { K3.cap = e.target.checked; ensureModel(); });
   on('k3Dec', 'onchange', e => { K3.light.decals = e.target.checked; savePrefs3(); draw(); });
+  on('k3Place', 'onchange', e => { K3.place = e.target.checked; if (!K3.place) { KS.hot = null; draw(); } const h = sh.querySelector('.k3hud span'); if (h && !K3.paint) h.textContent = K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'; });
   // sliders con relleno de color hasta el valor
   const fillR = el => { el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%'); };
   sh.querySelectorAll('input.k3r').forEach(el => el.addEventListener('input', () => fillR(el)));

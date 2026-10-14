@@ -61,7 +61,7 @@ const FMDL = (() => {
 })();
 
 // ---- estado del visor ----
-const K3 = { idx: null, collarDir: null, parts: new Map(), view: { yaw: 0, pitch: .1, dist: 0, panX: 0, panY: 0, fov: 48 }, debug: 0, paint: false, autoSpeed: 1, sleeve: 'short', socks: 'long', tuck: 'out', cap: false, skin: '#c8956d', err: '',
+const K3 = { idx: null, collarDir: null, parts: new Map(), view: { yaw: 0, pitch: .1, dist: 0, panX: 0, panY: 0, fov: 48 }, debug: 0, paint: false, place: true, autoSpeed: 1, sleeve: 'short', socks: 'long', tuck: 'out', cap: false, skin: '#c8956d', err: '',
   light: Object.assign({ preset: 'estadio-noche', az: 0, el: 0, int: 1, amb: 1, spec: 1, bump: 1, nrm: true, decals: true, gloss: 1, envInt: 1, envYaw: 0, bg: 'env', bgBlur: 2, exp: 1 }, (typeof PREFS !== 'undefined' && PREFS.k3light) || {}) };
 // ---- modelos incluidos (CometKITpreviewer): se descomprimen la primera vez que se usan ----
 let K3PACK = null;
@@ -414,19 +414,25 @@ function k3Viewer(canvas, model, cfg, tex, maps, opts = {}) {
   canvas.onpointerdown = e => {
     canvas.focus({ preventScroll: true });
     if (opts.onPaint && K3.paint && e.button === 0 && !e.shiftKey) { drag = { paint: true }; canvas.setPointerCapture(e.pointerId); paintAt(e); return; }
+    // nombre y números: si el toque cae sobre uno, se arrastra ese en vez de girar la cámara
+    if (opts.onGrab && e.button === 0 && !e.shiftKey) { const hit = hitAt(e); if (hit && opts.onGrab(hit)) { drag = { grab: true }; canvas.setPointerCapture(e.pointerId); anim = null; auto = false; opts.onAuto && opts.onAuto(false); canvas.classList.add('grab'); return; } }
     drag = { x: e.clientX, y: e.clientY, yaw: V.yaw, pitch: V.pitch, px: V.panX || 0, py: V.panY || 0, pan: e.button === 2 || e.shiftKey || e.button === 1 }; canvas.setPointerCapture(e.pointerId); anim = null; auto = false; opts.onAuto && opts.onAuto(false); canvas.classList.add('grab');
   };
+  const hitAt = e => { const r = canvas.getBoundingClientRect(), dpr = canvas.width / r.width; return K3GL.pick(R, scene(), (e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr); };
+  let hovRaf = 0, hovE = null;
   const paintAt = e => { const r = canvas.getBoundingClientRect(), dpr = canvas.width / r.width, sc = scene(); const hit = K3GL.pick(R, sc, (e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr); if (hit) opts.onPaint(hit); paint(); };
   canvas.onpointermove = e => {
     if (opts.onHover && !drag) opts.onHover(e);
+    if (opts.onHoverHit && !drag) { hovE = e; if (!hovRaf) hovRaf = requestAnimationFrame(() => { hovRaf = 0; const on = opts.onHoverHit(hitAt(hovE)); canvas.style.cursor = on ? 'move' : ''; }); }
     if (!drag) return; if (drag.paint) { paintAt(e); return; }
+    if (drag.grab) { const hit = hitAt(e); if (hit) opts.onGrabMove(hit); return; }
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (drag.pan) { const k = dist0() * Math.tan((V.fov || 48) * Math.PI / 360) * 2 / canvas.clientHeight; V.panX = drag.px - dx * k; V.panY = drag.py + dy * k; }
     else { V.yaw = drag.yaw + dx * .011; V.pitch = Math.max(-1.2, Math.min(1.2, drag.pitch + dy * .008)); }
     req(); opts.onCamera && opts.onCamera();
   };
-  canvas.onpointerup = canvas.onpointercancel = () => { drag = null; canvas.classList.remove('grab'); if (opts.onPaintEnd) opts.onPaintEnd(); };
-  canvas.onwheel = e => { e.preventDefault(); V.dist = Math.max(fit.radius * .35, Math.min(fit.radius * 7, dist0() * (1 + Math.sign(e.deltaY) * .09))); req(); opts.onCamera && opts.onCamera(); };
+  canvas.onpointerup = canvas.onpointercancel = () => { if (drag && drag.grab && opts.onGrabEnd) opts.onGrabEnd(); drag = null; canvas.classList.remove('grab'); if (opts.onPaintEnd) opts.onPaintEnd(); };
+  canvas.onwheel = e => { e.preventDefault(); if (opts.onWheelHit) { const hit = hitAt(e); if (hit && opts.onWheelHit(hit, e.deltaY < 0 ? 1 : -1)) return; } V.dist = Math.max(fit.radius * .35, Math.min(fit.radius * 7, dist0() * (1 + Math.sign(e.deltaY) * .09))); req(); opts.onCamera && opts.onCamera(); };
   canvas.ondblclick = () => go({ yaw: 0, pitch: .1, dist: 0, panX: 0, panY: 0 });
   canvas.tabIndex = 0;
   canvas.onkeydown = e => { const s = e.shiftKey ? .3 : .12, m = { ArrowLeft: () => V.yaw -= s, ArrowRight: () => V.yaw += s, ArrowUp: () => V.pitch = Math.min(1.2, V.pitch + s * .6), ArrowDown: () => V.pitch = Math.max(-1.2, V.pitch - s * .6), '+': () => V.dist = dist0() * .9, '=': () => V.dist = dist0() * .9, '-': () => V.dist = dist0() * 1.1, '0': () => go({ yaw: 0, pitch: .1, dist: 0, panX: 0, panY: 0 }) }[e.key]; if (m) { e.preventDefault(); m(); req(); opts.onCamera && opts.onCamera(); } };

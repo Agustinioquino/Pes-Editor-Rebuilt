@@ -155,3 +155,18 @@ test('marcadores profundos: anime = animaciones, common_ad = banners, y las comi
   const sd = new FDir('Sider', { livecpk: { 'Global Model Efootball 5.0': {} } });
   assert.strictEqual(!!(await X.siResolve(sd, '".\\livecpk\\Global Model Efootball 5.0"')).h, true, 'aunque el valor llegue con comillas, la carpeta se encuentra');
 });
+
+test('módulos: subcarpetas, rutas con modules\\, encabezado del .lua y carpetas de content que nombra', async () => {
+  const enc = t => new TextEncoder().encode(t);
+  const ini = '[sider]\r\nlua.enabled = 1\r\nlua.module = "FoulScenes.lua"\r\nlua.module = "modules\\lib\\helper.lua"\r\nlua.module = "camera"\r\nlua.module = "nada.lua"\r\n';
+  const sd = new FDir('Sider', { 'sider.ini': enc(ini),
+    modules: { 'FoulScenes.lua': enc('-- FoulScenes: muestra escenas de faltas y tarjetas\r\nlocal root = ctx.sider_dir .. "content\\\\foul-scenes\\\\"\r\n'), 'camera.lua': enc('--\r\n-- Camera module\r\n'), lib: { 'helper.lua': null }, 'otro.lua': null },
+    content: { 'foul-scenes': { a: {} }, 'sin-uso': {} } });
+  X.SI.info = null; await X.siLoad(true, sd); const info = X.SI.info;
+  assert.deepStrictEqual(J(info.mods.map(m => [m.name, m.exists])), [['FoulScenes.lua', true], ['modules\\lib\\helper.lua', true], ['camera', true], ['nada.lua', false]]);
+  assert.strictEqual(info.mods[0].desc, 'FoulScenes: muestra escenas de faltas y tarjetas', 'si no lo conozco, uso lo que dice el archivo');
+  assert.deepStrictEqual(J(info.modFree.map(m => m.name)), ['otro.lua'], 'los de subcarpetas no se ofrecen para agregar');
+  const fc = info.content.find(c => c.name === 'foul-scenes');
+  assert.deepStrictEqual(J(fc.mods.map(m => m.name)), ['FoulScenes.lua'], 'el módulo nombra content\\foul-scenes en su código');
+  assert.deepStrictEqual(J(info.content.find(c => c.name === 'sin-uso').mods), []);
+});

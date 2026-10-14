@@ -269,13 +269,24 @@ async function siLoad(force, hIn) {
     const info = { name: h.name || 'Sider', ro: !!h.readOnly, ver: await siVersion(h), roots: [], live: [], liveAll: [], mods: [], modFree: [], modAll: new Map(), hasMods: false, content: [], game: siKv('exe.name').map(x => x.val), inGame: await hasFile(h, 'PES2021.exe'), bak: !!await sdbFile(h, 'sider.ini.bak-pes-editor') };
     const live = await hasDir(h, 'livecpk'); // todas las carpetas de livecpk, estén o no en sider.ini
     if (live) { try { for await (const [n, d] of live.entries()) if (d.kind === 'directory') info.liveAll.push({ name: n, types: await siScanRoot(d, n) }); } catch { } info.liveAll.sort((a, b) => a.name.localeCompare(b.name)); }
-    const mods = await hasDir(h, 'modules'); info.hasMods = !!mods; // todos los .lua de modules
-    if (mods) { try { for await (const [n, f] of mods.entries()) if (f.kind === 'file' && /\.lua$/i.test(n)) info.modAll.set(n.toLowerCase(), Object.assign(siModInfo(n), { exists: true })); } catch { } }
+    const mods = await hasDir(h, 'modules'); info.hasMods = !!mods; info.modDir = mods; info.modBase = new Map(); // todos los .lua de modules, también en subcarpetas
+    if (mods) {
+      let nf = 0;
+      const walk = async (d, pre, depth) => { try { for await (const [n, e] of d.entries()) {
+        if (e.kind === 'file' && /\.lua$/i.test(n)) {
+          const m = Object.assign(siModInfo(n), { exists: true, rel: pre + n, top: !pre, refs: [] });
+          if (nf++ < 80) Object.assign(m, await siModRead(e)); // qué dice el archivo de sí mismo y qué carpetas de content usa
+          if (!m.desc && m.head) m.desc = m.head;
+          info.modAll.set(m.rel.toLowerCase(), m); if (!info.modBase.has(n.toLowerCase())) info.modBase.set(n.toLowerCase(), m);
+        } else if (e.kind === 'directory' && depth < 3) await walk(e, pre + n + '\\', depth + 1);
+      } } catch { } };
+      await walk(mods, '', 0);
+    }
     const content = await hasDir(h, 'content');
     if (content) {
       try { for await (const [n, d] of content.entries()) {
         if (d.kind !== 'directory') continue;
-        const c = { name: n, type: siGuess(n), detail: '', mod: null };
+        const c = { name: n, type: siGuess(n), detail: '', mod: null, mods: [] };
         if (/kit/i.test(n) && await readText(d, 'map.txt') != null) { c.type = 'kits'; const nTeams = lines((await readText(d, 'map.txt')) || '').filter(l => /^\d+\s*,/.test(l)).length; c.detail = `${nTeams.toLocaleString('es-AR')} equipos en map.txt`; }
         else if (/edit21-db|pes-editor-db/i.test(n)) { c.type = 'base'; const nb = await siCount(d, /\.bin$/i); c.detail = nb ? `${nb} archivos .bin de la base` : /pes-editor-db/i.test(n) ? 'carpeta de reserva del módulo (vacía)' : 'todavía sin copia: abrí el juego una vez con Sider'; }
         else { const nd = await siCount(d, null, 500); c.detail = nd ? `${nd >= 500 ? '500+' : nd} elementos` : 'vacía'; }
@@ -289,6 +300,34 @@ async function siLoad(force, hIn) {
 }
 // La lista que se ve sale de SI.items (lo que va a quedar en sider.ini). Después de agregar, quitar, mover, deshacer o aplicar
 // el texto se rearma acá, sin volver a leer el disco: lo que ya se resolvió queda en caché por el valor de la línea.
+// encabezado del .lua (primeros comentarios) y las carpetas de content que nombra: content\\foulscenes, "content/kit-server"…
+async function siModRead(fh) {
+  try {
+    const file = await fh.getFile(), t = file.slice ? await file.slice(0, 300000).text() : String(await file.text()).slice(0, 300000), refs = new Set();
+    for (const m of t.matchAll(/content(?:\\\\|\\|\/)+([A-Za-z0-9_\-. ]+?)(?=\\|\/|"|'|$)/gim)) refs.add(m[1].trim().toLowerCase());
+    let head = '';
+    for (const l of t.split(/\r?\n/).slice(0, 25)) {
+      const c = l.match(/^\s*--+\s*(.*?)\s*-*\s*$/); if (!c) { if (l.trim()) break; continue; }
+      const x = c[1].replace(/^\[\[|\]\]$/g, '').trim();
+      if (x.length < 6 || /^(version|v\d|author|by\b|copyright|license|http|=+$)/i.test(x)) continue;
+      head = x.length > 140 ? x.slice(0, 137) + '…' : x; break;
+    }
+    return { refs: [...refs], head };
+  } catch { return { refs: [], head: '' }; }
+}
+// un lua.module puede venir como "x.lua", "x", "modules\\x.lua", ".\\modules\\sub\\x.lua"…; si no aparece al listar, se pide directo
+// (el navegador puede ocultar algunos nombres): si lo niega, queda como "no se pudo ver" en vez de "falta"
+async function siFindMod(info, v) {
+  const p = v.trim().replace(/^["\u201c\u201d']+|["\u201c\u201d']+$/g, '').replace(/\//g, '\\').replace(/^\.?\\+/, '').replace(/^modules\\+/i, '').toLowerCase(), base = p.split('\\').pop();
+  for (const c of [p, p + '.lua']) if (info.modAll.has(c)) return info.modAll.get(c);
+  for (const c of [base, base + '.lua']) if (info.modBase.has(c)) return info.modBase.get(c);
+  if (!info.modDir) return null;
+  for (const c of /\.lua$/.test(p) ? [p] : [p + '.lua', p]) {
+    try { const parts = c.split('\\'); let d = info.modDir; for (const x of parts.slice(0, -1)) d = await d.getDirectoryHandle(x); const fh = await d.getFileHandle(parts.pop()); return Object.assign(siModInfo(base), { exists: true, rel: c }, await siModRead(fh)); }
+    catch (e) { if (e && e.name === 'TypeError') return Object.assign(siModInfo(base), { exists: null, rel: c, refs: [] }); }
+  }
+  return null;
+}
 async function siSync() {
   const info = SI.info, h = SI.h; if (!info || !SI.items || !h) return;
   const cache = SI.cache || (SI.cache = { roots: new Map() }), roots = [];
@@ -304,9 +343,23 @@ async function siSync() {
   const used = new Set(roots.filter(r => r.rel != null).map(r => r.rel.toLowerCase()));
   info.roots = roots; info.live = info.liveAll.filter(l => !used.has(('livecpk\\' + l.name).toLowerCase()));
   const mods = [], modUsed = new Set();
-  for (const it of siKv('lua.module', true)) { const n = it.val.trim(), k = n.toLowerCase(); modUsed.add(k); mods.push(Object.assign({}, info.modAll.get(k) || Object.assign(siModInfo(n), { exists: !info.hasMods }), { it, name: n })); }
-  info.mods = mods; info.modFree = [...info.modAll.values()].filter(m => !modUsed.has(m.name.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
-  for (const c of info.content) c.mod = mods.find(x => x.type && x.type === c.type) || null;
+  cache.mods = cache.mods || new Map();
+  for (const it of siKv('lua.module', true)) {
+    const n = it.val.trim(), k = n.toLowerCase();
+    if (!cache.mods.has(k)) cache.mods.set(k, await siFindMod(info, n));
+    const found = cache.mods.get(k); if (found && found.rel) modUsed.add(found.rel.toLowerCase());
+    mods.push(Object.assign({}, found || Object.assign(siModInfo(n), { exists: !info.hasMods, refs: [] }), { it, name: n }));
+  }
+  info.mods = mods; info.modFree = [...info.modAll.values()].filter(m => m.top && !modUsed.has(m.rel.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  const flat = s => s.toLowerCase().replace(/\.lua$/, '').replace(/[^a-z0-9]/g, '');
+  for (const c of info.content) { // qué módulo usa cada carpeta: el que la nombra en su código; si no, el del mismo nombre o el del mismo tipo
+    const k = c.name.toLowerCase(), fk = flat(c.name);
+    c.mods = mods.filter(x => (x.refs || []).includes(k));
+    if (!c.mods.length) c.mods = mods.filter(x => fk.length > 3 && (flat(x.name) === fk || flat(x.name).includes(fk) || fk.includes(flat(x.name))));
+    if (!c.mods.length && c.type) c.mods = mods.filter(x => x.type && x.type === c.type).slice(0, 1);
+    c.mod = c.mods[0] || null;
+    c.ltype = !c.type && c.mod && c.mod.type ? c.mod.type : null; // tipo tomado del módulo
+  }
   const c = typeof $ === 'function' ? $('cSider') : null; if (c) c.textContent = (roots.filter(r => !r.it.off).length + mods.filter(x => !x.it.off).length) || '';
 }
 
@@ -340,7 +393,7 @@ function siWarns(info) {
   if (v('lua.enabled') === '0' && info.mods.some(x => !x.it.off)) w.push(['Los módulos Lua no corren (lua.enabled = 0): ni el kit server ni edit21_db.', 'lua.enabled']);
   if (v('luajit.ext.enabled') === '0' && info.mods.some(x => !x.it.off && /edit21_db/i.test(x.name))) w.push(['edit21_db necesita luajit.ext.enabled = 1 para poder guardar la copia de la base.', 'luajit.ext.enabled']);
   const miss = info.roots.filter(r => !r.it.off && !r.h && !r.outside); if (miss.length) w.push([`${miss.length} ${miss.length === 1 ? 'carpeta de cpk.root no existe' : 'carpetas de cpk.root no existen'}: Sider las salta. Revisá si cambiaron de nombre o quitá la línea.`]);
-  const mm = info.mods.filter(x => !x.it.off && !x.exists); if (mm.length) w.push([`${mm.length} ${mm.length === 1 ? 'módulo no está' : 'módulos no están'} en la carpeta modules: ${mm.map(x => x.name).join(', ')}.`]);
+  const mm = info.mods.filter(x => !x.it.off && x.exists === false); if (mm.length) w.push([`${mm.length} ${mm.length === 1 ? 'módulo no está' : 'módulos no están'} en la carpeta modules: ${mm.map(x => x.name).join(', ')}.`]);
   const seen = new Set(), dup = []; for (const r of info.roots) if (!r.it.off && r.rel != null) { const k = r.rel.toLowerCase(); if (seen.has(k)) dup.push(r.name); seen.add(k); }
   if (dup.length) w.push([`Carpetas repetidas en cpk.root: ${dup.join(', ')}. La segunda línea no hace nada.`]);
   return w;
@@ -391,15 +444,15 @@ function renderSider(m) {
         <div class="sitypes">${r.outside ? '<span class="chip warn" title="Ruta completa a otro lugar: el editor no puede mirar adentro">📍 Carpeta fuera de esta Sider</span>' : !r.h ? '<span class="chip warn">⚠ No existe esa carpeta</span>' : r.types.length ? r.types.map(siChip).join('') + r.types.map(t => t.tool ? siToolChip(t.tool) : '').join('') : '<span class="chip">Contenido sin clasificar</span>'}</div></div>
       ${siAct(r.it, 'Quitar la línea de sider.ini')}</div>`).join('');
   const live = info.live.length ? `<div class="sifree"><span class="lab">En livecpk hay carpetas que no están en sider.ini:</span><div class="row">${info.live.map(l => `<button class="btn small" type="button" data-si="addroot" data-n="${esc(l.name)}" title="Agregar cpk.root = &quot;.\\livecpk\\${esc(l.name)}&quot; al final (menos prioridad)">＋ <span data-noi18n>${esc(l.name)}</span>${l.types.length ? ' <span class="sub">' + esc(l.types.map(t => t.n).join(' · ')) + '</span>' : ''}</button>`).join('')}</div></div>` : '';
-  const mods = info.mods.map((x, k) => `<div class="sirow ${x.it.off ? 'off' : ''} ${x.exists ? '' : 'miss'} ${SI.flash === x.it.id ? 'flash' : ''}">
+  const mods = info.mods.map((x, k) => `<div class="sirow ${x.it.off ? 'off' : ''} ${x.exists === false ? 'miss' : ''} ${SI.flash === x.it.id ? 'flash' : ''}">
       <span class="sinum">${k + 1}</span>${siSw(x.it, 'Prender o apagar este módulo (comenta la línea en sider.ini, no la borra)')}
       <div class="simain"><div class="siname"><b data-noi18n>${esc(x.name)}</b><span class="sidesc">${x.desc ? esc(x.desc) : x.type && SI_TYPES[x.type] ? esc(siType(x.type).desc) : 'Módulo que no conozco: abrí el .lua para ver qué hace.'}</span></div>
-        <div class="sitypes">${x.exists ? '' : '<span class="chip warn">⚠ Falta el archivo en modules</span>'}${x.type && SI_TYPES[x.type] ? siChip(Object.assign(siType(x.type), { sure: true })) : ''}${(() => { const c = info.content.find(c => c.type && c.type === x.type); return c ? `<span class="chip">📂 content\\${esc(c.name)}</span>` : ''; })()}${x.type && siType(x.type).tool ? siToolChip(siType(x.type).tool) : ''}</div></div>
+        <div class="sitypes">${x.exists === null ? '<span class="chip" title="El navegador no deja ver este archivo: puede que esté igual. En la app para Windows se ve.">👁 El navegador no deja verlo</span>' : x.exists ? '' : '<span class="chip warn">⚠ Falta el archivo en modules</span>'}${x.rel && !x.top && x.exists ? `<span class="chip">📁 modules\\${esc(x.rel)}</span>` : ''}${x.type && SI_TYPES[x.type] ? siChip(Object.assign(siType(x.type), { sure: true })) : ''}${info.content.filter(c => c.mods.some(y => y.it === x.it)).map(c => `<span class="chip">📂 content\\${esc(c.name)}</span>`).join('')}${x.type && siType(x.type).tool ? siToolChip(siType(x.type).tool) : ''}</div></div>
       ${siAct(x.it, 'Quitar la línea de sider.ini')}</div>`).join('');
   const modFree = info.modFree.length ? `<div class="sifree"><span class="lab">En la carpeta modules hay módulos que no están en sider.ini:</span><div class="row">${info.modFree.map(x => `<button class="btn small" type="button" data-si="addmod" data-n="${esc(x.name)}" title="${esc(x.desc || 'Agregar lua.module al final')}">＋ ${esc(x.name)}</button>`).join('')}</div></div>` : '';
-  const content = info.content.length ? `<div class="sigrid">${info.content.map(c => { const t = c.type ? siType(c.type) : null, tool = t && t.tool ? SI_TOOLS[t.tool] : null; return `<div class="sifold">
+  const content = info.content.length ? `<div class="sigrid">${info.content.map(c => { const t = c.type || c.ltype ? siType(c.type || c.ltype) : null, tool = t && t.tool ? SI_TOOLS[t.tool] : null; return `<div class="sifold">
       <span class="siico" aria-hidden="true">${t ? t.ico : '📁'}</span><div class="sifbody"><b data-noi18n>${esc(c.name)}</b><span class="sub">${esc(c.detail)}</span>
-        <span class="sifwhat">${t ? esc(t.n) : 'Carpeta de un módulo'}${c.mod ? ` · la usa <code>${esc(c.mod.name)}</code>${c.mod.it.off ? ' <span class="chip warn tiny">módulo apagado</span>' : ''}` : ''}</span>${t && t.desc ? `<span class="sidesc">${esc(t.desc)}</span>` : ''}
+        <span class="sifwhat">${t ? esc(t.n) : 'Carpeta de un módulo'}${c.mods.length ? ` · la usa ${c.mods.map(m => `<code>${esc(m.name)}</code>${m.it.off ? ' <span class="chip warn tiny">módulo apagado</span>' : ''}`).join(', ')}` : ' · <span class="chip warn tiny">ningún módulo de sider.ini la usa</span>'}</span>${c.mod && c.mod.desc ? `<span class="sidesc">${esc(c.mod.desc)}</span>` : t && t.desc ? `<span class="sidesc">${esc(t.desc)}</span>` : ''}
         ${tool ? `<span class="sifwhat sitoolline">🛠 <span>En el editor:</span> ${esc(tool[1])}</span>` : ''}</div>
       ${tool && S.f ? `<button class="btn small" type="button" data-go="${esc(t.tool)}">Ir</button>` : ''}</div>`; }).join('')}</div>` : '<p class="note">No hay carpeta content (o está vacía). Ahí dejan sus archivos los módulos: kit-server, caras, cantos…</p>';
   const sets = SI_SET.map(([k, label, type, help, opts]) => {
@@ -482,7 +535,7 @@ async function siIntroCheck(h) {
   const info = SI.info; SI.introProbs = null;
   if (!info) return { ok: false, text: T(SI.err === 'no-ini' ? (SI.detail && SI.detail.n > 0 && window.showOpenFilePicker && !h.native ? 'Sider: no veo sider.ini (el navegador oculta los .ini a las páginas): elegilo a mano en la pestaña Sider.' : 'Sider: en la carpeta no hay sider.ini (abrí Sider una vez para que lo cree).') : 'Sider: no se pudo leer sider.ini.') };
   const roots = info.roots.filter(r => !r.it.off), miss = roots.filter(r => !r.h && !r.outside), out = roots.filter(r => r.outside);
-  const mods = info.mods.filter(x => !x.it.off), mmiss = mods.filter(x => !x.exists);
+  const mods = info.mods.filter(x => !x.it.off), mmiss = mods.filter(x => x.exists === false);
   const kinds = []; for (const r of roots) for (const t of r.types) if (!kinds.includes(t.n)) kinds.push(t.n);
   const kit = info.content.some(c => c.type === 'kits'), db = info.content.some(c => /edit21-db/i.test(c.name));
   const probs = [];

@@ -15,6 +15,7 @@ class FDir {
 const code = fs.readFileSync(path.join(__dirname, '..', 'js', 'siderini.js'), 'utf8');
 const ctx = vm.createContext({ TextDecoder, TextEncoder, console,
   subDir: async (dir, p) => { for (const seg of p.split(/[\\/]/).filter(Boolean)) dir = await dir.getDirectoryHandle(seg); return dir; },
+  fsFile: async (d, n, c) => d.getFileHandle(n, c ? { create: true } : undefined),
   sdbFile: async (d, n) => { try { return await (await d.getFileHandle(n)).getFile(); } catch { return null; } },
   hasFile: async (d, n) => { try { await d.getFileHandle(n); return true; } catch { return false; } },
   hasDir: async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } },

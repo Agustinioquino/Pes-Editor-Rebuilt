@@ -3339,5 +3339,6 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "Adentro de":"Inside",
 "veo":"I see",
 "Al buscar sider.ini":"When looking for sider.ini",
-"Mandá una captura de esto si el archivo sí está en la carpeta.":"Send a screenshot of this if the file is really in the folder."
+"Mandá una captura de esto si el archivo sí está en la carpeta.":"Send a screenshot of this if the file is really in the folder.",
+"El navegador no deja crear {x} en esa carpeta: crealo vos (vacío) con el Bloc de notas y volvé a intentar.":"The browser won't let me create {1} in that folder: create it yourself (empty) with Notepad and try again."
 };

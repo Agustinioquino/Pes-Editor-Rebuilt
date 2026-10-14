@@ -13,7 +13,20 @@ async function subDir(dir, path) {
   }
   return dir;
 }
-async function readText(dir, name) { try { const h = await dir.getFileHandle(name); return (await (await h.getFile()).text()).replace(/^﻿/, ''); } catch { return null; } }
+// Chrome y Edge no dejan pedir por nombre algunos archivos ("Name is not allowed": los tipos que consideran peligrosos, entre
+// ellos .ini, .exe y .dll, o sea sider.ini, sider.exe y sider.dll), pero sí los entregan al recorrer la carpeta. Entonces, si el
+// nombre falla con TypeError, se busca en el listado (sin distinguir mayúsculas). Crear uno de esos archivos no se puede.
+async function fsFile(dir, name, create) {
+  try { return await dir.getFileHandle(name, create ? { create: true } : undefined); }
+  catch (e) {
+    if (!e || e.name !== 'TypeError') throw e;
+    const k = name.toLowerCase();
+    try { for await (const [n, h] of dir.entries()) if (h.kind === 'file' && n.toLowerCase() === k) return h; } catch { }
+    if (create) throw Object.assign(new Error('El navegador no deja crear ' + name + ' en esa carpeta: crealo vos (vacío) con el Bloc de notas y volvé a intentar.'), { name: 'NotAllowedError' });
+    throw Object.assign(new Error(name + ' no existe'), { name: 'NotFoundError' });
+  }
+}
+async function readText(dir, name) { try { const h = await fsFile(dir, name); return (await (await h.getFile()).text()).replace(/^﻿/, ''); } catch { return null; } }
 const lines = txt => (txt || '').split(/\r?\n/).map(l => l.replace(/[;#].*$/, '').trim()).filter(Boolean);
 function parseKitCfg(txt, n) {
   const g = k => { const m = txt.match(new RegExp('^\\s*' + k + '\\s*=\\s*([^;\\r\\n]*)', 'mi')); return m ? m[1].trim() : null; };
@@ -24,7 +37,7 @@ function parseKitCfg(txt, n) {
 // ---- qué hay en la carpeta elegida (sirve para cualquier Sider de PES 2021: Dream Patch, Football Life, SmokePatch…) ----
 // Se puede elegir la carpeta de Sider, la del juego (Football Life trae Sider ahí mismo) o una de más arriba.
 // Lo único obligatorio es que sea Sider; el kit-server (los kits editables) es opcional.
-const hasFile = async (d, n) => { try { await d.getFileHandle(n); return true; } catch { return false; } };
+const hasFile = async (d, n) => { try { await fsFile(d, n); return true; } catch { return false; } };
 const hasDir = async (d, n) => { try { return await d.getDirectoryHandle(n); } catch { return null; } };
 const isSiderDir = async d => await hasFile(d, 'sider.ini') || await hasFile(d, 'sider.exe') || await hasFile(d, 'sider.dll');
 // parece Sider aunque no tenga sider.exe ni sider.ini (Football Life, o una Sider que nunca se abrió): vale solo si no hay una de verdad

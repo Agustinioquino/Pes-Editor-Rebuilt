@@ -6,9 +6,9 @@ const LUA_NAME = 'edit21_db.lua';
 const LUA_VERSION = (typeof EDIT21_LUA === 'string' && EDIT21_LUA.match(/v(\d+\.\d+)/) || [])[1] || '0';
 const DB_NEEDED = ['Player.bin', 'Team.bin', 'PlayerAssignment.bin'];
 
-async function sdbFile(dir, name) { try { return await (await dir.getFileHandle(name)).getFile(); } catch { return null; } }
+async function sdbFile(dir, name) { try { return await (await fsFile(dir, name)).getFile(); } catch { return null; } }
 // sider.ini se escribe con la misma codificación con la que se leyó (siReadIni la anota en SI.enc)
-async function sdbWrite(dir, name, text) { const h = await dir.getFileHandle(name, { create: true }); const w = await h.createWritable(); await w.write(/^sider\.ini/i.test(name) && typeof siEncode === 'function' && typeof SI !== 'undefined' ? siEncode(text, SI.enc) : text); await w.close(); }
+async function sdbWrite(dir, name, text) { const h = await fsFile(dir, name, true); const w = await h.createWritable(); await w.write(/^sider\.ini/i.test(name) && typeof siEncode === 'function' && typeof SI !== 'undefined' ? siEncode(text, SI.enc) : text); await w.close(); }
 
 // ---- instalación del módulo (necesita permiso de escritura en la carpeta Sider) ----
 async function sdbInstall(sider) {

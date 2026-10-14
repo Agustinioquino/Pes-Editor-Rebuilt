@@ -26,7 +26,7 @@ function siEncode(t, enc) {
   return new TextEncoder().encode(t);
 }
 async function siReadIni(h) { const f = await sdbFile(h, 'sider.ini'); if (!f) return null; const d = siDecode(new Uint8Array(await f.arrayBuffer())); SI.enc = d.enc; return d.text; }
-async function siWrite(dir, name, text) { const h = await dir.getFileHandle(name, { create: true }); const w = await h.createWritable(); await w.write(siEncode(text, SI.enc)); await w.close(); }
+async function siWrite(dir, name, text) { const h = await fsFile(dir, name, true); const w = await h.createWritable(); await w.write(siEncode(text, SI.enc)); await w.close(); }
 
 // ---- sider.ini: cada línea queda como está salvo las que se tocan ----
 // kv: clave = valor (con o sin comillas, con comentario al final). Una línea comentada (; clave = valor) con una clave con
@@ -156,7 +156,7 @@ async function siVersion(h) {
 const siErrMsg = e => (e && e.name ? e.name + (e.message ? ': ' + e.message : '') : String(e)).replace(/\.$/, '');
 async function siNoIniDetail(h) {
   const d = { n: 0, names: [], err: '', lerr: '' };
-  try { const f = await h.getFileHandle('sider.ini'); try { await f.getFile(); } catch (e) { d.err = 'al abrir el archivo: ' + siErrMsg(e); } }
+  try { const f = await fsFile(h, 'sider.ini'); try { await f.getFile(); } catch (e) { d.err = 'al abrir el archivo: ' + siErrMsg(e); } }
   catch (e) { d.err = 'al pedir el archivo: ' + siErrMsg(e); }
   try { for await (const [n, x] of h.entries()) { d.n++; if (d.names.length < 14) d.names.push(x.kind === 'directory' ? n + '\\' : n); } } catch (e) { d.lerr = siErrMsg(e); }
   return d;

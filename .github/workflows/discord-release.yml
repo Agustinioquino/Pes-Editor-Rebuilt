@@ -2,57 +2,151 @@ name: Anunciar release en Discord
 
 on:
   release:
-    types: [published]
+    types: [published, edited, deleted]
+  workflow_dispatch: # botón "Run workflow" en Actions para cargar las versiones anteriores
+
+permissions:
+  contents: write # para guardar los IDs de los mensajes en la rama "discord-messages"
+
+concurrency:
+  group: discord-releases
+  cancel-in-progress: false
 
 jobs:
   discord:
     runs-on: ubuntu-latest
     steps:
-      - name: Enviar resumen a Discord
+      - name: Sincronizar releases con Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GH_TOKEN: ${{ github.token }}
+          EVENTO: ${{ github.event_name }}
+          ACCION: ${{ github.event.action }}
           TAG: ${{ github.event.release.tag_name }}
           NAME: ${{ github.event.release.name }}
           BODY: ${{ github.event.release.body }}
           URL: ${{ github.event.release.html_url }}
-          REPO: ${{ github.event.repository.name }}
+          FECHA: ${{ github.event.release.published_at }}
+          DRAFT: ${{ github.event.release.draft }}
         run: |
-          # Toma los ítems de lista del release (máx. 8), les pone emoji según el tipo
-          # y limpia prefijos tipo "feat(scope):" y el "by @user in https://..." de las notas automáticas.
-          RESUMEN=$(printf '%s\n' "$BODY" \
-            | grep -E '^\s*[-*] ' \
-            | sed -E 's/^\s*[-*] //; s/ by @[^ ]+ in https?:\/\/[^ ]+$//' \
-            | head -n 8 \
-            | while IFS= read -r l; do
-                low=$(echo "$l" | tr '[:upper:]' '[:lower:]')
-                case "$low" in
-                  feat*|add*|nuev*|agreg*)   e="✨" ;;
-                  fix*|corrig*|arregl*|bug*) e="🐛" ;;
-                  perf*|optim*)              e="⚡" ;;
-                  doc*)                      e="📝" ;;
-                  secur*|segur*)             e="🔒" ;;
-                  refactor*)                 e="♻️" ;;
-                  style*|ui*|diseñ*)         e="🎨" ;;
-                  *)                         e="🔹" ;;
-                esac
-                clean=$(echo "$l" | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?:\s*//')
-                echo "$e $clean"
-              done)
+          set -uo pipefail
+          WEBHOOK="${WEBHOOK%/}"
+          REPO_NOMBRE="${GITHUB_REPOSITORY#*/}"
+          REMOTO="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          [ -z "$RESUMEN" ] && RESUMEN="🔹 Mirá los detalles en el release"
+          # --- La rama "discord-messages" guarda qué mensaje de Discord corresponde a cada versión ---
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads "$REMOTO" discord-messages >/dev/null 2>&1; then
+            git clone -q --depth 1 --branch discord-messages "$REMOTO" ids
+          else
+            git init -q -b discord-messages ids
+            git -C ids remote add origin "$REMOTO"
+          fi
 
-          jq -n \
-            --arg t "🚀 $REPO ${NAME:-$TAG}" \
-            --arg d "$RESUMEN" \
-            --arg u "$URL" \
-            '{
-              username: "Releases",
-              embeds: [{
-                title: $t,
-                url: $u,
-                description: ($d | .[0:1500]),
-                color: 5814783,
-                footer: { text: "Nueva versión publicada 🎉" }
-              }]
-            }' \
-          | curl -sS -f -H "Content-Type: application/json" -d @- "$WEBHOOK"
+          # --- Convierte las notas del release en un resumen corto con emojis ---
+          resumen() {
+            local r
+            r=$(printf '%s\n' "$1" \
+              | { grep -E '^\s*[-*] ' || true; } \
+              | sed -E 's/^\s*[-*] //; s/ by @[^ ]+ in https?:\/\/[^ ]+$//' \
+              | head -n 8 \
+              | while IFS= read -r l; do
+                  low=$(echo "$l" | tr '[:upper:]' '[:lower:]')
+                  case "$low" in
+                    feat*|add*|nuev*|agreg*)   e="✨" ;;
+                    fix*|corrig*|arregl*|bug*) e="🐛" ;;
+                    perf*|optim*)              e="⚡" ;;
+                    doc*)                      e="📝" ;;
+                    secur*|segur*)             e="🔒" ;;
+                    refactor*)                 e="♻️" ;;
+                    style*|ui*|diseñ*)         e="🎨" ;;
+                    *)                         e="🔹" ;;
+                  esac
+                  echo "$e $(echo "$l" | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?:\s*//')"
+                done)
+            [ -z "$r" ] && r="🔹 Mirá los detalles en el release"
+            printf '%s' "$r"
+          }
+
+          # args: tag nombre url cuerpo fecha
+          armar_json() {
+            jq -n \
+              --arg t "🚀 $REPO_NOMBRE ${2:-$1}" \
+              --arg d "$(resumen "$4")" \
+              --arg u "$3" \
+              --arg ts "$5" \
+              '{
+                username: "Releases",
+                embeds: [
+                  {
+                    title: $t,
+                    url: $u,
+                    description: ($d | .[0:1500]),
+                    color: 5814783,
+                    footer: { text: "Nueva versión publicada 🎉" }
+                  } + (if $ts != "" then { timestamp: $ts } else {} end)
+                ]
+              }'
+          }
+
+          archivo() { echo "ids/$(echo "$1" | tr '/ ' '__').txt"; }
+
+          # Publica el mensaje, o lo edita si esa versión ya tiene uno en Discord
+          publicar() {
+            local f json mid code
+            f=$(archivo "$1")
+            json=$(armar_json "$@")
+            if [ -f "$f" ]; then
+              mid=$(cat "$f")
+              code=$(curl -sS -o /dev/null -w '%{http_code}' -X PATCH \
+                -H "Content-Type: application/json" -d "$json" "$WEBHOOK/messages/$mid")
+              if [ "$code" = "200" ]; then echo "✏️ Actualizado: $1"; return 0; fi
+              echo "El mensaje de $1 ya no está en Discord, lo publico de nuevo"
+            fi
+            mid=$(curl -sS -f -H "Content-Type: application/json" -d "$json" "$WEBHOOK?wait=true" | jq -r '.id') \
+              || { echo "::error::Discord rechazó el mensaje de $1"; return 1; }
+            echo "$mid" > "$f"
+            echo "📨 Publicado: $1"
+          }
+
+          # Borra el mensaje de Discord cuando se elimina el release
+          borrar() {
+            local f
+            f=$(archivo "$1")
+            if [ -f "$f" ]; then
+              curl -sS -o /dev/null -X DELETE "$WEBHOOK/messages/$(cat "$f")"
+              rm "$f"
+              echo "🗑️ Borrado: $1"
+            fi
+          }
+
+          ERROR=0
+          if [ "$EVENTO" = "workflow_dispatch" ]; then
+            # Carga todas las versiones publicadas, de la más vieja a la más nueva
+            while IFS= read -r rel; do
+              publicar \
+                "$(jq -r '.tag_name' <<<"$rel")" \
+                "$(jq -r '.name // ""' <<<"$rel")" \
+                "$(jq -r '.html_url' <<<"$rel")" \
+                "$(jq -r '.body // ""' <<<"$rel")" \
+                "$(jq -r '.published_at // ""' <<<"$rel")" || ERROR=1
+              sleep 2 # para no superar el límite de mensajes de Discord
+            done < <(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+                       --jq '.[] | select(.draft == false) | {tag_name, name, html_url, body, published_at}' \
+                     | jq -sc 'sort_by(.published_at) | .[]')
+          elif [ "$ACCION" = "deleted" ]; then
+            borrar "$TAG"
+          elif [ "$DRAFT" != "true" ]; then
+            publicar "$TAG" "$NAME" "$URL" "$BODY" "$FECHA" || ERROR=1
+          fi
+
+          # --- Guarda los IDs actualizados ---
+          cd ids
+          git add -A
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -qm "Actualizar IDs de mensajes de Discord"
+            git push -q origin discord-messages
+          fi
+
+          exit $ERROR

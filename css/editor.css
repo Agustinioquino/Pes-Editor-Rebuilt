@@ -1558,3 +1558,13 @@ html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
 .siother>summary,.siraw>summary{cursor:pointer;font-weight:600;font-size:.9rem;color:var(--muted)}
 .siraw textarea{width:100%;font-family:var(--mono);font-size:.78rem;line-height:1.45;padding:8px 10px;border:1.5px solid var(--line);border-radius:calc(var(--r,8px) * .75);background:var(--sunk);color:var(--ink);resize:vertical;margin:8px 0;box-sizing:border-box}
 @media (max-width:700px){.sirow{grid-template-columns:auto auto 1fr}.siact{grid-column:1 / -1;justify-content:flex-end}.sisets{grid-template-columns:1fr}.siothers .siset{grid-template-columns:auto 1fr}.siothers .siset input{grid-column:1 / -1}}
+/* Kit Studio Pro › Uniformes: cargar un kit arrastrando un .zip */
+.ksdrop{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:10px 0 4px;border:2px dashed color-mix(in srgb,var(--neon) 55%,var(--line));border-radius:12px;background:var(--sunk);cursor:pointer;transition:border-color .2s,background .2s}
+.ksdrop:hover,.ksdrop:focus-visible{border-color:var(--neon);outline:none}.ksdrop.drag{border-color:var(--accent);background:var(--accent-soft)}
+.ksdrop .ksdropi{font-size:1.8rem}.ksdrop b{display:block}.ksdrop small{color:var(--muted);display:block;line-height:1.35}
+.kzlist{display:grid;gap:10px;margin:8px 0}.kzkit{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--sunk)}
+.kzprev{width:110px;height:110px;border-radius:8px;background:#2a3038}.kzinfo{display:grid;gap:6px;align-content:start}.kzinfo .mono{color:var(--muted);font-size:.75rem}
+.kzfiles{display:flex;flex-wrap:wrap;gap:4px}.kzchip{display:grid;justify-items:center;padding:3px 7px;border-radius:6px;border:1px solid var(--line);font-size:.74rem;line-height:1.15}.kzchip small{font-size:.66rem;color:var(--muted)}
+.kzchip.ok{border-color:color-mix(in srgb,#2fbf71 70%,var(--line))}.kzchip.gen{border-color:color-mix(in srgb,#3b8cff 70%,var(--line))}.kzchip.none{opacity:.55}
+.kzrep:not([hidden]){display:grid;gap:4px}
+@media (max-width:560px){.kzkit{grid-template-columns:1fr}.kzprev{width:90px;height:90px}}

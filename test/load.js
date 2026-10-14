@@ -3,9 +3,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function load(file, name) {
+function load(file, name, globals = {}) {
   const code = fs.readFileSync(path.join(__dirname, '..', 'js', file), 'utf8');
-  const ctx = vm.createContext({ TextDecoder, TextEncoder });
+  const ctx = vm.createContext({ TextDecoder, TextEncoder, ...globals });
   return vm.runInContext(`${code}\n;${name}`, ctx, { filename: file });
 }
 

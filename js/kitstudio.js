@@ -475,14 +475,21 @@ function ksOverview(t) {
       <div class="ksfiles">${files.map(slot).join('')}</div>
       <div class="row ksuact"><button type="button" class="btn small primary" data-open="${esc(n)}">✎ Editar</button><button type="button" class="btn ghost small" data-up="${esc(n)}" title="Subir en el orden" ${i ? '' : 'disabled'}>↑</button><button type="button" class="btn ghost small" data-dup="${esc(n)}" title="Duplicar como kit nuevo">⧉</button>${gk ? '' : `<button type="button" class="btn ghost small" data-dupgk="${esc(n)}" title="Copiar como kit de arquero">🧤</button>`}<button type="button" class="btn ghost small" data-del="${esc(n)}" title="Borrar este kit" ${!gk && KS.kits.length < 2 ? 'disabled' : ''}>🗑</button></div>
     </article>`; };
-  return `<h4 class="kssec">Jugadores <small>${KS.kits.length}</small></h4><div class="ksugrid">${KS.kits.map((n, i) => card(n, i, false)).join('')}</div>
+  return `${ksDropHtml()}<h4 class="kssec">Jugadores <small>${KS.kits.length}</small></h4><div class="ksugrid">${KS.kits.map((n, i) => card(n, i, false)).join('')}</div>
     <h4 class="kssec">Arqueros <small>${KS.gk.length}</small></h4>${KS.gk.length ? `<div class="ksugrid">${KS.gk.map((n, i) => card(n, i, true)).join('')}</div>` : '<p class="note">Sin kits de arquero. Usá 🧤 en un kit de jugador para crear uno.</p>'}
     <p class="note">El orden es el de order.ini y gk_order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…), 🧤 copia un kit de jugador como kit de arquero y 🗑 borra el kit (su carpeta queda guardada en _borrados). Verde: la textura está en la carpeta del kit; azul: suelta en livecpk; gris: dentro de los .cpk del juego o sin usar.</p>`;
 }
 // ---- tarjeta ----
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
-  if (!k || !k.path) return `<div class="card"><h3>Kit Studio Pro</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+  if (!k || !k.path) {
+    if (!KITS.from) return `<div class="card"><h3>Kit Studio Pro</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+    // el equipo no está en map.txt: sus kits viven en los .cpk del juego (cifrados). Lo que sí se puede es cargarle uno por Sider.
+    return `<div class="card kscard"><h3>Kit Studio Pro</h3>
+      <div class="warnbox" id="ksCpk"><b>Este equipo no tiene carpeta en el kit-server de Sider.</b> Sus kits están dentro de los archivos .cpk del juego, que vienen cifrados: desde acá no se pueden ver ni editar. Lo que sí se puede es cargarle un kit por Sider: arrastrá abajo un .zip con las texturas y se crea la carpeta del equipo en content\\kit-server (con su línea en map.txt) para que el juego lo use.</div>
+      ${ksDropHtml()}
+      <p class="note">Después de cargarlo, abrí el juego de nuevo (o en kserv apretá [0] para recargar el mapa) y fijate en la pantalla de uniformes del partido.</p></div>`;
+  }
   if (KS.team !== t.id && !KS.busy) { KS.team = t.id; KS.cfg = null; KS.sel = null; ksLoad(t).then(() => ksRerender()); }
   if (KS.busy || (!KS.cfg && !KS.err)) return '<div class="card"><div class="lmload"><span class="spin"></span> Leyendo los kits del juego…</div></div>';
   if (!KS.cfg) return `<div class="card"><h3>Kit Studio Pro</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
@@ -582,7 +589,9 @@ function kitStudioCard(t) {
 }
 function bindKitStudio(t, m) {
   ksRerender = () => later(() => { if (S.ttab === 'kits') renderTeams(m); });
-  const sh = $('teamSheet'); if (!KS.cfg) return;
+  const sh = $('teamSheet'), dz = $('ksDrop');
+  if (dz) ksBindDrop(dz, files => ksZipDrop(files, t, m, !(KITS.map.get(t.id) || {}).path)); // también en la tarjeta del equipo sin carpeta (.cpk)
+  if (!KS.cfg) return;
   if (K3.viewer) { K3.viewer.dispose(); K3.viewer = null; }
   ksBindList(sh, m); if (KS.mode === 'list') return;
   const savePrefs3 = () => { PREFS.k3light = K3.light; savePrefs(); };
@@ -780,4 +789,121 @@ function ksBindList(sh, m) {
     try { const tn = await ksDelete(n); delete KS.thumbs[n]; if (KS.sel === n) { KS.dirty = false; await ksOpenKit(KS.kits[0] || KS.gk[0]); } RATE_GEN++; toast('Kit ' + n + ' borrado. Copia en _borrados\\' + tn + '.', 6000); } catch (e) { toast('No se pudo borrar: ' + e.message, 6000); }
     renderTeams(m);
   });
+}
+
+// ---- cargar kits arrastrando un .zip (o texturas sueltas) a Uniformes; la lógica sin DOM está en kitzip.js (KZIP) ----
+function ksDropHtml() {
+  return `<div class="ksdrop" id="ksDrop" tabindex="0" role="button" aria-label="Cargar un kit desde un .zip o imágenes"><span class="ksdropi" aria-hidden="true">📦</span><div><b>Arrastrá acá un kit en .zip (o tocá para elegirlo)</b><small>Sirven las texturas del juego (.ftex, .dds) o imágenes (.png, .jpg). Si faltan el normal map, el brillo o las letras del nombre, se generan genéricos. Después elegís en qué puesto va: titular, suplente, tercera, cuarta o arquero.</small></div></div>`;
+}
+function ksBindDrop(dz, onFiles) {
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag'); };
+  dz.ondrop = e => { e.preventDefault(); dz.classList.remove('drag'); onFiles([...e.dataTransfer.files]); };
+  dz.onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = '.zip,.png,.jpg,.jpeg,.webp,.dds,.ftex,.txt'; inp.onchange = () => onFiles([...inp.files]); inp.click(); };
+  dz.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dz.click(); } };
+}
+// lo que arrastró, con la forma que entiende KZIP: un .zip se abre; las texturas sueltas van tal cual
+async function ksDropEntries(files) {
+  const out = [];
+  for (const f of files) {
+    if (/\.zip$/i.test(f.name)) out.push(...await KZIP.read(await f.arrayBuffer()));
+    else out.push({ name: f.webkitRelativePath || f.name, size: f.size, data: async () => new Uint8Array(await f.arrayBuffer()) });
+  }
+  return out;
+}
+// una textura del .zip decodificada (chica): para la vista previa, el normal map genérico y los colores del config
+async function ksEntryImg(e, max = 1024) {
+  const b = await e.data(), n = e.name.toLowerCase(), buf = b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+  if (n.endsWith('.ftex')) return ftexDecode(buf, max);
+  if (n.endsWith('.dds')) return DDS.decodeSmall(buf, max);
+  return ksShrink(await FTEXW.rawFromImage(new Blob([buf])), max);
+}
+// fresh: el equipo no tiene carpeta en el kit-server (sus kits están en los .cpk); se le crea una al confirmar
+async function ksZipDrop(files, t, m, fresh) {
+  if (!files || !files.length) return;
+  let kits;
+  try { kits = KZIP.detect(await ksDropEntries(files)); } catch (e) { toast('No se pudo leer: ' + e.message, 7000); return; }
+  const ok = kits.filter(k => k.files.kit);
+  if (!ok.length) { toast(kits.length ? 'Falta la textura principal del kit (la camiseta: u####p1.ftex, .dds o .png).' : 'Ahí no hay texturas de kit (.ftex, .dds o .png). Si es un .zip, fijate que las texturas estén adentro.', 8000); return; }
+  ksZipModal(ok, fresh ? [] : KS.all, async (items, log) => { if (fresh) await ksNewTeamDir(t); return ksZipInstall(items, t, log); }, m);
+}
+// el cuadro: qué trae cada kit, en qué puesto va y, si el puesto ya tiene kit, reemplazar o agregar como nuevo
+function ksZipModal(kits, all, run, m) {
+  const opts = KZIP.slotOptions(all), KN = { kit: 'Kit', nrm: 'Normal map', srm: 'Brillo', back: 'Nº espalda', chest: 'Nº pecho', leg: 'Nº short', name: 'Nombre' };
+  const guess = k => { // u2689p2.ftex o una carpeta "p2" dicen a qué puesto iba
+    const f = k.files.kit.name.split('/').pop().toLowerCase(); let g = (f.match(/^u\d{4}([pg]\d+)/) || [])[1] || (k.label.toLowerCase().match(/^[pg]\d+$/) || [])[0];
+    if (g && !opts.some(o => o.v === g)) g = /^g/.test(g) ? 'new-g' : 'new-p';
+    return g || (opts.find(o => !o.gk && !o.used) || opts.find(o => o.v === 'new-p')).v;
+  };
+  const chip = (k, kind) => { const st = k.files[kind] ? 'ok' : KZIP.GEN[kind] ? 'gen' : 'none'; return `<span class="kzchip ${st}" title="${esc(KZIP.KIND_N[kind])}">${KN[kind]}<small>${st === 'ok' ? 'viene' : st === 'gen' ? 'se genera' : 'no viene'}</small></span>`; };
+  const row = (k, i) => `<div class="kzkit"><canvas class="kzprev" data-kz="${i}" width="110" height="110" aria-label="Vista previa de la textura"></canvas><div class="kzinfo"><b>${esc(k.label)}</b><small class="mono">${esc(k.files.kit.name.split('/').pop())}${k.files.config ? ' · trae config.txt' : ' · sin config.txt: se arma uno con los colores de la textura'}</small>
+      <div class="kzfiles">${KZIP.KINDS.map(kind => chip(k, kind)).join('')}</div>
+      <div class="f"><label for="kzSlot${i}">Ponerlo como</label><select id="kzSlot${i}" data-slot="${i}">${opts.map(o => `<option value="${o.v}" ${o.v === guess(k) ? 'selected' : ''}>${esc(o.n)}${o.used ? ' · en uso' : ''}</option>`).join('')}</select></div>
+      <div class="kzrep" data-rep="${i}" hidden><label class="chk"><input type="radio" name="kzr${i}" value="new" checked> <span>Agregarlo como kit nuevo (<b data-nn></b>)</span></label><label class="chk"><input type="radio" name="kzr${i}" value="replace"> <span>Reemplazar el <b data-sn></b> que está ahora (lo de antes se guarda en _borrados)</span></label></div>
+    </div></div>`;
+  const html = `<p class="note">${kits.length === 1 ? 'Se encontró un kit.' : 'Se encontraron ' + kits.length + ' kits.'} Elegí en qué puesto va cada uno; los puestos "en uso" ya tienen un kit en el juego.</p>
+    <div class="kzlist">${kits.map(row).join('')}</div><p class="note" id="kzLog" aria-live="polite"></p>
+    <div class="mdlbtns"><button class="btn" type="button" data-x>Cancelar</button><button class="btn primary" type="button" id="kzGo">Cargar al kit-server</button></div>`;
+  ksModal('Cargar kit', html, (M, close) => {
+    const upd = i => { const o = opts.find(x => x.v === M.querySelector(`[data-slot="${i}"]`).value), rep = M.querySelector(`[data-rep="${i}"]`); rep.hidden = !o.used; if (o.used) { rep.querySelector('[data-sn]').textContent = o.v + ' (' + KZIP.roleOf(o.v).toLowerCase() + ')'; rep.querySelector('[data-nn]').textContent = KZIP.nextFree(all, o.gk); } };
+    kits.forEach((k, i) => { upd(i); M.querySelector(`[data-slot="${i}"]`).onchange = () => upd(i);
+      ksEntryImg(k.files.kit, 256).then(img => { const c = M.querySelector(`[data-kz="${i}"]`); if (!c) return; const g = c.getContext('2d'), z = Math.min(c.width / img.w, c.height / img.h); g.drawImage(imgToCanvas(img), (c.width - img.w * z) / 2, (c.height - img.h * z) / 2, img.w * z, img.h * z); }).catch(() => { }); });
+    M.querySelector('#kzGo').onclick = async () => {
+      const taken = all.slice(), items = [];
+      for (let i = 0; i < kits.length; i++) {
+        const o = opts.find(x => x.v === M.querySelector(`[data-slot="${i}"]`).value), rep = o.used && M.querySelector(`input[name="kzr${i}"]:checked`).value === 'replace';
+        const name = /^new/.test(o.v) || (o.used && !rep) ? KZIP.nextFree(taken, o.gk) : o.v;
+        if (items.some(x => x.name.toLowerCase() === name.toLowerCase())) { toast('Dos kits van al mismo puesto (' + name + '): elegí otro para uno de ellos.', 6000); return; }
+        items.push({ kit: kits[i], name, replace: rep }); taken.push(name);
+      }
+      const btns = M.querySelectorAll('.mdlbtns button'); btns.forEach(b => b.disabled = true); const logEl = M.querySelector('#kzLog'), log = s => { logEl.textContent = s; };
+      try { const res = await run(items, log); close(); ksZipDone(res, m); }
+      catch (e) { log('No se pudo cargar: ' + e.message); btns.forEach(b => b.disabled = false); }
+    };
+  });
+}
+// escribe el kit en la carpeta del equipo (convierte a .ftex, genera lo que falta, config.txt y order.ini) y refresca el estudio
+async function ksZipInstall(items, t, log) {
+  const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), imgs = new Map();
+  const kitImg = async K => { if (!imgs.has(K)) imgs.set(K, await ksEntryImg(K.files.kit, 1024)); return imgs.get(K); };
+  const prog = what => p => log(what + ' ' + Math.round(p * 100) + '%');
+  const D = { dir, team: t.id, kits: KS.kits, gk: KS.gk, all: KS.all, log,
+    toFtex: async (e, kind) => {
+      const b = await e.data(), n = e.name.toLowerCase(); if (n.endsWith('.ftex')) return b;
+      const buf = b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), img = n.endsWith('.dds') ? DDS.decode(buf) : await FTEXW.rawFromImage(new Blob([buf]));
+      const S = KS_SLOTS.find(s => s.k === kind), P2 = FTEXW.pow2Pixels(new Uint8Array(img.data.buffer, img.data.byteOffset, img.data.length), img.w, img.h, S ? S.max : 4096);
+      return FTEXW.fromPixels(P2.px, P2.w, P2.h, { dxt5: kind !== 'srm', progress: prog('Convirtiendo ' + e.name.split('/').pop() + ' a .ftex…') });
+    },
+    gen: async (kind, ctx) => { // los genéricos: la tela elegida en el panel Tela y la fuente del generador
+      if (kind === 'nrm') return FTEXW.fromCanvas(KMAT.normalMap({ kitCanvas: imgToCanvas(await kitImg(ctx.kit)), fabric: KS.mat.fabric, repeat: KS.mat.repeat, fabricStrength: KS.mat.fabricStrength, emboss: KS.mat.emboss, size: 1024 }), { progress: prog('Generando el normal map…') });
+      if (kind === 'srm') return FTEXW.fromCanvas(KMAT.srm(KS.mat.fabric, 256), { dxt5: false });
+      if (kind === 'name') return FTEXW.fromCanvas(KFONT.generate('name', KS.fontOpt || { font: 'Saira Condensed', weight: 800, fill: '#ffffff', stroke1: 0, stroke2: 0, shadow: 0 }), { progress: prog('Generando las letras del nombre…') });
+      return null;
+    },
+    colors: async ctx => { const img = await kitImg(ctx.kit); return KZIP.colorsFrom(img.data, img.w, img.h); },
+    baseCfg: async () => KS.cfgTxt && (KS.cfgTxt[KS.kits[0]] || KS.cfgTxt[KS.sel]) || null };
+  const res = await KZIP.install(items, D);
+  for (const r of res) {
+    try { const c = await readText(await dir.getDirectoryHandle(r.name), 'config.txt'); if (c) { KS.meta[r.name] = parseKitCfg(c, r.name); KS.cfgTxt[r.name] = c; } } catch { }
+    delete KS.thumbs[r.name]; for (const k of [...KS.tex.keys()]) if (k.startsWith(KS.path + '/' + r.name + ':')) KS.tex.delete(k);
+  }
+  ksRefreshKitsMap(); RATE_GEN++;
+  if (!KS.cfg || res.some(r => r.name === KS.sel)) { KS.dirty = false; await ksOpenKit(KS.sel && KS.all.includes(KS.sel) ? KS.sel : (KS.kits[0] || KS.gk[0]), dir); }
+  return res;
+}
+function ksZipDone(res, m) {
+  const txt = res.map(r => r.name + (r.replaced ? ' (reemplazado)' : ' (nuevo)') + (r.generated.length ? ', genéricos: ' + r.generated.map(k => KZIP.KIND_N[k].toLowerCase()).join(', ') : '')).join(' · ');
+  toast('Kit cargado en ' + KS.path + ': ' + txt + '. Abrí el juego de nuevo (o en kserv apretá [0] para recargar el mapa).', 12000);
+  renderTeams(m);
+}
+// carpeta nueva para un equipo que no estaba en map.txt (sus kits venían de los .cpk): se anota en map.txt y queda vacía hasta que se instale el kit
+async function ksNewTeamDir(t) {
+  const { kit } = await ksRoot(true), safe = String(tget(t, 'name') || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() || 'equipo';
+  let name = safe; try { await kit.getDirectoryHandle(name); name = safe + ' ' + t.id; } catch { }
+  await kit.getDirectoryHandle(name, { create: true });
+  const map = (await readText(kit, 'map.txt')) || '', eol = /\n/.test(map) && !/\r\n/.test(map) ? '\n' : '\r\n';
+  const fh = await kit.getFileHandle('map.txt', { create: true }), w = await fh.createWritable(); await w.write((map.trim() ? map.replace(/\s*$/, '') + eol : '') + t.id + ',"' + name + '"' + eol); await w.close();
+  KITS.map.set(t.id, { k: [], g: [], path: name }); kitsSaveCache();
+  Object.assign(KS, { team: t.id, path: name, kits: [], gk: [], all: [], meta: {}, cfgTxt: {}, thumbs: {}, sel: null, cfg: null, err: '', dirty: false, mode: 'list' });
+  return name;
 }

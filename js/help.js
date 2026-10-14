@@ -51,6 +51,10 @@ const HELP = {
       ['Usar los colores del kit', 'copia los colores del kit titular del juego.'],
       ['País y entrenador', 'el país sirve para ligas y selecciones; el entrenador es el DT que aparece en los partidos.']]]] },
   kits: { t: 'el Kit Studio Pro', intro: 'Edita los kits del juego (content\\kit-server): el config.txt y todas sus texturas. Lo que ves está armado con los modelos reales del juego (camisetas, mangas, 116 cuellos, 16 shorts y medias, sacados del CometKITpreviewer).', groups: [
+    ['Uniformes', [
+      ['Lista de kits', 'todos los kits del equipo con sus texturas, en el orden de order.ini y gk_order.ini. ✎ abre el kit en el Editor, ↑ lo sube en el orden, ⧉ lo duplica, 🧤 copia un kit de jugador como kit de arquero y 🗑 lo borra (la carpeta queda en _borrados).'],
+      ['Cargar un kit desde un .zip', 'arrastrá el .zip (o las texturas sueltas: .ftex, .dds, .png) a la zona punteada y elegí el puesto: titular, suplente, tercera, cuarta o arquero. Si el puesto ya tiene kit, podés reemplazarlo (lo de antes va a _borrados) o agregarlo como kit nuevo. Lo que falte (normal map, brillo, letras del nombre) se genera genérico, y el config.txt y el order.ini se escriben solos.'],
+      ['Kits dentro de los .cpk', 'si el equipo no tiene carpeta en content\\kit-server, sus kits vienen cifrados dentro de los .cpk del juego y no se pueden abrir desde acá. Igual se le puede cargar un kit por Sider: se crea la carpeta del equipo y se anota en map.txt.']]],
     ['Vistas', [
       ['3D', 'el uniforme completo. Arrastrá para girar, clic derecho (o Shift) para mover la cámara, rueda para acercar, flechas del teclado para girar de a poco y doble clic para volver al frente.'],
       ['Cámara', 'encuadres rápidos (frente, espalda, costados, 3/4, desde arriba, primer plano del pecho), lente más abierta o más cerrada y giro automático con velocidad.'],

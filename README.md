@@ -75,6 +75,8 @@ Porque editar el PES siempre fue parte del juego: corregir planteles, cambiar el
 - **Edición visual del `config.txt`:**
   - cuello, short, colores, posición de nombre y números;
   - vista plana (maqueta) para acomodar los números arrastrando.
+- **Dos partes:** Uniformes (todos los kits del equipo con sus texturas, orden, copias y borrado) y Editor (un kit a pantalla ancha).
+- **Cargar un kit desde un .zip.** Se arrastra a Uniformes, se elige el puesto (titular, suplente, tercera, cuarta o arquero), se avisa si el puesto ya tiene kit (reemplazar o agregar como nuevo), se convierte todo a FTEX, se generan genéricos el normal map, el brillo y las letras que falten, y se escriben el config.txt y el order.ini. Si el equipo no tiene carpeta en el kit-server (sus kits están en los .cpk), se le crea una y se anota en map.txt.
 - **Subir texturas al kit-server.** Kit, normal map y fuentes (nombre, espalda, pecho, short). Se convierten al formato del juego (FTEX) con copia de respaldo.
 - **Brillo del kit.** El canal alfa de la textura marca cuánto brilla cada zona: se ve en el 3D y se puede pintar.
 - **Tela y relieve.** Ocho tipos de tela y un generador de normal map que el juego aplica.

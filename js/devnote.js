@@ -2,6 +2,7 @@
 // Un cartel abajo a la derecha, una vez por versión, cuando termina la pantalla de carga. También queda arriba de
 // todo en Novedades. "Beta" = ya está en el editor pero en prueba; "Próximamente" = en camino, puede cambiar.
 const DEV_ITEMS = [
+  ['beta', '👕', 'Kit Studio Pro: cargar kits desde un .zip', 'Versión preliminar: arrastrar un .zip a Uniformes, elegir el puesto, reemplazar o agregar, y los kits que viven en los .cpk. Se probó poco con juegos reales y es probable que tenga fallos: hacé una copia de content\\kit-server antes y avisá si algo sale mal.'],
   ['beta', '🧩', "Pestaña Sider", "Qué carga tu juego y edición de sider.ini con interruptores. Está en prueba: si una carpeta o un módulo sale mal clasificado, o algo no se guarda, avisá."],
   ['beta', '💻', 'PES Editor Rebuilt para Windows', 'La app que conecta tu carpeta Sider aunque esté en Archivos de programa. Está en prueba: si algo no se guarda en el juego, avisá.'],
   ['beta', '⬡', 'Ficha hexagonal y media rápida', 'Cambiar la media y cada área de un jugador arrastrando el hexágono o desde el plantel. Está en prueba: si una media no queda como esperabas, avisá.'],

@@ -1,57 +1,56 @@
 <div align="center">
 
-<img alt="Los módulos Lua en el modo Moderno: cada uno dice qué hace. FreeHeartEngine.lu ofrece corregirse a FreeHeartEngine.lua, penaltyCam es la cámara de penales y Crowd-Server elige cuánta hinchada hay" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-modulos.png" width="100%">
+<img alt="La pestaña Uniformes del Kit Studio Pro: la zona punteada para arrastrar un kit en .zip y las tarjetas de cada kit del equipo con sus texturas" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/uniformes.png" width="100%">
 
-# 🧩 La pestaña Sider entiende tu juego
+# 👕 Kit Studio Pro: cargá kits desde un .zip
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.046-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.046-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.047-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.047-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-La pestaña Sider llegó en la v0.045 mostrando qué carga tu juego. Con un juego lleno de mods, con decenas de carpetas y módulos, aparecieron las preguntas: **¿qué hace esta carpeta?**, **¿por qué dice que falta este módulo si está ahí?**, **¿por qué no pasa nada cuando toco agregar?** 🤔
+> ⚠️ **Versión preliminar.** Todo lo de esta versión es nuevo y se probó poco con juegos reales: es muy probable que tenga fallos. Antes de cargar o reemplazar kits, hacé una copia de tu carpeta `content\kit-server`. Si algo sale mal, [contanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose) qué pasó y con qué kit.
 
-Esta versión responde todo eso.
+El Estudio de kits pasa a llamarse **Kit Studio Pro** y crece en dos partes. Y lo más pedido: **bajaste un kit y querés verlo en el juego sin tocar un solo archivo a mano**. Ahora se arrastra y listo.
 
-## 📖 Qué hace cada cosa, en una línea
+## 📦 Arrastrá el .zip y elegí el puesto
 
-Cada carpeta de contenido, cada módulo y cada carpeta de content ahora tiene **una línea que dice qué cambia en el juego**. Hay más de **40 categorías** y más de **60 módulos conocidos**:
+Soltá el .zip del kit (o sus texturas sueltas: `.ftex`, `.dds`, `.png`) en la pestaña **Uniformes**. Un cuadro muestra **qué trae**: kit, normal map, brillo, números de espalda, pecho y short, letras del nombre. Elegís en qué puesto va: **titular (p1), suplente (p2), tercera, cuarta o arquero**.
 
-- 🕺 **Animaciones y poses**: las poses del modo Editar y la previa del partido (carpeta `anime`).
-- 🚩 **Banners de hinchadas**: banderas en las tribunas por equipo y competición (carpeta `common_ad`).
-- 🎬 **Escenas y cinemáticas**: faltas, goles, entradas, jugador del partido (FoulScenes, CutScenes…).
-- 👥 **Público**: cuánta hinchada hay del local y del visitante, coreografías, alcanzapelotas.
-- 🎽 **Logos de manga**, 📋 **Liga Master**, 🎮 **jugabilidad**, 🎥 **cámaras** y mucho más.
+- Si el puesto **ya tiene un kit**, decidís: **reemplazarlo** (lo de antes se guarda en `_borrados`) o **agregarlo como kit nuevo**.
+- Lo que **falte** (normal map, brillo, letras del nombre) se **genera genérico** con la tela y la fuente del estudio.
+- Todo se convierte al formato del juego (**FTEX**) y se escriben solos el `config.txt` (con los colores leídos de la textura si no trae uno) y el `order.ini` / `gk_order.ini`.
 
-Las **cámaras se describen por el nombre**: `penaltyCam` es la cámara de penales y `ReplayCamera` la de las repeticiones. Y si un módulo no está en la lista, el editor **lee el propio archivo** y usa lo que dice al principio.
+<img alt="El cuadro Cargar kit: la vista previa de la textura, qué viene y qué se genera, y el puesto elegido (p2, suplente)" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/cargar-kit.png" width="100%">
 
-<img alt="Las carpetas de content en el modo Clásico, cada una con el módulo que la usa y qué hace: foul-scenes con FoulScenes.lua, master league selector con masterleague.lua, referee_kit-server con RefKitServer.lua" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-content.png" width="100%">
+<img alt="El mismo cuadro con p2 en uso: elegir entre agregarlo como kit nuevo (p3) o reemplazar el p2 que está ahora" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/reemplazar.png" width="100%">
 
-## 🔍 Mira adentro de cada carpeta
+## 🔒 Los kits que viven en los .cpk
 
-Además de las rutas de PES 2021, el editor busca **nombres de carpeta que delatan el contenido**, hasta 7 niveles adentro: `anime`, `common_ad`, `demo`, `scoreboard`, `turf`… Así un mod que se llama "edit mod" queda bien clasificado aunque el nombre no diga nada.
+Si el equipo **no tiene carpeta en el kit-server**, sus kits están cifrados dentro de los archivos `.cpk` del juego y no se pueden abrir desde el editor. El Kit Studio Pro ahora lo dice claro, y **deja cargarle un kit por Sider igual**: se crea la carpeta del equipo y su línea en `map.txt`.
 
-**Funciona igual con PES 2021 base, con mods o con Football Life.** Nada está atado a una instalación en particular.
+<img alt="La tarjeta de un equipo sin carpeta en el kit-server: el aviso de los .cpk y la zona para arrastrar un kit" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/equipo-cpk.png" width="100%">
 
-<img alt="Las carpetas de contenido en el modo Retro: edit mod como Animaciones y poses, Banner como Banners de hinchadas y una carpeta marcada como Repetida (fila 2)" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-carpetas.png" width="100%">
+## 🗂 Uniformes y Editor
 
-## ⚡ Agregar, quitar y mover se ve al instante
+- **Uniformes**: todos los kits del equipo con sus texturas en miniatura, en el orden del juego. Desde ahí se **edita**, se **sube en el orden**, se **duplica** (⧉), se **copia un kit de jugador como arquero** (🧤) y se **borra** (🗑, la carpeta queda en `_borrados`).
+- **Editor**: un kit a pantalla ancha, con **Ampliar**, **pantalla completa** y **Vista del juego**, que imita el encuadre del juego.
 
-Tocabas "＋" en una carpeta de livecpk o en un módulo y… nada. El cambio estaba, pero **la lista no se actualizaba** hasta volver a leer el archivo. Ahora lo nuevo aparece al final de su lista, **resaltado**, con un aviso, y el botón desaparece. Lo mismo al quitar, mover, deshacer o aplicar el texto.
+<img alt="El Editor del Kit Studio Pro con la tira de kits, el visor 3D y los paneles de cámara y prendas" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/editor.png" width="100%">
 
-<img alt="En PES 6 Editar, la carpeta Botines-2026 recién agregada aparece resaltada al final de la lista y su botón ya no está entre las carpetas que faltan en sider.ini" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-agregada.png" width="100%">
+## ✥ Mové el nombre y los números sobre el modelo
 
-## 🩹 Los módulos "faltantes" que sí estaban
+En el visor 3D, el **nombre**, el **número de la espalda**, el **del pecho** y el **del short** se arrastran directo sobre la camiseta; la **rueda** encima les cambia el tamaño. Los valores van al `config.txt` (`NameY`, `BackNumberY`, `ChestNumberX/Y`, `ShortsNumberX/Y` y los tamaños) respetando el rango de cada kit. Las posiciones salen de una cuenta aproximada: **todavía no están calibradas contra el juego**, así que puede haber diferencias.
 
-- Los módulos en **subcarpetas** de modules (como `modules\GRAND\Crowd-Server.lua`) ya no salen como faltantes.
-- Si un `lua.module` está **mal escrito** (le falta una letra, un guion en vez de un guion bajo…), la fila pregunta **"¿Es FreeHeartEngine.lua? Corregir"** y el botón arregla la línea.
-- Las carpetas de content se **unen al módulo que las nombra en su código**, y si ninguno las usa, lo dice.
-- Una comilla de más o de menos en una ruta ya no hace que una carpeta parezca que no existe.
-- Las **carpetas repetidas** dicen qué ruta se repite y en qué filas. Sider usa la primera.
+<img alt="El número de la espalda resaltado mientras se arrastra sobre el modelo 3D" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/numero-movido.png" width="100%">
 
-<img alt="En PES 6 Editar, la fila de FreeHeartEngine.lu con el botón ¿Es FreeHeartEngine.lua? Corregir" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.046/sider-corregir.png" width="100%">
+## 🧵 Y además
 
-> 🙌 Muchas de las descripciones salieron de las correcciones de un usuario con su propio juego. Si ves un módulo o una carpeta mal descrita, [avisanos](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose) y la sumamos.
+- Las texturas se cargan a su **resolución completa** (hasta 4096), ya no achicadas a 1024.
+- El generador de fuentes tiene **"Número del short con otro color"**.
+- La textura subida a un kit **ya no desaparece** al cambiar de kit y volver.
+
+<img alt="La Vista del juego: el modelo con el encuadre y el fondo que imitan la pantalla de uniformes" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.047/vista-del-juego.png" width="100%">
 
 ## 🔜 Lo que viene
 
-**Instalar mods arrastrándolos**: soltar un mod en la pestaña Sider y que se copie solo a livecpk, modules o content, con su readme a la vista y cada paso para deshacer.
+**Crear un kit desde cero** dentro del Kit Studio Pro, calibrar las posiciones del nombre y los números contra el juego, e **instalar mods arrastrándolos** en la pestaña Sider.

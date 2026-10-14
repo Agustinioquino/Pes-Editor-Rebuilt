@@ -477,10 +477,10 @@ function setFaceKind(pid, k) {
 function faceTools(pid) {
   const e = FACES.online.get(pid);
   if (FACES.url.has(pid)) return '<p class="note">Foto: miniface del juego.</p>';
-  const link = `<div class="row"><input type="text" id="faceLink" data-pid="${pid}" placeholder="Link de SoFIFA o de una foto" style="flex:1;min-width:10em"><button class="btn small" type="button" id="faceLinkGo" data-pid="${pid}">Usar esta foto</button></div>`;
-  if (!e || !e.u) return `<div class="facetools"><span class="note">Sin foto de internet. Pegá el link del jugador en SoFIFA (sofifa.com/player/…) o el de cualquier foto.</span>${link}</div>`;
+  const link = `<div class="row"><input type="text" id="faceLink" data-pid="${pid}" placeholder="Link de SoFIFA, Sortitoutsi, PES Master, SoccerWiki o de una foto" style="flex:1;min-width:10em"><button class="btn small" type="button" id="faceLinkGo" data-pid="${pid}">Usar esta foto</button></div>`;
+  if (!e || !e.u) return `<div class="facetools"><span class="note">Sin foto de internet. Pegá el link del jugador en SoFIFA, Sortitoutsi, PES Master o SoccerWiki, o el de cualquier foto.</span>${link}</div>`;
   const lab = { c: 'con camiseta del club', n: 'con camiseta de la selección', x: 'neutral (sin camiseta)', '?': 'sin clasificar' }[e.k] || '';
-  const from = { sofifa: 'Foto de SoFIFA', link: 'Foto de tu link' }[e.s];
+  const from = LINK_SRC[e.s] && 'Foto de ' + LINK_SRC[e.s];
   return `<div class="facetools"><span class="note">${from ? from + ' (elegida a mano).' : `Foto de internet ${lab}${e.m ? ' (marcada a mano)' : ''}. ¿Es correcta?`}</span>
     <div class="row"><button class="btn small" type="button" data-fk="c" data-pid="${pid}">Es del club</button><button class="btn small" type="button" data-fk="n" data-pid="${pid}">Es de la selección</button><button class="btn small" type="button" data-fk="del" data-pid="${pid}">Quitar foto</button></div>${link}</div>`;
 }
@@ -493,11 +493,26 @@ function sofifaUrls(text) {
   const id = m[1].padStart(6, '0'), a = id.slice(0, -3), b = id.slice(-3);
   return ['26', '25', '24', '23', '22'].map(v => `https://cdn.sofifa.net/players/${a}/${b}/${v}_120.png`); // la más nueva que tenga
 }
+// otras páginas con fotos fijas por número de jugador: Sortitoutsi (caras de Football Manager), PES Master (por juego,
+// también leyendas y clásicos) y SoccerWiki. Ninguna tiene búsqueda automática: se pega el link de la página del jugador.
+const LINK_SRC = { sofifa: 'SoFIFA', sortitoutsi: 'Sortitoutsi', pesmaster: 'PES Master', soccerwiki: 'SoccerWiki', link: 'tu link' };
+function linkUrls(text) {
+  const s = String(text || '').trim(); let m;
+  const sf = sofifaUrls(s); if (sf) return { s: 'sofifa', list: sf };
+  if ((m = s.match(/sortitoutsi\.net\/\S*?person\/(\d+)/i))) return { s: 'sortitoutsi', list: [`https://sortitoutsi.b-cdn.net/uploads/face/face_${m[1]}.png`] };
+  if ((m = s.match(/pesmaster\.com\/[^/\s]+\/((?:pes|efootball)-\d{4})\/player\/(\d+)/i))) {
+    const g = m[1].toLowerCase(), id = m[2], png = y => [`https://www.pesmaster.com/${y}/graphics/players/player_${id}_l.png`, `https://www.pesmaster.com/${y}/graphics/players/player_${id}.png`];
+    return { s: 'pesmaster', list: /^efootball/.test(g) ? [`https://www.pesmaster.com/${g}/graphics/players/${id}_.webp`, ...png('pes-2021')] : [...png(g), ...(g === 'pes-2021' ? [] : png('pes-2021'))] };
+  }
+  if ((m = s.match(/soccerwiki\.org\/\S*?pid=(\d+)/i))) return { s: 'soccerwiki', list: ['png', 'jpg'].map(x => `https://cdn.soccerwiki.org/images/player/${m[1]}.${x}`) };
+  if (/^https?:\/\/\S+$/i.test(s)) return { s: 'link', list: [s] };
+  return null;
+}
 async function faceFromLink(pid, text) {
-  const s = String(text || '').trim(), sf = sofifaUrls(s), list = sf || (/^https?:\/\/\S+$/i.test(s) ? [s] : null);
-  if (!list) throw new Error('Eso no parece un link de SoFIFA ni de una foto.');
-  for (const u of list) if (await imgOk(u)) { FACES.online.set(pid, { u, k: 'x', m: 1, s: sf ? 'sofifa' : 'link' }); saveOnline(); paintFace(pid, u); return u; }
-  throw new Error(sf ? 'SoFIFA no devolvió la foto de ese jugador. Probá abrir el link en el navegador y copiar la dirección de la foto.' : 'No se pudo cargar esa imagen.');
+  const L = linkUrls(text);
+  if (!L) throw new Error('Eso no parece un link de SoFIFA, Sortitoutsi, PES Master, SoccerWiki ni de una foto.');
+  for (const u of L.list) if (await imgOk(u)) { FACES.online.set(pid, { u, k: 'x', m: 1, s: L.s }); saveOnline(); paintFace(pid, u); return u; }
+  throw new Error(L.s === 'link' ? 'No se pudo cargar esa imagen.' : LINK_SRC[L.s] + ' no devolvió la foto de ese jugador. Probá abrir el link en el navegador, tocar la foto con el botón derecho y copiar la dirección de la imagen.');
 }
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider, o los archivos del juego) sin mostrar nada

@@ -1419,6 +1419,19 @@ html[data-gfx="pes6"] .sesscard span{color:#55534d}
 .crestfiles .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
 @media (max-width:700px){.crestup .crestrow{grid-template-columns:auto auto}.crestinfo{grid-column:1/-1}}
+.mfcard .mfrow{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:18px;align-items:start}
+.mfbox{display:grid;gap:6px;justify-items:center}
+.mfnow .face{width:120px;height:120px}
+.mfstage{position:relative;width:240px;height:240px;border-radius:10px;overflow:hidden;cursor:grab;touch-action:none;background:repeating-conic-gradient(var(--sunk) 0 25%,var(--panel) 0 50%) 0 0/16px 16px;border:1px solid var(--line)}
+.mfstage:active{cursor:grabbing}.mfstage canvas{width:100%;height:100%;display:block}
+.mfstage.empty{display:grid;place-items:center;cursor:pointer;border:2px dashed var(--line);background:var(--sunk);color:var(--muted);font-size:.74rem;text-align:center;line-height:1.3}
+.mfcard.drag .mfstage{border-color:var(--accent);background:var(--accent-soft)}
+.mfguide{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.mfguide ellipse,.mfguide line{fill:none;stroke:var(--accent);stroke-width:.6;stroke-dasharray:2 1.6;opacity:.85}
+.mfinfo{display:grid;gap:8px;min-width:0}.mfline{display:flex;align-items:center;gap:10px;font-size:.82rem}.mfline span{min-width:72px;color:var(--muted)}.mfline input[type=range]{flex:1}.mfline select{width:auto}
+.mfinfo .note.bad{color:var(--bad)}.mfinfo .note.ok{color:var(--accent);font-weight:600}
+.mfprog{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}.mfprog b{display:block;height:100%;background:var(--accent);transition:width .15s}
+html[data-gfx="pes6"] .mfstage.empty{border-color:#8f8c84}
+@media (max-width:700px){.mfcard .mfrow{grid-template-columns:auto auto}.mfinfo{grid-column:1/-1}.mfstage{width:180px;height:180px}}
 /* ---------- últimos partidos: temporada, goleadores, forma por jugador ---------- */
 .lmtop{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0}.lmtop .lab{margin-right:2px}.lmtop .chip small{margin-left:4px;color:var(--muted);font-size:.62rem}
 .chip.lmdeep{cursor:pointer;gap:4px}.chip.lmdeep input{margin:0;width:13px;height:13px;accent-color:var(--accent)}

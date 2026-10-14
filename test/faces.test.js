@@ -9,7 +9,7 @@ const TS = load('teamsearch.js', 'TS');
 const msrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'matches.js'), 'utf8');
 const ns = msrc.match(/function nameScore\([\s\S]*?\n}\n/)[0];
 const fetched = [];
-const F = load('faces.js', `${ns};({ sofifaUrls, faceName, faceNameOk, faceTeamLike, espnPick, tsdbPick, wikiPick, tsdbGet, TSDB, FACES })`, {
+const F = load('faces.js', `${ns};({ sofifaUrls, linkUrls, faceName, faceNameOk, faceTeamLike, espnPick, tsdbPick, wikiPick, tsdbGet, TSDB, FACES })`, {
   TS, setTimeout, clearTimeout, performance, PREFS: undefined,
   fetch: async u => { fetched.push(u.split('/').pop()); return { ok: true, status: 200, json: async () => ({ player: [] }) }; },
 });
@@ -95,4 +95,16 @@ test('SoFIFA: del link del jugador sale la dirección de su foto', () => {
   assert.equal(F.sofifaUrls('sofifa.com/player/20801')[0], 'https://cdn.sofifa.net/players/020/801/26_120.png');
   assert.equal(F.sofifaUrls('231478')[1], 'https://cdn.sofifa.net/players/231/478/25_120.png');
   assert.equal(F.sofifaUrls('https://upload.wikimedia.org/x.jpg'), null);
+});
+
+test('otras páginas: del link del jugador sale la dirección de su foto', () => {
+  const L = t => { const r = F.linkUrls(t); return r && { s: r.s, list: [...r.list] }; };
+  assert.deepEqual(L('https://sortitoutsi.net/football-manager-2021/person/7458500/lionel-messi'), { s: 'sortitoutsi', list: ['https://sortitoutsi.b-cdn.net/uploads/face/face_7458500.png'] });
+  assert.equal(L('https://www.pesmaster.com/d-maradona/pes-2021/player/2453/').list[0], 'https://www.pesmaster.com/pes-2021/graphics/players/player_2453_l.png');
+  assert.equal(L('https://www.pesmaster.com/n-otamendi/pes-2020/player/40725/').list.at(-1), 'https://www.pesmaster.com/pes-2021/graphics/players/player_40725.png');
+  assert.equal(L('https://www.pesmaster.com/nicolas-otamendi/efootball-2022/player/40725/').list[0], 'https://www.pesmaster.com/efootball-2022/graphics/players/40725_.webp');
+  assert.deepEqual(L('https://en.soccerwiki.org/player.php?pid=2772').list, ['https://cdn.soccerwiki.org/images/player/2772.png', 'https://cdn.soccerwiki.org/images/player/2772.jpg']);
+  assert.equal(L('https://sofifa.com/player/231478/').s, 'sofifa');
+  assert.equal(L('https://example.com/cara.png').s, 'link');
+  assert.equal(L('hola'), null);
 });

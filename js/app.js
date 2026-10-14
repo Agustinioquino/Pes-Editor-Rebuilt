@@ -1177,7 +1177,7 @@ function dbPlayerSheet(id) {
     <div class="dbteams">${cl.length ? cl.map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
     <div class="dbnote"><span>${inEdit ? 'Este jugador también está en tu EDIT, con los datos que le cambiaste.' : 'Está en la base del juego y todavía no en tu EDIT. Lo que ves acá es lo que usa el juego; para cambiarlo, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del juego.'}</span>
       ${inEdit ? `<button class="btn small" type="button" data-dbopen="${id}">Abrir en mi EDIT</button>` : `<button class="btn primary small" type="button" data-dbadd="${id}" ${canMakeEditPlayer(id) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button>`}</div>
-  </div>${abil}`;
+  </div>${abil}${mnfCard(id, kit)}`;
 }
 function setPlayerCount() { if (!S.ix) return; const dn = dbPlayerCount(); $('cPlayers').textContent = dn ? (dn >= 1000 ? (dn / 1000).toFixed(1).replace('.', ',') + 'k' : dn) : S.ix.players.length; $('tPlayers').title = S.ix.players.length + ' en tu EDIT' + (dn ? ' · ' + dn.toLocaleString('es-AR') + ' en la base del juego' : ''); }
 function renderPlayers(m) {
@@ -1270,7 +1270,7 @@ function playerSheet(p) {
       <button class="btn small" id="pCopyBtn" type="button">Copiar</button></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${S.ptab === k}">${n}</button>`).join('')}</div>
   </div>
-  <div class="card">${({ profile: tabProfile, pos: tabPos, abil: tabAbil, skills: tabSkills, look: tabLook, motion: tabMotion })[S.ptab](p)}</div>`;
+  <div class="card">${({ profile: tabProfile, pos: tabPos, abil: tabAbil, skills: tabSkills, look: tabLook, motion: tabMotion })[S.ptab](p)}</div>${S.ptab === 'look' ? (() => { const c = clubOf(p.id); return mnfCard(p.id, c ? kitFor(c, reg === 0) : null); })() : ''}`;
 }
 function tabProfile(p) {
   const g = k => pget(p, k);

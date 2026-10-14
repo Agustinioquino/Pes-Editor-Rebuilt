@@ -7,12 +7,12 @@ const CREST_SET = [ // tamaño de cada archivo cuando la carpeta del juego no tr
   ['r_b_l', 256], ['r_b_ll', 1024], ['r_w', 256], ['r_w_l', 256], ['r_w_ll', 1024]];
 const CREST_FLAG = 'common/render/symbol/flag', CREST_ROOT = 'PESEditor-Escudos';
 // agrega la carpeta a sider.ini (antes de las otras cpk.root, así sus escudos mandan); copia de seguridad la primera vez
-async function crestIniAdd(sider, root) {
+async function crestIniAdd(sider, root, label = 'escudos propios') {
   const f = await sdbFile(sider, 'sider.ini'); if (!f) throw new Error('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).');
   const orig = typeof siReadIni === 'function' ? await siReadIni(sider) : await f.text(), nl = orig.includes('\r\n') ? '\r\n' : '\n', lines = orig.split(/\r?\n/), line = `cpk.root = ".\\livecpk\\${root}"`;
   if (lines.some(l => new RegExp('^\\s*cpk\\.root\\s*=\\s*"?\\.?[\\\\/]?livecpk[\\\\/]' + root.replace(/[-.]/g, '\\$&') + '[\\\\/]?"?\\s*$', 'i').test(l))) return false;
   const i = lines.findIndex(l => /^\s*cpk\.root\s*=/i.test(l));
-  if (i >= 0) lines.splice(i, 0, '; PES Editor: escudos propios', line); else lines.push('', '; PES Editor: escudos propios', line);
+  if (i >= 0) lines.splice(i, 0, '; PES Editor: ' + label, line); else lines.push('', '; PES Editor: ' + label, line);
   if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig);
   await sdbWrite(sider, 'sider.ini', lines.join(nl)); if (typeof siReset === 'function') siReset(); return true;
 }

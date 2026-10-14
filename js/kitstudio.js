@@ -161,7 +161,7 @@ async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   try { const old = await kd.getFileHandle(file + ext); try { await kd.getFileHandle(file + ext + '.bak-edit21'); } catch { const bk = await kd.getFileHandle(file + ext + '.bak-edit21', { create: true }), w0 = await bk.createWritable(); await w0.write(await (await old.getFile()).arrayBuffer()); await w0.close(); } } catch { }
   const fh = await kd.getFileHandle(file + ext, { create: true }), w = await fh.createWritable(); await w.write(bytes); await w.close();
   const prev = KS.T[S.k] || {}; KS.T[S.k] = { c: canvas || prev.c, g: prev.g, file: file + ext, where: 'kit' };
-  KS.tex.set(KS.path + '/' + KS.sel + ':' + file, KS.T[S.k]); KS.dispKey = '';
+  KS.tex.set(KS.path + '/' + KS.sel + ':' + file, KS.T[S.k]); KS.dispKey = ''; if (KS.thumbs) delete KS.thumbs[KS.sel]; // Uniformes vuelve a leer las miniaturas de este kit
   // si el config solo cambió para anotar el nombre de esta textura, se guarda ya: así no se pierde al cambiar de kit
   if (!wasDirty && KS.dirty) await ksSave();
   return file + ext;
@@ -191,8 +191,16 @@ async function ksDuplicate(name, asGk) {
   try { const c = await readText(dst, 'config.txt'); if (c) KS.meta[nn] = parseKitCfg(c, nn); } catch { }
   ksRefreshKitsMap(); return nn;
 }
+// los archivos que el navegador no deja tocar (Chrome rechaza nombres como desktop.ini: "name is not allowed") se saltan y se avisa
 async function ksCopyDir(src, dst) {
-  for await (const [fn, h] of src.entries()) { if (h.kind !== 'file' || /\.bak-edit21$/.test(fn)) continue; const f = await h.getFile(), o = await dst.getFileHandle(fn, { create: true }), w = await o.createWritable(); await w.write(await f.arrayBuffer()); await w.close(); }
+  const skipped = [];
+  for await (const [fn, h] of src.entries()) {
+    if (h.kind !== 'file' || /\.bak-edit21$/.test(fn)) continue;
+    try { const f = await h.getFile(), o = await dst.getFileHandle(fn, { create: true }), w = await o.createWritable(); await w.write(await f.arrayBuffer()); await w.close(); }
+    catch (e) { skipped.push(fn); }
+  }
+  if (skipped.length) toast('No se pudo copiar ' + skipped.join(', ') + ' (el navegador no deja tocar ese archivo). El resto del kit se copió.', 8000);
+  return skipped;
 }
 // borra un kit: lo saca de order.ini / gk_order.ini y mueve su carpeta a _borrados (se puede recuperar a mano)
 async function ksDelete(name) {
@@ -210,12 +218,14 @@ async function ksDelete(name) {
 let ksRerender = () => { };
 // ---- textura que se muestra: la del kit + número, nombre y número del short dibujados con las fuentes del kit ----
 // Regiones de la textura (sacadas de los modelos reales): la espalda está girada 180°.
+// Nombre y número de la espalda: calibrados con una captura del juego (NameY=26, NameSize=11, BackNumberY=13, BackNumberSize=24):
+// el nombre queda al 54% de la espalda y mide ~5% de alto; el número al 72% y mide ~21%. La pendiente de Y sigue siendo aproximada.
 const UVR = { back: [.357, .642, .023, .464], front: [.344, .656, .49, .906] };
 const ksN = k => +(cfgGet(KS.cfg, k) || 0);
 // posiciones aproximadas a partir del config (0..1 dentro de cada región)
 const KS_POS = {
-  name: () => ({ y: .07 + (39 - ksN('NameY')) / 39 * .35, h: .05 + ksN('NameSize') * .006, stretch: .75 + ksN('NameStretch') * .15, curve: [0, .12, .25, .45][ksN('NameShape')] || 0 }),
-  num: () => ({ y: .22 + (29 - ksN('BackNumberY')) / 29 * .35, h: .12 + ksN('BackNumberSize') / 28 * .22, spacing: (ksN('BackNumberSpacing') - 7) * .012 }),
+  name: () => ({ y: .41 + (39 - ksN('NameY')) / 39 * .3, h: .03 + ksN('NameSize') * .0025, stretch: 1.15 + ksN('NameStretch') * .15, curve: [0, .12, .25, .45][ksN('NameShape')] || 0 }),
+  num: () => ({ y: .554 + (29 - ksN('BackNumberY')) / 29 * .3, h: .09 + ksN('BackNumberSize') / 28 * .245, spacing: (ksN('BackNumberSpacing') - 7) * .012 }),
   chest: () => ({ x: .2 + ksN('ChestNumberX') / 29 * .6, y: .05 + ksN('ChestNumberY') / 29 * .35, h: .04 + ksN('ChestNumberSize') / 28 * .1 }),
   leg: () => ({ x: ksN('ShortsNumberX') / 31, y: ksN('ShortsNumberY') / 31, h: .25 + ksN('ShortsNumberSize') / 28 * .5 }),
 };
@@ -232,7 +242,7 @@ function ksClampKey(key, v) { const f = KS.cfg && KS.cfg.fields.find(x => x.key 
 function ksDecalVals0(k, x, y) {
   const S = 1024, cl = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
   if (k === 'name' || k === 'num') { const [, , v0, v1] = UVR.back, f = (v1 * S - y) / ((v1 - v0) * S);
-    return k === 'name' ? { NameY: cl(39 - (f - .07) / .35 * 39, 0, 39) } : { BackNumberY: cl(29 - (f - .22) / .35 * 29, 0, 29) }; }
+    return k === 'name' ? { NameY: cl(39 - (f - .41) / .3 * 39, 0, 39) } : { BackNumberY: cl(29 - (f - .554) / .3 * 29, 0, 29) }; }
   if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29) }; }
   if (k === 'leg' && KS.legM) { const [a, b, c, d, e, f] = KS.legM, px = x / S - e, py = y / S - f, det = a * d - b * c, lx = (d * px - c * py) / det, ly = (-b * px + a * py) / det;
     return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29) }; }

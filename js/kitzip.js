@@ -139,7 +139,8 @@ const KZIP = (() => {
   async function install(items, D) {
     const log = D.log || (() => { }), done = [];
     const write = async (dir, n, data) => { const w = await (await dir.getFileHandle(n, { create: true })).createWritable(); await w.write(data); await w.close(); };
-    const copyDir = async (src, dst) => { for await (const [fn, h] of src.entries()) { if (h.kind !== 'file') continue; await write(dst, fn, await (await h.getFile()).arrayBuffer()); } };
+    // un archivo que el navegador no deja tocar (Chrome rechaza nombres como desktop.ini) no frena la copia
+    const copyDir = async (src, dst) => { for await (const [fn, h] of src.entries()) { if (h.kind !== 'file') continue; try { await write(dst, fn, await (await h.getFile()).arrayBuffer()); } catch (e) { log('No se pudo copiar ' + fn + ': ' + e.message); } } };
     for (const it of items) {
       const name = it.name, gk = /^g/i.test(name), K = it.kit, exists = D.all.some(x => x.toLowerCase() === name.toLowerCase());
       if (!K.files.kit) throw new Error('El kit "' + K.label + '" no trae la textura del kit (u####' + name + '.ftex, .dds o .png).');

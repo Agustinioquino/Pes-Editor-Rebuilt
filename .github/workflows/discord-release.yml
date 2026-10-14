@@ -22,6 +22,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EVENTO: ${{ github.event_name }}
           ACCION: ${{ github.event.action }}
+          RELEASE_ID: ${{ github.event.release.id }}
           TAG: ${{ github.event.release.tag_name }}
           NAME: ${{ github.event.release.name }}
           BODY: ${{ github.event.release.body }}
@@ -33,6 +34,9 @@ jobs:
           WEBHOOK="${WEBHOOK%/}"
           REPO_NOMBRE="${GITHUB_REPOSITORY#*/}"
           REMOTO="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          MAX_FOTOS=4        # Discord muestra hasta 4 imágenes en galería
+          MAX_VIDEOS=2       # videos que se suben como archivo reproducible
+          MAX_BYTES=9000000  # límite total de archivos por mensaje (~9 MB). Si tu servidor tiene boosts, podés subirlo.
 
           # --- La rama "discord-messages" guarda qué mensaje de Discord corresponde a cada versión ---
           git config --global user.name "github-actions[bot]"
@@ -69,45 +73,155 @@ jobs:
             printf '%s' "$r"
           }
 
-          # args: tag nombre url cuerpo fecha
+          # --- Fotos y videos del release ---
+          # Deja los archivos en media/, sus nombres en FOTOS y VIDEOS, y en LINKS los videos que no entraron.
+          tipo_de() { # mime → extensión con prefijo f (foto) o v (video); vacío si no sirve
+            case "$1" in
+              image/png)       echo "f png" ;;
+              image/jpeg)      echo "f jpg" ;;
+              image/gif)       echo "f gif" ;;
+              image/webp)      echo "f webp" ;;
+              video/mp4)       echo "v mp4" ;;
+              video/webm)      echo "v webm" ;;
+              video/quicktime) echo "v mov" ;;
+            esac
+          }
+
+          # args: archivo_descargado mime url_para_link
+          guardar() {
+            local t clase ext tam
+            t=$(tipo_de "$2"); clase=${t%% *}; ext=${t##* }
+            tam=$(stat -c%s "$1")
+            if [ "$clase" = "f" ] && [ ${#FOTOS[@]} -lt $MAX_FOTOS ] && [ $((TOTAL + tam)) -le $MAX_BYTES ]; then
+              mv "$1" "media/f${#FOTOS[@]}.$ext"; FOTOS+=("f${#FOTOS[@]}.$ext"); TOTAL=$((TOTAL + tam))
+            elif [ "$clase" = "v" ] && [ ${#VIDEOS[@]} -lt $MAX_VIDEOS ] && [ $((TOTAL + tam)) -le $MAX_BYTES ]; then
+              mv "$1" "media/v${#VIDEOS[@]}.$ext"; VIDEOS+=("v${#VIDEOS[@]}.$ext"); TOTAL=$((TOTAL + tam))
+            else
+              rm -f "$1"
+              [ "$clase" = "v" ] && agregar_link "$3"
+            fi
+          }
+
+          mime_por_nombre() {
+            case "$(echo "${1##*.}" | tr '[:upper:]' '[:lower:]')" in
+              png) echo image/png ;; jpg|jpeg) echo image/jpeg ;; gif) echo image/gif ;; webp) echo image/webp ;;
+              mp4) echo video/mp4 ;; webm) echo video/webm ;; mov) echo video/quicktime ;;
+            esac
+          }
+
+          agregar_link() { LINKS+=$'\n'"🎬 [Ver video]($1)"; }
+
+          lleno() { [ ${#FOTOS[@]} -ge $MAX_FOTOS ] && [ ${#VIDEOS[@]} -ge $MAX_VIDEOS ]; }
+
+          # args: release_id cuerpo
+          juntar_medios() {
+            rm -rf media && mkdir media
+            FOTOS=(); VIDEOS=(); LINKS=""; TOTAL=0
+            local aid aname asize alink t libre u ct mime
+
+            # 1) Archivos adjuntos al release (zona "Attach binaries")
+            while IFS=$'\t' read -r aid aname asize alink; do
+              t=$(tipo_de "$(mime_por_nombre "$aname")")
+              [ -z "$t" ] && continue
+              if [ $((TOTAL + asize)) -gt $MAX_BYTES ]; then
+                [ "${t%% *}" = "v" ] && agregar_link "$alink"   # video muy pesado → link
+                continue
+              fi
+              lleno && { [ "${t%% *}" = "v" ] && agregar_link "$alink"; continue; }
+              if gh api -H "Accept: application/octet-stream" \
+                   "repos/$GITHUB_REPOSITORY/releases/assets/$aid" > media/tmp 2>/dev/null; then
+                guardar media/tmp "$(file -b --mime-type media/tmp)" "$alink"
+              else
+                rm -f media/tmp
+              fi
+            done < <(gh api "repos/$GITHUB_REPOSITORY/releases/$1/assets" \
+                       --jq '.[] | [.id, .name, .size, .browser_download_url] | @tsv' 2>/dev/null)
+
+            # 2) Fotos y videos pegados en el texto:
+            #    ![](url), <img src="url">, <video src="url">, o un link suelto de github.com/user-attachments
+            while IFS= read -r u; do
+              [ -z "$u" ] && continue
+              lleno && break
+              libre=$((MAX_BYTES - TOTAL)); [ $libre -lt 1 ] && libre=1
+              if curl -sSfL --max-filesize "$libre" -o media/tmp "$u" 2>/dev/null; then
+                mime=$(file -b --mime-type media/tmp)
+                if [ -n "$(tipo_de "$mime")" ]; then guardar media/tmp "$mime" "$u"; else rm -f media/tmp; fi
+              else
+                rm -f media/tmp
+                # No se pudo bajar (muy pesado): si es un video, se agrega como link
+                ct=$(curl -sIL -o /dev/null -w '%{content_type}' "$u" 2>/dev/null)
+                case "$ct" in video/*) agregar_link "$u" ;; esac
+              fi
+            done < <(printf '%s' "$2" \
+                       | { grep -oE '!\[[^]]*\]\([^) ]+|<(img|video|source)[^>]+src="[^"]+"|https://github\.com/user-attachments/assets/[A-Za-z0-9-]+' || true; } \
+                       | sed -E 's/^!\[[^]]*\]\(//; s/^<(img|video|source)[^>]+src="//; s/"$//' \
+                       | awk '!visto[$0]++')
+          }
+
+          # args: tag nombre url cuerpo fecha  (usa FOTOS, VIDEOS y LINKS)
           armar_json() {
             jq -n \
               --arg t "🚀 $REPO_NOMBRE ${2:-$1}" \
               --arg d "$(resumen "$4")" \
+              --arg links "$LINKS" \
               --arg u "$3" \
               --arg ts "$5" \
+              --argjson fotos "$(printf '%s\n' "${FOTOS[@]}" | jq -R 'select(. != "")' | jq -s .)" \
+              --argjson todos "$(printf '%s\n' "${FOTOS[@]}" "${VIDEOS[@]}" | jq -R 'select(. != "")' | jq -s .)" \
               '{
                 username: "Releases",
-                embeds: [
-                  {
-                    title: $t,
-                    url: $u,
-                    description: ($d | .[0:1500]),
-                    color: 5814783,
-                    footer: { text: "Nueva versión publicada 🎉" }
-                  } + (if $ts != "" then { timestamp: $ts } else {} end)
-                ]
+                embeds: (
+                  [
+                    {
+                      title: $t,
+                      url: $u,
+                      description: (($d | .[0:1500]) + $links),
+                      color: 5814783,
+                      footer: { text: "Nueva versión publicada 🎉" }
+                    }
+                    + (if $ts != "" then { timestamp: $ts } else {} end)
+                    + (if ($fotos | length) > 0 then { image: { url: ("attachment://" + $fotos[0]) } } else {} end)
+                  ]
+                  # Las demás fotos van en embeds con la misma URL para que Discord las agrupe en galería
+                  + [ $fotos[1:][] | { url: $u, image: { url: ("attachment://" + .) } } ]
+                ),
+                # Los videos se suben como archivos y Discord los muestra con reproductor
+                attachments: [ $todos | to_entries[] | { id: .key, filename: .value } ]
               }'
+          }
+
+          # args: método url json  → imprime la respuesta y deja el código HTTP en la última línea
+          enviar_discord() {
+            local args=(-sS -X "$1" -w '\n%{http_code}' --form-string "payload_json=$3") i=0 f
+            for f in "${FOTOS[@]}" "${VIDEOS[@]}"; do args+=(-F "files[$i]=@media/$f"); i=$((i + 1)); done
+            curl "${args[@]}" "$2"
           }
 
           archivo() { echo "ids/$(echo "$1" | tr '/ ' '__').txt"; }
 
           # Publica el mensaje, o lo edita si esa versión ya tiene uno en Discord
+          # args: tag nombre url cuerpo fecha release_id
           publicar() {
-            local f json mid code
+            local f json mid resp code
             f=$(archivo "$1")
-            json=$(armar_json "$@")
+            juntar_medios "$6" "$4"
+            json=$(armar_json "$1" "$2" "$3" "$4" "$5")
             if [ -f "$f" ]; then
               mid=$(cat "$f")
-              code=$(curl -sS -o /dev/null -w '%{http_code}' -X PATCH \
-                -H "Content-Type: application/json" -d "$json" "$WEBHOOK/messages/$mid")
-              if [ "$code" = "200" ]; then echo "✏️ Actualizado: $1"; return 0; fi
+              code=$(enviar_discord PATCH "$WEBHOOK/messages/$mid" "$json" | tail -n 1)
+              if [ "$code" = "200" ]; then
+                echo "✏️ Actualizado: $1 (${#FOTOS[@]} fotos, ${#VIDEOS[@]} videos)"; return 0
+              fi
               echo "El mensaje de $1 ya no está en Discord, lo publico de nuevo"
             fi
-            mid=$(curl -sS -f -H "Content-Type: application/json" -d "$json" "$WEBHOOK?wait=true" | jq -r '.id') \
-              || { echo "::error::Discord rechazó el mensaje de $1"; return 1; }
-            echo "$mid" > "$f"
-            echo "📨 Publicado: $1"
+            resp=$(enviar_discord POST "$WEBHOOK?wait=true" "$json")
+            code=$(tail -n 1 <<<"$resp")
+            if [ "$code" != "200" ]; then
+              echo "::error::Discord rechazó el mensaje de $1 (HTTP $code): $(sed '$d' <<<"$resp")"
+              return 1
+            fi
+            sed '$d' <<<"$resp" | jq -r '.id' > "$f"
+            echo "📨 Publicado: $1 (${#FOTOS[@]} fotos, ${#VIDEOS[@]} videos)"
           }
 
           # Borra el mensaje de Discord cuando se elimina el release
@@ -130,15 +244,16 @@ jobs:
                 "$(jq -r '.name // ""' <<<"$rel")" \
                 "$(jq -r '.html_url' <<<"$rel")" \
                 "$(jq -r '.body // ""' <<<"$rel")" \
-                "$(jq -r '.published_at // ""' <<<"$rel")" || ERROR=1
+                "$(jq -r '.published_at // ""' <<<"$rel")" \
+                "$(jq -r '.id' <<<"$rel")" || ERROR=1
               sleep 2 # para no superar el límite de mensajes de Discord
             done < <(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
-                       --jq '.[] | select(.draft == false) | {tag_name, name, html_url, body, published_at}' \
+                       --jq '.[] | select(.draft == false) | {id, tag_name, name, html_url, body, published_at}' \
                      | jq -sc 'sort_by(.published_at) | .[]')
           elif [ "$ACCION" = "deleted" ]; then
             borrar "$TAG"
           elif [ "$DRAFT" != "true" ]; then
-            publicar "$TAG" "$NAME" "$URL" "$BODY" "$FECHA" || ERROR=1
+            publicar "$TAG" "$NAME" "$URL" "$BODY" "$FECHA" "$RELEASE_ID" || ERROR=1
           fi
 
           # --- Guarda los IDs actualizados ---

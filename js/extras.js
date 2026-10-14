@@ -149,6 +149,13 @@ async function connectKits(dirIn) {
   try { await indexBadges(sider); } catch { }
   // la carpeta del juego (si se eligió esa o una de más arriba): de ahí se lee la base sin abrir el juego
   if (typeof gdbFindGame === 'function') { try { GDB.game = await gdbFindGame(dir, sider); GDB.scan = null; if (!sider.readOnly) idbSet('siderGame', GDB.game); } catch { } }
+  // qué juego es (Football Life muestra las valoraciones hasta 104): por su .exe, por exe.name de sider.ini o por SiderAddons
+  try {
+    let exe = GDB.game && typeof gdbExe === 'function' ? await gdbExe(GDB.game) : null;
+    if (!exe) { try { const t = await (await (await sider.getFileHandle('sider.ini')).getFile()).text(); const m = t.match(/^\s*exe\.name\s*=\s*"?([^"\r\n]+)/mi); if (m) exe = m[1].trim().replace(/^.*[\\/]/, ''); } catch { } }
+    if (!exe && /^SiderAddons$/i.test(sider.name || '')) exe = 'Football Life';
+    if (exe) { localStorage.setItem('edit21-gameexe', exe); if (gameRefresh() && S.d) render(); }
+  } catch { }
   // nombres: de la copia del módulo edit21_db (content\edit21-db\Player.bin) o de los archivos del juego
   let namesMsg = '';
   try {

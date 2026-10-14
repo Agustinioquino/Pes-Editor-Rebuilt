@@ -150,7 +150,7 @@ function adjHtml(a, f) {
   const lv = formLevel(a), rot = { 2: -90, 1: -45, 0: 0, '-1': 45, '-2': 90 }[lv];
   return `<span class="farrow lv${lv}" title="${esc(f ? formTip(f) : (a > 0 ? 'Sube ' : 'Baja ') + Math.abs(a))}"><svg viewBox="0 0 16 16" aria-hidden="true" style="rotate:${rot}deg"><path d="M2 6.5h7V3l5 5-5 5V9.5H2z"/></svg>${a ? `<b>${a > 0 ? '+' : '−'}${Math.abs(a)}</b>` : ''}</span>`;
 }
-function pInfoBase(id) { const p = S.ix && S.ix.byId.get(id); if (p) return { id, pos: pget(p, 'reg_pos'), r: rating(p), a: pget(p, 'age'), edit: true }; const n = S.names.get(id); return n && n.pos != null ? { id, pos: n.pos, r: n.r, a: n.a || 0, edit: false } : null; }
+function pInfoBase(id) { const p = S.ix && S.ix.byId.get(id); if (p) return { id, pos: pget(p, 'reg_pos'), r: rating(p), a: pget(p, 'age'), edit: true }; const n = S.names.get(id); return n && n.pos != null ? { id, pos: n.pos, r: Math.min(n.r, rateTop()), a: n.a || 0, edit: false } : null; }
 const RATE_CACHE = new Map(), SCORE_CACHE = new Map(), VAL_CACHE = new Map(); let RATE_GEN = 0;
 function teamScore(t) {
   const key = t.id + ':' + RATE_GEN; if (SCORE_CACHE.has(key)) return SCORE_CACHE.get(key);
@@ -236,13 +236,32 @@ const RATE_MODEL = [
   ['atk:131 ball_ctrl:106 drib:60 tight_pos:40 lowpass:24 loftpass:30 finish:153 header:42 place_kick:25 swerve:26 speed:37 exp_pwr:45 kick_pwr:31 jump:37 phys_cont:57 body_ctrl:40 stamina:30 def:27 ball_win:33 aggres:25', [51.54, 69.4, 86.43, 99.8, 109]], // CF
 ].map(([w, c]) => { const ws = w.split(' ').map(x => x.split(':')).map(([k, v]) => [k, +v]), t = ws.reduce((a, x) => a + x[1], 0); return { w: ws.map(([k, v]) => [k, v / t]), c }; });
 const RATE_KN = [60, 70, 80, 90, 99], RATING_V = 3;
-const rateCap = pos => (RATE_MODEL[pos] || RATE_MODEL[5]).c[4];
-function posFormula(pos, ab) {
+const rateCap = pos => Math.min((RATE_MODEL[pos] || RATE_MODEL[5]).c[4], rateTop());
+// el tope de la valoración depende del juego: PES 2021 llega a 109 y Football Life muestra como máximo 104 (visto en el
+// juego). Se sabe por la carpeta del EDIT abierto (Football Life guarda en …\2026\save) o, si el EDIT se abrió a mano,
+// por el .exe del juego conectado con Sider (FL_2026.exe)
+const GAME_TOP = { fl: 104 }, GAME = { kind: null };
+function gameKind() {
+  const p = typeof PESLOC !== 'undefined' && PESLOC.chosen && S.editHandle === PESLOC.chosen.handle ? PESLOC.chosen.path : '';
+  if (p) return /\\2026\\/.test(p + '\\') ? 'fl' : 'pes';
+  let x = ''; try { x = localStorage.getItem('edit21-gameexe') || ''; } catch { }
+  return /^FL_\d+\.exe$|football.?life/i.test(x) ? 'fl' : 'pes';
+}
+// se vuelve a mirar al abrir un EDIT o conectar Sider; si cambió el juego, se recalculan las medias
+function gameRefresh(quiet) {
+  const k = gameKind(); if (k === GAME.kind) return false; const was = GAME.kind; GAME.kind = k;
+  RATE_GEN++; RATE_CACHE.clear(); SCORE_CACHE.clear(); VAL_CACHE.clear();
+  if (!quiet && (was || k === 'fl')) toast(k === 'fl' ? '⚽ Football Life: las valoraciones se muestran como en ese juego (máximo 104).' : 'PES 2021: las valoraciones se muestran como en ese juego (máximo 109).');
+  return true;
+}
+const rateTop = () => (GAME.kind || gameRefresh(true) || GAME.kind) && GAME_TOP[GAME.kind] || 999;
+function posFormula(pos, ab, raw) {
   const m = RATE_MODEL[pos] || RATE_MODEL[5], c = m.c; let s = 0; for (const [k, w] of m.w) s += w * ab(k);
-  if (s <= 60) return c[0] + (s - 60) * (c[1] - c[0]) / 10;
-  if (s >= 99) return c[4] + (s - 99) * (c[4] - c[3]) / 9;
-  let i = 0; while (s > RATE_KN[i + 1]) i++;
-  return c[i] + (s - RATE_KN[i]) * (c[i + 1] - c[i]) / (RATE_KN[i + 1] - RATE_KN[i]);
+  let r;
+  if (s <= 60) r = c[0] + (s - 60) * (c[1] - c[0]) / 10;
+  else if (s >= 99) r = c[4] + (s - 99) * (c[4] - c[3]) / 9;
+  else { let i = 0; while (s > RATE_KN[i + 1]) i++; r = c[i] + (s - RATE_KN[i]) * (c[i + 1] - c[i]) / (RATE_KN[i + 1] - RATE_KN[i]); }
+  return raw ? r : Math.min(r, rateTop());
 }
 function rating(p) { return Math.round(posFormula(pget(p, 'reg_pos'), k => pget(p, k))); }
 // media en un puesto que no es el suyo (como la muestra el juego en la alineación): A sin castigo, B −6, C −7 (medido en el juego)
@@ -325,7 +344,7 @@ function openBytes(bytes, name) {
   S.team = firstTeam ? firstTeam.id : null;
   S.player = S.ix.players.length ? S.ix.players[0].id : null;
   $('bNames').disabled = false; $('gq').disabled = false; $('bReload').disabled = !S.editHandle;
-  updateTop(); render();
+  gameRefresh(); updateTop(); render();
 }
 async function openFile(file) {
   try {
@@ -380,7 +399,7 @@ async function namesFromBin(bytes) {
     if (!id || !name) continue;
     const pos = bitsAt(o, 434, 4);
     const ab = k => bitsAt(o, DB_ABIL[k], 6) + 40;
-    const r = pos <= 12 ? Math.round(posFormula(pos, ab)) : 0;
+    const r = pos <= 12 ? Math.round(posFormula(pos, ab, true)) : 0;
     out.set(id, { name, pos: pos <= 12 ? pos : null, r, h: b[o + 0x1B] + 100, a: bitsAt(o, 408, 6) + 15, n: bitsAt(o, 233, 9) });
   }
   DBRAW = { b, off: new Map([...Array(b.length / 0x138).keys()].map(i => [(b[i * 0x138 + 8] | b[i * 0x138 + 9] << 8 | b[i * 0x138 + 10] << 16 | b[i * 0x138 + 11] << 24) >>> 0, i * 0x138])) };

@@ -2,46 +2,38 @@
 
 <div align="center">
 
-# 🛡️ Thousands of PES Logos crests, one click away
+# 🇬🇧 The editor, now fully in English
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.053-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.053-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-## 🔎 Search a crest without leaving the editor
+## 🧹 No more Spanish hiding in the English version
 
-Looking for the crest of the team you're editing used to mean opening the browser, searching, downloading the PNG and dropping it into the editor. Now it's one button.
+The editor speaks English, but the last few versions came in so fast that some new screens were still answering in Spanish. We went through every tab, every window and every message, and translated around **220 phrases** that had slipped through:
 
-The crest creator (in **Data and colours**) has **🔎 Search PES Logos**, the site with thousands of crests made for the game:
+- **Sider tab**: every module and folder description (Derby, GoalSong, FanViewCam…) and their categories, like *Scenes and cutscenes*.
+- **Minifaces, 2K crests, Kit Studio Pro and .zip kits**: buttons, tips and every message along the way.
+- **Player form**: the breakdown of how age, injuries and recent matches move the overall.
+- **The little things**: the unsaved changes counter, the national team call-up and a few countries.
 
-1. **It searches with the team's name**, and you can change it (the club's real name works best).
-2. **You see every version**: the current one with its year, the **Retro** ones and the **Special** ones (anniversaries and the like).
-3. **Tap one** and the editor downloads it at its original size and loads it as the new crest, with the preview of the 11 files ready.
-4. **💾 Save crest to the game**, same as always.
+<img alt="Before: the Sider tab in English with the module descriptions and categories still in Spanish" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-antes.png" width="100%">
 
-Under the crest there's a link to its page on PES Logos, so you always know where it came from. The editor doesn't keep copies: it fetches each crest when you pick it.
+<img alt="Now: the same Sider tab, every description and category in English" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-ahora.png" width="100%">
 
-<img alt="The crest creator in PES 6 mode with the PES Logos search: current, Retro and Special crests to choose from" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.053/buscar.png" width="100%">
+## 🏟️ Stadiums keep their names
 
-<img alt="The crest picked from PES Logos, loaded as the new crest with the link to its page and the preview of the 11 files" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.053/elegido.png" width="100%">
+In English, some of the game's stadiums came out half translated ("Stadium del Tauro"). Now they keep their original name: **Estadio del Tauro** stays Estadio del Tauro.
 
-## 🧩 Crests that didn't load, now they do
+## 🌐 How do I switch?
 
-Some teams showed up with just their colours and initials because their crest wasn't in your Sider folder, on TheSportsDB or on Wikipedia. Now, as a last try, the editor looks for it on PES Logos.
-
-- **It doesn't guess.** It only uses a crest if the name really matches. If two clubs are possible (say "ROSARIO": Rosario Central or Argentino de Rosario?), the team keeps its colours.
-- **The current crest first**, ahead of the Retro or Special ones.
-- **Second chance.** Teams that were left without a crest before are searched once more.
-
-It works with **Crests from the internet** on (above the team list).
-
-<img alt="The team list with crests that now load from PES Logos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.053/lista.png" width="100%">
+Tap the flag next to **Reload** and pick **English**. You can also do it on the loading screen, next to Music.
 
 ## ⬇️ Do I need to download anything?
 
 **No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it.
 
-> This is an alpha version. The screenshots use test crests. If a crest comes out wrong for a team, tell us which one.
+> This is an alpha version. If you still spot something in Spanish while using the editor in English, tell us where and we'll translate it.
 
 <br>
 
@@ -56,43 +48,35 @@ It works with **Crests from the internet** on (above the team list).
 
 <div align="center">
 
-# 🛡️ Miles de escudos de PES Logos, a un clic
+# 🇬🇧 El editor, ahora todo en inglés
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.053-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.053-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-## 🔎 Buscá el escudo sin salir del editor
+## 🧹 Se acabó el español escondido en la versión en inglés
 
-Buscar el escudo del equipo que estás editando era abrir el navegador, buscar, bajar el PNG y soltarlo en el editor. Ahora es un botón.
+El editor habla inglés, pero las últimas versiones llegaron tan rápido que algunas pantallas nuevas seguían contestando en español. Recorrimos cada pestaña, cada ventana y cada mensaje, y tradujimos unas **220 frases** que se habían escapado:
 
-El creador de escudos (en **Datos y colores**) tiene **🔎 Buscar en PES Logos**, el sitio con miles de escudos hechos para el juego:
+- **Pestaña Sider**: la descripción de cada módulo y carpeta (Derby, GoalSong, FanViewCam…) y sus categorías, como *Escenas y cinemáticas*.
+- **Minifaces, escudos 2K, Kit Studio Pro y kits en .zip**: botones, ayudas y todos los mensajes del camino.
+- **Forma del jugador**: el detalle de cómo la edad, las lesiones y los últimos partidos mueven la media.
+- **Los detalles**: el contador de cambios sin guardar, la convocatoria de la selección y algunos países.
 
-1. **Busca con el nombre del equipo**, y lo podés cambiar (con el nombre real del club anda mejor).
-2. **Ves todas las versiones**: la actual con su año, las **Retro** y las **Especiales** (aniversarios y compañía).
-3. **Tocás una** y el editor la baja en su tamaño original y la carga como escudo nuevo, con la vista previa de los 11 archivos lista.
-4. **💾 Guardar escudo en el juego**, como siempre.
+<img alt="Antes: la pestaña Sider en inglés con las descripciones y categorías de los módulos todavía en español" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-antes.png" width="100%">
 
-Debajo del escudo queda el enlace a su página en PES Logos, así siempre sabés de dónde salió. El editor no guarda copias: trae cada escudo cuando lo elegís.
+<img alt="Ahora: la misma pestaña Sider, con todas las descripciones y categorías en inglés" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-ahora.png" width="100%">
 
-<img alt="El creador de escudos en el modo PES 6 con la búsqueda de PES Logos: escudos actuales, Retro y Especiales para elegir" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.053/buscar.png" width="100%">
+## 🏟️ Los estadios conservan su nombre
 
-<img alt="El escudo elegido de PES Logos, cargado como escudo nuevo con el enlace a su página y la vista previa de los 11 archivos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.053/elegido.png" width="100%">
+En inglés, algunos estadios del juego salían traducidos a medias ("Stadium del Tauro"). Ahora quedan con su nombre original: **Estadio del Tauro** sigue siendo Estadio del Tauro.
 
-## 🧩 Los escudos que no cargaban, ahora sí
+## 🌐 ¿Cómo lo cambio?
 
-Algunos equipos se veían solo con sus colores y sus iniciales porque el escudo no estaba en tu carpeta Sider, ni en TheSportsDB, ni en Wikipedia. Ahora, como último intento, el editor lo busca en PES Logos.
-
-- **No adivina.** Solo usa un escudo si el nombre coincide de verdad. Si hay dos clubes posibles (por ejemplo "ROSARIO": ¿Rosario Central o Argentino de Rosario?), el equipo se queda con sus colores.
-- **Primero el escudo actual**, antes que los Retro o los Especiales.
-- **Segunda oportunidad.** Los equipos que antes quedaron sin escudo se buscan una vez más.
-
-Funciona con **Escudos de internet** activado (arriba de la lista de equipos).
-
-<img alt="La lista de equipos con escudos que ahora cargan desde PES Logos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.053/lista.png" width="100%">
+Tocá la bandera al lado de **Recargar** y elegí **English**. También se puede en la pantalla de carga, junto a Música.
 
 ## ⬇️ ¿Tengo que bajar algo?
 
-**No.** Todo esto está en el editor, y la app para Windows lo carga sola de internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés.
+**No.** Todo esto está en el editor, y la app de Windows lo carga sola desde internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés.
 
-> Es una versión alpha. Las capturas usan escudos de prueba. Si a algún equipo le toca un escudo equivocado, contanos cuál.
+> Es una versión alpha. Si usando el editor en inglés todavía ves algo en español, contanos dónde y lo traducimos.

@@ -2,6 +2,15 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.054 alpha · El editor, ahora todo en inglés
+
+*15 de octubre de 2026, 01:45 (hora de Argentina)*
+
+Con el editor en inglés ya no quedan textos en español: la pestaña Sider, las minifaces, los escudos, el Kit Studio Pro y los avisos salen en inglés.
+
+- **Inglés completo** (Interfaz). Se tradujeron unas 220 frases que seguían en español en la versión en inglés: las descripciones de los módulos y carpetas de la pestaña Sider, los mensajes de minifaces, escudos 2K, Kit Studio Pro y kits en .zip, el detalle de la forma de cada jugador, el aviso de cambios sin guardar, la convocatoria y algunos países.
+- **Los estadios conservan su nombre** (Interfaz). En inglés, los estadios del juego como el Estadio del Tauro ya no se traducen a medias: quedan con su nombre original.
+
 ## v0.053 alpha · Miles de escudos de PES Logos, a un clic
 
 *14 de octubre de 2026, 23:45 (hora de Argentina)*

@@ -4024,5 +4024,12 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "Estadio del Tauro":"Estadio del Tauro",
 "Estadio Nacional Julio Martínez Prádanos":"Estadio Nacional Julio Martínez Prádanos",
 "Estadio Monumental de Colo-Colo":"Estadio Monumental de Colo-Colo",
-"Estadio Alejandro Villanueva":"Estadio Alejandro Villanueva"
+"Estadio Alejandro Villanueva":"Estadio Alejandro Villanueva",
+"El editor, ahora todo en inglés":"The editor, now fully in English",
+"Con el editor en inglés ya no quedan textos en español: la pestaña Sider, las minifaces, los escudos, el Kit Studio Pro y los avisos salen en inglés.":"With the editor in English there's no Spanish text left: the Sider tab, minifaces, crests, Kit Studio Pro and the messages all show in English.",
+"Inglés completo":"Full English",
+"Se tradujeron unas 220 frases que seguían en español en la versión en inglés: las descripciones de los módulos y carpetas de la pestaña Sider, los mensajes de minifaces, escudos 2K, Kit Studio Pro y kits en .zip, el detalle de la forma de cada jugador, el aviso de cambios sin guardar, la convocatoria y algunos países.":"About 220 phrases that were still in Spanish in the English version were translated: the descriptions of the Sider tab's modules and folders, the messages for minifaces, 2K crests, Kit Studio Pro and .zip kits, each player's form breakdown, the unsaved changes notice, the call-up and a few countries.",
+"Tocá la bandera al lado de Recargar y elegí English.":"Tap the flag next to Reload and pick English.",
+"Los estadios conservan su nombre":"Stadiums keep their names",
+"En inglés, los estadios del juego como el Estadio del Tauro ya no se traducen a medias: quedan con su nombre original.":"In English, the game's stadiums like Estadio del Tauro are no longer half translated: they keep their original name."
 };

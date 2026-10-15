@@ -1633,6 +1633,25 @@ html[data-gfx="pes6"] .devlist li.devwarm{border-radius:0}
 
 /* ----- Ficha del jugador · Perfil: nombre y apellido separados, equipo y selección, nivel (estrellas y actitud) ----- */
 .inrow{display:flex;gap:6px;align-items:center}.inrow input{flex:1 1 auto;min-width:0}.inrow .btn{flex:none}
+/* mayúsculas: aviso de Bloq Mayús flotando debajo del campo (no mueve nada) y ayuda si el nombre quedó todo en mayúsculas */
+.capf{position:relative}
+.capsw{position:absolute;left:0;top:100%;z-index:6;margin-top:4px;display:inline-flex;align-items:center;gap:6px;padding:.22rem .55rem;border-radius:99px;font-size:.74rem;font-weight:600;color:var(--warn);background:var(--warn-soft,#fff3d6);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);box-shadow:0 4px 12px -6px #0006;white-space:nowrap;pointer-events:none;animation:popIn .16s ease-out}
+.capsw[hidden]{display:none}
+/* fuera de PES 6 queda "⇪ Mayúsculas activadas": la palabra "Bloq Mayús" se esconde y solo queda la flecha */
+.capsw b{display:inline-flex;align-items:center;gap:4px;font-size:0;font-weight:700}.capsw b i{font-style:normal;font-size:.95rem;line-height:1}
+.capsw::before{content:"";position:absolute;left:14px;top:-5px;width:8px;height:8px;rotate:45deg;background:inherit;border-left:inherit;border-top:inherit}
+.casew{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:2px 0 0;font-size:.74rem;color:var(--warn)}
+.casew[hidden]{display:none}
+.casew .btn i{font-style:normal;font-weight:800;letter-spacing:-.02em}.casew .btn b{font-weight:700}
+/* PES 6: caja gris carbón con la etiqueta dorada de la barra de abajo, como un cartel del juego */
+html[data-gfx="pes6"] .capsw{padding:0;gap:0;border-radius:0;color:#fff;background:linear-gradient(180deg,#5a5a5a,#2b2b2b);border:2px solid #1a1a1a;box-shadow:inset 0 1px #ffffff33,0 4px 10px #0008;font-family:"PES Express",var(--body);font-size:.8rem;letter-spacing:.02em;text-shadow:0 1px 0 #000}
+html[data-gfx="pes6"] .capsw::before{left:16px;top:-7px;width:10px;height:10px;background:#fdf0a0;border-color:#1a1a1a}
+html[data-gfx="pes6"] .capsw b{font-size:.68rem;gap:5px;align-self:stretch;padding:.3rem .55rem;color:#1c1c1a;background:linear-gradient(180deg,#fdf0a0,#e6c02e);border-right:2px solid #1a1a1a;box-shadow:inset 0 1px #fff9;letter-spacing:.08em;text-transform:uppercase;text-shadow:none}
+html[data-gfx="pes6"] .capsw b i{font-size:.9rem;animation:capsBlink 1s steps(1) infinite}
+html[data-gfx="pes6"] .capsw span{padding:.3rem .65rem;text-transform:uppercase}
+@keyframes capsBlink{50%{opacity:.15}}
+html[data-gfx="pes6"] .casew{color:#7a4400;font-weight:600}
+@media (prefers-reduced-motion:reduce){.capsw,html[data-gfx="pes6"] .capsw b i{animation:none}}
 .fullnm{margin-top:-4px}.fullnm b{color:var(--ink);font-weight:600}
 .fullnm #pBytes{font-family:var(--mono);font-size:.68rem;margin-left:6px;padding:.05rem .4rem;border-radius:99px;background:var(--sunk);border:1px solid var(--line)}.fullnm #pBytes.bad{color:var(--bad);border-color:var(--bad)}
 .tslots{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px 14px}

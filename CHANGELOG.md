@@ -2,6 +2,15 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.053 alpha · Miles de escudos de PES Logos, a un clic
+
+*14 de octubre de 2026, 23:45 (hora de Argentina)*
+
+El creador de escudos ahora busca en PES Logos, con miles de escudos hechos para el juego: elegís uno y queda listo para guardar. Y los equipos que se veían sin escudo lo buscan solos ahí.
+
+- **Buscar escudos en PES Logos** (Plantel). En Datos y colores, el creador de escudos tiene el botón 🔎 Buscar en PES Logos. Busca con el nombre del equipo (lo podés cambiar) y muestra los escudos con su año, o si son Retro o Especiales. Al tocar uno, el editor lo baja en su tamaño original y lo carga como escudo nuevo, con un enlace a su página en PES Logos.
+- **Los escudos que no cargaban, desde PES Logos** (Interfaz). Si un equipo no tiene escudo en la carpeta Sider y tampoco aparece en TheSportsDB ni en Wikipedia, el editor lo busca en PES Logos. Solo usa uno si el nombre coincide de verdad (si hay dos clubes posibles, no adivina) y prefiere el escudo actual a los Retro o Especiales. Los equipos que antes quedaron sin escudo se buscan una vez más.
+
 ## v0.052 alpha · Minifaces al juego y escudos mejorados
 
 *14 de octubre de 2026, 23:30 (hora de Argentina)*

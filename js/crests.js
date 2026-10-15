@@ -144,9 +144,10 @@ function crestCard(t) {
         <p class="note" style="margin:0">Subí un PNG (mejor con fondo transparente). El editor arma los ${CREST_SET.length} archivos que usa el juego, cada uno con su tamaño, y les pone el ID <b>${crestId(t.id)}</b> de este equipo. También podés subir tus propios archivos <code>e_XXXXXX_f.png</code>, <code>e_XXXXXX_r_l.png</code>…: cada uno va a su lugar y el ID se corrige solo.</p>
         <div class="mfline"><span>Calidad</span><div class="seg" id="crestQSeg">${[['hd', 'HD normal'], ['2k', '2K (experimental)']].map(([k, n]) => `<button type="button" data-crestq="${k}" aria-pressed="${q === k}" ${CR.busy ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
         <p class="note" style="margin:0">${q === '2k' ? 'En 2K los archivos sin letra de tamaño quedan en <b>512×520</b>, los <code>_l</code> en <b>1028×1044</b> y los <code>_ll</code> en <b>2056×2088</b>. <b>Es experimental:</b> en las pruebas el juego bajó 3 o 4 FPS y tuvo lag en algunos menús. Si te pasa, volvé a HD normal y guardá de nuevo.' : 'En HD normal cada archivo copia la medida de los escudos que ya hay en la carpeta (si no hay ninguno: 256, 512 y 1024).'}</p>
-        <div class="row"><button class="btn small" type="button" id="crestPick">📁 Elegir imagen o archivos</button>
+        <div class="row"><button class="btn small" type="button" id="crestPick">📁 Elegir imagen o archivos</button><button class="btn small" type="button" id="plOpen" aria-expanded="${PL.open && PL.team === t.id}">🔎 Buscar en PES Logos</button>
           <button class="btn small primary" type="button" id="crestSave" ${ready && !CR.busy ? '' : 'disabled'}>${CR.busy ? 'Guardando…' : '💾 Guardar escudo en el juego'}</button>
           ${ready ? '<button class="btn small ghost" type="button" id="crestClear">✕ Quitar</button>' : ''}</div>
+        ${plHtml(t)}
         ${crestAskHtml()}
         ${CR.err ? `<p class="note bad" role="alert">${esc(CR.err)}</p>` : ''}${CR.msg ? `<p class="note ${CR.done ? 'ok' : ''}" role="status">${CR.msg}</p>` : ''}
         ${own.length ? `<p class="note"><span>Tus archivos:</span> ${own.map(s => `<b>${s}</b>`).join(', ')}.${own.length < CREST_SET.length ? ' <span>Los demás tamaños salen de la imagen más grande.</span>' : ''}${CR.renamed ? ` <span>(${CR.renamed} con otro ID: se guardan con el ${crestId(t.id)})</span>` : ''}</p>` : ''}
@@ -161,6 +162,7 @@ function crestCard(t) {
 }
 async function crestFiles(t, files) {
   CR.err = ''; CR.msg = ''; CR.done = false;
+  PL.got = null; // si después llega un escudo de PES Logos, plUse vuelve a poner de dónde salió
   for (const f of files) {
     if (!/^image\//.test(f.type) && !/\.(png|jpe?g|webp)$/i.test(f.name)) continue;
     try {
@@ -206,9 +208,10 @@ function bindCrest(t) {
   const pick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/png,image/jpeg,image/webp,.png'; inp.onchange = async () => { await crestFiles(t, [...inp.files]); crestPaint(t); }; inp.click(); };
   $('crestPick').onclick = pick; $('crestDrop').onclick = pick;
   $('crestSave').onclick = () => crestSave(t);
+  plBind(t);
   card.querySelectorAll('[data-crestq]').forEach(b => b.onclick = () => { crestQSet(b.dataset.crestq); CR.done = false; CR.msg = ''; CR.thumbs = crestThumbs(); crestPaint(t); });
   card.querySelectorAll('[data-crestadj]').forEach(b => b.onclick = () => { CR.adj[b.dataset.crestadj] = b.dataset.v === '1'; CR.done = false; CR.msg = ''; CR.thumbs = crestThumbs(); crestPaint(t); });
-  const cl = $('crestClear'); if (cl) cl.onclick = () => { crestReset(t); crestPaint(t); };
+  const cl = $('crestClear'); if (cl) cl.onclick = () => { PL.got = null; crestReset(t); crestPaint(t); };
   const up = $('crestUsePatch'); if (up) up.onclick = () => { setT(t, [['e_emblem', 0]], 'Escudo de Sider para ' + tget(t, 'name')); crestPaint(t); toast('Listo. Guardá el EDIT para que el juego use el escudo de Sider.'); };
   card.ondragover = e => { e.preventDefault(); card.classList.add('drag'); };
   card.ondragleave = e => { if (!card.contains(e.relatedTarget)) card.classList.remove('drag'); };

@@ -384,7 +384,7 @@ async function onlineBadge(t, pri) {
   const name = tget(t, 'name'); const n = normTxt(name).replace(/\b(fc|cf|sc|ac|cd|ca|afc|club|de|the)\b/g, ' ').replace(/\s+/g, ' ').trim();
   const q = async s => { const j = await tsdbGet('searchteams.php?t=' + encodeURIComponent(s), pri); return (j.teams || []).filter(x => /soccer/i.test(x.strSport || 'soccer')); };
   // si TheSportsDB no contesta, se prueba Wikipedia; si ninguna contesta, no se anota como "sin escudo" (se reintenta)
-  let list; try { list = await q(name); if (!list.length && n && n !== normTxt(name)) list = await q(n); } catch (e) { const w = await wikiBadge(t); if (w) return w; throw e; }
+  let list; try { list = await q(name); if (!list.length && n && n !== normTxt(name)) list = await q(n); } catch (e) { const w = await badgeMore(t).catch(() => null); if (w) return w; throw e; }
   const nat = isNat(t); let best = null, bs = -1;
   for (const x of list) {
     const tn = normTxt(x.strTeam), alt = normTxt(x.strTeamAlternate || '');
@@ -396,9 +396,17 @@ async function onlineBadge(t, pri) {
     if (!(x.strBadge || x.strTeamBadge)) s -= 10;
     if (s > bs) { bs = s; best = x; }
   }
-  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return wikiBadge(t); }
+  if (!best || bs < 2) { STADS.set(t.id, ''); saveStads(); return badgeMore(t); }
   STADS.set(t.id, best.strStadium || ''); saveStads(); stadPaint(t);
-  return best.strBadge || best.strTeamBadge || wikiBadge(t);
+  return best.strBadge || best.strTeamBadge || badgeMore(t);
+}
+// Wikipedia y después PES Logos (js/peslogos.js). Si alguno no contestó y ninguno lo tiene, se avisa con el error
+// para que el equipo no quede anotado como "sin escudo" y se vuelva a buscar más adelante.
+async function badgeMore(t) {
+  let err = null;
+  for (const f of [wikiBadge, typeof plBadge === 'function' ? plBadge : null]) { if (!f) continue; try { const u = await f(t); if (u) return u; } catch (e) { err = e; } }
+  if (err) throw err;
+  return null;
 }
 // escudo desde Wikipedia: la imagen del cuadro de la página del club (o de la selección)
 async function wikiBadge(t) {

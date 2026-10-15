@@ -2,38 +2,48 @@
 
 <div align="center">
 
-# 🇬🇧 The editor, now fully in English
+# 💡 Your ideas, inside the editor
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.055-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.055-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-## 🧹 No more Spanish hiding in the English version
+## 🗺️ A new tab: Ideas
 
-The editor speaks English, but the last few versions came in so fast that some new screens were still answering in Spanish. We went through every tab, every window and every message, and translated around **220 phrases** that had slipped through:
+Right next to **What's new** there's a new tab, **Ideas**. It's the editor's roadmap, out in the open: everything that's coming and everything you've asked for, each one with its own progress bar.
 
-- **Sider tab**: every module and folder description (Derby, GoalSong, FanViewCam…) and their categories, like *Scenes and cutscenes*.
-- **Minifaces, 2K crests, Kit Studio Pro and .zip kits**: buttons, tips and every message along the way.
-- **Player form**: the breakdown of how age, injuries and recent matches move the overall.
-- **The little things**: the unsaved changes counter, the national team call-up and a few countries.
+- **How far along each one is**: a bar with its percentage, from red (just starting) to green (almost done) and blue (already here).
+- **Its status**: already here, in testing, on the way or planned.
+- **Priority and difficulty**: ⭐ high priority on what matters most, and one to three dots for how hard it is to build.
+- **👥 Requested by users**: the ideas that came from you are marked, and you can see just those with one tap.
 
-<img alt="Before: the Sider tab in English with the module descriptions and categories still in Spanish" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-antes.png" width="100%">
+Sort the list by priority, easiest first or furthest along.
 
-<img alt="Now: the same Sider tab, every description and category in English" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-ahora.png" width="100%">
+<img alt="The Ideas tab: buttons to send an idea or report a bug, a summary, filters and each idea with its progress bar" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.055/ideas-en.png" width="100%">
 
-## 🏟️ Stadiums keep their names
+## 🐛 Got an idea or found a bug? Tell us
 
-In English, some of the game's stadiums came out half translated ("Stadium del Tauro"). Now they keep their original name: **Estadio del Tauro** stays Estadio del Tauro.
+At the top of the tab there are two big buttons: **I have an idea** and **Something's not working**. Write what you'd like or what happened, and then:
 
-## 🌐 How do I switch?
+- **Send via GitHub** opens the page with your text ready to send. For bugs, the editor adds its version, your browser and the graphics mode, so we can find the problem faster.
+- **No GitHub account?** Tap **Copy** and paste it in the editor's Discord or WhatsApp group.
 
-Tap the flag next to **Reload** and pick **English**. You can also do it on the loading screen, next to Music.
+<img alt="Reporting a bug in PES 6 mode: the text box, editor details and the send buttons" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.055/fallo-en.png" width="100%">
+
+## 👥 What you asked for is already on the list
+
+- **Edit players in Master League**, like a cheat table: on the way. The editor can already open and read the Master League save.
+- **Turn the EDIT into the game database and back**: on the way. Reading the game database already works.
+- **Change the team crest**: ✅ already here, in Teams → Data and colors → Crest.
+- **Boots, gloves and thermal wear**: ✅ already here, in each player's sheet.
+
+The **In development** notice now uses the same list, so the numbers always match, and it has a 💡 Ideas button to see everything.
 
 ## ⬇️ Do I need to download anything?
 
 **No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it.
 
-> This is an alpha version. If you still spot something in Spanish while using the editor in English, tell us where and we'll translate it.
+> This is an alpha version. Percentages are estimates and the order may change depending on what you ask for most. Keep the ideas coming! ⚽
 
 <br>
 
@@ -48,35 +58,45 @@ Tap the flag next to **Reload** and pick **English**. You can also do it on the 
 
 <div align="center">
 
-# 🇬🇧 El editor, ahora todo en inglés
+# 💡 Tus ideas, en el editor
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.054-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.055-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.055-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-## 🧹 Se acabó el español escondido en la versión en inglés
+## 🗺️ Una pestaña nueva: Ideas
 
-El editor habla inglés, pero las últimas versiones llegaron tan rápido que algunas pantallas nuevas seguían contestando en español. Recorrimos cada pestaña, cada ventana y cada mensaje, y tradujimos unas **220 frases** que se habían escapado:
+Al lado de **Novedades** hay una pestaña nueva, **Ideas**. Es la hoja de ruta del editor, a la vista: todo lo que viene y todo lo que pidieron, cada cosa con su barra de avance.
 
-- **Pestaña Sider**: la descripción de cada módulo y carpeta (Derby, GoalSong, FanViewCam…) y sus categorías, como *Escenas y cinemáticas*.
-- **Minifaces, escudos 2K, Kit Studio Pro y kits en .zip**: botones, ayudas y todos los mensajes del camino.
-- **Forma del jugador**: el detalle de cómo la edad, las lesiones y los últimos partidos mueven la media.
-- **Los detalles**: el contador de cambios sin guardar, la convocatoria de la selección y algunos países.
+- **Cuánto avanzó cada una**: una barra con su porcentaje, de rojo (empezando) a verde (casi listo) y azul (ya está).
+- **Su estado**: ya está, en prueba, en camino o pensada.
+- **Prioridad y dificultad**: ⭐ prioridad alta en lo más importante, y de uno a tres puntos según lo difícil que es de hacer.
+- **👥 Pedido por usuarios**: las ideas que vinieron de ustedes están marcadas, y con un toque se ven solo esas.
 
-<img alt="Antes: la pestaña Sider en inglés con las descripciones y categorías de los módulos todavía en español" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-antes.png" width="100%">
+La lista se ordena por prioridad, las más fáciles primero o las más avanzadas.
 
-<img alt="Ahora: la misma pestaña Sider, con todas las descripciones y categorías en inglés" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.054/sider-ahora.png" width="100%">
+<img alt="La pestaña Ideas: botones para mandar una idea o avisar de un fallo, el resumen, los filtros y cada idea con su barra de avance" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.055/ideas-es.png" width="100%">
 
-## 🏟️ Los estadios conservan su nombre
+## 🐛 ¿Se te ocurrió algo o encontraste un fallo? Contalo
 
-En inglés, algunos estadios del juego salían traducidos a medias ("Stadium del Tauro"). Ahora quedan con su nombre original: **Estadio del Tauro** sigue siendo Estadio del Tauro.
+Arriba de la pestaña hay dos botones grandes: **Tengo una idea** y **Algo no anda**. Escribís qué te gustaría o qué pasó, y después:
 
-## 🌐 ¿Cómo lo cambio?
+- **Enviar por GitHub** abre la página con tu texto listo para mandar. En los fallos, el editor suma su versión, tu navegador y el modo gráfico, así encontramos el problema más rápido.
+- **¿No tenés cuenta de GitHub?** Tocá **Copiar** y pegalo en el grupo de Discord o de WhatsApp del editor.
 
-Tocá la bandera al lado de **Recargar** y elegí **English**. También se puede en la pantalla de carga, junto a Música.
+<img alt="Avisar de un fallo en el modo PES 6: el cuadro para escribir, los datos del editor y los botones para enviar" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.055/fallo-es.png" width="100%">
+
+## 👥 Lo que pidieron ya está en la lista
+
+- **Editar jugadores en la Liga Master**, como una tabla de trucos: en camino. El editor ya abre y lee el guardado de la Liga Master.
+- **Pasar el EDIT a la base del juego y al revés**: en camino. Leer la base del juego ya funciona.
+- **Cambiar el escudo del equipo**: ✅ ya está, en Equipos → Datos y colores → Escudo.
+- **Botines, guantes y ropa térmica**: ✅ ya está, en la ficha de cada jugador.
+
+El cartel **En desarrollo** ahora usa la misma lista, así los números siempre coinciden, y tiene un botón 💡 Ideas para ver todo.
 
 ## ⬇️ ¿Tengo que bajar algo?
 
 **No.** Todo esto está en el editor, y la app de Windows lo carga sola desde internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés.
 
-> Es una versión alpha. Si usando el editor en inglés todavía ves algo en español, contanos dónde y lo traducimos.
+> Es una versión alpha. Los porcentajes son estimados y el orden puede cambiar según lo que más pidan. ¡Sigan mandando ideas! ⚽

@@ -44,7 +44,9 @@ function ideaSorted(list) {
   }[IDEA_SORT];
   return list.slice().sort((a, b) => done(a) - done(b) || by(a, b));
 }
-const ideaDots = d => `<span class="ideadif" data-d="${d}" title="Dificultad: ${IDEA_DIF[d]}"><i></i><i></i><i></i><span>${IDEA_DIF[d]}</span></span>`;
+// "Media" ya se traduce como "Overall" (la media de un jugador): la dificultad se traduce acá
+const ideaDif = d => (typeof LANG !== 'undefined' && LANG === 'en' ? ['', 'Easy', 'Medium', 'Hard'] : IDEA_DIF)[d];
+const ideaDots = d => `<span class="ideadif" data-d="${d}" title="Dificultad: ${IDEA_DIF[d]}"><i></i><i></i><i></i><span data-noi18n>${ideaDif(d)}</span></span>`;
 function ideaCardHtml(x, i) {
   const [si, sn] = IDEA_ST[x.k], [pi, pn] = IDEA_PRI[x.pri];
   return `<li class="ideai pri-${x.pri} st-${x.k}" style="--i:${i}">
@@ -71,8 +73,8 @@ function ideaForm() {
   const bug = IDEA_KIND === 'bug';
   return `<div class="ideaform" data-kind="${IDEA_KIND}">
     <label class="f"><span>${bug ? '¿Qué pasó? Qué hiciste, qué esperabas y qué pasó en realidad.' : '¿Qué te gustaría que haga el editor? Contá también para qué te serviría.'}</span>
-      <textarea id="ideaTxt" rows="5" placeholder="${bug ? '1. Abrí un equipo\n2. Toqué Guardar en el juego\n3. Apareció un error que dice…' : 'Por ejemplo: poder cambiar el balón de cada torneo.'}"></textarea></label>
-    ${bug ? `<label class="ideaenv"><input type="checkbox" id="ideaEnv" checked> Sumar datos del editor: <code>${esc(ideaEnv().text)}</code></label>` : ''}
+      <textarea id="ideaTxt" rows="5" placeholder="${esc(tr(bug ? '1. Abrí un equipo\n2. Toqué Guardar en el juego\n3. Apareció un error que dice…' : 'Por ejemplo: poder cambiar el balón de cada torneo.'))}"></textarea></label>
+    ${bug ? `<label class="ideaenv"><input type="checkbox" id="ideaEnv" checked> Sumar datos del editor: <code data-noi18n>${esc(ideaEnv().text)}</code></label>` : ''}
     <div class="row ideasend">
       <button class="btn primary" type="button" id="ideaGh">Enviar por GitHub</button>
       <button class="btn" type="button" id="ideaCopy">📋 Copiar para Discord o WhatsApp</button>
@@ -83,8 +85,8 @@ function ideaForm() {
 }
 function ideaText(withEnv) {
   const t = (document.getElementById('ideaTxt') || {}).value || '', bug = IDEA_KIND === 'bug';
-  const env = bug && withEnv ? '\n\nDatos del editor: ' + ideaEnv().text : '';
-  return { t: t.trim(), title: (bug ? '[Error] ' : '[Idea] ') + t.trim().split('\n')[0].slice(0, 70), full: (bug ? '🐛 Algo no anda en PES Editor Rebuilt:\n' : '💡 Idea para PES Editor Rebuilt:\n') + t.trim() + env, env };
+  const env = bug && withEnv ? '\n\n' + tr('Datos del editor:') + ' ' + ideaEnv().text : '';
+  return { t: t.trim(), title: (bug ? '[Error] ' : '[Idea] ') + t.trim().split('\n')[0].slice(0, 70), full: (bug ? tr('🐛 Algo no anda en PES Editor Rebuilt:') : tr('💡 Idea para PES Editor Rebuilt:')) + '\n' + t.trim() + env, env };
 }
 function renderIdeas(m) {
   const all = IDEAS, list = ideaSorted(all.filter(x => IDEA_F === 'todo' || (IDEA_F === 'user' ? x.user : x.k === IDEA_F)));

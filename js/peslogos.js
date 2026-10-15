@@ -92,3 +92,35 @@ function plBind(t) {
   const m = $('plMore'); if (m) m.onclick = () => plSearch(t, true);
   document.querySelectorAll('#plBox [data-pl]').forEach(x => x.onclick = () => plUse(t, +x.dataset.pl));
 }
+
+// ---- escudos que no cargan: si ni la carpeta Sider, ni TheSportsDB, ni Wikipedia tienen el escudo, se busca en PES Logos ----
+// Solo se usa uno cuyo nombre coincide de verdad: todas las palabras del título están en el nombre del juego ("CA Rosario Central"
+// para "C.A. ROSARIO CENTRAL"), o el nombre del juego está dentro del título y no hay dos clubes distintos que lo tengan
+// ("NEWCASTLE" sí si solo aparece Newcastle United; "ROSARIO" no, porque están Rosario Central y Argentino de Rosario).
+// Se prefieren los escudos actuales a los Retro, Especiales o de clubes disueltos.
+const PL_STOP = /^(fc|cf|sc|ac|cd|ca|afc|club|de|del|la|el|the|seleccion|national|team)$/;
+const plWords = s => normTxt(s).split(' ').filter(w => w.length > 1 && !PL_STOP.test(w));
+function plBadgePick(t, list) {
+  const nat = isNat(t), nw = plWords(tget(t, 'name')); if (!nw.length) return null;
+  const full = [], part = [];
+  for (const x of list) {
+    const tw = plWords(x.title), tags = new Set(x.tags), selec = tags.has('Selecciones') || tags.has('RSelecciones') || /selecci[oó]n/i.test(x.title);
+    if (!tw.length || nat !== selec) continue;
+    let s = 0;
+    if (['Retro', 'RClubes', 'RSelecciones', 'Disuelto'].some(g => tags.has(g))) s -= 3;
+    if (tags.has('Especiales')) s -= 2;
+    const y = x.tags.map(g => /^x(\d\d)$/.exec(g)).filter(Boolean).map(m => +m[1]); s += (y.length ? Math.max(...y) : +x.year.slice(2) || 0) / 100;
+    if (tw.every(w => nw.includes(w))) full.push([s + tw.length, x]);
+    else if (nw.every(w => tw.includes(w))) part.push([s, x, tw.filter(w => !/^\d+$|^anos?$/.test(w)).join(' ')]);
+  }
+  let pool = full;
+  if (!pool.length) { const clubs = new Set(part.map(p => p[2])); pool = clubs.size === 1 ? part : []; }
+  const best = pool.sort((a, b) => b[0] - a[0])[0];
+  return best ? plSize(best[1].img, 's256') : null;
+}
+async function plBadge(t) {
+  const q = plWords(tget(t, 'name')).join(' '); if (!q) return null;
+  return plBadgePick(t, (await plFeed(q)).list);
+}
+// los equipos que antes quedaron "sin escudo" se buscan una vez más, ahora también en PES Logos
+try { if (!localStorage.getItem('edit21-badges-peslogos')) { for (const [k, v] of BADGES.online) if (!v) BADGES.online.delete(k); saveOnlineBadges(); localStorage.setItem('edit21-badges-peslogos', '1'); } } catch { }

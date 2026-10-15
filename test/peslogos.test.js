@@ -15,8 +15,10 @@ const post = {
 };
 
 function env(fetchImpl) {
-  return load('peslogos.js', '({ plEntry, plSize, plQuery, plFeed, plDownload })', {
-    tget: (t, k) => t[k], fetch: fetchImpl, setTimeout, clearTimeout
+  const normTxt = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  return load('peslogos.js', '({ plEntry, plSize, plQuery, plFeed, plDownload, plBadgePick, plBadge })', {
+    tget: (t, k) => t[k], isNat: t => !!t.nat, normTxt, fetch: fetchImpl, setTimeout, clearTimeout,
+    BADGES: { online: new Map() }, saveOnlineBadges: () => { }, localStorage: { getItem: () => '1', setItem() { } }
   });
 }
 
@@ -60,4 +62,24 @@ test('la descarga pide el original y si no puede usa el reenvío', async () => {
   assert.equal(b.size, 10);
   assert.equal(asked[0], G + 's0/A.png');
   assert.match(asked[2], /^https:\/\/images\.weserv\.nl\/\?url=blogger\.googleusercontent\.com%2F.*s0%2FA\.png&output=png$/);
+});
+
+const it = (title, tags, n) => ({ title, tags: tags.split(','), year: '2026', img: G + n + '/s512/' + n + '.png' });
+test('escudo automático: el actual antes que el Retro o el Especial, y solo si el nombre coincide', () => {
+  const { plBadgePick } = env();
+  const list = [it('CA Rosario Central 135 años', 'Escudos,Especiales', 'e'), it('CA Rosario Central', 'Retro', 'r'), it('CA Rosario Central', 'ARG,Escudos,x26', 'a'), it('Argentino de Rosario', 'ARG,Escudos', 'x')];
+  assert.equal(plBadgePick({ name: 'C.A. ROSARIO CENTRAL' }, list), G + 'a/s256/a.png');
+  assert.equal(plBadgePick({ name: 'ROSARIO' }, [it('Argentino de Rosario', 'ARG,Escudos', 'x'), it('CA Rosario Central', 'ARG,Escudos', 'a')]), null, 'nombre a medias: no se adivina');
+  assert.equal(plBadgePick({ name: 'NEWCASTLE' }, [it('Newcastle United FC', 'ENG,Escudos,x26', 'n'), it('Newcastle United FC', 'Retro', 'm')]), G + 'n/s256/n.png', 'un solo club con ese nombre');
+  assert.equal(plBadgePick({ name: 'NEWCASTLE' }, [it('Newcastle United FC', 'ENG,Escudos,x26', 'n'), it('Newcastle Jets FC', 'AUS,Escudos', 'j')]), null, 'dos clubes: no se adivina');
+  assert.equal(plBadgePick({ name: 'NEWCASTLE UNITED' }, [it('Newcastle United FC', 'ENG,Escudos,x26', 'n')]), G + 'n/s256/n.png');
+  assert.equal(plBadgePick({ name: 'ARGENTINA', nat: true }, [it('CA Rosario Central', 'ARG,Escudos', 'a'), it('Selección Argentina', 'Selecciones,ARG', 's')]), G + 's/s256/s.png');
+  assert.equal(plBadgePick({ name: 'ARGENTINA' }, [it('Selección Argentina', 'Selecciones,ARG', 's')]), null, 'un club no toma el escudo de una selección');
+});
+
+test('escudo automático: busca con el nombre limpio', async () => {
+  let asked = '';
+  const { plBadge } = env(async u => { asked = u; return { ok: true, json: async () => ({ feed: { entry: [post] } }) }; });
+  assert.equal(await plBadge({ name: 'C.A. ROSARIO CENTRAL' }), G + 's256/CA%20Rosario%20Central.png');
+  assert.match(asked, /&q=rosario%20central$/);
 });

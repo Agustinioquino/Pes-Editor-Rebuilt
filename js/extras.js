@@ -168,6 +168,7 @@ async function connectKits(dirIn) {
   } catch { namesMsg = 'Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }
   if (!sider.readOnly) { try { const n = await siderFixPaths(sider); if (n) setTimeout(() => toast(`Arreglé las rutas de sider.ini que apuntaban a la carpeta vieja de Sider (${n}): ahora son relativas (copia en sider.ini.bak-pes-editor).`, 9000), 7400); } catch { } }
   if (typeof sdbSetup === 'function') { try { await sdbSetup(sider, !sider.readOnly); } catch { } }
+  if (typeof bakClean === 'function' && !sider.readOnly) bakClean(sider);
   if (typeof siReset === 'function') siReset();
   if (sider.readOnly) setTimeout(() => toast('Carpeta Sider abierta solo para ver: no se puede guardar en el juego porque está dentro de Archivos de programa. Para guardar, mové la carpeta Sider a otro lugar.', 9000, ['Cómo moverla', siderBlockedHelp]), 7200);
   // el aviso se arma por partes (cada una se traduce sola) y se une con " · "
@@ -386,8 +387,8 @@ function tacticsCard(t) {
       <div class="row"><span class="lab">Valoración</span><div class="seg" id="fRate" title="Qué número se ve en cada jugador y en la valoración del equipo">${[['base', '🎮 Del juego'], ['form', '📈 Por rendimiento'], ['cmp', '⚖ Comparar']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${PREFS.rateMode === k}">${n}</button>`).join('')}</div>
         ${PD.roster(S.d, t).some(x => LM.adj.has(x.pid)) ? '' : '<span class="note">Para ver la forma, buscá los últimos partidos reales abajo.</span>'}</div>
       ${photos ? `<div class="row photobar">${FACES.needsPerm ? '<button class="btn small" type="button" id="fgrant">Permitir leer las minifaces del juego</button>' : FACES.count ? `<span class="chip ok">${FACES.count.toLocaleString('es-AR')} minifaces del juego</span>` : '<span class="chip warn">Sin minifaces: tocá "Conectar carpeta Sider"</span>'}
-        <span class="lab">Fotos de internet:</span><div class="seg mini" id="fsrc" role="group" aria-label="Fotos de internet">${Object.entries(PHOTO_SRC).map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${(PREFS.online ? PREFS.photoSrc || 'tsdb' : 'off') === k}" title="${{ tsdb: 'Solo fotos recortadas, sin fondo (TheSportsDB)', mix: 'Recortadas de TheSportsDB y, si no hay, la foto de Wikipedia', off: 'Solo las minifaces del juego' }[k]}">${l}</button>`).join('')}</div>
-        ${PREFS.online ? `<span class="note">${PREFS.photoSrc === 'mix' ? 'Primero busca la foto recortada en TheSportsDB; si no la tiene, usa la de Wikipedia.' : 'Fotos recortadas de TheSportsDB (por nombre y club).'} Se guardan para no volver a buscarlas.${faceSrcStats() ? '<br>' + faceSrcStats() + '.' : ''}</span>` : ''}</div>` : ''}
+        <span class="lab">Fotos de internet:</span><div class="seg mini" id="fsrc" role="group" aria-label="Fotos de internet">${Object.entries(PHOTO_SRC).map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${(PREFS.online ? PREFS.photoSrc || 'tsdb' : 'off') === k}" title="${{ tsdb: 'Solo fotos recortadas, sin fondo (TheSportsDB y ESPN)', mix: 'Recortadas y, si no hay, la foto de Wikipedia', off: 'Solo las minifaces del juego' }[k]}">${l}</button>`).join('')}</div>
+        ${PREFS.online ? `<span class="note">${PREFS.photoSrc === 'mix' ? 'La foto de Wikipedia aparece enseguida y se cambia por la recortada (TheSportsDB o ESPN) cuando la encuentra.' : 'Fotos recortadas de TheSportsDB y ESPN (por nombre completo y club).'} Se guardan para no volver a buscarlas.${faceSrcStats() ? '<br>' + faceSrcStats() + '.' : ''}</span>` : ''}</div>` : ''}
       <div class="row"><span class="lab">Plantillas:</span>${Object.keys(FORM_PRESETS).map(k => `<button class="btn small" type="button" data-preset="${k}">${k}</button>`).join('')}</div>
     </div>
     ${lastMatchCard(t)}
@@ -470,6 +471,8 @@ function bindTactics(t, m) {
   const frt = $('fRate'); if (frt) frt.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; PREFS.rateMode = b.dataset.v; savePrefs(); RATE_GEN++; renderTeams(m); };
   bindLastMatch(t, m); bindTm(t, m);
   sh.querySelectorAll('[data-fk]').forEach(b => b.onclick = () => { setFaceKind(+b.dataset.pid, b.dataset.fk); toast(b.dataset.fk === 'del' ? 'Foto quitada: no se vuelve a buscar.' : b.dataset.fk === 'n' ? 'Marcada como foto de selección: no se mostrará en clubes.' : 'Marcada como foto de club.'); renderTeams(m); });
+  const flg = $('faceLinkGo'), fli = $('faceLink');
+  if (flg && fli) { const go = async () => { flg.disabled = true; try { await faceFromLink(+flg.dataset.pid, fli.value); toast('Foto guardada: queda para este jugador.'); renderTeams(m); } catch (e) { flg.disabled = false; toast(e.message, 6000); } }; flg.onclick = go; fli.onkeydown = e => { if (e.key === 'Enter') go(); }; }
   const fz = $('fluid'); if (fz) fz.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const on = b.dataset.v === '1';
     if (on) { FLUID.set(fluidKey(t), true); S.fvar = 1; toast('Formación fluida activada: ajustá "Ataque" y "Defensa" por separado.'); }
     else { edit('Formación fluida desactivada en ' + tn, 't' + t.id, regT(t), () => { const base = readForm(t, S.fplan, 0); writeForm(t, S.fplan, 1, base); writeForm(t, S.fplan, 2, base); }); FLUID.set(fluidKey(t), false); S.fvar = 0; }

@@ -40,6 +40,37 @@ const FTEXW = (() => {
     }
     return out;
   }
+  // DXT3 (BC2): alfa de 4 bits por píxel + color de 4 tonos. Es el formato de las minifaces.
+  // El alfa se lleva a 16 niveles con difusión de error (bordes suaves sin escalones) y los píxeles
+  // transparentes toman el color de los visibles del bloque (así el borde no se oscurece).
+  async function encodeDxt3(px, w, h, progress) {
+    const bw = Math.max(1, (w + 3) >> 2), bh = Math.max(1, (h + 3) >> 2), out = new Uint8Array(bw * bh * 16), q = new Uint8Array(w * h);
+    let err = new Float32Array(w + 2), nxt = new Float32Array(w + 2);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) { const v = Math.max(0, Math.min(255, px[(y * w + x) * 4 + 3] + err[x + 1])), k = Math.round(v * 15 / 255), e = v - k * 17; q[y * w + x] = k; err[x + 2] += e * 7 / 16; nxt[x] += e * 3 / 16; nxt[x + 1] += e * 5 / 16; nxt[x + 2] += e / 16; }
+      const t = err; err = nxt; nxt = t; nxt.fill(0);
+    }
+    let o = 0;
+    for (let by = 0; by < bh; by++) {
+      for (let bx = 0; bx < bw; bx++, o += 16) {
+        let sr = 0, sg = 0, sb = 0, sa = 0;
+        for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const sx = Math.min(w - 1, bx * 4 + x), sy = Math.min(h - 1, by * 4 + y), s = (sy * w + sx) * 4, d = (y * 4 + x) * 4, a = px[s + 3]; BLK[d] = px[s]; BLK[d + 1] = px[s + 1]; BLK[d + 2] = px[s + 2]; BLK[d + 3] = q[sy * w + sx]; sr += px[s] * a; sg += px[s + 1] * a; sb += px[s + 2] * a; sa += a; }
+        const ar = sa ? sr / sa : 0, ag = sa ? sg / sa : 0, ab = sa ? sb / sa : 0;
+        for (let i = 0; i < 16; i++) { if (!BLK[i * 4 + 3]) { BLK[i * 4] = ar; BLK[i * 4 + 1] = ag; BLK[i * 4 + 2] = ab; } if (i & 1) out[o + (i >> 1)] |= BLK[i * 4 + 3] << 4; else out[o + (i >> 1)] = BLK[i * 4 + 3]; }
+        colorBlock(out, o + 8, BLK, false);
+      }
+      if (progress && !(by & 31)) { progress(by / bh); await new Promise(r => setTimeout(r, 0)); }
+    }
+    return out;
+  }
+  // archivo .dds con un solo nivel (sin mips), con la misma cabecera que usan las minifaces del juego
+  function ddsFile(blocks, w, h, four = 'DXT3') {
+    const out = new Uint8Array(128 + blocks.length), dv = new DataView(out.buffer);
+    dv.setUint32(0, 0x20534444, true); dv.setUint32(4, 124, true); dv.setUint32(8, 0xA1007, true); dv.setUint32(12, h, true); dv.setUint32(16, w, true);
+    dv.setUint32(20, blocks.length, true); dv.setUint32(24, 1, true); dv.setUint32(28, 1, true);
+    dv.setUint32(76, 32, true); dv.setUint32(80, 4, true); for (let i = 0; i < 4; i++) out[84 + i] = four.charCodeAt(i); dv.setUint32(108, 0x1000, true);
+    out.set(blocks, 128); return out;
+  }
   async function deflate(u8) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer()); }
   async function packMip(data) {
     const CH = 16384, n = Math.max(1, Math.ceil(data.length / CH)), parts = [];
@@ -111,5 +142,5 @@ const FTEXW = (() => {
     const out = new Uint8Array(bm.width * bm.height * 4); gl.readPixels(0, 0, bm.width, bm.height, gl.RGBA, gl.UNSIGNED_BYTE, out); gl.getExtension('WEBGL_lose_context')?.loseContext();
     return { w: bm.width, h: bm.height, data: out };
   }
-  return { fromCanvas, fromPixels, encode, pow2Canvas, pow2Pixels, rawFromImage };
+  return { fromCanvas, fromPixels, encode, encodeDxt3, ddsFile, pow2Canvas, pow2Pixels, rawFromImage };
 })();

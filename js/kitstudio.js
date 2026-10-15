@@ -158,7 +158,7 @@ async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   if (!file) { file = ksSlotDefault(S); if (S.derived) { if (!(cfgGet(KS.cfg, 'KitFile') || '').trim()) cfgSet(KS.cfg, 'KitFile', ksBase()); } else cfgSet(KS.cfg, S.f, file); }
   if (!bytes) bytes = await FTEXW.fromCanvas(canvas, { dxt5: S.k !== 'srm', progress });
   for (const e of ['.ftex', '.dds', '.png']) { if (e === ext) continue; try { await kd.getFileHandle(file + e); /* otra extensión vieja: se deja, el kitserver prioriza .ftex */ } catch { } }
-  try { const old = await kd.getFileHandle(file + ext); try { await kd.getFileHandle(file + ext + '.bak-edit21'); } catch { const bk = await kd.getFileHandle(file + ext + '.bak-edit21', { create: true }), w0 = await bk.createWritable(); await w0.write(await (await old.getFile()).arrayBuffer()); await w0.close(); } } catch { }
+  try { const old = await kd.getFileHandle(file + ext); try { await kd.getFileHandle(file + ext + '.bak-edit21'); } catch { const bk = await kd.getFileHandle(file + ext + '.bak-edit21', { create: true }), w0 = await bk.createWritable(); await w0.write(await (await old.getFile()).arrayBuffer()); await w0.close(); bakNote(kd); } } catch { }
   const fh = await kd.getFileHandle(file + ext, { create: true }), w = await fh.createWritable(); await w.write(bytes); await w.close();
   const prev = KS.T[S.k] || {}; KS.T[S.k] = { c: canvas || prev.c, g: prev.g, file: file + ext, where: 'kit' };
   KS.tex.set(KS.path + '/' + KS.sel + ':' + file, KS.T[S.k]); KS.dispKey = '';
@@ -168,7 +168,7 @@ async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
 }
 async function ksSave() {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), kd = await dir.getDirectoryHandle(KS.sel);
-  try { await kd.getFileHandle('config.txt.bak-edit21'); } catch { const bk = await kd.getFileHandle('config.txt.bak-edit21', { create: true }), w0 = await bk.createWritable(); await w0.write(KS.orig); await w0.close(); }
+  try { await kd.getFileHandle('config.txt.bak-edit21'); } catch { const bk = await kd.getFileHandle('config.txt.bak-edit21', { create: true }), w0 = await bk.createWritable(); await w0.write(KS.orig); await w0.close(); bakNote(kd); }
   const txt = cfgSerialize(KS.cfg), fh = await kd.getFileHandle('config.txt'), w = await fh.createWritable(); await w.write(txt); await w.close();
   KS.orig = txt; KS.dirty = false; KS.meta[KS.sel] = parseKitCfg(txt, KS.sel);
   ksRefreshKitsMap(); return txt;

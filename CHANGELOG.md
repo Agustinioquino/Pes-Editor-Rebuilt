@@ -2,6 +2,22 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.052 alpha · Minifaces al juego y escudos mejorados
+
+*14 de octubre de 2026, 23:30 (hora de Argentina)*
+
+Ahora podés poner la cara de cualquier jugador en el juego: subís una foto, la IA le saca el fondo y el editor la guarda como miniface. Y el creador de escudos suma 2K, vista previa y versiones para fondos oscuros y claros.
+
+- **Minifaces al juego** (Plantel). En la ficha de cada jugador hay una pestaña 🙂 Miniface: subís una foto PNG o JPG y el editor arma la miniface del juego (.dds DXT3 con transparencia y el ID del jugador). El fondo se quita con IA en un clic (la primera vez baja el modelo de internet), por color o tocando con la varita. La guía de la cabeza ayuda a encuadrar y el tamaño recomendado es 2048×2048.
+- **La miniface va donde Sider la lee** (Sider). Se guarda en livecpk\PESEditor-Minifaces y esa carpeta se agrega primera en sider.ini (con copia sider.ini.bak-pes-editor). Si el navegador no deja tocar sider.ini, la guarda en una carpeta que Sider ya lee. Borrar devuelve la miniface que había antes.
+- **Escudos en HD normal o 2K (experimental)** (Plantel). El creador de escudos tiene Calidad: HD normal copia la medida de los escudos que ya hay en la carpeta, y 2K usa 512×520, 1028×1044 (_l) y 2056×2088 (_ll). 2K es experimental: en las pruebas el juego bajó 3 o 4 FPS y tuvo lag en algunos menús.
+- **Vista previa y versiones para fondos oscuros y claros** (Plantel). Al cargar la imagen se ven los 11 archivos con su medida. Si el escudo tiene mucho negro, pregunta si r_b (fondos oscuros) aclara los negros con un fileteado claro; si tiene mucho blanco, si r_w (fondos claros) baja los blancos con un borde oscuro suave. En Dónde y cómo se guarda se explica qué significa cada letra.
+- **El escudo va a la carpeta correcta** (Plantel). El escudo se guarda en la carpeta que Sider ya lee con escudos, y la carpeta PESEditor-Escudos ya no queda vacía cuando el navegador no deja tocar sider.ini.
+- **Las copias .bak-edit21 se borran solas** (Archivo). Las copias de escudos, minifaces y kits sirven para deshacer mientras el editor está abierto. La próxima vez que lo abrís, con la carpeta Sider conectada, se borran. sider.ini.bak-pes-editor no se toca.
+- **Fotos de jugadores: más rápidas y pegando links** (Plantel). La búsqueda usa el nombre completo de ESPN y Wikipedia en el idioma del jugador, así encuentra más jugadores. En Formación (vista Fotos) se puede pegar un link de SoFIFA, Sortitoutsi, PES Master, SoccerWiki o de cualquier imagen.
+- **En desarrollo con barras de avance** (Interfaz). El cartel En desarrollo muestra cuánto falta de cada cosa con una barra de color y su porcentaje, marca las de prioridad alta y tiene un botón para ocultarlo.
+- **Texto metálico en el modo PES 6** (Interfaz). En el modo gráfico PES 6 los textos de las tarjetas tienen un brillo metálico más marcado y se siguen leyendo bien.
+
 ## v0.051 alpha · La app de Windows ya se deja cerrar
 
 *14 de octubre de 2026, 19:35 (hora de Argentina)*

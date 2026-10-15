@@ -145,12 +145,14 @@ async function ksLoadSlots(dir) {
     const file = ksSlotFile(S); if (!file) { KS.T[S.k] = { none: true }; return; }
     const key = KS.path + '/' + KS.sel + ':' + file; if (KS.tex.has(key)) { KS.T[S.k] = KS.tex.get(key); return; }
     try { const f = await ksFindTex(dir, file); if (!f) { KS.T[S.k] = { missing: true, file }; return; }
-      const c = await ksDecodeTex(f.h, S); KS.T[S.k] = { c, g: c.__gloss || null, file: f.h.name, where: f.where }; KS.tex.set(key, KS.T[S.k]);
+      const c = await ksDecodeTex(f.h, S); if (S.k === 'name') await ksKitPosFont(dir, KS.sel, c); KS.T[S.k] = { c, g: c.__gloss || null, file: f.h.name, where: f.where }; KS.tex.set(key, KS.T[S.k]);
     } catch (e) { KS.T[S.k] = { err: e.message, file }; }
   }));
   KS.dispKey = '';
 }
 const ksTexOf = k => KS.T && KS.T[k] && KS.T[k].c || null;
+// fuente de KitPos: si la carpeta del kit tiene kitpos_letras.txt, la textura del nombre se lee con esa tabla (con minúsculas)
+async function ksKitPosFont(dir, kit, c) { try { const t = await readText(await dir.getDirectoryHandle(kit), 'kitpos_letras.txt'), list = t ? KPF.parseLetras(t) : []; if (list.length) c.__kp = KPF.glyphMap(list, c.width, c.height); } catch { } }
 // escribe una textura en la carpeta del kit (la primera vez guarda copia de la anterior) y actualiza el config si hacía falta
 async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), kd = await dir.getDirectoryHandle(KS.sel);
@@ -483,9 +485,12 @@ function ksOverview(t) {
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
   if (!k || !k.path) {
-    if (!KITS.from) return `<div class="card"><h3>Kit Studio Pro</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+    // el creador de fuentes también se puede usar sin kits: la fuente se descarga en un .zip
+    if (KS.solo) return `<div class="card kscard"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro · Fuentes</h3><button class="btn small" type="button" id="kpfSoloX">← Volver</button></div>${kpfHtml(t, false)}</div>`;
+    const solo = '<button class="btn small" type="button" id="kpfSolo" title="Fuentes con minúsculas y acentos para KitPos">🔤 Creador de fuentes</button>';
+    if (!KITS.from) return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro</h3>${solo}</div><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
     // el equipo no está en map.txt: sus kits viven en los .cpk del juego (cifrados). Lo que sí se puede es cargarle uno por Sider.
-    return `<div class="card kscard"><h3>Kit Studio Pro</h3>
+    return `<div class="card kscard"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro</h3>${solo}</div>
       <div class="warnbox" id="ksCpk"><b>Este equipo no tiene carpeta en el kit-server de Sider.</b> Sus kits están dentro de los archivos .cpk del juego, que vienen cifrados: desde acá no se pueden ver ni editar. Lo que sí se puede es cargarle un kit por Sider: arrastrá abajo un .zip con las texturas y se crea la carpeta del equipo en content\\kit-server (con su línea en map.txt) para que el juego lo use.</div>
       ${ksDropHtml()}
       <p class="note">Después de cargarlo, abrí el juego de nuevo (o en kserv apretá [0] para recargar el mapa) y fijate en la pantalla de uniformes del partido.</p></div>`;
@@ -508,23 +513,23 @@ function kitStudioCard(t) {
   const slotCard = S => { const T = KS.T[S.k] || {}, file = ksSlotFile(S);
     const st = T.c ? (T.where === 'kit' ? 'En la carpeta del kit' : T.where === 'live' ? 'Suelta en livecpk' : 'Generada, sin guardar') : T.none ? (S.font ? 'No usa (campo vacío)' : 'Sin textura') : T.missing ? 'Dentro de los .cpk del juego' : T.err ? 'No se pudo leer' : 'Buscando…';
     return `<div class="ksslot ${T.c ? 'has' : ''}"><div class="kst">${T.c ? `<canvas data-slot="${S.k}" width="160" height="${S.font ? 50 : 160}"></canvas>` : `<span>${S.k === 'nrm' || S.k === 'srm' ? '◌' : '?'}</span>`}</div>
-      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small><span class="note">${S.d}</span>
+      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small>${S.k === 'name' && T.c && T.c.__kp ? `<small class="ok">Fuente de KitPos: ${T.c.__kp.size} letras, con minúsculas</small>` : ''}<span class="note">${S.d}</span>
         <div class="row" style="gap:4px"><button class="btn small" type="button" data-upl="${S.k}" title="Elegí una imagen (.png, .jpg, .dds o .ftex): se convierte a .ftex y se guarda en la carpeta del kit">Subir…</button>
-        ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
+        ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'name' ? `<button class="btn small" type="button" data-kpfopen title="Fuente con minúsculas, acentos, cirílico y griego para KitPos">🔤 Con minúsculas…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
   return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
     <div class="row" style="justify-content:space-between"><div class="row"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
-      <div class="seg ksmode" id="ksMode"><button type="button" data-v="list" aria-pressed="${KS.mode === 'list'}">👕 Uniformes <small>${KS.kits.length + KS.gk.length}</small></button><button type="button" data-v="edit" aria-pressed="${KS.mode !== 'list'}">🛠 Editor · ${esc(KS.sel)}</button></div></div>
-      ${KS.mode === 'list' ? '' : `<div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
+      <div class="seg ksmode" id="ksMode"><button type="button" data-v="list" aria-pressed="${KS.mode === 'list'}">👕 Uniformes <small>${KS.kits.length + KS.gk.length}</small></button><button type="button" data-v="edit" aria-pressed="${KS.mode === 'edit'}">🛠 Editor · ${esc(KS.sel)}</button><button type="button" data-v="font" aria-pressed="${KS.mode === 'font'}" title="Fuentes con minúsculas y acentos para KitPos">🔤 Fuentes</button></div></div>
+      ${KS.mode !== 'edit' ? '' : `<div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
       <button class="btn" type="button" id="ksUndo" ${KS.dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
-    ${KS.mode === 'list' ? ksOverview(t) : `
+    ${KS.mode === 'list' ? ksOverview(t) : KS.mode === 'font' ? kpfHtml(t) : `
     <div class="kssel" aria-label="Kit que se edita">${KS.kits.map((n, i) => chip(n, i, false)).join('')}${KS.gk.map((n, i) => chip(n, i, true)).join('')}</div>
     <div class="kslayout">
       <section class="ksprev">
         <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', 'Maqueta'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
-          <div class="row ksample"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
+          <div class="row ksample ${ksTexOf('name') && ksTexOf('name').__kp ? 'kp' : ''}"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
         ${KS.view === '3d' ? `<div class="ks3dwrap" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar, flechas del teclado"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
               <div class="k3hud"><span>${K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'}</span></div></div>
             <aside class="k3side">
@@ -591,9 +596,12 @@ function bindKitStudio(t, m) {
   ksRerender = () => later(() => { if (S.ttab === 'kits') renderTeams(m); });
   const sh = $('teamSheet'), dz = $('ksDrop');
   if (dz) ksBindDrop(dz, files => ksZipDrop(files, t, m, !(KITS.map.get(t.id) || {}).path)); // también en la tarjeta del equipo sin carpeta (.cpk)
+  const so = $('kpfSolo'); if (so) so.onclick = () => { KS.solo = true; renderTeams(m); };
+  if (KS.solo && $('kpfSoloX')) { $('kpfSoloX').onclick = () => { KS.solo = false; renderTeams(m); }; kpfBind(sh, m, false); return; }
   if (!KS.cfg) return;
   if (K3.viewer) { K3.viewer.dispose(); K3.viewer = null; }
   ksBindList(sh, m); if (KS.mode === 'list') return;
+  if (KS.mode === 'font') { kpfBind(sh, m); return; }
   const savePrefs3 = () => { PREFS.k3light = K3.light; savePrefs(); };
   // normal map de la tela elegida (se regenera al mover los controles)
   const genMaps = () => { if ((KS.nsrc || (ksTexOf('nrm') ? 'kit' : 'gen')) === 'kit') { KS.genNrm = null; KS.genSrm = null; return; } KS.genNrm = KMAT.normalMap({ kitCanvas: KS.mat.src === 'gloss' ? ksGloss() : ksTexOf('kit'), fabric: KS.mat.fabric, repeat: KS.mat.repeat, fabricStrength: KS.mat.fabricStrength, emboss: KS.mat.emboss, size: 1024 }); KS.genSrm = KMAT.srm(KS.mat.fabric, 64); };
@@ -649,7 +657,7 @@ function bindKitStudio(t, m) {
   on('ksView', 'onclick', e => { const b = e.target.closest('[data-v]'); if (b && KS.view !== b.dataset.v) { KS.view = b.dataset.v; renderTeams(m); } });
   on('ksUndo', 'onclick', () => { KS.cfg = cfgParse(KS.orig); KS.dirty = false; KS.dispKey = ''; renderTeams(m); });
   on('ksSave', 'onclick', async () => { try { await ksSave(); RATE_GEN++; toast('Kit ' + KS.sel + ' guardado en el juego.'); renderTeams(m); } catch (e) { toast('No se pudo guardar: ' + e.message, 7000); } });
-  on('ksName', 'oninput', e => { KS.sample.name = e.target.value.toUpperCase().replace(/[^A-Z. ]/g, ''); draw(); });
+  on('ksName', 'oninput', e => { const kp = ksTexOf('name') && ksTexOf('name').__kp; KS.sample.name = kp ? e.target.value : e.target.value.toUpperCase().replace(/[^A-Z. ]/g, ''); draw(); });
   on('ksNum', 'oninput', e => { KS.sample.num = e.target.value.replace(/\D/g, '').slice(0, 2); draw(); });
   // vista 3D
   const V3 = () => K3.viewer;
@@ -737,6 +745,7 @@ function bindKitStudio(t, m) {
   // texturas
   sh.querySelectorAll('[data-upl]').forEach(b => b.onclick = () => ksUpload(KS_SLOTS.find(s => s.k === b.dataset.upl), m));
   sh.querySelectorAll('[data-fontgen]').forEach(b => b.onclick = () => ksFontModal(m));
+  sh.querySelectorAll('[data-kpfopen]').forEach(b => b.onclick = () => { KS.mode = 'font'; renderTeams(m); });
   sh.querySelectorAll('[data-see]').forEach(b => b.onclick = () => { KS.see = b.dataset.see; renderTeams(m); });
   sh.querySelectorAll('[data-nrmsave]').forEach(b => b.onclick = () => saveRelief(['nrm']));
   sh.querySelectorAll('[data-srmsave]').forEach(b => b.onclick = () => saveRelief(['srm']));

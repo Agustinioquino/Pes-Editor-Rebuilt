@@ -648,7 +648,7 @@ details.help>summary:focus-visible{outline:3px solid var(--accent);outline-offse
 .k3pan>*:not(summary){margin-top:6px}
 .k3seg{display:flex;width:100%}.k3seg button{flex:1;font-size:.74rem;padding:.25rem .3rem}
 .k3s label{display:flex;justify-content:space-between}.k3s output{font-family:var(--mono);color:var(--accent)}
-.ksample input{font-family:var(--mono);text-transform:uppercase}
+.ksample input{font-family:var(--mono);text-transform:uppercase}.ksample.kp input{text-transform:none}
 canvas[data-drag]{cursor:grab;touch-action:none}
 .ksslots{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
 .ksslot{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:10px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--sunk)}
@@ -671,6 +671,43 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 @media (max-width:760px){.ksgen{grid-template-columns:1fr}}
 .ksgenl{display:grid;gap:10px;align-content:start}.ksgenr{display:grid;gap:8px;align-content:start}
 .ksgenr canvas{width:100%;height:auto;border-radius:8px;border:1px solid var(--line)}
+/* Kit Studio Pro › Fuentes (creador de fuentes para KitPos) */
+.kpf{display:grid;gap:14px;border-radius:var(--r,8px);outline:2px dashed transparent;outline-offset:4px;transition:outline-color .2s}
+.kpf.over{outline-color:var(--accent)}
+.kpfhero{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r,8px);border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,transparent),transparent 60%),var(--sunk)}
+.kpfhero h4{margin:0 0 4px;font-family:var(--display);font-size:1.25rem}.kpfhero h4 small{font-weight:400;opacity:.7;font-size:.8em;margin-left:4px}.kpfhero p{margin:0;max-width:72ch}
+.kpfgrid{display:grid;grid-template-columns:minmax(270px,340px) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.kpfgrid{grid-template-columns:minmax(0,1fr)}}
+.kpfl{display:grid;gap:10px;align-content:start}.kpfl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}
+.kpfr{display:grid;gap:10px;align-content:start;min-width:0}
+.kpffonts{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;max-height:228px;overflow:auto;padding:2px;margin-bottom:6px}
+.kpffonts button{display:grid;gap:2px;justify-items:center;padding:8px 4px 6px;border:1.5px solid var(--line);border-radius:var(--r,8px);background:var(--sunk);color:inherit;cursor:pointer;font:inherit;min-width:0}
+.kpffonts button b{font-size:1.45rem;line-height:1.1;font-weight:700}.kpffonts button small{font-size:.68rem;opacity:.75;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpffonts button:hover{border-color:var(--accent)}.kpffonts button[aria-selected="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--sunk));box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.kpfimg{display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--sunk);margin:6px 0}
+.kpfimg canvas{width:110px;height:auto;border-radius:4px;flex:none}.kpfimg>div{display:grid;gap:4px;min-width:0}
+.kpfsample{gap:8px;align-items:center}.kpfsample .fchips{flex:1 1 100%}
+.kpfprev{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px);gap:10px;align-items:stretch}
+.kpfprev:not(:has(.kpfback)){grid-template-columns:minmax(0,1fr)}
+@media (max-width:620px){.kpfprev{grid-template-columns:minmax(0,1fr)}}
+.kpfprev>canvas{width:100%;height:auto;border-radius:var(--r,8px);border:1px solid var(--line);box-shadow:inset 0 0 40px #0004}
+.kpfback{margin:0;display:grid;gap:4px;align-content:start;justify-items:center;padding:6px;border-radius:var(--r,8px);border:1px solid var(--line);background:radial-gradient(circle at 50% 35%,#2b4d86,#0c1a33)}
+.kpfback canvas{width:100%;height:auto}.kpfback figcaption{font-size:.74rem;color:#dfe8f7;opacity:.85}
+.kpfatlas{display:grid;gap:4px}.kpfatlas canvas{width:100%;height:auto;border-radius:6px;border:1px solid var(--line);image-rendering:auto}
+.kpfgame{padding:12px 14px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk)}
+.kpfgame h4{margin:0 0 8px;font-family:var(--display);font-size:1.1rem}
+.kpfgame2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px}
+@media (max-width:860px){.kpfgame2{grid-template-columns:minmax(0,1fr)}}
+.kpfgame2>div{display:grid;gap:8px;align-content:start}
+.kpflog{min-height:1.3em;margin:0;font-family:var(--mono);font-size:.8rem}
+.kpfst{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.kpfst li{display:flex;gap:8px;align-items:center;padding:5px 8px;border-radius:var(--r,6px);border:1px solid var(--line);font-size:.86rem}
+.kpfst li>i{font-style:normal;font-weight:800;width:1.3em;text-align:center}.kpfst li>span{flex:1;min-width:0}
+.kpfst li.ok>i{color:var(--ok,#2fa35a)}.kpfst li.bad>i{color:var(--bad,#d0453b)}.kpfst li.unk>i{color:var(--muted)}
+.kpfhow summary{font-weight:700;cursor:pointer}.kpfhow ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:6px;font-size:.88rem}
+.kpfhow .mono{font-family:var(--mono);font-size:.92em;background:color-mix(in srgb,var(--line) 45%,transparent);padding:0 3px;border-radius:3px}
+html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sans-serif;font-style:italic;text-transform:none;letter-spacing:.01em}
+html[data-gfx="pes6"] :is(.kpfhero,.kpffonts button,.kpfimg,.kpfgame,.kpfst li,.kpfback,.kpfprev>canvas,.kpfatlas canvas){border-radius:0!important}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2 label output,.ksgenl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}
 

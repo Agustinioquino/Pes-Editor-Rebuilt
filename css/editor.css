@@ -1418,6 +1418,14 @@ html[data-gfx="pes6"] .sesscard span{color:#55534d}
 .crestfiles{margin-top:12px}.crestfiles summary{cursor:pointer;font-size:.8rem;color:var(--muted)}
 .crestfiles .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
+.crestask{display:grid;gap:6px;padding:8px 10px;border:1px solid var(--accent);border-radius:8px;background:var(--accent-soft)}
+.crestprev{margin-top:12px;display:grid;gap:6px}
+.crestthumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.crestthumb{margin:0;display:grid;gap:4px;align-content:start;justify-items:center;font-size:.72rem}
+.crestthumb>div{width:100%;aspect-ratio:1;display:grid;place-items:center;align-self:start;border-radius:8px;border:1px solid var(--line);background:repeating-conic-gradient(var(--sunk) 0 25%,var(--panel) 0 50%) 0 0/12px 12px}
+.crestthumb.b>div{background:#0c0c0c}.crestthumb.w>div{background:#fff}
+.crestthumb img{max-width:84px;max-height:84px}
+.crestthumb figcaption{font-family:var(--mono);text-align:center}.crestthumb small{color:var(--muted)}.crestthumb .crestfix{display:block;color:var(--accent);font-weight:600}
 @media (max-width:700px){.crestup .crestrow{grid-template-columns:auto auto}.crestinfo{grid-column:1/-1}}
 .mfcard .mfrow{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:18px;align-items:start}
 .mfbox{display:grid;gap:6px;justify-items:center}

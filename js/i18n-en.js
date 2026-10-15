@@ -4308,5 +4308,7 @@ Object.assign(I18N_EN, {
 "Camiseta en la selección":"Shirt name (national team)",
 "Vacío: la misma del club":"Empty: same as the club",
 "Poner el apellido en mayúsculas en la camiseta de la selección":"Put the last name in capitals on the national team shirt",
-"camiseta en la selección":"national team shirt name"
+"camiseta en la selección":"national team shirt name",
+"Usar {x} kg (base del juego)":"Use {x} kg (game database)",
+"El peso quedó en 0 al pasar el jugador al EDIT":"The weight was left at 0 when the player was added to the EDIT"
 });

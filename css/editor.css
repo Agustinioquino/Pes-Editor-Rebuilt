@@ -1921,39 +1921,51 @@ html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st span{font-size:.98rem;opa
 html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-icon{top:24px;color:#7a68b8;text-shadow:none}
 .fu-band .emo{color:inherit!important}
 html:is([data-gfx="pes6"],[data-gfx="clasico"]) :is(.fu-alt,.fu-tabs){display:none}
-html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut{font-family:var(--display)}html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr i{display:none}
-html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr b,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr span,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-nm,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st b,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st span{font-family:var(--display)}
-/* ----- la apertura: el sobre tiembla, destello, bandera → posición → escudo, y la carta gira con rayos ----- */
-.fopen{position:absolute;left:50%;top:0;width:250px;height:350px;margin-left:-125px;z-index:5;pointer-events:none}
-.fopen>*{position:absolute}
-.fo-beam{left:50%;bottom:-40px;width:150px;margin-left:-75px;height:420px;background:linear-gradient(0deg,transparent,var(--tc) 40%,#fff 60%,transparent);filter:blur(14px);opacity:0;animation:foBeam 1.4s ease .1s both}
-.fo-pack{left:50px;top:70px;width:150px;height:210px;border-radius:10px;display:grid;place-items:center;background:repeating-linear-gradient(135deg,#ffffff22 0 6px,transparent 6px 14px),linear-gradient(160deg,var(--tc),color-mix(in srgb,var(--tc) 45%,#000));box-shadow:0 0 30px var(--tc),inset 0 0 0 3px #ffffff80;font-size:3rem;animation:foPack 1.25s cubic-bezier(.3,1.2,.5,1) both}
-.fo-flash{inset:-60px;background:radial-gradient(circle,#fff 0 30%,transparent 70%);opacity:0;animation:foFlash .6s ease 1.05s both}
-.fo-w{left:0;right:0;top:110px;height:130px;display:grid;place-items:center;opacity:0}
+html[data-gfx="clasico"] .fut{font-family:var(--display)}html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr i{display:none}
+html[data-gfx="clasico"] :is(.fu-ovr b,.fu-ovr span,.fu-nm,.fu-st b,.fu-st span){font-family:var(--display)}
+/* PES 6: letra estilo FIFA (condensada y gruesa) en la carta */
+html[data-gfx="pes6"] .fut :is(.fu-ovr b,.fu-ovr span,.fu-nm,.fu-st b,.fu-st span,.fu-band,.fu-icon){font-family:"Saira Condensed","Big Shoulders",sans-serif;font-style:normal;font-weight:700;letter-spacing:.01em}
+html[data-gfx="pes6"] .fut .fu-ovr b{font-size:2.9rem;font-weight:800;letter-spacing:-.02em}html[data-gfx="pes6"] .fut .fu-ovr span{font-size:1.35rem}
+html[data-gfx="pes6"] .fut .fu-nm{font-size:1.75rem;letter-spacing:.03em}html[data-gfx="pes6"] .fut .fu-band{font-size:1.05rem;letter-spacing:.06em}
+html[data-gfx="pes6"] .fut .fu-st b{font-size:1.45rem}html[data-gfx="pes6"] .fut .fu-st span{font-size:1.25rem;font-weight:600}
+/* ----- la apertura en toda la pestaña: el sobre tiembla, destello, bandera → posición → escudo, y la carta
+   aparece grande en el centro con rayos y chispas antes de ir a su lugar ----- */
+.fopen{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+.fopen>*{position:absolute;left:50%;top:var(--cy,300px)}
+.fo-beam{width:240px;height:900px;margin:-450px 0 0 -120px;background:linear-gradient(0deg,transparent,var(--tc) 35%,#fff 50%,var(--tc) 65%,transparent);filter:blur(22px);opacity:0;animation:foBeam 1.4s ease .1s both}
+.fo-pack{width:190px;height:270px;margin:-135px 0 0 -95px;border-radius:12px;display:grid;place-items:center;background:repeating-linear-gradient(135deg,#ffffff22 0 6px,transparent 6px 14px),linear-gradient(160deg,var(--tc),color-mix(in srgb,var(--tc) 45%,#000));box-shadow:0 0 50px var(--tc),inset 0 0 0 3px #ffffff80;font-size:4rem;animation:foPack 1.25s cubic-bezier(.3,1.2,.5,1) both}
+.fo-flash{width:1400px;height:1400px;margin:-700px 0 0 -700px;background:radial-gradient(circle,#fff 0 18%,color-mix(in srgb,var(--tc) 60%,transparent) 30%,transparent 60%);opacity:0;animation:foFlash .7s ease 1.05s both}
+.fo-w{width:600px;height:240px;margin:-120px 0 0 -300px;display:grid;place-items:center;opacity:0}
 .fo-w1{animation:foWalk .7s ease 1.3s both}.fo-w2{animation:foWalk .7s ease 2s both}.fo-w3{animation:foWalk .7s ease 2.7s both}
-.fo-w1 .flagw{position:relative;display:block;width:120px;height:80px;box-shadow:0 0 30px var(--tc)}.fo-w1 .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
-.fo-w2 b{font:800 4.2rem/1 var(--display);color:#fff;text-shadow:0 0 18px var(--tc),0 3px 0 #0006}
-.fo-w b{font-size:4rem}
-.crest.fobig{width:110px;height:110px;font-size:1.6rem;border-radius:14px;box-shadow:0 0 30px var(--tc)}
-.fo-rays{position:absolute;left:50%;top:175px;width:760px;height:760px;margin:-380px 0 0 -380px;z-index:0;border-radius:50%;pointer-events:none;background:repeating-conic-gradient(from 0deg,var(--tc) 0 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(circle,#000 0 30%,transparent 70%);mask:radial-gradient(circle,#000 0 30%,transparent 70%);opacity:0;animation:foRays 2.4s ease-out 3.2s both}
-.fo-parts{left:50%;top:175px}
-.fo-parts i{position:absolute;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--tc);box-shadow:0 0 8px var(--tc),0 0 2px #fff;opacity:0;animation:foPart 1.1s ease-out 3.35s both}
-.fo-parts i:nth-child(3n){width:5px;height:5px;background:#fff}
-.fo-skip{pointer-events:auto;right:-14px;top:-6px;font:600 .78rem/1 var(--body,inherit);padding:.35rem .6rem;border-radius:99px;border:1px solid #ffffff60;background:#0008;color:#fff;cursor:pointer;animation:fadeOnly .3s ease .3s both}
-.fifa.opening::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 150px 200px,#2a2108e0,#000000f0 70%);animation:foDim 4.2s ease both}
-.fifa.opening .fifaside{z-index:5}
-@keyframes foDim{0%{opacity:0}8%,78%{opacity:1}100%{opacity:0}}
-.fifa.opening .fut{animation:futReveal 1s cubic-bezier(.2,1.25,.4,1) 3.2s both}
-.fifa.opening :is(.futbtns,.futinfo,.fifaside>.note){animation:fadeOnly .5s ease 3.8s both}
-.fifa.opening .fgrid{animation:fgIn .6s ease 3.6s both}
-.fifa.opening .fgrp,.fifa.opened .fgrp,.fifa.opened .fut{animation:none}
+.fo-w1 .flagw{position:relative;display:block;width:240px;height:160px;box-shadow:0 0 60px var(--tc),0 0 0 3px #fff6}.fo-w1 .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
+.fo-w2 b{font:800 8rem/1 var(--display);color:#fff;text-shadow:0 0 30px var(--tc),0 5px 0 #0006;letter-spacing:.02em}
+.fo-w b{font-size:7rem}
+.crest.fobig{width:200px;height:200px;font-size:3rem;border-radius:22px;box-shadow:0 0 60px var(--tc)}
+.fo-rays{width:1500px;height:1500px;margin:-750px 0 0 -750px;border-radius:50%;background:repeating-conic-gradient(from 0deg,var(--tc) 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 0 12%,transparent 55%);mask:radial-gradient(circle,#000 0 12%,transparent 55%);opacity:0;animation:foRays 2s ease-out 3.2s both}
+.fo-parts i{position:absolute;width:10px;height:10px;margin:-5px;border-radius:50%;background:var(--tc);box-shadow:0 0 10px var(--tc),0 0 2px #fff;opacity:0;animation:foPart 1.3s ease-out 3.3s both}
+.fo-parts i:nth-child(3n){width:6px;height:6px;background:#fff}
+.fo-skip{position:absolute;right:12px;top:12px;z-index:7;font:600 .8rem/1 var(--body,inherit);padding:.45rem .8rem;border-radius:99px;border:1px solid #ffffff60;background:#0009;color:#fff;cursor:pointer;animation:fadeOnly .3s ease .3s both}
+.fifa.opening{min-height:620px}
+.fifa.opening::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 50% var(--cy,300px),#2a2108e6,#000000f2 70%);animation:foDim 5.2s ease both}
+.fifa.opening .fifaside{z-index:6}
+@keyframes foDim{0%{opacity:0}6%,82%{opacity:1}100%{opacity:0}}
+.fifa.opening .fut{animation:futReveal 2s cubic-bezier(.3,.9,.3,1) 3.2s both}
+.fifa.opening :is(.futbtns,.futinfo,.fifaside>.note,.futglow){animation:fadeOnly .6s ease 4.9s both}
+.fifa.opening .fright{animation:fgIn .6s ease 4.7s both}
+.fifa.opening .fgrp,.fifa.opened .fgrp,.fifa.opened .fut,.fifa.opened .fright{animation:none}
 @keyframes foBeam{0%{opacity:0;transform:scaleY(.2)}50%{opacity:.9;transform:none}100%{opacity:0}}
-@keyframes foPack{0%{opacity:0;transform:translateY(120px) scale(.6)}35%{opacity:1;transform:none}45%{transform:rotate(-4deg)}52%{transform:rotate(4deg)}59%{transform:rotate(-5deg) scale(1.03)}66%{transform:rotate(5deg) scale(1.05)}73%{transform:rotate(-6deg) scale(1.08)}80%{transform:rotate(0) scale(1.1);filter:brightness(1.3)}100%{opacity:0;transform:scale(1.6);filter:brightness(3)}}
-@keyframes foFlash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
-@keyframes foWalk{0%{opacity:0;transform:scale(.5)}25%{opacity:1;transform:scale(1.08)}40%{transform:none}80%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
-@keyframes futReveal{0%{opacity:0;transform:perspective(800px) rotateY(200deg) scale(.5)}55%{opacity:1;transform:perspective(800px) rotateY(-14deg) scale(1.1)}100%{opacity:1;transform:none}}
-@keyframes foRays{0%{opacity:0;transform:rotate(0) scale(.6)}25%{opacity:1}100%{opacity:0;transform:rotate(60deg) scale(1.1)}}
-@keyframes foPart{0%{opacity:0;transform:rotate(var(--a)) translateY(0)}10%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(-1 * var(--d) - 60px))}}
+@keyframes foPack{0%{opacity:0;transform:translateY(160px) scale(.6)}35%{opacity:1;transform:none}45%{transform:rotate(-4deg)}52%{transform:rotate(4deg)}59%{transform:rotate(-5deg) scale(1.03)}66%{transform:rotate(5deg) scale(1.05)}73%{transform:rotate(-6deg) scale(1.08)}80%{transform:rotate(0) scale(1.1);filter:brightness(1.3)}100%{opacity:0;transform:scale(1.8);filter:brightness(3)}}
+@keyframes foFlash{0%{opacity:0;transform:scale(.3)}30%{opacity:1}100%{opacity:0;transform:scale(1)}}
+@keyframes foWalk{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.1)}40%{transform:none}80%{opacity:1}100%{opacity:0;transform:scale(1.35)}}
+@keyframes futReveal{0%{opacity:0;transform:translate(var(--fx,0),var(--fy,0)) rotateY(200deg) scale(.5)}25%{opacity:1;transform:translate(var(--fx,0),var(--fy,0)) rotateY(-12deg) scale(1.6)}35%{transform:translate(var(--fx,0),var(--fy,0)) rotateY(0) scale(1.5)}72%{transform:translate(var(--fx,0),var(--fy,0)) rotateY(0) scale(1.5)}100%{opacity:1;transform:translate(0,0) rotateY(0) scale(1)}}
+@keyframes foRays{0%{opacity:0;transform:rotate(0) scale(.5)}20%{opacity:1}75%{opacity:.8}100%{opacity:0;transform:rotate(70deg) scale(1.1)}}
+@keyframes foPart{0%{opacity:0;transform:rotate(var(--a)) translateY(0)}10%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(-1 * var(--d) - 120px))}}
+/* brillo detrás de las cartas de oro e ícono */
+.futglow{position:absolute;left:50%;top:175px;width:440px;height:440px;margin:-220px 0 0 -220px;z-index:0;pointer-events:none;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--tc) 75%,#fff) 0 18%,color-mix(in srgb,var(--tc) 45%,transparent) 34%,transparent 62%),repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--tc) 55%,transparent) 0 4deg,transparent 4deg 16deg);-webkit-mask:radial-gradient(circle,#000 0 30%,transparent 66%);mask:radial-gradient(circle,#000 0 30%,transparent 66%);animation:glowSpin 26s linear infinite,glowPulse 3.2s ease-in-out infinite;filter:blur(1px)}
+.fifa.t-icon .futglow{background:radial-gradient(circle,#fff 0 18%,#ffe9a8aa 34%,transparent 62%),repeating-conic-gradient(from 0deg,#f1d27a99 0 4deg,transparent 4deg 16deg)}
+@keyframes glowSpin{to{rotate:360deg}}
+@keyframes glowPulse{0%,100%{opacity:.75;scale:.94}50%{opacity:1;scale:1.04}}
+@media (prefers-reduced-motion:reduce){.futglow{animation:none}}
 @keyframes fadeOnly{from{opacity:0}}
 .futinfo{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;width:100%;max-width:270px;font-size:.86rem}
 .futinfo dd{margin:0;font-weight:600;text-align:right}
@@ -2003,3 +2015,63 @@ html[data-gfx="pes6"] .fat>b{border-radius:0;border:1px solid color-mix(in srgb,
 html[data-gfx="pes6"] .fbar{border-radius:0;height:5px;background:#ffffff14;box-shadow:inset 0 1px #0006}
 html[data-gfx="pes6"] .fbar u{border-radius:0;background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 50%,#fff),var(--lc) 60%)}
 html[data-gfx="pes6"] .fifa .futbtns .btn:not([aria-pressed="true"]){filter:none}
+
+/* ===== Skills: chips con ícono propio (vista PES) e insignias (vista FIFA) ===== */
+:is(.skgrp,.skchip,.fskb)[data-c="0"]{--kc:#8b5cf6}:is(.skgrp,.skchip,.fskb)[data-c="1"]{--kc:#e0452c}:is(.skgrp,.skchip,.fskb)[data-c="2"]{--kc:#2f7fe0}
+:is(.skgrp,.skchip,.fskb)[data-c="3"]{--kc:#13a39a}:is(.skgrp,.skchip,.fskb)[data-c="4"]{--kc:#2e9e4f}:is(.skgrp,.skchip,.fskb)[data-c="ia"]{--kc:#d98a12}
+h3.sec .skn{font-size:.8rem;font-weight:500;color:var(--muted);margin-left:8px;letter-spacing:0}
+.skgroups{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:10px}
+.skgrp h4{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding-bottom:4px;border-bottom:2px solid color-mix(in srgb,var(--kc) 55%,transparent)}
+.skgrp h4 b{margin-left:auto;font:600 .75rem/1 var(--mono);color:var(--muted)}
+.skchips{display:flex;flex-wrap:wrap;gap:6px}
+.skchip{position:relative;display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:99px;border:1.5px solid var(--line);background:var(--sunk);color:var(--muted);font-size:.82rem;cursor:pointer;user-select:none;transition:background .2s,border-color .2s,color .2s,transform .15s}
+.skchip input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.skchip:hover{border-color:var(--kc);color:var(--ink);transform:translateY(-1px)}
+.skchip:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+.skico{width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--kc) 14%,var(--panel));color:color-mix(in srgb,var(--kc) 70%,var(--muted));transition:background .2s,color .2s,transform .3s cubic-bezier(.3,1.6,.5,1)}
+.skico svg,.fskb svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.skchip:has(input:checked){background:color-mix(in srgb,var(--kc) 16%,var(--panel));border-color:var(--kc);color:var(--ink);font-weight:600}
+.skchip:has(input:checked) .skico{background:var(--kc);color:#fff;transform:rotate(-8deg) scale(1.06);box-shadow:0 0 10px color-mix(in srgb,var(--kc) 55%,transparent)}
+html[data-gfx="clasico"] .skchip{border-radius:2px;box-shadow:inset 1px 1px #fff8,inset -1px -1px #0005}html[data-gfx="clasico"] .skico{border-radius:2px}
+html[data-gfx="retro"] .skchip{border-radius:0;border:2px solid var(--line)}html[data-gfx="retro"] .skchip:has(input:checked){border-color:var(--kc);box-shadow:0 0 8px var(--kc)}html[data-gfx="retro"] .skico{border-radius:0}
+html[data-gfx="pes6"] .skchip{border-radius:0;background:linear-gradient(180deg,#fafaf8,#d9d8d1);border:1px solid #8f8c84;color:#3a3a37;box-shadow:inset 0 1px #fff}
+html[data-gfx="pes6"] .skchip:has(input:checked){background:linear-gradient(180deg,#fdf0a0,#e6c02e);border-color:#a8820f;color:#1c1c1a}
+html[data-gfx="pes6"] .skico{border-radius:0;border:1px solid #0003}
+/* vista FIFA: insignias hexagonales como los PlayStyles */
+.fright{display:grid;gap:14px;align-content:start;min-width:0}
+.fskills{background:var(--pan);border-radius:12px;padding:10px 12px;box-shadow:0 1px 0 #ffffff80 inset,0 4px 14px -10px #0007}
+.fskills h4{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-family:var(--display);font-size:1.05rem}.fskills h4 b{margin-left:auto;font:700 .9rem/1 var(--display);opacity:.7}
+.fstyle{margin:0 0 8px;font-size:.85rem;color:var(--smut)}.fstyle b{color:var(--sink)}
+.fsk{display:flex;flex-wrap:wrap;gap:10px 8px}
+.fskb{display:grid;justify-items:center;gap:3px;width:74px;cursor:help;outline:none}
+.fskb i{width:40px;height:44px;display:grid;place-items:center;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:linear-gradient(160deg,color-mix(in srgb,var(--kc) 55%,#fff),var(--kc) 60%,color-mix(in srgb,var(--kc) 70%,#000));color:#fff;transition:transform .25s cubic-bezier(.3,1.6,.5,1),filter .2s}
+.fskb svg{width:21px;height:21px}
+.fskb em{font-style:normal;font-size:.68rem;line-height:1.15;text-align:center;color:var(--sink)}
+.fskb:hover i,.fskb:focus-visible i,.fskb[aria-describedby] i{transform:scale(1.15) rotate(-6deg);filter:drop-shadow(0 0 6px var(--kc))}
+.fsknone{font-size:.85rem;color:var(--smut)}
+html[data-gfx="clasico"] .fskills{border-radius:0;box-shadow:inset 1px 1px #808080,inset -1px -1px #fff,inset 2px 2px #404040}
+html[data-gfx="retro"] .fskills{border-radius:0;box-shadow:inset 0 0 0 2px var(--line)}
+html[data-gfx="pes6"] .fskills{border-radius:0;border:1px solid #ffffff1f;box-shadow:inset 0 1px #ffffff14}
+html[data-gfx="pes6"] .card div.fifa .fskills h4>span{color:color-mix(in srgb,var(--tc) 85%,#fff);text-shadow:0 1px 0 #000}
+html[data-gfx="pes6"] .card div.fifa .fstyle{color:var(--smut)}
+/* ===== Encabezado del jugador: foto grande, posición encima a la izquierda y las otras posiciones al costado ===== */
+.phead{position:relative;flex:none;display:flex;padding:6px 24px 2px 14px}
+.phead .face.pl{width:96px;height:96px;border-radius:14px}
+.phead .phpos{position:absolute;left:0;top:0;z-index:2;min-width:40px;height:24px;font-size:.95rem;box-shadow:0 2px 6px #0005}
+.phalt{position:absolute;right:0;bottom:0;z-index:2;display:grid;gap:2px;justify-items:end}
+.phalt .posb{min-width:30px;height:16px;font-size:.62rem;padding:0 4px;box-shadow:0 1px 3px #0004}
+.phalt .posb.pbb{opacity:.72;filter:saturate(.6)}
+.phmore{font:700 .62rem/1 var(--mono);color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:1px 4px}
+/* Retro: queda como antes (posición al lado y foto chica), para mantener el toque retro */
+html[data-gfx="retro"] .phead{display:contents}
+html[data-gfx="retro"] .phead .phpos{position:static;min-width:34px;height:22px;font-size:.85rem;box-shadow:none}
+html[data-gfx="retro"] .phead .face.pl{width:3.4em;height:3.4em;border-radius:0}
+html[data-gfx="retro"] .phalt{display:none}
+html[data-gfx="clasico"] .phead .face.pl{border-radius:2px}
+/* PES 6: placas de posición como en el plantel del juego (amarillo arquero, azul defensa, verde medio, rojo ataque) */
+html[data-gfx="pes6"] .posb{border-radius:3px;border:1px solid #0009;font-family:var(--display);font-style:italic;font-weight:700;letter-spacing:.02em;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 2px 1px #0008;box-shadow:inset 0 1px #ffffff80,inset 0 -2px #0003}
+html[data-gfx="pes6"] .posb.gk{background:linear-gradient(180deg,#fff27a,#f2c80f 55%,#c99a00)}
+html[data-gfx="pes6"] .posb.df{background:linear-gradient(180deg,#7fe6f2,#19a9c4 55%,#0b7891)}
+html[data-gfx="pes6"] .posb.mf{background:linear-gradient(180deg,#9df07e,#3cb43a 55%,#227e22)}
+html[data-gfx="pes6"] .posb.fw{background:linear-gradient(180deg,#ff9a86,#e2392a 55%,#a51d14)}
+html[data-gfx="pes6"] .phead .face.pl{width:96px;height:96px;border-radius:2px;border:1px solid #6f6c64;box-shadow:inset 0 0 0 1px #fff,0 2px 6px #0004}

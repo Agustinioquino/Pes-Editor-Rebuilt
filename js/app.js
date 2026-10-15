@@ -92,7 +92,10 @@ const c6 = h => Math.round(parseInt(h, 16) * 63 / 255);
 const teamColor = (t, n) => '#' + hex2(tget(t, `c${n}r`)) + hex2(tget(t, `c${n}g`)) + hex2(tget(t, `c${n}b`));
 function inkFor(hex) { const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return (r * 299 + g * 587 + b * 114) / 1000 > 140 ? '#111' : '#fff'; }
 function crest(t, cls = '', urgent = false) { const a = teamColor(t, 1), b = teamColor(t, 2), u = badgeUrl(t, urgent); return `<span class="crest ${u ? 'img' : ''} ${cls}" style="--ca:${a};--cb:${b};color:${inkFor(a)}"><i>${esc(tget(t, 'short') || '?')}</i><img data-badge="${t.id}" alt="" ${u ? `src="${u}"` : ''} onerror="this.removeAttribute('src');this.parentNode.classList.remove('img')"></span>`; }
-const posBadge = i => `<span class="posb ${POS_GRP[i] || 'mf'}">${POS[i] || '?'}</span>`;
+// en inglés, la nomenclatura de PES (GK, CB, DMF, AMF, CF…); en español, la de siempre (PT, DEC, MO, CD…)
+const POS_EN = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'LWF', 'RWF', 'SS', 'CF'];
+const posCode = i => (typeof LANG !== 'undefined' && LANG === 'en' ? POS_EN : POS)[i] || '?';
+const posBadge = (i, cls = '') => `<span class="posb ${POS_GRP[i] || 'mf'} ${cls}" data-noi18n>${posCode(i)}</span>`;
 const vcls = v => v >= 90 ? 'v90' : v >= 80 ? 'v80' : v >= 70 ? 'v70' : v >= 60 ? 'v60' : 'vlo';
 function playerName(id) {
   const p = S.ix && S.ix.byId.get(id);
@@ -898,7 +901,7 @@ function rosterSelSync() {
 }
 function rosterExport(t, kind) {
   const hide = rHide(), tb = $('rtable'), vis = new Set([...tb.querySelectorAll('tr.prow:not([hidden])')].map(tr => +tr.dataset.pid));
-  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Nombre del jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => POS[w.pos] || ''], ['val', 'Valoración', w => w.r || ''],
+  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Nombre del jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => posCode(w.pos) || ''], ['val', 'Valoración', w => w.r || ''],
     ['age', 'Edad', w => w.age || ''], ['h', 'Altura', w => w.h || ''], ['nat', 'Nacionalidad', w => w.natName], ['foot', 'Pie', w => w.foot], ['mv', 'Valor (M€)', w => w.mv ? String(w.mv).replace('.', ',') : ''], ['cap', 'Capitán', w => w.cap ? 'Sí' : '']].filter(([k]) => !hide.has(k));
   const rows = S._rrows.filter(w => vis.has(w.pid)), sep = kind === 'csv' ? ';' : '\t';
   const cell = v => { v = String(v ?? ''); return kind === 'csv' && /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v.replace(/\t/g, ' '); };
@@ -1303,10 +1306,12 @@ function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="ch
 function playerSheet(p) {
   const g = k => pget(p, k), reg = g('reg_pos'), tm = playerTeams(p.id);
   const tchip = (lab, { t, num }) => `<button type="button" class="chip" data-pteam="${t.id}" title="Ver el plantel">${shirtSvg(kitFor(t, reg === 0), '1em', tget(t, 'name'))} <span class="tclab">${lab}</span> ${esc(tget(t, 'name'))}${num != null ? ' · <b>' + num + '</b>' : ''}</button>`;
-  const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades'], ['skills', 'Especiales'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
+  if (S.ptab === 'skills') S.ptab = 'abil'; // Especiales ahora está dentro de Habilidades y skills
+  const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades y skills'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
   const changed = S.origData && !S.d.subarray(p.base, p.base + 0x138).every((v, i) => v === S.origData[p.base + i]);
   return `<div class="card">
-    <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return `<span class="dbface">${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
+    <div class="head">${(() => { const c = clubOf(p.id), alt = POS.map((_, i) => [i, g('pos' + POS_TO_PP[i])]).filter(([i, v]) => i !== reg && v > 0).sort((a, b) => b[1] - a[1]);
+      return `<div class="phead">${posBadge(reg, 'phpos')}<span class="dbface">${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>${alt.length ? `<div class="phalt" title="Otras posiciones: A domina, B puede jugar">${alt.slice(0, 4).map(([i, v]) => posBadge(i, v === 2 ? 'pa' : 'pbb')).join('')}${alt.length > 4 ? `<span class="phmore">+${alt.length - 4}</span>` : ''}</div>` : ''}</div>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
       <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'} · ID ${p.id}</div>
       ${tm.clubs.length || tm.nats.length ? `<div class="dbteams hdteams">${tm.clubs.map(x => tchip('Equipo', x)).join('')}${tm.nats.map(x => tchip('Selección', x)).join('')}</div>` : ''}</div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
@@ -1378,9 +1383,9 @@ function tabProfile(p) {
 function tabPos(p) {
   const g = k => pget(p, k), reg = g('reg_pos');
   return `<div class="row" style="align-items:flex-start;gap:22px">
-    <div class="pitch" id="pitch" style="flex:1 1 300px">${POS.map((n, i) => { const v = g('pos' + POS_TO_PP[i]); return `<button type="button" class="pp l${v} ${i === reg ? 'reg' : ''}" data-pp="${i}" style="grid-column:${PITCH[i][0]};grid-row:${PITCH[i][1]}" title="${POS_LONG[i]}: tocá para cambiar el nivel"><b>${n}</b><span>${['—', 'B', 'A'][v]}</span></button>`; }).join('')}</div>
+    <div class="pitch" id="pitch" style="flex:1 1 300px">${POS.map((n, i) => { const v = g('pos' + POS_TO_PP[i]); return `<button type="button" class="pp l${v} ${i === reg ? 'reg' : ''}" data-pp="${i}" style="grid-column:${PITCH[i][0]};grid-row:${PITCH[i][1]}" title="${POS_LONG[i]}: tocá para cambiar el nivel"><b data-noi18n>${posCode(i)}</b><span>${['—', 'B', 'A'][v]}</span></button>`; }).join('')}</div>
     <div class="f" style="flex:1 1 240px;max-width:340px;gap:10px">
-      <div class="f"><label>Posición registrada</label><select data-k="reg_pos">${POS_LONG.map((n, i) => `<option value="${i}" ${i === reg ? 'selected' : ''}>${POS[i]} · ${n}</option>`).join('')}</select></div>
+      <div class="f"><label>Posición registrada</label><select data-k="reg_pos">${POS_LONG.map((n, i) => `<option value="${i}" ${i === reg ? 'selected' : ''}>${posCode(i)} · ${n}</option>`).join('')}</select></div>
       <p class="note">Tocá cada posición en la cancha para pasar de — (no juega) a B (puede jugar) y A (domina). La registrada queda marcada en amarillo y se pone en A sola.</p>
       <div class="row"><button class="btn small" id="ppClear" type="button">Dejar solo la registrada</button></div>
     </div></div>`;
@@ -1492,7 +1497,7 @@ function lvlSeg(k, v, labels, label) {
 }
 // ----- vista FIFA: las mismas habilidades de PES pasadas a la carta y a los atributos de FIFA (solo para ver) -----
 // cada atributo FIFA sale de una o más habilidades de PES; los pesos de cada media son los de FIFA
-const FIFA_POS = ['POR', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MI', 'MD', 'MCO', 'EI', 'ED', 'SD', 'DC'];
+const FIFA_POS = (typeof LANG !== 'undefined' && LANG === 'en') ? ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'CF', 'ST'] : ['POR', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MI', 'MD', 'MCO', 'EI', 'ED', 'SD', 'DC'];
 const FIFA_ATTR = [
   ['RIT', 'Ritmo', [['Aceleración', { exp_pwr: 1 }, .45], ['Velocidad', { speed: 1 }, .55]]],
   ['TIR', 'Tiro', [['Posicionamiento', { atk: 1 }, .05], ['Definición', { finish: 1 }, .45], ['Potencia de tiro', { kick_pwr: 1 }, .2], ['Tiros lejanos', { kick_pwr: .5, finish: .5 }, .2], ['Voleas', { finish: .6, body_ctrl: .4 }, .05], ['Penaltis', { place_kick: 1 }, .05]]],
@@ -1542,20 +1547,121 @@ function fifaCard(p) {
       <div class="fu-ps" title="${esc(STYLES[ps] || '')}">${ps ? '<i></i>' : ''}</div>
       <div class="fu-face">${faceHtml(p.id, kit, 'futf')}</div>
       <div class="fu-nm">${esc(nm)}</div>
-      <div class="fu-band"><span>⚽</span>${esc(ps ? STYLES[ps] : (tier === 'icon' ? 'Leyenda' : 'Básico'))}</div>
+      <div class="fu-band"><span>⚽</span>${esc(ps ? STYLES[ps] : 'Sin estilo de juego')}</div>
       <div class="fu-st">${order.map(i => { const [ab, n, v] = st[i]; return `<div title="${n}"><b>${v}</b><span>${ab}</span></div>`; }).join('')}</div>
       ${tier === 'icon' ? '<div class="fu-icon">ÍCONO</div>' : ''}
     </div>
   </div>`;
 }
-// la apertura: sobre que tiembla, destello y aparecen bandera, posición y escudo antes de la carta (como en FIFA)
+// ----- skills: un ícono propio para cada habilidad especial y estilo de la IA, con la explicación al pasar el mouse -----
+const SK_GLYPH = {
+  step: '<circle cx="12" cy="16" r="4"/><path d="M5 10c2-5 12-5 14 0M16 7l3 3-3.5 1"/>',
+  swirl: '<circle cx="12" cy="12" r="3.5"/><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/>',
+  lift: '<circle cx="12" cy="6" r="3"/><path d="M4 20c3-9 13-9 16 0M9 20h6"/>',
+  heel: '<path d="M6 3v9c0 3 2 5 5 5h7a2 2 0 0 0 0-4h-4l-2-3V3"/><circle cx="7" cy="20.5" r="2"/>',
+  feint: '<circle cx="8" cy="16" r="3.5"/><path d="M12 12l7-7M15 5h4v4" stroke-dasharray="3 2"/>',
+  header: '<circle cx="9" cy="9" r="4"/><path d="M3 21c0-4 2.5-6 6-6s6 2 6 6"/><circle cx="18.5" cy="5.5" r="2.5"/>',
+  power: '<circle cx="16" cy="12" r="4.5"/><path d="M2 8h7M4 12h6M2 16h7"/>',
+  arc: '<path d="M3 20C7 4 17 4 21 20"/><circle cx="12" cy="8" r="2.5"/>',
+  knuckle: '<path d="M2 14l3.5-4 3.5 4 3.5-4"/><circle cx="18" cy="12" r="3.5"/>',
+  acro: '<circle cx="5.5" cy="18" r="2.5"/><path d="M9 15l6-6 5-1M15 9l-2 8M11 4l4 5"/><circle cx="19.5" cy="4" r="2"/>',
+  bolt: '<path d="M13 2L5 13h6l-1 9 8-12h-6z"/>',
+  through: '<path d="M3 12h15M14 7l5 5-5 5M8 3v4M8 17v4"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+  cross: '<path d="M3 21c4-12 11-15 18-14M17 3l4 4-4 3"/>',
+  curve: '<path d="M4 20C4 10 13 4 20 6M16 2.5l4 3.5-3.5 4"/><circle cx="4.5" cy="20" r="1.5"/>',
+  eye: '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 20L20 4"/>',
+  lowlob: '<path d="M2 18c5-7 15-7 20 0"/><circle cx="12" cy="12.5" r="2.5"/>',
+  hands: '<path d="M7 11V5.5a1.8 1.8 0 0 1 3.6 0V10M10.6 9V4a1.8 1.8 0 0 1 3.6 0v6M14.2 10V6a1.8 1.8 0 0 1 3.6 0v8a7 7 0 0 1-7 7h-.6A6 6 0 0 1 4 15v-3a1.8 1.8 0 0 1 3.6 0"/>',
+  punt: '<path d="M4 20l8-8M2 17l3 3"/><circle cx="16.5" cy="7.5" r="3.5"/><path d="M20 3l1.5-1.5"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M8 12h8"/>',
+  manmark: '<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-4 3-6 6-6s6 2 6 6M13.5 20c0-3 1.5-5 3.5-5s4 2 4 5"/>',
+  back: '<path d="M19 12H5M10 7l-5 5 5 5M20 5v14"/>',
+  wink: '<circle cx="12" cy="12" r="9"/><path d="M7.5 10h3M15.5 9.5v1M8 15c2 2 6 2 8 0"/>',
+  captain: '<rect x="3" y="7" width="18" height="10" rx="2"/><path d="M14.5 10a3 3 0 1 0 0 4"/>',
+  sub: '<path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/>',
+  flame: '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-6 0 2 1 3 2 3 0-3 0-5 1-8z"/>',
+  run: '<path d="M3 18l5-5 4 3 7-9M15 7h4v4"/>'
+};
+const SK_INFO = {
+  0: ['step', 'Pasa el pie por encima de la pelota (bicicleta) para engañar al rival antes de salir.'],
+  28: ['step', 'Toca la pelota dos veces seguidas para cambiar de dirección muy rápido.'],
+  1: ['swirl', 'Lleva la pelota hacia afuera y la vuelve a meter con el mismo pie en un solo movimiento.'],
+  2: ['swirl', 'Gira sobre la pelota (ruleta) para dejar atrás al rival que lo marca.'],
+  3: ['lift', 'Levanta la pelota por encima del rival que viene de frente.'],
+  29: ['swirl', 'Cambia de dirección pasando la pelota por detrás del pie de apoyo.'],
+  4: ['heel', 'Corta la pelota por detrás del cuerpo para girar en seco.'],
+  5: ['feint', 'Amaga un remate o un pase y se lleva la pelota para el otro lado.'],
+  30: ['step', 'Frena y controla la pelota con la suela para protegerla y cambiar el ritmo.'],
+  10: ['heel', 'Pasa o se acomoda la pelota con el taco.'],
+  6: ['header', 'Cabecea con más precisión y potencia.'],
+  7: ['power', 'Le pega fuerte desde lejos con un tiro tenso y con poco efecto.'],
+  31: ['arc', 'Define por encima del arquero con una vaselina precisa.'],
+  39: ['power', 'Más precisión en los remates desde fuera del área.'],
+  8: ['knuckle', 'Remate sin rosca que se mueve en el aire y complica al arquero.'],
+  32: ['arc', 'Tiro que cae de golpe al llegar al arco.'],
+  33: ['arc', 'Tiro que sube al final del recorrido.'],
+  9: ['acro', 'Puede rematar de chilena, de tijera o en posiciones difíciles.'],
+  11: ['bolt', 'Remata de primera, sin controlar, con mejor precisión.'],
+  12: ['bolt', 'Pases de primera más precisos.'],
+  40: ['through', 'Pases al espacio más precisos para dejar a un compañero solo.'],
+  13: ['target', 'Pases elevados con efecto hacia atrás que frenan justo donde llega el compañero.'],
+  14: ['cross', 'Centros más precisos al área.'],
+  15: ['curve', 'Pasa y remata con el exterior del pie, con efecto.'],
+  16: ['curve', 'Pasa o remata cruzando la pierna por detrás de la otra (rabona).'],
+  34: ['eye', 'Pasa mirando para otro lado para engañar a la defensa.'],
+  17: ['lowlob', 'Pase elevado bajo y tenso, difícil de cortar.'],
+  19: ['hands', 'Saca de banda muy lejos, casi como un centro.'],
+  18: ['punt', 'El arquero saca con un pelotazo bajo y tenso.'],
+  35: ['punt', 'El arquero saca con un pelotazo alto y largo.'],
+  20: ['hands', 'El arquero lanza la pelota con la mano muy lejos para salir rápido.'],
+  37: ['hands', 'El arquero ataja más penales.'],
+  36: ['target', 'Patea los penales con más precisión.'],
+  21: ['wink', 'Busca faltas y sabe dejarse caer para sacar ventaja.'],
+  22: ['manmark', 'Sigue de cerca a un rival durante todo el partido.'],
+  23: ['back', 'Vuelve a defender en cuanto el equipo pierde la pelota.'],
+  38: ['shield', 'Anticipa y corta mejor los pases del rival.'],
+  24: ['acro', 'Despeja la pelota de chilena o de tijera.'],
+  25: ['captain', 'Levanta el ánimo del equipo cuando es el capitán.'],
+  26: ['sub', 'Rinde mejor cuando entra desde el banco.'],
+  27: ['flame', 'No baja los brazos aunque el equipo vaya perdiendo.']
+};
+const COM_INFO = [
+  ['swirl', 'La IA hace muchos trucos y amagues cuando tiene la pelota.'],
+  ['run', 'La IA encara en conducción larga, eludiendo a varios rivales.'],
+  ['bolt', 'La IA usa su velocidad para escaparse al espacio.'],
+  ['through', 'La IA busca el espacio a espaldas de la defensa.'],
+  ['arc', 'La IA busca seguido los pases largos.'],
+  ['cross', 'La IA centra apenas puede, sin llegar al fondo.'],
+  ['power', 'La IA remata seguido desde lejos.']
+];
+const skSvg = gl => `<svg viewBox="0 0 24 24" aria-hidden="true">${SK_GLYPH[gl] || SK_GLYPH.target}</svg>`;
+const SK_CAT = new Map(SKILLS.flatMap(([, list], gi) => list.map(([i]) => [i, gi])));
+// las que tiene el jugador: [clave, nombre, ícono, explicación, grupo]
+function playerSkills(p) {
+  const out = [];
+  for (const [, list] of SKILLS) for (const [i, nm] of list) if (pget(p, 'sk' + i)) out.push(['sk' + i, nm, (SK_INFO[i] || [])[0], (SK_INFO[i] || [])[1] || '', SK_CAT.get(i)]);
+  COM.forEach((nm, i) => { if (pget(p, 'com' + i)) out.push(['com' + i, nm, COM_INFO[i][0], COM_INFO[i][1], 'ia']); });
+  return out;
+}
+const skChip = (k, nm, gl, tip, cat, on) => `<label class="skchip" data-c="${cat}" data-tip="${esc(tip)}" data-tiptitle="${esc(nm)}"><input type="checkbox" data-k="${k}" ${on ? 'checked' : ''}><i class="skico">${skSvg(gl)}</i><span>${nm}</span></label>`;
+function skillsBlock(p) {
+  const g = k => pget(p, k), all = SKILLS.flatMap(s => s[1]), n = all.filter(([i]) => g('sk' + i)).length;
+  return `<h3 class="sec">Skills <span class="skn">${n} habilidades especiales</span></h3>
+  <div class="grid wide"><div class="f"><label>Estilo de juego</label><select data-k="play_style">${selOpts(STYLES, g('play_style'))}</select></div></div>
+  <div class="skgroups">${SKILLS.map(([gn, list], gi) => `<div class="skgrp" data-c="${gi}"><h4>${gn}<b>${list.filter(([i]) => g('sk' + i)).length}/${list.length}</b></h4><div class="skchips">${list.map(([i, nm]) => skChip('sk' + i, nm, (SK_INFO[i] || [])[0], (SK_INFO[i] || [])[1] || '', gi, g('sk' + i))).join('')}</div></div>`).join('')}
+    <div class="skgrp" data-c="ia"><h4>Estilos de juego de la IA<b>${COM.filter((_, i) => g('com' + i)).length}/${COM.length}</b></h4><div class="skchips">${COM.map((nm, i) => skChip('com' + i, nm, COM_INFO[i][0], COM_INFO[i][1], 'ia', g('com' + i))).join('')}</div></div></div>`;
+}
+// la apertura ocupa toda la pestaña: sobre que tiembla, destello, bandera → posición → escudo, y la carta aparece
+// grande en el centro con rayos antes de ir a su lugar (como en FIFA). Se puede saltar, repetir o apagar.
 function fifaOpening(p) {
   const c = clubOf(p.id), reg = pget(p, 'reg_pos');
   return `<div class="fopen" aria-hidden="true"><i class="fo-beam"></i><i class="fo-pack"><b>⚽</b></i><i class="fo-flash"></i>
     <div class="fo-w fo-w1">${natFlag(pget(p, 'nation')) || '<b>🌍</b>'}</div><div class="fo-w fo-w2"><b>${FIFA_POS[reg] || ''}</b></div><div class="fo-w fo-w3">${c ? crest(c, 'fobig') : '<b>⚽</b>'}</div>
-    <div class="fo-parts">${Array.from({ length: 14 }, (_, i) => `<i style="--a:${i * 360 / 14}deg;--d:${(i % 3) * 40 + 90}px"></i>`).join('')}</div>
-    <button type="button" class="fo-skip" data-foskip>Saltar ⏭</button></div>`;
+    <i class="fo-rays"></i><div class="fo-parts">${Array.from({ length: 22 }, (_, i) => `<i style="--a:${i * 360 / 22}deg;--d:${(i % 4) * 50 + 120}px"></i>`).join('')}</div></div>
+    <button type="button" class="fo-skip" data-foskip>Saltar ⏭</button>`;
 }
+const fifaPref = k => PREFS[k] !== false;
 function fifaView(p) {
   const g = k => pget(p, k), gk = g('reg_pos') === 0, tier = fifaTier(p);
   const row = (n, w) => { const v = fifaVal(g, w); return `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`; };
@@ -1563,22 +1669,56 @@ function fifaView(p) {
   if (gk) groups.unshift(`<div class="group abgrp fgrp"><h4><span>Portero</span></h4>${FIFA_GK.map(([, n, w]) => row(n, w)).join('')}</div>`);
   const stars = n => '★'.repeat(n) + '<s>' + '★'.repeat(5 - n) + '</s>';
   S.fifaSeen = S.fifaSeen || new Set();
-  const open = !ANIM.reduce.matches && !S.fifaSeen.has(p.id); S.fifaSeen.add(p.id);
-  const leg = isLegend(p), auto = legendAuto(p);
-  return `<div class="fifa t-${tier}${open ? ' opening' : ''}">
-    <div class="fifaside">${open ? '<i class="fo-rays" aria-hidden="true"></i>' + fifaOpening(p) : ''}${fifaCard(p)}
-      <div class="futbtns"><button type="button" class="btn small" data-fifaopen>🎁 Abrir sobre</button><button type="button" class="btn small" data-legend aria-pressed="${leg}" title="${auto ? 'Juega en un equipo clásico: se lo toma como leyenda' : 'Marcarlo como leyenda muestra la carta ícono'}">⭐ Leyenda</button></div>
+  const force = S.fifaForce === p.id; S.fifaForce = null;
+  const open = !ANIM.reduce.matches && (force || (fifaPref('fifaOpen') && !S.fifaSeen.has(p.id))); S.fifaSeen.add(p.id);
+  const leg = isLegend(p), auto = legendAuto(p), sk = playerSkills(p), ps = g('play_style');
+  const skills = `<div class="fskills"><h4><span>Skills</span><b>${sk.length}</b></h4>
+    ${ps ? `<p class="fstyle">Estilo de juego: <b>${esc(STYLES[ps])}</b></p>` : ''}
+    <div class="fsk">${sk.map(([, nm, gl, tip, cat]) => `<span class="fskb" tabindex="0" data-c="${cat}" data-tip="${esc(tip)}" data-tiptitle="${esc(nm)}"><i>${skSvg(gl)}</i><em>${nm}</em></span>`).join('') || '<span class="fsknone">Sin habilidades especiales</span>'}</div></div>`;
+  return `<div class="fifa t-${tier}${open ? ' opening' : ''}">${open ? fifaOpening(p) : ''}
+    <div class="fifaside">${tier === 'gold' || tier === 'icon' ? '<i class="futglow" aria-hidden="true"></i>' : ''}${fifaCard(p)}
+      <div class="futbtns"><button type="button" class="btn small" data-fifaopen>🎁 Abrir sobre</button><button type="button" class="btn small" data-legend aria-pressed="${leg}" title="${auto ? 'Juega en un equipo clásico: se lo toma como leyenda' : 'Marcarlo como leyenda muestra la carta ícono'}">⭐ Leyenda</button>
+        <button type="button" class="btn small" data-fifapref="fifaOpen" aria-pressed="${fifaPref('fifaOpen')}" title="Mostrar la apertura la primera vez que abrís cada jugador">🎬 Apertura</button><button type="button" class="btn small" data-fifapref="fifaSnd" aria-pressed="${fifaPref('fifaSnd')}" title="Sonido de la apertura">${fifaPref('fifaSnd') ? '🔊' : '🔇'} Sonido</button></div>
       <dl class="futinfo"><dt>Pie hábil</dt><dd>${g('strong_foot') ? 'Izquierdo' : 'Derecho'}</dd><dt>Pierna mala</dt><dd class="fst">${stars(g('weak_acc') + 1)}</dd><dt>Altura</dt><dd>${g('height')} cm</dd><dt>Peso</dt><dd>${g('weight')} kg</dd><dt>Edad</dt><dd>${g('age')} años</dd></dl>
       <p class="note">Es una forma de ver al jugador: las medias se calculan con sus habilidades de PES. Para cambiar valores, volvé a la vista PES.</p></div>
-    <div class="fgrid">${groups.join('')}</div>
+    <div class="fright">${skills}<div class="fgrid">${groups.join('')}</div></div>
   </div>`;
 }
-// termina la apertura sola o al tocar
+// sonidos de la apertura, hechos con el sintetizador del navegador (sin archivos): retumbo del sobre, explosión,
+// un golpe por cada dato (bandera, posición, escudo) y el acorde brillante de la carta
+function fifaSound(tier) {
+  if (!fifaPref('fifaSnd')) return () => { };
+  let c; try { c = sfxCtx(); } catch { } if (!c) return () => { };
+  const t = c.currentTime + .05, out = c.createGain(); out.gain.value = Math.max(.05, (GFX().sfxVol ?? .5)) * .9; out.connect(c.destination);
+  const noise = (() => { const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })();
+  const env = (node, at, a, peak, dur) => { const e = c.createGain(); e.gain.setValueAtTime(0, t + at); e.gain.linearRampToValueAtTime(peak, t + at + a); e.gain.exponentialRampToValueAtTime(.0005, t + at + dur); node.connect(e); e.connect(out); return e; };
+  const osc = (type, f0, f1, at, dur, peak, a = .01) => { const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur); env(o, at, a, peak, dur); o.start(t + at); o.stop(t + at + dur + .05); };
+  const nz = (at, dur, peak, type, f0, f1, a = .005, q = 1) => { const s = c.createBufferSource(); s.buffer = noise; const f = c.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t + at); f.frequency.exponentialRampToValueAtTime(f1, t + at + dur); s.connect(f); env(f, at, a, peak, dur); s.start(t + at); s.stop(t + at + dur + .05); };
+  // sobre que tiembla: retumbo que sube
+  osc('sawtooth', 45, 110, 0, 1.05, .12, .5); nz(0, 1.05, .18, 'lowpass', 200, 900, .6);
+  for (let i = 0; i < 6; i++) nz(.45 + i * .09, .07, .1, 'bandpass', 1800, 1200, .005, 4);
+  // explosión del destello
+  nz(1.05, 1, .55, 'lowpass', 6000, 200); osc('sine', 120, 35, 1.05, .8, .6);
+  // bandera, posición y escudo: un golpe grave cada uno, más un brillo
+  [1.3, 2, 2.7].forEach((at, i) => { osc('sine', 160 - i * 10, 55, at, .45, .7); nz(at, .12, .25, 'highpass', 3000, 6000); osc('triangle', 660 * (1 + i * .26), 660 * (1 + i * .26), at, .35, .05); });
+  // la carta: platillo y acorde que sube (oro e ícono, más largo y con coro)
+  nz(3.2, 1.6, .35, 'highpass', 5000, 9000, .005);
+  const big = tier === 'gold' || tier === 'icon', base = tier === 'bronze' ? 392 : tier === 'silver' ? 440 : 523.25;
+  [1, 1.26, 1.5, 2].forEach((m, i) => osc('triangle', base * m, base * m, 3.2 + i * .07, big ? 1.8 : 1.1, .09));
+  if (big) [.5, .75, 1].forEach(m => osc('sawtooth', base * m, base * m * 1.003, 3.3, 2, .025, .4));
+  return () => { try { out.gain.cancelScheduledValues(c.currentTime); out.gain.setTargetAtTime(0, c.currentTime, .05); setTimeout(() => out.disconnect(), 400); } catch { } };
+}
+// arranca y termina la apertura (sola o al tocar)
 function fifaBind(sh) {
   const f = sh.querySelector('.fifa.opening'); if (!f) return;
-  const end = () => { clearTimeout(t); f.classList.remove('opening'); f.classList.add('opened'); f.querySelectorAll('.fopen,.fo-rays').forEach(o => o.remove()); };
-  const t = setTimeout(end, 5600);
-  f.querySelector('.fifaside').addEventListener('click', end, { once: true });
+  const card = f.querySelector('.fut'), fr = f.getBoundingClientRect(), cr = card.getBoundingClientRect();
+  card.style.setProperty('--fx', Math.round(fr.left + fr.width / 2 - (cr.left + cr.width / 2)) + 'px');
+  card.style.setProperty('--fy', Math.round(Math.min(fr.height, innerHeight) / 2 - (cr.top - fr.top) - cr.height / 2) + 'px');
+  f.style.setProperty('--cy', Math.round(Math.min(fr.height, innerHeight) / 2) + 'px');
+  const stop = fifaSound((card.className.match(/\b(gold|silver|bronze|icon)\b/) || [])[1]);
+  const end = () => { clearTimeout(t); stop(); f.classList.remove('opening'); f.classList.add('opened'); f.querySelectorAll('.fopen,.fo-skip').forEach(o => o.remove()); };
+  const t = setTimeout(() => { f.querySelectorAll('.fopen,.fo-skip').forEach(o => o.remove()); f.classList.remove('opening'); f.classList.add('opened'); }, 5600);
+  f.addEventListener('click', end, { once: true });
 }
 const abViewSeg = () => { const v = PREFS.abView === 'fifa' ? 'fifa' : 'pes'; return `<div class="abview" role="group" aria-label="Forma de ver las estadísticas"><span class="lab">Ver como</span><div class="seg">${[['pes', '⚽ PES'], ['fifa', '🃏 FIFA']].map(([k, n]) => `<button type="button" data-abview="${k}" aria-pressed="${v === k}">${n}</button>`).join('')}</div></div>`; };
 function tabAbil(p) {
@@ -1595,7 +1735,7 @@ function tabAbil(p) {
     <div class="f"><span class="lab">Precisión de pierna mala</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
     <div class="f"><span class="lab">Estado de forma</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
     <div class="f"><span class="lab">Resistencia a lesiones</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
-  </div>`;
+  </div>${skillsBlock(p)}`;
 }
 function tabSkills(p) {
   const g = k => pget(p, k);
@@ -1719,7 +1859,8 @@ function bindPlayer(p, m) {
   });
   sh.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.hasAttribute('data-fifaopen')) { if (S.fifaSeen) S.fifaSeen.delete(p.id); rer(); return; }
+    if (b.hasAttribute('data-fifaopen')) { S.fifaForce = p.id; rer(); return; }
+    if (b.dataset.fifapref) { PREFS[b.dataset.fifapref] = !fifaPref(b.dataset.fifapref); savePrefs(); rer(); return; }
     if (b.hasAttribute('data-legend')) { LEGEND.set(p.id, !isLegend(p)); if (LEGEND.get(p.id) === legendAuto(p)) LEGEND.delete(p.id); try { localStorage.setItem(LEG_LS, JSON.stringify([...LEGEND])); } catch { } rer(); return; }
     if (b.dataset.abview) { if (PREFS.abView !== b.dataset.abview) { PREFS.abView = b.dataset.abview; savePrefs(); rer(); } return; }
     if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }

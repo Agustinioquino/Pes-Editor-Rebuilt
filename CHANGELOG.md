@@ -2,6 +2,49 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.056 alpha · ¡Abrí el sobre! Jugadores renovados
+
+*15 de octubre de 2026, 05:40 (hora de Argentina)*
+
+La pestaña Jugadores se renovó: un perfil más claro, la foto grande con los colores de sus posiciones, Habilidades y skills en una sola pestaña, y una vista FIFA con su carta y un sobre para abrir.
+
+- **Perfil más claro** (Plantel). Nombre y apellido van por separado (el juego los guarda juntos, el editor los une solo), el nombre en camiseta tiene el botón Usar apellido, el equipo y la selección se ven con su escudo y dorsal, y las estrellas y la actitud se eligen con colores.
+- **Foto grande con el color de sus posiciones** (Interfaz). La foto del jugador es más grande, con su posición arriba a la izquierda y las otras posiciones donde puede jugar al costado. El marco toma los colores de sus posiciones (amarillo portero, azul defensa, verde medio, rojo delantera): cuanto mejor juega en cada una, más lugar ocupa su color.
+- **Habilidades y skills** (Plantel). Habilidades y Especiales ahora son una sola pestaña. Cada habilidad tiene su barra con color, − y +, el promedio de su grupo y un ⓘ que explica qué hace. Cada habilidad especial y cada estilo de la IA tiene su ícono y su explicación al pasar el mouse.
+- **Ver como FIFA** (Interfaz). Un botón muestra al jugador como una carta de FIFA: oro, plata o bronce según su media, especial desde 80 y carta ícono para las leyendas. En PES 6 y Clásico la carta es como la de FIFA 15; en Moderno y Retro, como las de ahora. Es solo para mirar: las medias salen de sus habilidades de PES.
+- **Abrí el sobre** (Interfaz). La primera vez que ves a un jugador en la vista FIFA aparece un sobre: pasá el mouse por arriba para rasgarlo. Salen la bandera, la posición y el escudo, y después la carta, con confeti, sonido y la tribuna: ovación para las medias altas, silbidos para las bajas. Se puede saltar, repetir o apagar, y el sonido también.
+- **Nombres más claros** (Interfaz). Posición registrada ahora se llama Posición natural. En inglés las posiciones usan las siglas de PES (CF, AMF, CB…); en español quedan como siempre (CD, MO, DEC…).
+- **Fichas de Del juego** (Plantel). Arreglado: en Jugadores → Del juego, la ficha dejaba de verse desde el segundo jugador que tocabas.
+
+## v0.055 alpha · Tus ideas, en el editor
+
+*15 de octubre de 2026, 04:30 (hora de Argentina)*
+
+Al lado de Novedades hay una pestaña nueva, Ideas: todo lo que viene y lo que piden los usuarios, con cuánto avanzó cada cosa. Y desde ahí podés mandar tu idea o avisar de un fallo.
+
+- **La pestaña Ideas** (Interfaz). Cada idea tiene su barra de avance con el porcentaje, su estado (ya está, en prueba, en camino o pensada), su prioridad, su dificultad y si la pidieron usuarios. Se filtra por pedidos de usuarios, en prueba, en camino o ya están, y se ordena por prioridad, las más fáciles primero o las más avanzadas.
+- **Mandá tu idea o avisá de un fallo** (Interfaz). Los botones Tengo una idea y Algo no anda abren un cuadro para escribirlo. Enviar por GitHub abre la página con tu texto listo (en los fallos se suman la versión, el navegador y el modo gráfico), y si no tenés cuenta, Copiar para Discord o WhatsApp lo deja listo para pegar en el grupo.
+- **Lo que pidieron los usuarios** (Interfaz). Editar jugadores en la Liga Master y pasar el EDIT a la base del juego (y al revés) ya están en la lista con su avance. Cambiar el escudo del equipo y elegir botines, guantes y ropa térmica ya existen: su tarjeta dice dónde encontrarlos.
+- **En desarrollo, con los mismos datos** (Interfaz). El cartel En desarrollo usa la misma lista que la pestaña Ideas, así los porcentajes son iguales en los dos lugares, y tiene un botón 💡 Ideas para ver todo.
+
+## v0.054 alpha · El editor, ahora todo en inglés
+
+*15 de octubre de 2026, 01:45 (hora de Argentina)*
+
+Con el editor en inglés ya no quedan textos en español: la pestaña Sider, las minifaces, los escudos, el Kit Studio Pro y los avisos salen en inglés.
+
+- **Inglés completo** (Interfaz). Se tradujeron unas 220 frases que seguían en español en la versión en inglés: las descripciones de los módulos y carpetas de la pestaña Sider, los mensajes de minifaces, escudos 2K, Kit Studio Pro y kits en .zip, el detalle de la forma de cada jugador, el aviso de cambios sin guardar, la convocatoria y algunos países.
+- **Los estadios conservan su nombre** (Interfaz). En inglés, los estadios del juego como el Estadio del Tauro ya no se traducen a medias: quedan con su nombre original.
+
+## v0.053 alpha · Miles de escudos de PES Logos, a un clic
+
+*14 de octubre de 2026, 23:45 (hora de Argentina)*
+
+El creador de escudos ahora busca en PES Logos, con miles de escudos hechos para el juego: elegís uno y queda listo para guardar. Y los equipos que se veían sin escudo lo buscan solos ahí.
+
+- **Buscar escudos en PES Logos** (Plantel). En Datos y colores, el creador de escudos tiene el botón 🔎 Buscar en PES Logos. Busca con el nombre del equipo (lo podés cambiar) y muestra los escudos con su año, o si son Retro o Especiales. Al tocar uno, el editor lo baja en su tamaño original y lo carga como escudo nuevo, con un enlace a su página en PES Logos.
+- **Los escudos que no cargaban, desde PES Logos** (Interfaz). Si un equipo no tiene escudo en la carpeta Sider y tampoco aparece en TheSportsDB ni en Wikipedia, el editor lo busca en PES Logos. Solo usa uno si el nombre coincide de verdad (si hay dos clubes posibles, no adivina) y prefiere el escudo actual a los Retro o Especiales. Los equipos que antes quedaron sin escudo se buscan una vez más.
+
 ## v0.052 alpha · Minifaces al juego y escudos mejorados
 
 *14 de octubre de 2026, 23:30 (hora de Argentina)*

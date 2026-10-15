@@ -626,12 +626,12 @@ function pvMarker(t, PV, e, i, kitP, kitG, photos) {
   const x = PD.roster(S.d, t).find(r => r.slot === e.slot), full = x ? playerName(x.pid) : '', short = full ? full.split(' ').slice(-1)[0] : '', kit = i ? kitP : kitG;
   const pi = x && pInfoAt(x.pid, e.role), p = e.p;
   const avatar = photos ? faceHtml(x && x.pid, kit, 'big') : `<span class="shirtwrap">${shirtSvg(kit, '100%')}</span>`;
-  const badge = e.replaced ? `<span class="pvb rep" title="${esc(p ? p.name : '')} no está en tu plantel">↺ por ${esc(p ? p.name.split(' ').slice(-1)[0] : '?')}</span>` : e.diff === 'in' ? '<span class="pvb in" title="Hoy no es titular en tu equipo">▲ entra</span>' : e.diff === 'moved' ? `<span class="pvb mv" title="Hoy juega de ${POS_LONG[e.fromRole]}">⇄ era ${POS[e.fromRole]}</span>` : '';
+  const badge = e.replaced ? `<span class="pvb rep" title="${esc(p ? p.name : '')} no está en tu plantel">↺ por ${esc(p ? p.name.split(' ').slice(-1)[0] : '?')}</span>` : e.diff === 'in' ? '<span class="pvb in" title="Hoy no es titular en tu equipo">▲ entra</span>' : e.diff === 'moved' ? `<span class="pvb mv" title="Hoy juega de ${POS_LONG[e.fromRole]}">⇄ era ${posCode(e.fromRole)}</span>` : '';
   return `<div class="fm pvm ln-${POS_GRP[e.role]} ${e.x > 80 ? 'edge-r' : e.x < 20 ? 'edge-l' : ''} ${i ? '' : 'gk'} ${photos ? 'ph' : ''} ${e.replaced ? 'rep' : ''} d-${e.diff}" style="left:${Math.max(5, Math.min(95, e.x))}%;bottom:${3 + e.y / 50 * 94}%" title="${esc(full)} · ${POS_LONG[e.role]}${p && p.rt != null ? ' · puntaje ' + p.rt.toFixed(1) : ''}${p && p.min && p.min < 90 ? ' · ' + p.min + '′' : ''}">
     ${badge}
     <span class="fav">${avatar}${(() => { const pend = pi && pi.form ? pi.adj - (pi.applied || 0) : 0, k = pend > 0 ? 'up' : pend < 0 ? 'dn' : 'eq'; return `<span class="fxr ${k}" style="--d:${(i * 0.13).toFixed(2)}s" aria-hidden="true"><b class="ring"></b>${k === 'eq' ? '<i>➡</i>' : `<i>${k === 'up' ? '▲' : '▼'}</i><i>${k === 'up' ? '▲' : '▼'}</i><i>${k === 'up' ? '▲' : '▼'}</i><em>${pend > 0 ? '+' : '−'}${Math.abs(pend)}</em>`}</span>`; })()}<span class="fnum">${x ? x.number : ''}</span>${p && p.rt != null && !e.replaced ? `<b class="lrt pvrt ${rtCls(p.rt)}">${p.rt.toFixed(1)}</b>` : ''}</span>
     <span class="fname">${esc(short || '—')}${e.replaced ? '' : statIcons(p)}</span>
-    <span class="fmeta"><span class="posb ${POS_GRP[e.role]}">${POS[e.role]}</span>${rateHtml(pi)}</span></div>`;
+    <span class="fmeta"><span class="posb ${POS_GRP[e.role]}">${posCode(e.role)}</span>${rateHtml(pi)}</span></div>`;
 }
 function pvSide(t, PV) {
   const r = PD.roster(S.d, t), nm = s => { const x = r.find(y => y.slot === s); return x ? playerName(x.pid) || 'ID ' + x.pid : '?'; };
@@ -643,9 +643,9 @@ function pvSide(t, PV) {
     <div class="row"><button class="btn primary" type="button" id="pvApply">✔ Usar esta formación y este 11</button><button class="btn" type="button" id="pvBack">↩ Volver a mi formación</button></div>
     <h4>Cambios contra tu 11 actual</h4>
     <ul class="pvlist">
-      ${ins.map(e => li('▲', `<b>${esc(nm(e.slot))}</b> entra de ${POS[e.role]}`, 'in')).join('')}
+      ${ins.map(e => li('▲', `<b>${esc(nm(e.slot))}</b> entra de ${posCode(e.role)}`, 'in')).join('')}
       ${PV.out.map(s => li('▼', `<b>${esc(nm(s))}</b> sale del 11`, 'out')).join('')}
-      ${moved.map(e => li('⇄', `<b>${esc(nm(e.slot))}</b>: ${POS[e.fromRole]} → ${POS[e.role]}`, 'mv')).join('')}
+      ${moved.map(e => li('⇄', `<b>${esc(nm(e.slot))}</b>: ${posCode(e.fromRole)} → ${posCode(e.role)}`, 'mv')).join('')}
       ${reps.map(e => li('↺', `${esc(e.p ? e.p.name : '?')} no está en tu plantel: va <b>${esc(nm(e.slot))}</b>`, 'rep')).join('')}
       ${!ins.length && !PV.out.length && !moved.length && !reps.length ? li('✓', 'Es el mismo 11 y en los mismos puestos que ya tenés.', 'same') : ''}
     </ul>

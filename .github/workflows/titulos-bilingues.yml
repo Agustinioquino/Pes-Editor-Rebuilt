@@ -1,0 +1,27 @@
+# Una sola vez: pone los títulos de las releases ya publicadas en inglés y español.
+# No toca el texto, las etiquetas ni los archivos adjuntos.
+name: Títulos de releases en inglés y español
+
+on:
+  push:
+    branches: [claude/project-thread-1tfyd3]
+    paths: ['release/titulos-uno/**']
+
+permissions:
+  contents: write
+
+jobs:
+  titulos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cambiar el título de cada release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          while IFS=$'\t' read -r tag titulo; do
+            [ -z "$tag" ] && continue
+            gh release edit "$tag" --title "$titulo" >/dev/null
+            echo "✏️ $tag → $titulo"
+          done < release/titulos-uno/titulos.tsv

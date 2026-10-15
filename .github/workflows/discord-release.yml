@@ -50,28 +50,29 @@ jobs:
 
           # --- Convierte las notas del release en un resumen corto con emojis ---
           resumen() {
-            local r txt="$1"
-            # Si la nota viene en inglés y en español, el resumen sale de la parte en español
-            [[ "$txt" == *'<!-- es -->'* ]] && txt="${txt#*<!-- es -->}"
-            r=$(printf '%s\n' "$txt" \
+            local r
+            r=$(printf '%s\n' "$1" \
               | { grep -E '^\s*[-*] ' || true; } \
               | sed -E 's/^\s*[-*] //; s/ by @[^ ]+ in https?:\/\/[^ ]+$//' \
               | head -n 8 \
               | while IFS= read -r l; do
                   low=$(echo "$l" | tr '[:upper:]' '[:lower:]')
                   case "$low" in
-                    feat*|add*|nuev*|agreg*)   e="✨" ;;
-                    fix*|corrig*|arregl*|bug*) e="🐛" ;;
-                    perf*|optim*)              e="⚡" ;;
-                    doc*)                      e="📝" ;;
-                    secur*|segur*)             e="🔒" ;;
-                    refactor*)                 e="♻️" ;;
-                    style*|ui*|diseñ*)         e="🎨" ;;
+                    feat*|add*|new*|nuev*|agreg*)                e="✨" ;;
+                    fix*|bug*|resolv*|patch*|corrig*|arregl*)    e="🐛" ;;
+                    perf*|optim*|faster*|speed*)                 e="⚡" ;;
+                    *doc*|*readme*)                              e="📝" ;;
+                    improv*|enhanc*|update*|upgrad*|mejor*)      e="🚀" ;;
+                    remov*|delet*|drop*|elimin*)                 e="🗑️" ;;
+                    secur*|segur*)                               e="🔒" ;;
+                    refactor*|chang*|cambi*)                     e="♻️" ;;
+                    style*|ui*|design*|diseñ*)                   e="🎨" ;;
+                    support*|compat*|soport*)                    e="🧩" ;;
                     *)                         e="🔹" ;;
                   esac
                   echo "$e $(echo "$l" | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?:\s*//')"
                 done)
-            [ -z "$r" ] && r="🔹 Mirá los detalles en el release"
+            [ -z "$r" ] && r="🔹 See the release for details"
             printf '%s' "$r"
           }
 
@@ -111,7 +112,7 @@ jobs:
             esac
           }
 
-          agregar_link() { LINKS+=$'\n'"🎬 [Ver video]($1)"; }
+          agregar_link() { LINKS+=$'\n'"🎬 [Watch video]($1)"; }
 
           lleno() { [ ${#FOTOS[@]} -ge $MAX_FOTOS ] && [ ${#VIDEOS[@]} -ge $MAX_VIDEOS ]; }
 
@@ -179,7 +180,7 @@ jobs:
                       url: $u,
                       description: (($d | .[0:1500]) + $links),
                       color: 5814783,
-                      footer: { text: "Nueva versión publicada 🎉" }
+                      footer: { text: "New version released 🎉" }
                     }
                     + (if $ts != "" then { timestamp: $ts } else {} end)
                     + (if ($fotos | length) > 0 then { image: { url: ("attachment://" + $fotos[0]) } } else {} end)

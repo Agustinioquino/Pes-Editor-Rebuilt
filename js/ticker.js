@@ -32,6 +32,7 @@ const TICKER_HELP = {
   tWepes: 'WEPES: los archivos de la carpeta WEPES del juego.',
   tFile: 'Archivo: datos del EDIT abierto, historial de cambios, nombre en el juego y pasar a otra PC.',
   tNews: 'Novedades: lo que cambió en cada versión del editor y cómo se usa.',
+  tIdeas: 'Ideas: lo que viene y lo que piden los usuarios, con su avance. Mandá tu idea o avisá de un fallo.',
   bNames: 'Conectar Player.bin: elegí el Player.bin del juego para ver los nombres reales de los jugadores.',
   bSave: 'Guardar: escribe tus cambios en el EDIT (Ctrl+S). Cerrá el juego antes de guardar.',
   bUndo: 'Deshacer el último cambio (Ctrl+Z).', bRedo: 'Rehacer lo que deshiciste (Ctrl+Y).',

@@ -92,7 +92,10 @@ const c6 = h => Math.round(parseInt(h, 16) * 63 / 255);
 const teamColor = (t, n) => '#' + hex2(tget(t, `c${n}r`)) + hex2(tget(t, `c${n}g`)) + hex2(tget(t, `c${n}b`));
 function inkFor(hex) { const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return (r * 299 + g * 587 + b * 114) / 1000 > 140 ? '#111' : '#fff'; }
 function crest(t, cls = '', urgent = false) { const a = teamColor(t, 1), b = teamColor(t, 2), u = badgeUrl(t, urgent); return `<span class="crest ${u ? 'img' : ''} ${cls}" style="--ca:${a};--cb:${b};color:${inkFor(a)}"><i>${esc(tget(t, 'short') || '?')}</i><img data-badge="${t.id}" alt="" ${u ? `src="${u}"` : ''} onerror="this.removeAttribute('src');this.parentNode.classList.remove('img')"></span>`; }
-const posBadge = i => `<span class="posb ${POS_GRP[i] || 'mf'}">${POS[i] || '?'}</span>`;
+// en inglés, la nomenclatura de PES (GK, CB, DMF, AMF, CF…); en español, la de siempre (PT, DEC, MO, CD…)
+const POS_EN = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'LWF', 'RWF', 'SS', 'CF'];
+const posCode = i => (typeof LANG !== 'undefined' && LANG === 'en' ? POS_EN : POS)[i] || '?';
+const posBadge = (i, cls = '') => `<span class="posb ${POS_GRP[i] || 'mf'} ${cls}" data-noi18n>${posCode(i)}</span>`;
 const vcls = v => v >= 90 ? 'v90' : v >= 80 ? 'v80' : v >= 70 ? 'v70' : v >= 60 ? 'v60' : 'vlo';
 function playerName(id) {
   const p = S.ix && S.ix.byId.get(id);
@@ -329,7 +332,7 @@ function setP(p, k, v, label) {
 }
 function setLock(p, on) { edit((on ? 'Proteger ' : 'Desproteger ') + (pget(p, 'name') || p.id), 'p' + p.id, regP(p), () => { for (const k of LOCK_FLAGS) PD.player.set(S.d, p.base, k, on ? 1 : 0); }); }
 function setT(t, fields, label) { edit(label || 'Equipo ' + tget(t, 'name'), 't' + t.id, regT(t), () => { for (const [k, v] of fields) PD.team.set(S.d, t.base, k, v); }); }
-const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
+const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['play_attit', 'actitud de juego'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
 
 // ---------- loading ----------
 function openBytes(bytes, name) {
@@ -570,12 +573,13 @@ function gpick(b) {
 function setTab(t) {
   const same = S.tab === t;
   if (!same) { if (S.tab === 'teams' || S.tab === 'nats') { S.teamByTab[S.tab] = S.team; S.qTeam = ''; } if (t === 'teams' || t === 'nats') { S.team = S.teamByTab[t] ?? null; if (t === 'nats' && !S.natSeen) { S.ttab = 'call'; S.natSeen = true; } if (t === 'teams' && S.ttab === 'call') S.ttab = 'roster'; S.fsel = null; S.fbench = null; } }
-  S.tab = t; for (const [id, k] of [['tTeams', 'teams'], ['tNats', 'nats'], ['tPlayers', 'players'], ['tWepes', 'wepes'], ['tSider', 'sider'], ['tFile', 'file'], ['tNews', 'news']]) $(id).setAttribute('aria-selected', String(k === t)); same ? render() : leave(S.f && $('main'), render);
+  S.tab = t; for (const [id, k] of [['tTeams', 'teams'], ['tNats', 'nats'], ['tPlayers', 'players'], ['tWepes', 'wepes'], ['tSider', 'sider'], ['tFile', 'file'], ['tNews', 'news'], ['tIdeas', 'ideas']]) $(id).setAttribute('aria-selected', String(k === t)); same ? render() : leave(S.f && $('main'), render);
 }
 function render() {
   const m = $('main');
   if (!S.f && S.tab === 'wepes') { renderWepes(m); return; }
   if (S.tab === 'news') { renderNews(m); return; }
+  if (S.tab === 'ideas') { renderIdeas(m); return; }
   if (S.tab === 'sider') { renderSider(m); return; }
   if (!S.f) { m.innerHTML = welcome(); const w = $('wFind'); if (w) w.onclick = () => pesStart(); return; }
   if (S.tab === 'teams' || S.tab === 'nats') renderTeams(m); else if (S.tab === 'players') renderPlayers(m); else if (S.tab === 'wepes') renderWepes(m); else renderFile(m);
@@ -898,7 +902,7 @@ function rosterSelSync() {
 }
 function rosterExport(t, kind) {
   const hide = rHide(), tb = $('rtable'), vis = new Set([...tb.querySelectorAll('tr.prow:not([hidden])')].map(tr => +tr.dataset.pid));
-  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Nombre del jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => POS[w.pos] || ''], ['val', 'Valoración', w => w.r || ''],
+  const cols = [['xi', 'XI', w => w.xiLabel], ['num', 'Dorsal', w => w.num], ['player', 'Nombre del jugador', w => w.name], ['id', 'ID', w => w.pid], ['pos', 'Posición', w => posCode(w.pos) || ''], ['val', 'Valoración', w => w.r || ''],
     ['age', 'Edad', w => w.age || ''], ['h', 'Altura', w => w.h || ''], ['nat', 'Nacionalidad', w => w.natName], ['foot', 'Pie', w => w.foot], ['mv', 'Valor (M€)', w => w.mv ? String(w.mv).replace('.', ',') : ''], ['cap', 'Capitán', w => w.cap ? 'Sí' : '']].filter(([k]) => !hide.has(k));
   const rows = S._rrows.filter(w => vis.has(w.pid)), sep = kind === 'csv' ? ';' : '\t';
   const cell = v => { v = String(v ?? ''); return kind === 'csv' && /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v.replace(/\t/g, ' '); };
@@ -1149,32 +1153,49 @@ function dbClubs(pid) {
 }
 const dbTeamName = tid => { const t = S.ix && S.ix.teamById.get(tid); if (t) return tget(t, 'name'); const d = typeof SDB !== 'undefined' && SDB.teams && SDB.teams.get(tid); return d ? (d.es || d.name || d.en) : 'Equipo ' + tid; };
 // club (no selección) de un jugador de la base: el primer equipo que no sea selección nacional
-const dbClubOf = pid => { const cl = dbClubs(pid); return cl.find(c => !(S.ix && S.ix.teamById.get(c.tid) && typeof isNat === 'function' && isNat(S.ix.teamById.get(c.tid)))) || cl[0] || null; };
+// se guarda por jugador: la búsqueda lo pide para miles de jugadores en cada tecla
+const DBCLUBOF = { k: '', ix: null, map: new Map() };
+const dbClubOf = pid => {
+  const cl = dbClubs(pid);
+  if (DBCLUBOF.k !== DBCLUB.key || DBCLUBOF.ix !== S.ix) { DBCLUBOF.k = DBCLUB.key; DBCLUBOF.ix = S.ix; DBCLUBOF.map = new Map(); }
+  if (DBCLUBOF.map.has(pid)) return DBCLUBOF.map.get(pid);
+  const c = cl.find(c => !(S.ix && S.ix.teamById.get(c.tid) && typeof isNat === 'function' && isNat(S.ix.teamById.get(c.tid)))) || cl[0] || null;
+  DBCLUBOF.map.set(pid, c); return c;
+};
 function dbPlayerCount() { return DBRAW ? DBRAW.off.size : [...S.names.values()].filter(n => n.pos != null).length; }
+// la lista filtrada y ordenada se recuerda hasta que cambie la búsqueda, el filtro o la base (antes se rehacía en cada clic)
+const DBLIST = { key: '', names: null, raw: null, ix: null, list: [] };
 function dbPlayerList() {
-  const q = S.qPlayer.trim().toLowerCase(), ids = DBRAW ? [...DBRAW.off.keys()] : [...S.names.keys()];
+  dbClubs(0); // pone al día DBCLUB.key (equipos de la base)
+  const q = S.qPlayer.trim().toLowerCase(), key = [q, S.pFilter, S.names.size, RATE_GEN, DBCLUB.key].join('|');
+  if (DBLIST.key === key && DBLIST.names === S.names && DBLIST.raw === DBRAW && DBLIST.ix === S.ix) return DBLIST.list;
+  const ids = DBRAW ? DBRAW.off.keys() : S.names.keys(), tn = new Map(), teamLc = tid => { let v = tn.get(tid); if (v == null) tn.set(tid, v = dbTeamName(tid).toLowerCase()); return v; };
   const out = [];
   for (const id of ids) {
     const n = S.names.get(id); if (!n) continue;
     if (S.pFilter === 'unlocked') { if (S.ix.byId.has(id)) continue; }
     else if (S.pFilter !== 'all' && POS_GRP[n.pos] !== S.pFilter) continue;
-    if (q) { const c = dbClubOf(id); if (!((n.name || '').toLowerCase().includes(q) || String(id) === q || (c && dbTeamName(c.tid).toLowerCase().includes(q)))) continue; }
-    out.push(id);
+    if (q) { if (!((n.name || '').toLowerCase().includes(q) || String(id) === q)) { const c = dbClubOf(id); if (!c || !teamLc(c.tid).includes(q)) continue; } }
+    out.push([id, n.r || 0]);
   }
-  return out.sort((a, b) => ((S.names.get(b).r || 0) - (S.names.get(a).r || 0)) || a - b);
+  out.sort((a, b) => (b[1] - a[1]) || a[0] - b[0]);
+  Object.assign(DBLIST, { key, names: S.names, raw: DBRAW, ix: S.ix, list: out.map(x => x[0]) });
+  return DBLIST.list;
 }
 function dbVal(id, key) { const o = DBRAW && DBRAW.off.get(id); if (o == null) return null; const m = DB_TO_EDIT()[key]; return m ? dbBits(o, m[0], m[1]) + m[2] : null; }
+const dbIsNat = tid => { const t = S.ix.teamById.get(tid); return t ? isNat(t) : tid < 100 || COUNTRY_NAMES.has(normName(dbTeamName(tid))); };
 function dbPlayerSheet(id) {
   const n = S.names.get(id) || {}, o = DBRAW && DBRAW.off.get(id), cl = dbClubs(id), c0 = dbClubOf(id), ct = c0 && S.ix.teamById.get(c0.tid), inEdit = S.ix.byId.has(id);
   const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, shirt = o != null ? dbStr(o + 0x81, 61) : '';
-  const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0;
-  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del juego</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
+  const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0, [fn0, ln0] = splitName(playerName(id));
+  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del juego</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro abt" data-t="${abT(v)}"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
     <div class="grid" style="margin-top:12px">${[['Uso de pierna mala', 'weak_use', 1], ['Precisión de pierna mala', 'weak_acc', 1], ['Estado de forma', 'form', 1], ['Resistencia a lesiones', 'injury', 0]].map(([l, k, add]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="f"><span class="lab">${l}</span><b>${k === 'injury' ? ['C', 'B', 'A'][v] || v : v + add}</b></div>`; }).join('')}</div></div>` : '<div class="card"><p class="note">Las habilidades se ven cuando la copia de Player.bin está en la carpeta Sider.</p></div>';
   return `<div class="card dbsheet">
     <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
       <div class="sub">${shirt ? esc(shirt) + ' · ' : ''}${nat != null ? esc(COUNTRY.get(nat) || 'País ' + nat) + ' · ' : ''}${age ? age + ' años · ' : ''}${h ? h + ' cm · ' : ''}ID ${id}</div></div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(r)}">${r || '–'}</b><span>Valoración</span></div></div>
-    <div class="dbteams">${cl.length ? cl.map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
+    <div class="idro">${[['Nombre', fn0], ['Apellido', ln0], ['Camiseta', shirt]].map(([l, v]) => `<div><span class="lab">${l}</span><b>${esc(v || '—')}</b></div>`).join('')}</div>
+    <div class="dbteams">${cl.length ? [...cl].sort((a, b) => dbIsNat(a.tid) - dbIsNat(b.tid)).map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}<span class="tclab">${dbIsNat(c.tid) ? 'Selección' : 'Equipo'}</span> ${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
     <div class="dbnote"><span>${inEdit ? 'Este jugador también está en tu EDIT, con los datos que le cambiaste.' : 'Está en la base del juego y todavía no en tu EDIT. Lo que ves acá es lo que usa el juego; para cambiarlo, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del juego.'}</span>
       ${inEdit ? `<button class="btn small" type="button" data-dbopen="${id}">Abrir en mi EDIT</button>` : `<button class="btn primary small" type="button" data-dbadd="${id}" ${canMakeEditPlayer(id) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button>`}</div>
   </div>${mnfCard(id, kit)}${abil}`;
@@ -1220,9 +1241,40 @@ function renderPlayers(m) {
   if (p) bindPlayer(p, m);
 }
 function bindPSrc(m) { m.querySelectorAll('[data-psrc]').forEach(b => b.onclick = () => { if (S.pSrc === b.dataset.psrc) return; S.pSrc = b.dataset.psrc; later(() => renderPlayers(m)); }); }
+// una fila de la lista de jugadores del juego
+function dbItemHtml(id, sel) {
+  const n = S.names.get(id), c = dbClubOf(id), ct = c && S.ix.teamById.get(c.tid);
+  return `<button class="item ${id === sel ? 'on' : ''}" data-dbsel="${id}" type="button">
+        ${posBadge(n.pos)}<span style="min-width:0"><span class="nm">${ct ? shirtSvg(kitFor(ct, n.pos === 0), '1.05em', tget(ct, 'name')) + ' ' : ''}${esc(n.name || 'ID ' + id)}${S.ix.byId.has(id) ? ' <span class="chip ok tiny" title="También está en tu EDIT">EDIT</span>' : ''}</span>
+        <span class="sub2">${c ? esc(dbTeamName(c.tid)) + (c.num ? ' · ' + c.num : '') : 'Sin equipo'}${n.a ? ' · ' + n.a + ' años' : ''}</span></span><span class="meta"><b class="${vcls(n.r)}">${n.r || '–'}</b></span></button>`;
+}
+const DB_LIM = 250;
+function dbCountNote(all) { return `${all.length.toLocaleString('es-AR')} jugador${all.length === 1 ? '' : 'es'}${all.length > DB_LIM ? `<span> · se ven los ${DB_LIM} de mejor valoración: buscá para encontrar el resto</span>` : ''}`; } // en su propio span para que la traducción lo reconozca
+// cambia solo la ficha de la derecha. Antes la ficha quedaba con la animación de salida puesta (invisible y sin
+// responder a clics) desde el segundo jugador elegido, y había que salir de la pestaña y volver para verla
+function dbShowSheet(m, id) {
+  const sh = m.querySelector('#plSheet'); if (!sh) return;
+  leave(sh, () => {
+    if (S.dbPlayer !== id || !sh.isConnected) return; // otro clic llegó antes de que termine la salida: gana el último
+    sh.innerHTML = id != null ? dbPlayerSheet(id) : ''; sh.classList.remove('leave');
+    if (ANIM.reduce.matches) return;
+    if (document.documentElement.dataset.gfx === 'pes6') tvStatic(sh);
+    cascade([...sh.querySelectorAll(':scope > .card')].slice(0, 6), 6);
+  });
+}
+// búsqueda y filtro: se rehace solo la lista (y la ficha si cambia el primero), sin redibujar toda la pestaña
+function dbRefreshList(m, anim) {
+  const body = $('plItems'), note = $('dbCount'); if (!body || !note) return; // ya no está la vista del juego (cambió a Mi EDIT u otra pestaña)
+  const all = dbPlayerList(), list = all.slice(0, DB_LIM);
+  const first = list[0] ?? null, prev = S.dbPlayer; S.dbPlayer = first;
+  body.innerHTML = list.map(id => dbItemHtml(id, first)).join('') || '<div class="empty">Sin resultados.</div>'; body.scrollTop = 0;
+  note.innerHTML = dbCountNote(all);
+  if (anim && !ANIM.reduce.matches) cascade([...body.querySelectorAll(':scope > .item')].slice(0, 22));
+  if (first !== prev) dbShowSheet(m, first);
+}
 function renderDbPlayers(m, dbN) {
   FACE_CTX.nat = false;
-  const all = dbPlayerList(), LIM = 250, list = all.slice(0, LIM);
+  const all = dbPlayerList(), list = all.slice(0, DB_LIM);
   if (S.dbPlayer == null || !S.names.has(S.dbPlayer)) S.dbPlayer = list[0] ?? null;
   const sel = S.dbPlayer;
   m.innerHTML = `<div class="split">
@@ -1231,18 +1283,16 @@ function renderDbPlayers(m, dbN) {
         <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="false" ${S.ix.players.length ? '' : 'disabled title="Todavía no hay jugadores en tu EDIT"'}>Mi EDIT <b>${S.ix.players.length}</b></button><button type="button" data-psrc="db" aria-pressed="true">Del juego <b>${dbN.toLocaleString('es-AR')}</b></button></div>
         <input type="search" id="qPlayer" placeholder="Buscar en la base: nombre, ID o equipo…" value="${esc(S.qPlayer)}" aria-label="Buscar jugadores de la base">
         <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Solo los que no están en mi EDIT']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
-        <p class="note" style="margin:0">${all.length.toLocaleString('es-AR')} jugador${all.length === 1 ? '' : 'es'}${all.length > LIM ? ` · se ven los ${LIM} de mejor valoración: buscá para encontrar el resto` : ''}</p>
+        <p class="note" id="dbCount" style="margin:0">${dbCountNote(all)}</p>
       </div>
-      <div class="list-body" id="plItems">${list.map(id => { const n = S.names.get(id), c = dbClubOf(id), ct = c && S.ix.teamById.get(c.tid); return `<button class="item ${id === sel ? 'on' : ''}" data-dbsel="${id}" type="button">
-        ${posBadge(n.pos)}<span style="min-width:0"><span class="nm">${ct ? shirtSvg(kitFor(ct, n.pos === 0), '1.05em', tget(ct, 'name')) + ' ' : ''}${esc(n.name || 'ID ' + id)}${S.ix.byId.has(id) ? ' <span class="chip ok tiny" title="También está en tu EDIT">EDIT</span>' : ''}</span>
-        <span class="sub2">${c ? esc(dbTeamName(c.tid)) + (c.num ? ' · ' + c.num : '') : 'Sin equipo'}${n.a ? ' · ' + n.a + ' años' : ''}</span></span><span class="meta"><b class="${vcls(n.r)}">${n.r || '–'}</b></span></button>`; }).join('') || '<div class="empty">Sin resultados.</div>'}</div>
+      <div class="list-body" id="plItems">${list.map(id => dbItemHtml(id, sel)).join('') || '<div class="empty">Sin resultados.</div>'}</div>
     </aside>
     <section class="sheet" id="plSheet">${sel != null ? dbPlayerSheet(sel) : ''}</section>
   </div>`;
   bindPSrc(m);
-  $('qPlayer').oninput = e => { S.qPlayer = e.target.value; const pos = e.target.selectionStart; clearTimeout(S.dbQT); S.dbQT = setTimeout(() => { S.dbPlayer = null; renderPlayers(m); const el = $('qPlayer'); el.focus(); el.setSelectionRange(pos, pos); }, 180); };
-  $('pFilter').onchange = e => { S.pFilter = e.target.value; S.dbPlayer = null; later(() => renderPlayers(m)); };
-  $('plItems').onclick = e => { const b = e.target.closest('[data-dbsel]'); if (!b || +b.dataset.dbsel === S.dbPlayer) return; S.dbPlayer = +b.dataset.dbsel; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); const sh = m.querySelector('.sheet'); leave(sh, () => { sh.innerHTML = dbPlayerSheet(S.dbPlayer); }); };
+  $('qPlayer').oninput = e => { S.qPlayer = e.target.value; clearTimeout(S.dbQT); S.dbQT = setTimeout(() => dbRefreshList(m, false), 180); };
+  $('pFilter').onchange = e => { S.pFilter = e.target.value; dbRefreshList(m, true); };
+  $('plItems').onclick = e => { const b = e.target.closest('[data-dbsel]'); if (!b || +b.dataset.dbsel === S.dbPlayer) return; S.dbPlayer = +b.dataset.dbsel; m.querySelectorAll('#plItems .item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); dbShowSheet(m, S.dbPlayer); };
   m.querySelector('#plSheet').onclick = async e => {
     const a = e.target.closest('[data-dbadd]'); if (a) { await addDbPlayer(+a.dataset.dbadd, false); return; }
     const o = e.target.closest('[data-dbopen]'); if (o) { S.player = +o.dataset.dbopen; S.pSrc = 'edit'; renderPlayers(m); return; }
@@ -1253,14 +1303,30 @@ const num = (k, v, min, max, extra = '') => `<input type="number" data-k="${k}" 
 const selOpts = (arr, v) => arr.map((n, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${esc(n)}</option>`).join('');
 function mapSelect(k, map, v, label) { return `<select data-k="${k}" aria-label="${label}">${map.has(v) ? '' : `<option value="${v}" selected>${v ? 'ID ' + v + ' (del juego)' : 'Ninguno / predeterminado'}</option>`}${[...map].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
 function seg(k, labels, v) { return `<div class="seg" data-segk="${k}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
-function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} ${FLAG_NAMES[k]}</span>`).join(''); }
+function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} <span>${FLAG_NAMES[k]}</span></span>`).join(''); }
+// marco de la foto con los colores de las posiciones que juega: cada color ocupa más o menos según el nivel
+// (posición natural 3, A 2, B 1; las C no cuentan), sumado por línea (arquero, defensa, medio, delantera)
+const POS_GRP_N = { gk: 'Portero', df: 'Defensa', mf: 'Mediocampo', fw: 'Delantera' };
+function posFrame(p, reg) {
+  const w = { gk: 0, df: 0, mf: 0, fw: 0 };
+  POS.forEach((_, i) => { const v = pget(p, 'pos' + POS_TO_PP[i]); w[POS_GRP[i]] += i === reg ? 3 : v === 2 ? 2 : v === 1 ? 1 : 0; });
+  const tot = Object.values(w).reduce((a, b) => a + b, 0) || 1, first = POS_GRP[reg];
+  const parts = Object.keys(w).filter(k => w[k]).sort((a, b) => (b === first) - (a === first) || w[b] - w[a]);
+  let at = 0; const stops = parts.map(k => { const from = at; at += w[k] / tot * 100; return `var(--pf-${k}) ${from.toFixed(1)}% ${at.toFixed(1)}%`; });
+  const tip = parts.map(k => `${typeof LANG !== 'undefined' && LANG === 'en' ? { gk: 'Goalkeeper', df: 'Defence', mf: 'Midfield', fw: 'Attack' }[k] : POS_GRP_N[k]} ${Math.round(w[k] / tot * 100)}%`).join(' · ');
+  return `<span class="dbface pframe" style="--pf:conic-gradient(from -90deg,${stops.join(',')})" title="Marco según dónde puede jugar: ${tip}">`;
+}
 function playerSheet(p) {
-  const g = k => pget(p, k), reg = g('reg_pos'), all = (teamOf.get(p.id) || []).map(t => tget(t, 'name'));
-  const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades'], ['skills', 'Especiales'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
+  const g = k => pget(p, k), reg = g('reg_pos'), tm = playerTeams(p.id);
+  const tchip = (lab, { t, num }) => `<button type="button" class="chip" data-pteam="${t.id}" title="Ver el plantel">${shirtSvg(kitFor(t, reg === 0), '1em', tget(t, 'name'))} <span class="tclab">${lab}</span> ${esc(tget(t, 'name'))}${num != null ? ' · <b>' + num + '</b>' : ''}</button>`;
+  if (S.ptab === 'skills') S.ptab = 'abil'; // Especiales ahora está dentro de Habilidades y skills
+  const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades y skills'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
   const changed = S.origData && !S.d.subarray(p.base, p.base + 0x138).every((v, i) => v === S.origData[p.base + i]);
   return `<div class="card">
-    <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return c ? shirtSvg(kitFor(c, reg === 0), '2.4em', tget(c, 'name')) : ''; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
-      <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'}${all.length ? ' · ' + esc(all.join(', ')) : ''} · ID ${p.id}</div></div>
+    <div class="head">${(() => { const c = clubOf(p.id), alt = POS.map((_, i) => [i, g('pos' + POS_TO_PP[i])]).filter(([i, v]) => i !== reg && v > 0).sort((a, b) => b[1] - a[1]);
+      return `<div class="phead">${posBadge(reg, 'phpos')}${posFrame(p, reg)}${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>${alt.length ? `<div class="phalt" title="Otras posiciones: A domina, B puede jugar">${alt.slice(0, 4).map(([i, v]) => posBadge(i, v === 2 ? 'pa' : 'pbb')).join('')}${alt.length > 4 ? `<span class="phmore">+${alt.length - 4}</span>` : ''}</div>` : ''}</div>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
+      <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'} · ID ${p.id}</div>
+      ${tm.clubs.length || tm.nats.length ? `<div class="dbteams hdteams">${tm.clubs.map(x => tchip('Equipo', x)).join('')}${tm.nats.map(x => tchip('Selección', x)).join('')}</div>` : ''}</div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>
       <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el juego cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
@@ -1272,11 +1338,45 @@ function playerSheet(p) {
   </div>
   ${S.ptab === 'face' ? (() => { const c = clubOf(p.id); return mnfCard(p.id, c ? kitFor(c, reg === 0) : null); })() : `<div class="card">${({ profile: tabProfile, pos: tabPos, abil: tabAbil, skills: tabSkills, look: tabLook, motion: tabMotion })[S.ptab](p)}</div>`}`;
 }
+// El juego guarda un solo nombre por jugador: acá se muestra en dos partes (la primera palabra es el nombre y el resto
+// el apellido, así "Kevin De Bruyne" queda Kevin / De Bruyne) y al cambiar una se vuelven a juntar con un espacio.
+// Un nombre de una sola palabra ("Neymar") va al apellido, que es el que se usa en la camiseta.
+function splitName(s) { s = String(s || '').trim().replace(/\s+/g, ' '); const i = s.indexOf(' '); return i < 0 ? ['', s] : [s.slice(0, i), s.slice(i + 1)]; }
+const joinName = (a, b) => [a, b].map(x => x.trim().replace(/\s+/g, ' ')).filter(Boolean).join(' ');
+const NAME_MAX = 60, nameBytes = s => new TextEncoder().encode(s).length; // el juego guarda 60 bytes (las letras con tilde ocupan 2)
+// club y selección por separado, con el dorsal que tiene en cada uno
+function playerTeams(id) {
+  const ts = teamOf.get(id) || [], numIn = t => { const r = PD.roster(S.d, t).find(x => x.pid === id); return r ? r.number : null; };
+  const pack = t => ({ t, num: numIn(t) });
+  return { clubs: ts.filter(t => !isNat(t)).map(pack), nats: ts.filter(isNat).map(pack) };
+}
+function teamSlot(kind, list) {
+  const lab = kind === 'nat' ? 'Selección' : 'Equipo';
+  if (!list.length) return `<div class="tslot tsnone"><span class="lab">${lab}</span><div class="tsrow"><span class="crest ghost"><i>–</i></span><span class="tsnm">${kind === 'nat' ? 'Sin selección' : 'Sin equipo'}</span></div></div>`;
+  return `<div class="tslot"><span class="lab">${lab}</span>${list.map(({ t, num }) => `<button type="button" class="tsrow" data-pteam="${t.id}" title="Ver el plantel de ${esc(tget(t, 'name'))}">${crest(t)}<span class="tsnm">${esc(tget(t, 'name'))}</span>${num != null ? `<span class="tsnum" title="Dorsal">${num}</span>` : ''}</button>`).join('')}</div>`;
+}
+// estrellas (0 a 5) y actitud de juego (0 a 3): botones con color y brillo que suben con el nivel
+const lvlStep = (d, v, max) => `<button type="button" class="lvstep" data-step="${d}" ${(d < 0 ? v <= 0 : v >= max) ? 'disabled' : ''} title="${d < 0 ? 'Bajar uno' : 'Subir uno'}" aria-label="${d < 0 ? 'Bajar uno' : 'Subir uno'}">${d < 0 ? '−' : '+'}</button>`;
+function lvlStars(v) {
+  return `<div class="lvl lvstar" data-segk="star" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Estrellas" data-max="5">${lvlStep(-1, v, 5)}${[1, 2, 3, 4, 5].map(i => `<button type="button" class="lvs ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : i + ' estrella' + (i > 1 ? 's' : '')}">★</button>`).join('')}<b class="lvnum">${v}<small>/5</small></b>${lvlStep(1, v, 5)}</div>`;
+}
+function lvlAttit(v) {
+  return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego" data-max="3">${lvlStep(-1, v, 3)}${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : 'Nivel ' + i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b>${lvlStep(1, v, 3)}</div>`;
+}
 function tabProfile(p) {
-  const g = k => pget(p, k);
-  return `<div class="grid wide">
-    <div class="f"><label>Nombre</label><input type="text" data-k="name" value="${esc(g('name'))}" maxlength="60"></div>
-    <div class="f"><label>Nombre en camiseta</label><input type="text" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20"></div>
+  const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
+  return `<h3>Nombre</h3>
+  <div class="grid wide idgrid">
+    <div class="f"><label for="pFirst">Nombre</label><input type="text" id="pFirst" data-nm="first" value="${esc(first)}" maxlength="60" autocomplete="off" spellcheck="false"></div>
+    <div class="f"><label for="pLast">Apellido</label><input type="text" id="pLast" data-nm="last" value="${esc(last)}" maxlength="60" autocomplete="off" spellcheck="false"></div>
+    <div class="f"><label for="pShirt">Nombre en camiseta</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" id="pShirtLast" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div></div>
+  </div>
+  <p class="note fullnm">Así lo muestra el juego: <b id="pFull">${esc(g('name') || '—')}</b> <span id="pBytes" class="${nb > NAME_MAX ? 'bad' : ''}">${nb}/${NAME_MAX}</span></p>
+  <h3 class="sec">Equipo y selección</h3>
+  <div class="tslots">${teamSlot('club', tm.clubs)}${teamSlot('nat', tm.nats)}</div>
+  <p class="note">Para cambiarlo de equipo o de dorsal, tocá el equipo y editá el plantel.</p>
+  <h3 class="sec">Datos personales</h3>
+  <div class="grid wide">
     <div class="f"><label>Nacionalidad</label>${mapSelect('nation', COUNTRY, g('nation'), 'Nacionalidad')}</div>
     <div class="f"><label>ID de nombre para el comentarista</label>${num('comm_id', g('comm_id'), 0, 4294967295)}</div>
   </div>
@@ -1286,32 +1386,433 @@ function tabProfile(p) {
     <div class="f"><label>Peso (kg)</label>${num('weight', g('weight'), 30, 150)}</div>
     <div class="f"><span class="lab">Pie hábil</span>${seg('strong_foot', ['Derecho', 'Izquierdo'], g('strong_foot'))}</div>
     <div class="f"><span class="lab">Mano hábil</span>${seg('strong_hand', ['Derecha', 'Izquierda'], g('strong_hand'))}</div>
-    <div class="f"><span class="lab">Estrellas</span>${seg('star', ['0', '1', '2', '3', '4', '5'], g('star'))}</div>
-    <div class="f"><span class="lab">Actitud de juego</span>${seg('play_attit', ['0', '1', '2', '3'], g('play_attit'))}</div>
+  </div>
+  <h3 class="sec">Nivel</h3>
+  <div class="lvls">
+    <div class="f"><span class="lab">Estrellas</span>${lvlStars(g('star'))}</div>
+    <div class="f"><span class="lab">Actitud de juego</span>${lvlAttit(g('play_attit'))}</div>
   </div>`;
 }
 function tabPos(p) {
   const g = k => pget(p, k), reg = g('reg_pos');
   return `<div class="row" style="align-items:flex-start;gap:22px">
-    <div class="pitch" id="pitch" style="flex:1 1 300px">${POS.map((n, i) => { const v = g('pos' + POS_TO_PP[i]); return `<button type="button" class="pp l${v} ${i === reg ? 'reg' : ''}" data-pp="${i}" style="grid-column:${PITCH[i][0]};grid-row:${PITCH[i][1]}" title="${POS_LONG[i]}: tocá para cambiar el nivel"><b>${n}</b><span>${['—', 'B', 'A'][v]}</span></button>`; }).join('')}</div>
+    <div class="pitch" id="pitch" style="flex:1 1 300px">${POS.map((n, i) => { const v = g('pos' + POS_TO_PP[i]); return `<button type="button" class="pp l${v} ${i === reg ? 'reg' : ''}" data-pp="${i}" style="grid-column:${PITCH[i][0]};grid-row:${PITCH[i][1]}" title="${POS_LONG[i]}: tocá para cambiar el nivel"><b data-noi18n>${posCode(i)}</b><span>${['—', 'B', 'A'][v]}</span></button>`; }).join('')}</div>
     <div class="f" style="flex:1 1 240px;max-width:340px;gap:10px">
-      <div class="f"><label>Posición registrada</label><select data-k="reg_pos">${POS_LONG.map((n, i) => `<option value="${i}" ${i === reg ? 'selected' : ''}>${POS[i]} · ${n}</option>`).join('')}</select></div>
+      <div class="f"><label>Posición natural</label><select data-k="reg_pos">${POS_LONG.map((n, i) => `<option value="${i}" ${i === reg ? 'selected' : ''}>${posCode(i)} · ${n}</option>`).join('')}</select></div>
       <p class="note">Tocá cada posición en la cancha para pasar de — (no juega) a B (puede jugar) y A (domina). La registrada queda marcada en amarillo y se pone en A sola.</p>
       <div class="row"><button class="btn small" id="ppClear" type="button">Dejar solo la registrada</button></div>
     </div></div>`;
 }
+// qué hace cada estadística en el juego (se muestra al tocar o pasar por el nombre)
+const AB_TIP = {
+  atk: 'Qué tan rápido lee el juego para atacar: se desmarca, busca el espacio y pica al vacío cuando su equipo tiene la pelota. Clave en delanteros.',
+  finish: 'Precisión de los remates con el pie. Con más nivel la pelota va más cerca de donde apuntás.',
+  header: 'Precisión de los cabezazos, tanto para rematar al arco como para pasarla.',
+  kick_pwr: 'Fuerza con la que le pega a la pelota: remates más potentes y desde más lejos.',
+  place_kick: 'Precisión en las jugadas con pelota quieta: tiros libres, córners y penales.',
+  swerve: 'Cuánta comba le puede dar a la pelota en centros, pases y remates.',
+  ball_ctrl: 'Calidad del primer toque y del manejo en general: recibir, girar y proteger la pelota sin perderla.',
+  drib: 'Habilidad para llevar la pelota pegada al pie corriendo rápido y para encarar al rival.',
+  tight_pos: 'Manejo de la pelota en espacios chicos y a poca velocidad: giros cortos y cambios de dirección con marca encima.',
+  lowpass: 'Precisión de los pases por abajo, cortos y largos.',
+  loftpass: 'Precisión de los pases altos, cambios de frente y centros.',
+  speed: 'Velocidad máxima corriendo, con o sin la pelota.',
+  exp_pwr: 'Qué tan rápido llega a su velocidad máxima en los primeros metros. Sirve para ganar el pique y arrancar desde parado.',
+  body_ctrl: 'Equilibrio para no caerse ni perder la pelota en giros bruscos o cuando lo tocan.',
+  phys_cont: 'Fuerza para aguantar cargas y empujones y ganar los choques cuerpo a cuerpo.',
+  jump: 'Altura que alcanza al saltar. Importa en los cabezazos y en las pelotas divididas por arriba.',
+  stamina: 'Cuánto aguanta corriendo durante el partido antes de cansarse. Con poca, rinde menos en el segundo tiempo.',
+  def: 'Qué tan rápido reacciona cuando ataca el rival: marca, cierra espacios y se ubica para cortar pases.',
+  ball_win: 'Capacidad para sacarle la pelota al rival con entradas y quites.',
+  aggres: 'Qué tan encima del rival juega para presionar y disputar la pelota. Mucha también puede traer más faltas.',
+  gk: 'Lectura y ubicación del arquero: qué tan rápido reacciona ante los remates y cuándo sale a cortar.',
+  catching: 'Capacidad del arquero para quedarse con la pelota en las manos en vez de dar rebote.',
+  clearing: 'Calidad de los despejes con los puños: qué tan lejos y hacia dónde manda la pelota.',
+  reflex: 'Velocidad de reacción del arquero para atajar remates desde cerca.',
+  cover: 'Cuánto del arco cubre el arquero al estirarse para llegar a los remates.',
+  weak_use: 'Qué tan seguido usa la pierna menos hábil. En 1 casi nunca la usa; en 4 la usa sin problema.',
+  weak_acc: 'Qué tan precisos son los pases y remates con la pierna menos hábil.',
+  form: 'Qué tan parejo rinde de un partido a otro. Con más nivel su estado (las flechas) cambia menos.',
+  injury: 'Qué tan difícil es que se lesione. A es la más resistente y C la más frágil.',
+};
+const AB_LEVEL = ['Bajo', 'Regular', 'Bueno', 'Muy bueno', 'Élite'];
+// cartel con la explicación: aparece al pasar el mouse, al tocar o con el teclado
+const ABTIP = { el: null, on: null };
+function abTipShow(b) {
+  if (!ABTIP.el) { ABTIP.el = document.createElement('div'); ABTIP.el.className = 'abtip'; ABTIP.el.setAttribute('role', 'tooltip'); ABTIP.el.id = 'abTip'; document.body.appendChild(ABTIP.el); }
+  const t = ABTIP.el, lv = b.dataset.tiplv;
+  t.innerHTML = `<b></b><p></p>${lv != null ? `<span class="abt" data-t="${lv}"><i></i></span>` : ''}`;
+  t.querySelector('b').textContent = tr(b.dataset.tiptitle || ''); t.querySelector('p').textContent = b.getAttribute('data-tip');
+  if (lv != null) t.querySelector('span').append(AB_LEVEL[lv] || '');
+  ABTIP.on = b; b.setAttribute('aria-describedby', 'abTip');
+  t.classList.add('on'); const r = b.getBoundingClientRect(), w = Math.min(320, innerWidth - 24); t.style.width = w + 'px';
+  const h = t.offsetHeight, below = r.bottom + 8 + h < innerHeight;
+  t.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left)) + 'px'; t.style.top = (below ? r.bottom + 8 : r.top - h - 8) + 'px';
+  t.classList.toggle('up', !below);
+}
+function abTipHide() { if (ABTIP.el) ABTIP.el.classList.remove('on'); if (ABTIP.on) ABTIP.on.removeAttribute('aria-describedby'); ABTIP.on = null; }
+document.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const b = e.target.closest('[data-tip]'); if (b) abTipShow(b); else if (ABTIP.on && !e.target.closest('.abtip')) abTipHide(); });
+document.addEventListener('focusin', e => { const b = e.target.closest && e.target.closest('[data-tip]'); if (b) abTipShow(b); else abTipHide(); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-tip]'); if (b) { if (ABTIP.on === b && e.pointerType !== 'mouse') abTipHide(); else abTipShow(b); } else abTipHide(); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') abTipHide(); });
+addEventListener('scroll', abTipHide, true);
+// botón ⓘ al lado del +: muestra qué hace la estadística
+const tipBtn = (k, title, lv) => AB_TIP[k] ? `<button type="button" class="abinfo" data-tip="${esc(AB_TIP[k])}" data-tiptitle="${esc(title)}"${lv != null ? ` data-tiplv="${lv}"` : ''} title="Qué hace" aria-label="${LANG === 'en' ? 'What is ' + esc(tr(title)) : 'Qué es ' + esc(title)}">i</button>` : '';
+// animaciones al subir o bajar un valor: el número salta, aparece "+1"/"−1" y la barra se desliza
+const AB_ANIM_KEYS = ['star', 'play_attit', 'weak_use', 'weak_acc', 'form', 'injury'];
+function bumpNum(el, d) {
+  if (!el || !d || ANIM.reduce.matches) return;
+  el.classList.remove('bump-up', 'bump-dn'); void el.offsetWidth; el.classList.add(d > 0 ? 'bump-up' : 'bump-dn');
+  setTimeout(() => el.classList.remove('bump-up', 'bump-dn'), 700);
+  const host = el.closest('.abctl'); if (!host) return;
+  const c = document.createElement('span'); c.className = 'dchip ' + (d > 0 ? 'up' : 'dn'); c.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
+  host.appendChild(c); setTimeout(() => c.remove(), 1000);
+}
+function barSlide(row, from, to) {
+  if (ANIM.reduce.matches) return;
+  row.classList.add('anim'); row.style.setProperty('--p', abP(from));
+  requestAnimationFrame(() => requestAnimationFrame(() => row.style.setProperty('--p', abP(to))));
+  clearTimeout(row._at); row._at = setTimeout(() => row.classList.remove('anim'), 600);
+}
+function lvlAnim(lv, from, to) {
+  if (ANIM.reduce.matches) return;
+  bumpNum(lv.querySelector('.lvnum'), to - from);
+  const zeroBased = lv.classList.contains('lvgen'), lo = Math.min(from, to), hi = Math.max(from, to);
+  lv.querySelectorAll('[data-v]').forEach(b => { const i = +b.dataset.v; if (zeroBased ? i > lo && i <= hi : i > lo && i <= hi && i > 0) { b.classList.add(to > from ? 'pop' : 'drop'); setTimeout(() => b.classList.remove('pop', 'drop'), 600); } });
+}
+// tras dibujar la ficha: compara con lo que se veía antes y anima lo que cambió (botones −/+, todas ±1, hexágono, deshacer)
+function abAnimDiff(p) {
+  const sh = $('plSheet'); if (!sh) return;
+  const now = new Map([...ABIL.map(a => a[0]), ...AB_ANIM_KEYS].map(k => [k, pget(p, k)]));
+  const prev = S.abShown && S.abShown.id === p.id ? S.abShown.vals : null;
+  S.abShown = { id: p.id, vals: now }; if (!prev) return;
+  for (const [k, v] of now) {
+    const o = prev.get(k); if (o == null || o === v) continue;
+    const row = sh.querySelector(`.abr[data-abk="${k}"]`);
+    if (row) { bumpNum(row.querySelector('input[type=number]'), v - o); barSlide(row, o, v); continue; }
+    const lv = sh.querySelector(`.lvl[data-segk="${k}"]`); if (lv) lvlAnim(lv, o, v);
+  }
+}
+// nivel de una habilidad para el color: 90+ rojo, 80+ naranja, 70+ amarillo, 60+ verde, menos gris (la escala de PES)
+const abT = v => v >= 90 ? 4 : v >= 80 ? 3 : v >= 70 ? 2 : v >= 60 ? 1 : 0;
+const abP = v => Math.round((v - 40) / 59 * 100) + '%';
+function abAvg(p, list) { return Math.round(list.reduce((a, [k]) => a + pget(p, k), 0) / list.length); }
+// una fila: nombre, barra (se arrastra) y − número +
+function abRow(k, n, v) {
+  return `<div class="abr abt" data-abk="${k}" data-t="${abT(v)}" style="--p:${abP(v)}"><button type="button" class="abn" data-tip="${esc(AB_TIP[k] || '')}" data-tiptitle="${n}" data-tiplv="${abT(v)}"><span>${n}</span></button>
+    <input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}">
+    <span class="abctl"><button type="button" class="abstep" data-abstep="-1" data-k="${k}" title="Bajar uno" aria-label="Bajar uno">−</button><input type="number" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"><button type="button" class="abstep" data-abstep="1" data-k="${k}" title="Subir uno" aria-label="Subir uno">+</button>${tipBtn(k, n, abT(v))}</span></div>`;
+}
+// pierna mala, forma y lesiones: barras con color como Estrellas y Actitud (acá el primer valor también es un nivel)
+function lvlSeg(k, v, labels, label) {
+  const n = labels.length, f = (v + 1) / n, t = f >= 1 ? 4 : f > .7 ? 3 : f > .45 ? 2 : f > .25 ? 1 : 0;
+  return `<div class="lvl lvgen" data-segk="${k}" data-max="${n - 1}" data-t="${t}" role="group" aria-label="${label}">${lvlStep(-1, v, n - 1)}${labels.map((l, i) => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${l}"><i></i></button>`).join('')}<b class="lvnum">${labels[v] ?? v}</b>${lvlStep(1, v, n - 1)}${tipBtn(k, label)}</div>`;
+}
+// ----- vista FIFA: las mismas habilidades de PES pasadas a la carta y a los atributos de FIFA (solo para ver) -----
+// cada atributo FIFA sale de una o más habilidades de PES; los pesos de cada media son los de FIFA
+const FIFA_POS = (typeof LANG !== 'undefined' && LANG === 'en') ? ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'CF', 'ST'] : ['POR', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MI', 'MD', 'MCO', 'EI', 'ED', 'SD', 'DC'];
+const FIFA_ATTR = [
+  ['RIT', 'Ritmo', [['Aceleración', { exp_pwr: 1 }, .45], ['Velocidad', { speed: 1 }, .55]]],
+  ['TIR', 'Tiro', [['Posicionamiento', { atk: 1 }, .05], ['Definición', { finish: 1 }, .45], ['Potencia de tiro', { kick_pwr: 1 }, .2], ['Tiros lejanos', { kick_pwr: .5, finish: .5 }, .2], ['Voleas', { finish: .6, body_ctrl: .4 }, .05], ['Penaltis', { place_kick: 1 }, .05]]],
+  ['PAS', 'Pase', [['Visión', { lowpass: .5, loftpass: .5 }, .2], ['Centros', { loftpass: .6, swerve: .4 }, .2], ['Precisión en faltas', { place_kick: .6, swerve: .4 }, .05], ['Pase corto', { lowpass: 1 }, .35], ['Pase largo', { loftpass: 1 }, .15], ['Efecto', { swerve: 1 }, .05]]],
+  ['REG', 'Regate', [['Agilidad', { exp_pwr: .5, tight_pos: .5 }, .1], ['Equilibrio', { body_ctrl: 1 }, .05], ['Reacciones', { atk: .5, def: .5 }, .05], ['Control del balón', { ball_ctrl: 1 }, .35], ['Regate', { drib: 1 }, .45], ['Compostura', { tight_pos: .5, ball_ctrl: .5 }, 0]]],
+  ['DEF', 'Defensa', [['Intercepciones', { def: .5, ball_win: .5 }, .2], ['Precisión de cabeza', { header: 1 }, .1], ['Conciencia defensiva', { def: 1 }, .3], ['Entrada de pie', { ball_win: 1 }, .2], ['Entrada deslizante', { ball_win: .6, aggres: .4 }, .2]]],
+  ['FÍS', 'Físico', [['Salto', { jump: 1 }, .05], ['Resistencia', { stamina: 1 }, .25], ['Fuerza', { phys_cont: 1 }, .5], ['Agresividad', { aggres: 1 }, .2]]],
+];
+const FIFA_GK = [['EST', 'Estirada', { cover: 1 }], ['PAR', 'Paradas', { catching: 1 }], ['SAQ', 'Saque', { kick_pwr: .5, loftpass: .5 }], ['REF', 'Reflejos', { reflex: 1 }], ['VEL', 'Velocidad', { speed: .55, exp_pwr: .45 }], ['COL', 'Colocación', { gk: 1 }]];
+const fifaVal = (get, w) => Math.max(1, Math.min(99, Math.round(Object.entries(w).reduce((a, [k, x]) => a + get(k) * x, 0))));
+const fifaFrom = w => 'Se calcula con estas habilidades de PES: ' + Object.keys(w).map(k => tr(FIELD_LABEL[k] || k)).join(LANG === 'es' ? ' y ' : ' and ');
+const fifaCls = v => v >= 80 ? 'f80' : v >= 70 ? 'f70' : v >= 50 ? 'f50' : 'f0';
+// tipo de carta: bronce (menos de 65), plata (65 a 74), oro (75 o más); ícono si es leyenda.
+// Leyenda: automática si juega en un equipo clásico; se puede marcar o desmarcar a mano (se guarda en este navegador).
+const LEG_LS = 'edit21-legends-v1';
+const LEGEND = (() => { try { return new Map(JSON.parse(localStorage.getItem(LEG_LS) || '[]')); } catch { return new Map(); } })();
+const legendAuto = p => (teamOf.get(p.id) || []).some(t => /^CLASSIC/i.test(leagueOf(t) || '') || /CLASSIC|LEGEND|LEYENDA|ICON|HIST[OÓ]RIC/i.test(tget(t, 'name') || ''));
+const isLegend = p => LEGEND.has(p.id) ? LEGEND.get(p.id) : legendAuto(p);
+const fifaTier = p => { const o = rating(p); return isLegend(p) ? 'icon' : o >= 75 ? 'gold' : o >= 65 ? 'silver' : 'bronze'; };
+// las dos formas de carta: FIFA 15 (PES 6 y Clásico) y la actual (Moderno y Retro); 250 x 350
+const FUT_PATH = {
+  f15: 'M8 36C70 34 92 8 125 8S180 34 242 36L242 306Q242 314 234 317L136 346Q125 349 114 346L16 317Q8 314 8 306Z',
+  fc: 'M8 34Q30 32 34 10Q125 0 216 10Q220 32 242 34L242 292Q242 310 224 316Q168 324 142 336Q125 344 108 336Q82 324 26 316Q8 310 8 292Z'
+};
+function fifaStats(p) {
+  const g = k => pget(p, k);
+  return pget(p, 'reg_pos') === 0 ? FIFA_GK.map(([ab, nm, w]) => [ab, nm, fifaVal(g, w)]) : FIFA_ATTR.map(([ab, nm, list]) => [ab, nm, Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0))))]);
+}
+function fifaCard(p) {
+  const g = k => pget(p, k), reg = g('reg_pos'), gk = reg === 0, ovr = rating(p), c = clubOf(p.id), kit = c ? kitFor(c, gk) : null;
+  const st = fifaStats(p), tier = fifaTier(p), ps = g('play_style');
+  const [, last] = splitName(g('name')), nm = g('shirt') || last || g('name');
+  // en FIFA 15 los 6 números van en 3 filas de a 2 (izquierda RIT/TIR/PAS, derecha REG/DEF/FÍS)
+  const order = [0, 3, 1, 4, 2, 5];
+  // como en FC: posiciones donde rinde al máximo (pestañas a la derecha), "+" según cantidad de habilidades especiales,
+  // y abajo pie hábil, pierna mala y altura
+  const alt = FIFA_POS.map((n, i) => [n, i !== reg ? g('pos' + POS_TO_PP[i]) : 0]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const nsk = SKILLS.flatMap(x => x[1]).filter(([i]) => g('sk' + i)).length, plus = nsk >= 10 ? '++' : nsk >= 5 ? '+' : '';
+  return `<div class="fut ${tier}${ovr >= 80 && tier !== 'icon' ? ' rare' : ''}">
+    ${alt.length ? `<div class="fu-alt" title="Otras posiciones: A domina, B puede jugar">${alt.map(([n, v]) => `<span class="${v === 2 ? '' : 'b'}">${n}</span>`).join('')}</div>` : ''}
+    <div class="fu-tabs"><span title="Pie hábil">${g('strong_foot') ? 'L' : 'R'}</span><span title="Pierna mala">${g('weak_acc') + 1}★</span><span title="Altura">${g('height')}</span></div>
+    <svg class="futfr" viewBox="0 0 250 350" aria-hidden="true"><path class="p15" d="${FUT_PATH.f15}"/><path class="pfc" d="${FUT_PATH.fc}"/></svg>
+    <div class="futin">
+      <div class="fu-ovr"><b>${ovr}</b><span>${FIFA_POS[reg] || ''}</span>${plus ? `<i title="${nsk} habilidades especiales">${plus}</i>` : ''}</div>
+      <div class="fu-club">${c ? crest(c, 'futcrest') : ''}</div>
+      <div class="fu-nat">${natFlag(g('nation'))}</div>
+      <div class="fu-ps" title="${esc(STYLES[ps] || '')}">${ps ? '<i></i>' : ''}</div>
+      <div class="fu-face">${faceHtml(p.id, kit, 'futf')}</div>
+      <div class="fu-nm">${esc(nm)}</div>
+      <div class="fu-band"><span>⚽</span>${esc(ps ? STYLES[ps] : 'Sin estilo de juego')}</div>
+      <div class="fu-st">${order.map(i => { const [ab, n, v] = st[i]; return `<div title="${n}"><b>${v}</b><span>${ab}</span></div>`; }).join('')}</div>
+      ${tier === 'icon' ? '<div class="fu-icon">ÍCONO</div>' : ''}
+    </div>
+  </div>`;
+}
+// ----- skills: un ícono propio para cada habilidad especial y estilo de la IA, con la explicación al pasar el mouse -----
+const SK_GLYPH = {
+  step: '<circle cx="12" cy="16" r="4"/><path d="M5 10c2-5 12-5 14 0M16 7l3 3-3.5 1"/>',
+  swirl: '<circle cx="12" cy="12" r="3.5"/><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/>',
+  lift: '<circle cx="12" cy="6" r="3"/><path d="M4 20c3-9 13-9 16 0M9 20h6"/>',
+  heel: '<path d="M6 3v9c0 3 2 5 5 5h7a2 2 0 0 0 0-4h-4l-2-3V3"/><circle cx="7" cy="20.5" r="2"/>',
+  feint: '<circle cx="8" cy="16" r="3.5"/><path d="M12 12l7-7M15 5h4v4" stroke-dasharray="3 2"/>',
+  header: '<circle cx="9" cy="9" r="4"/><path d="M3 21c0-4 2.5-6 6-6s6 2 6 6"/><circle cx="18.5" cy="5.5" r="2.5"/>',
+  power: '<circle cx="16" cy="12" r="4.5"/><path d="M2 8h7M4 12h6M2 16h7"/>',
+  arc: '<path d="M3 20C7 4 17 4 21 20"/><circle cx="12" cy="8" r="2.5"/>',
+  knuckle: '<path d="M2 14l3.5-4 3.5 4 3.5-4"/><circle cx="18" cy="12" r="3.5"/>',
+  acro: '<circle cx="5.5" cy="18" r="2.5"/><path d="M9 15l6-6 5-1M15 9l-2 8M11 4l4 5"/><circle cx="19.5" cy="4" r="2"/>',
+  bolt: '<path d="M13 2L5 13h6l-1 9 8-12h-6z"/>',
+  through: '<path d="M3 12h15M14 7l5 5-5 5M8 3v4M8 17v4"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+  cross: '<path d="M3 21c4-12 11-15 18-14M17 3l4 4-4 3"/>',
+  curve: '<path d="M4 20C4 10 13 4 20 6M16 2.5l4 3.5-3.5 4"/><circle cx="4.5" cy="20" r="1.5"/>',
+  eye: '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 20L20 4"/>',
+  lowlob: '<path d="M2 18c5-7 15-7 20 0"/><circle cx="12" cy="12.5" r="2.5"/>',
+  hands: '<path d="M7 11V5.5a1.8 1.8 0 0 1 3.6 0V10M10.6 9V4a1.8 1.8 0 0 1 3.6 0v6M14.2 10V6a1.8 1.8 0 0 1 3.6 0v8a7 7 0 0 1-7 7h-.6A6 6 0 0 1 4 15v-3a1.8 1.8 0 0 1 3.6 0"/>',
+  punt: '<path d="M4 20l8-8M2 17l3 3"/><circle cx="16.5" cy="7.5" r="3.5"/><path d="M20 3l1.5-1.5"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M8 12h8"/>',
+  manmark: '<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-4 3-6 6-6s6 2 6 6M13.5 20c0-3 1.5-5 3.5-5s4 2 4 5"/>',
+  back: '<path d="M19 12H5M10 7l-5 5 5 5M20 5v14"/>',
+  wink: '<circle cx="12" cy="12" r="9"/><path d="M7.5 10h3M15.5 9.5v1M8 15c2 2 6 2 8 0"/>',
+  captain: '<rect x="3" y="7" width="18" height="10" rx="2"/><path d="M14.5 10a3 3 0 1 0 0 4"/>',
+  sub: '<path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/>',
+  flame: '<path d="M12 3c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-6 0 2 1 3 2 3 0-3 0-5 1-8z"/>',
+  run: '<path d="M3 18l5-5 4 3 7-9M15 7h4v4"/>'
+};
+const SK_INFO = {
+  0: ['step', 'Pasa el pie por encima de la pelota (bicicleta) para engañar al rival antes de salir.'],
+  28: ['step', 'Toca la pelota dos veces seguidas para cambiar de dirección muy rápido.'],
+  1: ['swirl', 'Lleva la pelota hacia afuera y la vuelve a meter con el mismo pie en un solo movimiento.'],
+  2: ['swirl', 'Gira sobre la pelota (ruleta) para dejar atrás al rival que lo marca.'],
+  3: ['lift', 'Levanta la pelota por encima del rival que viene de frente.'],
+  29: ['swirl', 'Cambia de dirección pasando la pelota por detrás del pie de apoyo.'],
+  4: ['heel', 'Corta la pelota por detrás del cuerpo para girar en seco.'],
+  5: ['feint', 'Amaga un remate o un pase y se lleva la pelota para el otro lado.'],
+  30: ['step', 'Frena y controla la pelota con la suela para protegerla y cambiar el ritmo.'],
+  10: ['heel', 'Pasa o se acomoda la pelota con el taco.'],
+  6: ['header', 'Cabecea con más precisión y potencia.'],
+  7: ['power', 'Le pega fuerte desde lejos con un tiro tenso y con poco efecto.'],
+  31: ['arc', 'Define por encima del arquero con una vaselina precisa.'],
+  39: ['power', 'Más precisión en los remates desde fuera del área.'],
+  8: ['knuckle', 'Remate sin rosca que se mueve en el aire y complica al arquero.'],
+  32: ['arc', 'Tiro que cae de golpe al llegar al arco.'],
+  33: ['arc', 'Tiro que sube al final del recorrido.'],
+  9: ['acro', 'Puede rematar de chilena, de tijera o en posiciones difíciles.'],
+  11: ['bolt', 'Remata de primera, sin controlar, con mejor precisión.'],
+  12: ['bolt', 'Pases de primera más precisos.'],
+  40: ['through', 'Pases al espacio más precisos para dejar a un compañero solo.'],
+  13: ['target', 'Pases elevados con efecto hacia atrás que frenan justo donde llega el compañero.'],
+  14: ['cross', 'Centros más precisos al área.'],
+  15: ['curve', 'Pasa y remata con el exterior del pie, con efecto.'],
+  16: ['curve', 'Pasa o remata cruzando la pierna por detrás de la otra (rabona).'],
+  34: ['eye', 'Pasa mirando para otro lado para engañar a la defensa.'],
+  17: ['lowlob', 'Pase elevado bajo y tenso, difícil de cortar.'],
+  19: ['hands', 'Saca de banda muy lejos, casi como un centro.'],
+  18: ['punt', 'El arquero saca con un pelotazo bajo y tenso.'],
+  35: ['punt', 'El arquero saca con un pelotazo alto y largo.'],
+  20: ['hands', 'El arquero lanza la pelota con la mano muy lejos para salir rápido.'],
+  37: ['hands', 'El arquero ataja más penales.'],
+  36: ['target', 'Patea los penales con más precisión.'],
+  21: ['wink', 'Busca faltas y sabe dejarse caer para sacar ventaja.'],
+  22: ['manmark', 'Sigue de cerca a un rival durante todo el partido.'],
+  23: ['back', 'Vuelve a defender en cuanto el equipo pierde la pelota.'],
+  38: ['shield', 'Anticipa y corta mejor los pases del rival.'],
+  24: ['acro', 'Despeja la pelota de chilena o de tijera.'],
+  25: ['captain', 'Levanta el ánimo del equipo cuando es el capitán.'],
+  26: ['sub', 'Rinde mejor cuando entra desde el banco.'],
+  27: ['flame', 'No baja los brazos aunque el equipo vaya perdiendo.']
+};
+const COM_INFO = [
+  ['swirl', 'La IA hace muchos trucos y amagues cuando tiene la pelota.'],
+  ['run', 'La IA encara en conducción larga, eludiendo a varios rivales.'],
+  ['bolt', 'La IA usa su velocidad para escaparse al espacio.'],
+  ['through', 'La IA busca el espacio a espaldas de la defensa.'],
+  ['arc', 'La IA busca seguido los pases largos.'],
+  ['cross', 'La IA centra apenas puede, sin llegar al fondo.'],
+  ['power', 'La IA remata seguido desde lejos.']
+];
+const skSvg = gl => `<svg viewBox="0 0 24 24" aria-hidden="true">${SK_GLYPH[gl] || SK_GLYPH.target}</svg>`;
+const SK_CAT = new Map(SKILLS.flatMap(([, list], gi) => list.map(([i]) => [i, gi])));
+// las que tiene el jugador: [clave, nombre, ícono, explicación, grupo]
+function playerSkills(p) {
+  const out = [];
+  for (const [, list] of SKILLS) for (const [i, nm] of list) if (pget(p, 'sk' + i)) out.push(['sk' + i, nm, (SK_INFO[i] || [])[0], (SK_INFO[i] || [])[1] || '', SK_CAT.get(i)]);
+  COM.forEach((nm, i) => { if (pget(p, 'com' + i)) out.push(['com' + i, nm, COM_INFO[i][0], COM_INFO[i][1], 'ia']); });
+  return out;
+}
+const skChip = (k, nm, gl, tip, cat, on) => `<label class="skchip" data-c="${cat}" data-tip="${esc(tip)}" data-tiptitle="${esc(nm)}"><input type="checkbox" data-k="${k}" ${on ? 'checked' : ''}><i class="skico">${skSvg(gl)}</i><span>${nm}</span></label>`;
+function skillsBlock(p) {
+  const g = k => pget(p, k), all = SKILLS.flatMap(s => s[1]), n = all.filter(([i]) => g('sk' + i)).length;
+  return `<h3 class="sec">Skills <span class="skn">${n} habilidades especiales</span></h3>
+  <div class="grid wide"><div class="f"><label>Estilo de juego</label><select data-k="play_style">${selOpts(STYLES, g('play_style'))}</select></div></div>
+  <div class="skgroups">${SKILLS.map(([gn, list], gi) => `<div class="skgrp" data-c="${gi}"><h4>${gn}<b>${list.filter(([i]) => g('sk' + i)).length}/${list.length}</b></h4><div class="skchips">${list.map(([i, nm]) => skChip('sk' + i, nm, (SK_INFO[i] || [])[0], (SK_INFO[i] || [])[1] || '', gi, g('sk' + i))).join('')}</div></div>`).join('')}
+    <div class="skgrp" data-c="ia"><h4>Estilos de juego de la IA<b>${COM.filter((_, i) => g('com' + i)).length}/${COM.length}</b></h4><div class="skchips">${COM.map((nm, i) => skChip('com' + i, nm, COM_INFO[i][0], COM_INFO[i][1], 'ia', g('com' + i))).join('')}</div></div></div>`;
+}
+// la apertura ocupa toda la pestaña: sobre que tiembla, destello, bandera → posición → escudo, y la carta aparece
+// grande en el centro con rayos antes de ir a su lugar (como en FIFA). Se puede saltar, repetir o apagar.
+function fifaOpening(p) {
+  const c = clubOf(p.id), reg = pget(p, 'reg_pos'), tier = fifaTier(p);
+  return `<div class="fopen" aria-hidden="true" data-ovr="${rating(p)}"><i class="fo-beam"></i>
+    <div class="fo-pack" tabindex="0" role="button" aria-label="Abrir el sobre"><div class="fo-top" title="Pasá el mouse de lado a lado para rasgarlo"><i class="fo-cut"></i></div><div class="fo-body"><img class="fo-logo" src="assets/logo-sobre.png" alt="PES Editor" draggable="false"></div></div>
+    <i class="fo-hand">👆</i><p class="fo-hint">Pasá el mouse por la parte de arriba del sobre para rasgarlo</p>
+    <i class="fo-flash"></i>
+    <div class="fo-w fo-w1">${natFlag(pget(p, 'nation')) || '<b>🌍</b>'}</div><div class="fo-w fo-w2"><b>${FIFA_POS[reg] || ''}</b></div><div class="fo-w fo-w3">${c ? crest(c, 'fobig') : '<b>⚽</b>'}</div>
+    <div class="fo-conf">${fifaConfetti(tier)}</div>
+    <i class="fo-rays"></i><div class="fo-parts">${Array.from({ length: 22 }, (_, i) => `<i style="--a:${i * 360 / 22}deg;--d:${(i % 4) * 50 + 120}px"></i>`).join('')}</div></div>
+    <button type="button" class="fo-skip" data-foskip>Saltar ⏭</button>`;
+}
+// confeti que sale disparado del sobre al rasgarlo (más papelitos y del color de la carta si es oro o ícono)
+function fifaConfetti(tier) {
+  const big = tier === 'gold' || tier === 'icon', tc = { gold: '#f5c542', silver: '#d9dee6', bronze: '#c98a52', icon: '#f0d68a' }[tier];
+  const cols = [tc, tc, '#ffffff', '#3ad17d', '#29a8ff', '#ff4f7b', '#ffd23f', '#a970ff'], r = (a, b) => a + Math.random() * (b - a);
+  return Array.from({ length: big ? 90 : 60 }, () => `<i style="--x:${Math.round(r(-560, 560))}px;--y:${Math.round(r(180, 440))}px;--r:${Math.round(r(-900, 900))}deg;--c:${cols[Math.floor(Math.random() * cols.length)]};--d:${r(0, .3).toFixed(2)}s;--t:${r(2.4, 3.6).toFixed(2)}s"></i>`).join('');
+}
+const fifaPref = k => PREFS[k] !== false;
+function fifaView(p) {
+  const g = k => pget(p, k), gk = g('reg_pos') === 0, tier = fifaTier(p);
+  const row = (n, w) => { const v = fifaVal(g, w); return `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`; };
+  const groups = FIFA_ATTR.map(([, nm, list]) => { const avg = Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0)))); return `<div class="group abgrp fgrp"><h4><span>${nm}</span><b class="gavg ${fifaCls(avg)}" title="Media">${avg}</b></h4>${list.map(([n, w]) => row(n, w)).join('')}</div>`; });
+  if (gk) groups.unshift(`<div class="group abgrp fgrp"><h4><span>Portero</span></h4>${FIFA_GK.map(([, n, w]) => row(n, w)).join('')}</div>`);
+  const stars = n => '★'.repeat(n) + '<s>' + '★'.repeat(5 - n) + '</s>';
+  S.fifaSeen = S.fifaSeen || new Set();
+  const force = S.fifaForce === p.id; S.fifaForce = null;
+  const open = !ANIM.reduce.matches && (force || (fifaPref('fifaOpen') && !S.fifaSeen.has(p.id))); S.fifaSeen.add(p.id);
+  const leg = isLegend(p), auto = legendAuto(p), sk = playerSkills(p), ps = g('play_style');
+  const skills = `<div class="fskills"><h4><span>Skills</span><b>${sk.length}</b></h4>
+    ${ps ? `<p class="fstyle"><span>Estilo de juego</span>: <b>${esc(STYLES[ps])}</b></p>` : ''}
+    <div class="fsk">${sk.map(([, nm, gl, tip, cat]) => `<span class="fskb" tabindex="0" data-c="${cat}" data-tip="${esc(tip)}" data-tiptitle="${esc(nm)}"><i>${skSvg(gl)}</i><em>${nm}</em></span>`).join('') || '<span class="fsknone">Sin habilidades especiales</span>'}</div></div>`;
+  return `<div class="fifa t-${tier}${open ? ' opening' : ''}">${open ? fifaOpening(p) : ''}
+    <div class="fifaside">${tier === 'gold' || tier === 'icon' ? '<i class="futglow" aria-hidden="true"></i>' : ''}${fifaCard(p)}
+      <div class="futbtns"><button type="button" class="btn small" data-fifaopen>🎁 <span>Abrir sobre</span></button><button type="button" class="btn small" data-legend aria-pressed="${leg}" title="${auto ? 'Juega en un equipo clásico: se lo toma como leyenda' : 'Marcarlo como leyenda muestra la carta ícono'}">⭐ <span>Leyenda</span></button>
+        <button type="button" class="btn small" data-fifapref="fifaOpen" aria-pressed="${fifaPref('fifaOpen')}" title="Mostrar la apertura la primera vez que abrís cada jugador">🎬 Apertura</button><button type="button" class="btn small" data-fifapref="fifaSnd" aria-pressed="${fifaPref('fifaSnd')}" title="Sonido de la apertura">${fifaPref('fifaSnd') ? '🔊' : '🔇'} Sonido</button></div>
+      <dl class="futinfo"><dt>Pie hábil</dt><dd>${g('strong_foot') ? 'Izquierdo' : 'Derecho'}</dd><dt>Pierna mala</dt><dd class="fst">${stars(g('weak_acc') + 1)}</dd><dt>Altura</dt><dd>${g('height')} cm</dd><dt>Peso</dt><dd>${g('weight')} kg</dd><dt>Edad</dt><dd>${g('age')} años</dd></dl>
+      <p class="note">Es una forma de ver al jugador: las medias se calculan con sus habilidades de PES. Para cambiar valores, volvé a la vista PES.</p></div>
+    <div class="fright">${skills}<div class="fgrid">${groups.join('')}</div></div>
+  </div>`;
+}
+// sonidos de la apertura, hechos con el sintetizador del navegador (sin archivos): la tira que se arranca, la explosión,
+// un golpe por cada dato (bandera, posición, escudo), el acorde brillante de la carta y la tribuna según la media
+function fifaSound(tier, ovr) {
+  if (!fifaPref('fifaSnd')) return () => { };
+  let c; try { c = sfxCtx(); } catch { } if (!c) return () => { };
+  const t = c.currentTime + .03, out = c.createGain(); out.gain.value = Math.max(.05, (GFX().sfxVol ?? .5)) * .9; out.connect(c.destination);
+  const { osc, nz } = fifaSynth(c, out, t);
+  // la tira que se arranca y la explosión del sobre
+  nz(0, .35, .45, 'bandpass', 2500, 900, .005, 1.5); nz(.5, 1.1, .55, 'lowpass', 6000, 200); osc('sine', 120, 35, .5, .9, .6);
+  // bandera, posición y escudo: un golpe grave cada uno, más un brillo
+  [1.15, 2.15, 3.15].forEach((at, i) => { osc('sine', 160 - i * 10, 55, at, .5, .7); nz(at, .12, .25, 'highpass', 3000, 6000); osc('triangle', 660 * (1 + i * .26), 660 * (1 + i * .26), at, .4, .05); });
+  // la carta: platillo y acorde que sube (oro e ícono, más largo y con coro)
+  nz(4.1, 1.8, .35, 'highpass', 5000, 9000, .005);
+  const big = tier === 'gold' || tier === 'icon', base = tier === 'bronze' ? 392 : tier === 'silver' ? 440 : 523.25;
+  [1, 1.26, 1.5, 2].forEach((m, i) => osc('triangle', base * m, base * m, 4.1 + i * .08, big ? 2.1 : 1.3, .09));
+  if (big) [.5, .75, 1].forEach(m => osc('sawtooth', base * m, base * m * 1.003, 4.2, 2.3, .025, .4));
+  fifaCrowd(c, out, t, tier === 'icon' || ovr >= 80 ? 2 : ovr >= 70 ? 1 : 0);
+  return () => { try { out.gain.cancelScheduledValues(c.currentTime); out.gain.setTargetAtTime(0, c.currentTime, .05); setTimeout(() => out.disconnect(), 400); } catch { } };
+}
+// la tribuna: con media alta (80+ o ícono) ovación con aplausos, gritos y silbidos de festejo; de 70 a 79 aplausos;
+// con menos de 70 silbatina y la hinchada gritando. Empieza como murmullo al romper el sobre y explota con la carta.
+function fifaCrowd(c, out, t, lvl) {
+  const sr = c.sampleRate, R = (a, b) => a + Math.random() * (b - a);
+  const bus = c.createGain(); bus.connect(out);
+  const swell = (node, pts) => { const g = c.createGain(); g.gain.setValueAtTime(0, t); pts.forEach(([at, v]) => g.gain.linearRampToValueAtTime(v, t + at)); node.connect(g); g.connect(bus); return g; };
+  // hinchada: ruido con las resonancias de muchas voces juntas
+  const noise = SFX.noise, voices = (at, dur, pts) => { [[420, 1.4, 1], [950, 2, .7], [2300, 3, .3]].forEach(([f, q, k]) => { const s = c.createBufferSource(); s.buffer = noise; s.loop = true; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; s.connect(bp); swell(bp, pts.map(([a, v]) => [a, v * k * 3])); s.start(t + at, Math.random()); s.stop(t + at + dur); }); };
+  // gritos: varias voces que suben de tono ("¡uuuh!" / "¡eeeh!")
+  const shouts = (at, n, up, peak) => { for (let i = 0; i < n; i++) { const o = c.createOscillator(), bp = c.createBiquadFilter(), g = c.createGain(), a = at + R(0, .5), f = R(170, 330), d = R(1.2, 2.2); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t + a); o.frequency.linearRampToValueAtTime(f * up, t + a + .5); o.frequency.linearRampToValueAtTime(f * up * .92, t + a + d); bp.type = 'bandpass'; bp.frequency.value = R(650, 1100); bp.Q.value = 3; g.gain.setValueAtTime(0, t + a); g.gain.linearRampToValueAtTime(peak, t + a + .15); g.gain.setValueAtTime(peak, t + a + d - .4); g.gain.linearRampToValueAtTime(0, t + a + d); o.connect(bp); bp.connect(g); g.connect(bus); o.start(t + a); o.stop(t + a + d + .05); } };
+  // silbidos: festejo (de dedos, sube y baja) o silbatina (largos y parejos, muchos a la vez)
+  const whistle = (at, f, d, peak, fest) => { const o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), g = c.createGain(); o.type = 'sine'; lfo.frequency.value = R(5, 9); lg.gain.value = f * .012; lfo.connect(lg); lg.connect(o.frequency);
+    if (fest) { o.frequency.setValueAtTime(f * .6, t + at); o.frequency.exponentialRampToValueAtTime(f, t + at + .12); o.frequency.setValueAtTime(f, t + at + d * .55); o.frequency.exponentialRampToValueAtTime(f * .7, t + at + d * .7); o.frequency.exponentialRampToValueAtTime(f * 1.05, t + at + d); }
+    else { o.frequency.setValueAtTime(f, t + at); o.frequency.linearRampToValueAtTime(f * R(.97, 1.03), t + at + d); }
+    g.gain.setValueAtTime(0, t + at); g.gain.linearRampToValueAtTime(peak, t + at + .06); g.gain.setValueAtTime(peak, t + at + d - .1); g.gain.linearRampToValueAtTime(0, t + at + d); o.connect(g); g.connect(bus); [o, lfo].forEach(x => { x.start(t + at); x.stop(t + at + d + .05); }); };
+  // aplausos: miles de palmas cortas armadas en un buffer
+  const claps = (at, dur, dens, pts) => { const len = Math.floor(sr * dur), b = c.createBuffer(1, len, sr), d = b.getChannelData(0); for (let k = 0, n = dur * dens; k < n; k++) { const s0 = Math.floor(Math.random() * (len - 2000)), L = 300 + Math.floor(Math.random() * 900), amp = R(.2, 1); for (let j = 0; j < L; j++) d[s0 + j] += (Math.random() * 2 - 1) * amp * Math.exp(-j / (L * .22)); } const s = c.createBufferSource(); s.buffer = b; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700; const bp = c.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = 1800; bp.gain.value = 6; s.connect(hp); hp.connect(bp); swell(bp, pts.map(([a, v]) => [a, v * 1.6])); s.start(t + at); };
+  // murmullo mientras pasan bandera, posición y escudo
+  voices(.5, 7, [[.5, 0], [1.4, .05], [3.9, .09], [4.3, lvl === 1 ? .12 : .22], [6.2, .16], [7.4, 0]]);
+  if (lvl === 2) {
+    claps(4, 3.4, 260, [[4, 0], [4.35, .32], [6.4, .26], [7.4, 0]]);
+    shouts(4.05, 10, 1.35, .028);
+    [4.4, 4.9, 5.5, 6.1].forEach(a => whistle(a + R(0, .2), R(2400, 3300), R(.55, .8), .06, true));
+  } else if (lvl === 1) {
+    claps(4.1, 3, 150, [[4.1, 0], [4.5, .22], [6.3, .14], [7.2, 0]]);
+    whistle(4.7, R(2600, 3100), .6, .045, true);
+  } else {
+    shouts(4.1, 7, 1.15, .024);
+    for (let i = 0; i < 12; i++) whistle(4.1 + R(0, 1.6), R(2300, 3600), R(1, 2.2), .028, false);
+    claps(4.6, 1.6, 30, [[4.6, 0], [4.9, .08], [6, 0]]);
+  }
+}
+function fifaSynth(c, out, t) {
+  const noise = SFX.noise || (SFX.noise = (() => { const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })());
+  const env = (node, at, a, peak, dur) => { const e = c.createGain(); e.gain.setValueAtTime(0, t + at); e.gain.linearRampToValueAtTime(peak, t + at + a); e.gain.exponentialRampToValueAtTime(.0005, t + at + dur); node.connect(e); e.connect(out); return e; };
+  const osc = (type, f0, f1, at, dur, peak, a = .01) => { const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur); env(o, at, a, peak, dur); o.start(t + at); o.stop(t + at + dur + .05); };
+  const nz = (at, dur, peak, type, f0, f1, a = .005, q = 1) => { const s = c.createBufferSource(); s.buffer = noise; const f = c.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t + at); f.frequency.exponentialRampToValueAtTime(f1, t + at + dur); s.connect(f); env(f, at, a, peak, dur); s.start(t + at, Math.random()); s.stop(t + at + dur + .05); };
+  return { osc, nz };
+}
+// el ruidito de papel mientras se rasga
+function fifaRip(k) {
+  if (!fifaPref('fifaSnd')) return;
+  try { const c = sfxCtx(); if (!c) return; const out = c.createGain(); out.gain.value = Math.max(.05, (GFX().sfxVol ?? .5)) * .6; out.connect(c.destination); setTimeout(() => out.disconnect(), 300); fifaSynth(c, out, c.currentTime).nz(0, .07 + Math.random() * .05, .25 + k * .25, 'bandpass', 1800 + Math.random() * 2500, 900, .003, 2.5); } catch { }
+}
+// arranca y termina la apertura (sola o al tocar)
+function fifaBind(sh) {
+  const f = sh.querySelector('.fifa.opening'); if (!f) return;
+  const card = f.querySelector('.fut'), fr = f.getBoundingClientRect(), cr = card.getBoundingClientRect();
+  card.style.setProperty('--fx', Math.round(fr.left + fr.width / 2 - (cr.left + cr.width / 2)) + 'px');
+  card.style.setProperty('--fy', Math.round(Math.min(fr.height, innerHeight) / 2 - (cr.top - fr.top) - cr.height / 2) + 'px');
+  f.style.setProperty('--cy', Math.round(Math.min(fr.height, innerHeight) / 2) + 'px');
+  const tier = (card.className.match(/\b(gold|silver|bronze|icon)\b/) || [])[1];
+  let stop = () => { }, t = 0;
+  const done = () => { f.querySelectorAll('.fopen,.fo-skip').forEach(o => o.remove()); f.classList.remove('opening', 'go'); f.classList.add('opened'); };
+  const end = () => { clearTimeout(t); stop(); done(); };
+  // rasgar: la tira de arriba se corta a medida que el mouse (o el dedo) la recorre de lado a lado
+  const top = f.querySelector('.fo-top'), pack = f.querySelector('.fo-pack'), bins = new Set();
+  const go = () => { if (f.classList.contains('go')) return; top.style.setProperty('--tear', '100%'); f.classList.add('go'); stop = fifaSound(tier, +f.querySelector('.fopen').dataset.ovr || 0); t = setTimeout(done, 7300); };
+  const move = e => {
+    const r = top.getBoundingClientRect(); if (e.clientY < r.top - 14 || e.clientY > r.bottom + 14) return;
+    const k = Math.floor(Math.max(0, Math.min(.999, (e.clientX - r.left) / r.width)) * 16); if (bins.has(k)) return;
+    bins.add(k);
+    top.style.setProperty('--tear', Math.round(bins.size / 16 * 100) + '%'); fifaRip(bins.size / 16);
+    if (bins.size >= 14) go();
+  };
+  f.addEventListener('pointermove', move);
+  pack.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  f.querySelector('.fo-skip').addEventListener('click', e => { e.stopPropagation(); end(); });
+  // una vez abierto, un toque en cualquier lado lo saltea
+  f.addEventListener('click', e => { if (f.classList.contains('go') && !e.target.closest('.fo-pack')) end(); });
+}
+const abViewSeg = () => { const v = PREFS.abView === 'fifa' ? 'fifa' : 'pes'; return `<div class="abview" role="group" aria-label="Forma de ver las estadísticas"><span class="lab">Ver como</span><div class="seg">${[['pes', '⚽ PES'], ['fifa', '🃏 FIFA']].map(([k, n]) => `<button type="button" data-abview="${k}" aria-pressed="${v === k}">${n}</button>`).join('')}</div></div>`; };
 function tabAbil(p) {
   const g = k => pget(p, k);
-  return `${hexaCard(p)}<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
+  if (PREFS.abView === 'fifa') return abViewSeg() + fifaView(p);
+  return `${abViewSeg()}${hexaCard(p)}<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
     <div class="row"><button class="btn small" data-bulk="-1" type="button">−1 a todas</button><button class="btn small" data-bulk="1" type="button">+1 a todas</button>
     <input type="number" id="bulkSet" min="40" max="99" placeholder="Valor" style="width:80px" aria-label="Valor para todas"><button class="btn small" id="bulkSetBtn" type="button">Poner todas</button></div></div>
-  <div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, n]) => { const v = g(k); return `<div class="ab"><div class="l"><span>${n}</span><input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}"></div><input type="number" class="${vcls(v)}" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"></div>`; }).join('')}</div>`).join('')}</div>
-  <div class="grid">
-    <div class="f"><span class="lab">Uso de pierna mala</span>${seg('weak_use', ['1', '2', '3', '4'], g('weak_use'))}</div>
-    <div class="f"><span class="lab">Precisión de pierna mala</span>${seg('weak_acc', ['1', '2', '3', '4'], g('weak_acc'))}</div>
-    <div class="f"><span class="lab">Estado de forma</span>${seg('form', ['1', '2', '3', '4', '5', '6', '7', '8'], g('form'))}</div>
-    <div class="f"><span class="lab">Resistencia a lesiones</span>${seg('injury', ['C', 'B', 'A'], g('injury'))}</div>
-  </div>`;
+  <div class="abscale" aria-hidden="true">${[['4', '90-99'], ['3', '80-89'], ['2', '70-79'], ['1', '60-69'], ['0', '40-59']].map(([t, r]) => `<span class="abt" data-t="${t}"><i></i>${r}</span>`).join('')}</div>
+  <div class="groups abgroups">${ABIL_GROUPS.map(([gn, list]) => { const a = abAvg(p, list); return `<div class="group abgrp"><h4>${gn}<b class="gavg abt" data-gavg="${gn}" data-t="${abT(a)}" title="Promedio">${a}</b></h4>${list.map(([k, n]) => abRow(k, n, g(k))).join('')}</div>`; }).join('')}</div>
+  <h3 class="sec">Pierna mala, forma y lesiones</h3>
+  <div class="lvls">
+    <div class="f"><span class="lab">Uso de pierna mala</span>${lvlSeg('weak_use', g('weak_use'), ['1', '2', '3', '4'], 'Uso de pierna mala')}</div>
+    <div class="f"><span class="lab">Precisión de pierna mala</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
+    <div class="f"><span class="lab">Estado de forma</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
+    <div class="f"><span class="lab">Resistencia a lesiones</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
+  </div>${skillsBlock(p)}`;
 }
 function tabSkills(p) {
   const g = k => pget(p, k);
@@ -1353,7 +1854,7 @@ function tabLook(p) {
 }
 function tabMotion(p) {
   const g = k => pget(p, k);
-  return `<div class="grid wide">${MOTION.map(([k, n, min, max, off]) => `<div class="f"><label>${n} (${min}-${max})</label>${num(k, g(k) + off, min, max, `data-off="${off}"`)}</div>`).join('')}</div>
+  return `<div class="grid wide">${MOTION.map(([k, n, min, max, off]) => `<div class="f"><label>${n} <span class="rng">(${min}-${max})</span></label>${num(k, g(k) + off, min, max, `data-off="${off}"`)}</div>`).join('')}</div>
   <p class="note">Los números corresponden a las animaciones del juego, igual que en el modo Editar de PES.</p>`;
 }
 const KIT_BULK = [
@@ -1370,6 +1871,17 @@ const COPY_KEYS = {
   look: [...BODY.map(b => b[0]), 'skin_col', 'iris_col', 'boot_id', 'glove_id', 'gloves', 'gloves_col', 'sleeve', 'inners', 'socks', 'undershorts', 'wrist_tape', 'wrist_col_l', 'wrist_col_r', 'spec_style', 'spec_col', 'untucked', 'ankle_tape'],
   motion: MOTION.map(mm => mm[0]),
 };
+// pinta una fila de habilidad (color y largo de la barra) sin redibujar la ficha
+function abPaint(row, v) { row.dataset.t = abT(v); row.style.setProperty('--p', abP(v)); }
+// después de cambiar una habilidad: su fila, el promedio del grupo y el hexágono
+function abLive(p, k, dragged) {
+  const sh = $('plSheet'); if (!sh) return;
+  const v = pget(p, k), row = sh.querySelector(`.abr[data-abk="${k}"]`), o = S.abShown && S.abShown.id === p.id ? S.abShown.vals.get(k) : null;
+  if (row) { abPaint(row, v); row.querySelectorAll('[data-tiplv]').forEach(x => { x.dataset.tiplv = abT(v); }); if (o != null && o !== v) { bumpNum(row.querySelector('input[type=number]'), v - o); if (!dragged) barSlide(row, o, v); } }
+  if (S.abShown && S.abShown.id === p.id) S.abShown.vals.set(k, v);
+  for (const [gn, list] of ABIL_GROUPS) { if (!list.some(x => x[0] === k)) continue; const b = sh.querySelector(`[data-gavg="${gn}"]`); if (b) { const a = abAvg(p, list), a0 = +b.textContent; b.textContent = a; b.dataset.t = abT(a); if (a !== a0) bumpNum(b, a - a0); } }
+  if (typeof hexaPaint === 'function' && $('hxWrap')) hexaPaint(p, hexaAxes(pget(p, 'reg_pos')), null);
+}
 function bindPlayer(p, m) {
   const sh = $('plSheet'), rer = () => later(() => renderPlayers(m));
   const nm = () => pget(p, 'name') || 'ID ' + p.id;
@@ -1382,14 +1894,35 @@ function bindPlayer(p, m) {
     edit('Copiar ' + $('pCopyWhat').selectedOptions[0].text + ' a ' + nm(), 'p' + p.id, regP(p), () => { for (const k of COPY_KEYS[what]) { PD.player.set(S.d, p.base, k, PD.player.get(S.d, src.base, k)); if (S.autoLock) for (const fl of [...LOCK_FLAGS, ...FIELD_FLAGS(k)]) PD.player.set(S.d, p.base, fl, 1); } });
     toast('Copiado de ' + pget(src, 'name') + '.', 4000, ['Deshacer', undo]); rer();
   };
-  if (S.ptab === 'abil') hexaBind(p, rer);
+  if (S.ptab === 'abil' && PREFS.abView !== 'fifa') hexaBind(p, rer);
+  if (S.ptab === 'abil' && PREFS.abView === 'fifa') fifaBind(sh);
+  abAnimDiff(p);
   sh.addEventListener('input', e => {
     const el = e.target; if (el.type !== 'range') return;
-    const ab = el.closest('.ab'); if (!ab) return;
+    const ab = el.closest('.ab,.abr'); if (!ab) return;
     const tw = el.dataset.twin ? ab.querySelector('input[type=number]') : null; if (tw) { tw.value = el.value; tw.className = vcls(+el.value); }
+    if (ab.classList.contains('abr')) abPaint(ab, +el.value);
     const o = ab.querySelector('output'); if (o) { const d = +el.value - 7; o.textContent = (d > 0 ? '+' : '') + d; }
   });
+  // nombre y apellido: se juntan en el único nombre que guarda el juego
+  const fullNm = () => joinName($('pFirst').value, $('pLast').value);
+  sh.addEventListener('input', e => {
+    if (!e.target.dataset.nm) return;
+    const v = fullNm(), n = nameBytes(v), fb = $('pFull'), bb = $('pBytes');
+    if (fb) fb.textContent = v || '—'; if (bb) { bb.textContent = n + '/' + NAME_MAX; bb.classList.toggle('bad', n > NAME_MAX); }
+  });
   sh.addEventListener('change', e => {
+    if (e.target.dataset.nm) {
+      const v = fullNm(); if (!v) { toast('El jugador necesita un nombre o un apellido.'); const [f0, l0] = splitName(pget(p, 'name')); $('pFirst').value = f0; $('pLast').value = l0; return; }
+      if (nameBytes(v) > NAME_MAX) toast('El nombre completo pasa los ' + NAME_MAX + ' caracteres que guarda el juego: se corta al final.', 5000);
+      if (v === pget(p, 'name')) return;
+      setP(p, 'name', v, nm() + ': nombre');
+      // sin redibujar la ficha, así el cursor sigue en el campo siguiente (Tab de Nombre a Apellido)
+      const h2 = sh.querySelector('.head h2'); if (h2) h2.textContent = nm();
+      const fb = $('pFull'); if (fb) fb.textContent = nm();
+      const it = document.querySelector(`[data-p="${p.id}"] .nm`), tn = it && [...it.childNodes].find(x => x.nodeType === 3 && x.data.trim()); if (tn) tn.data = tn.data.match(/^\s*/)[0] + nm();
+      updateLockUi(p); return;
+    }
     const el = e.target, k = el.dataset.k; if (!k) return;
     let v;
     if (el.type === 'checkbox') v = el.checked ? 1 : 0;
@@ -1397,14 +1930,22 @@ function bindPlayer(p, m) {
     else { v = Math.round(parseFloat(el.value)); if (isNaN(v)) return; if (el.min !== '' && v < +el.min) v = +el.min; if (el.max !== '' && v > +el.max) v = +el.max; el.value = v; if (el.dataset.off) v -= +el.dataset.off; }
     setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k));
     if (k === 'reg_pos') { const pp = 'pos' + POS_TO_PP[v]; if (pget(p, pp) < 2) setP(p, pp, 2, nm() + ': posiciones'); }
-    if (ABIL.some(a => a[0] === k)) sh.querySelectorAll(`[data-k="${k}"]`).forEach(x => { if (x !== el) x.value = el.value; if (x.type === 'number') x.className = vcls(+el.value); });
+    if (ABIL.some(a => a[0] === k)) { sh.querySelectorAll(`[data-k="${k}"]`).forEach(x => { if (x !== el) x.value = el.value; if (x.type === 'number') x.className = vcls(+el.value); }); abLive(p, k, el.type === 'range'); }
     if (['name', 'reg_pos', 'nation', 'age', 'height', 'strong_foot', 'play_style'].includes(k) || el.type === 'checkbox') rer();
     else updateLockUi(p);
   });
   sh.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-fifaopen')) { S.fifaForce = p.id; rer(); return; }
+    if (b.dataset.fifapref) { PREFS[b.dataset.fifapref] = !fifaPref(b.dataset.fifapref); savePrefs(); rer(); return; }
+    if (b.hasAttribute('data-legend')) { LEGEND.set(p.id, !isLegend(p)); if (LEGEND.get(p.id) === legendAuto(p)) LEGEND.delete(p.id); try { localStorage.setItem(LEG_LS, JSON.stringify([...LEGEND])); } catch { } rer(); return; }
+    if (b.dataset.abview) { if (PREFS.abView !== b.dataset.abview) { PREFS.abView = b.dataset.abview; savePrefs(); rer(); } return; }
+    if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
+    if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
+    if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
     const sg = b.closest('[data-segk]');
-    if (sg && b.dataset.v != null) { setP(p, sg.dataset.segk, +b.dataset.v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; }
+    if (sg && b.dataset.step) { const k = sg.dataset.segk, v = Math.max(0, Math.min(+sg.dataset.max, pget(p, k) + +b.dataset.step)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); rer(); } return; }
+    if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.matches('.lvstar,.lvatt') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0
     if (b.dataset.pp != null) { const k = 'pos' + POS_TO_PP[+b.dataset.pp]; setP(p, k, (pget(p, k) + 1) % 3, nm() + ': posiciones'); rer(); return; }
     if (b.id === 'ppClear') { const reg = pget(p, 'reg_pos'); edit(nm() + ': posiciones', 'p' + p.id, regP(p), () => { POS_TO_PP.forEach((pp, i) => PD.player.set(S.d, p.base, 'pos' + pp, i === reg ? 2 : 0)); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }
     if (b.dataset.bulk) { const d = +b.dataset.bulk; edit(nm() + ': ' + (d > 0 ? '+1' : '−1') + ' a todas las habilidades', 'p' + p.id, regP(p), () => { for (const [k] of ABIL) PD.player.set(S.d, p.base, k, Math.max(40, Math.min(99, PD.player.get(S.d, p.base, k) + d))); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }
@@ -1488,7 +2029,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-kits]')) c
 kitsLoadCache(); namesLoadCache(); FACES.ready = restoreFaces().then(() => { if (FACES.count) render(); });
 $('fNames').onchange = e => { const f = e.target.files[0]; if (f) loadNames(f); e.target.value = ''; };
 $('bSave').onclick = save; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
-$('bReload').onclick = () => reloadFromGame(); $('bFindEdit').onclick = editFinder; $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news');
+$('bReload').onclick = () => reloadFromGame(); $('bFindEdit').onclick = editFinder; $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news'); $('tIdeas').onclick = () => setTab('ideas');
 $('gq').oninput = e => gsearch(e.target.value);
 $('gq').onkeydown = e => { if (e.key === 'Enter') { const b = $('gres').querySelector('button'); if (b) gpick(b); } if (e.key === 'Escape') { $('gres').hidden = true; e.target.blur(); } };
 $('gres').onclick = e => { const b = e.target.closest('button'); if (b) gpick(b); };

@@ -1490,9 +1490,50 @@ function lvlSeg(k, v, labels, label) {
   const n = labels.length, f = (v + 1) / n, t = f >= 1 ? 4 : f > .7 ? 3 : f > .45 ? 2 : f > .25 ? 1 : 0;
   return `<div class="lvl lvgen" data-segk="${k}" data-max="${n - 1}" data-t="${t}" role="group" aria-label="${label}">${lvlStep(-1, v, n - 1)}${labels.map((l, i) => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${l}"><i></i></button>`).join('')}<b class="lvnum">${labels[v] ?? v}</b>${lvlStep(1, v, n - 1)}${tipBtn(k, label)}</div>`;
 }
+// ----- vista FIFA: las mismas habilidades de PES pasadas a la carta y a los atributos de FIFA (solo para ver) -----
+// cada atributo FIFA sale de una o más habilidades de PES; los pesos de cada media son los de FIFA
+const FIFA_POS = ['POR', 'DFC', 'LI', 'LD', 'MCD', 'MC', 'MI', 'MD', 'MCO', 'EI', 'ED', 'SD', 'DC'];
+const FIFA_ATTR = [
+  ['RIT', 'Ritmo', [['Aceleración', { exp_pwr: 1 }, .45], ['Velocidad', { speed: 1 }, .55]]],
+  ['TIR', 'Tiro', [['Posicionamiento', { atk: 1 }, .05], ['Definición', { finish: 1 }, .45], ['Potencia de tiro', { kick_pwr: 1 }, .2], ['Tiros lejanos', { kick_pwr: .5, finish: .5 }, .2], ['Voleas', { finish: .6, body_ctrl: .4 }, .05], ['Penaltis', { place_kick: 1 }, .05]]],
+  ['PAS', 'Pase', [['Visión', { lowpass: .5, loftpass: .5 }, .2], ['Centros', { loftpass: .6, swerve: .4 }, .2], ['Precisión en faltas', { place_kick: .6, swerve: .4 }, .05], ['Pase corto', { lowpass: 1 }, .35], ['Pase largo', { loftpass: 1 }, .15], ['Efecto', { swerve: 1 }, .05]]],
+  ['REG', 'Regate', [['Agilidad', { exp_pwr: .5, tight_pos: .5 }, .1], ['Equilibrio', { body_ctrl: 1 }, .05], ['Reacciones', { atk: .5, def: .5 }, .05], ['Control del balón', { ball_ctrl: 1 }, .35], ['Regate', { drib: 1 }, .45], ['Compostura', { tight_pos: .5, ball_ctrl: .5 }, 0]]],
+  ['DEF', 'Defensa', [['Intercepciones', { def: .5, ball_win: .5 }, .2], ['Precisión de cabeza', { header: 1 }, .1], ['Conciencia defensiva', { def: 1 }, .3], ['Entrada de pie', { ball_win: 1 }, .2], ['Entrada deslizante', { ball_win: .6, aggres: .4 }, .2]]],
+  ['FÍS', 'Físico', [['Salto', { jump: 1 }, .05], ['Resistencia', { stamina: 1 }, .25], ['Fuerza', { phys_cont: 1 }, .5], ['Agresividad', { aggres: 1 }, .2]]],
+];
+const FIFA_GK = [['EST', 'Estirada', { cover: 1 }], ['PAR', 'Paradas', { catching: 1 }], ['SAQ', 'Saque', { kick_pwr: .5, loftpass: .5 }], ['REF', 'Reflejos', { reflex: 1 }], ['VEL', 'Velocidad', { speed: .55, exp_pwr: .45 }], ['COL', 'Colocación', { gk: 1 }]];
+const fifaVal = (get, w) => Math.max(1, Math.min(99, Math.round(Object.entries(w).reduce((a, [k, x]) => a + get(k) * x, 0))));
+const fifaFrom = w => 'Se calcula con estas habilidades de PES: ' + Object.keys(w).map(k => tr(FIELD_LABEL[k] || k)).join(LANG === 'es' ? ' y ' : ' and ');
+const fifaCls = v => v >= 80 ? 'f80' : v >= 70 ? 'f70' : v >= 50 ? 'f50' : 'f0';
+function fifaCard(p) {
+  const g = k => pget(p, k), reg = g('reg_pos'), gk = reg === 0, ovr = rating(p), c = clubOf(p.id), kit = c ? kitFor(c, gk) : null;
+  const face = gk ? FIFA_GK.map(([ab, nm, w]) => [ab, nm, fifaVal(g, w)]) : FIFA_ATTR.map(([ab, nm, list]) => [ab, nm, Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0))))]);
+  const tier = ovr >= 90 ? 'icon' : ovr >= 75 ? 'gold' : ovr >= 65 ? 'silver' : 'bronze';
+  const [, last] = splitName(g('name')), nm = g('shirt') || last || g('name');
+  return `<div class="fut ${tier}"><div class="futin">
+    <div class="futtop"><div class="futovr"><b>${ovr}</b><span>${FIFA_POS[reg] || ''}</span>${natFlag(g('nation'))}${c ? crest(c, 'futcrest') : ''}</div>
+      <div class="futface">${faceHtml(p.id, kit, 'futf')}</div></div>
+    <div class="futnm">${esc(nm)}</div>
+    <div class="futstats">${face.map(([ab, n, v]) => `<div title="${n}"><b>${v}</b><span>${ab}</span></div>`).join('')}</div>
+  </div></div>`;
+}
+function fifaView(p) {
+  const g = k => pget(p, k), gk = g('reg_pos') === 0;
+  const groups = FIFA_ATTR.map(([ab, nm, list]) => { const vals = list.map(([n, w]) => [n, w, fifaVal(g, w)]), avg = Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0)))); return `<div class="group abgrp fgrp"><h4><span>${nm}</span><b class="gavg ${fifaCls(avg)}" title="Media">${avg}</b></h4>${vals.map(([n, w, v]) => `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`).join('')}</div>`; });
+  if (gk) groups.unshift(`<div class="group abgrp fgrp"><h4><span>Portero</span></h4>${FIFA_GK.map(([, n, w]) => { const v = fifaVal(g, w); return `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`; }).join('')}</div>`);
+  const stars = n => '★'.repeat(n) + '<s>' + '★'.repeat(5 - n) + '</s>';
+  return `<div class="fifa">
+    <div class="fifaside">${fifaCard(p)}
+      <dl class="futinfo"><dt>Pie hábil</dt><dd>${g('strong_foot') ? 'Izquierdo' : 'Derecho'}</dd><dt>Pierna mala</dt><dd class="fst">${stars(g('weak_acc') + 1)}</dd><dt>Altura</dt><dd>${g('height')} cm</dd><dt>Peso</dt><dd>${g('weight')} kg</dd><dt>Edad</dt><dd>${g('age')} años</dd></dl>
+      <p class="note">Es una forma de ver al jugador: las medias se calculan con sus habilidades de PES. Para cambiar valores, volvé a la vista PES.</p></div>
+    <div class="fgrid">${groups.join('')}</div>
+  </div>`;
+}
+const abViewSeg = () => { const v = PREFS.abView === 'fifa' ? 'fifa' : 'pes'; return `<div class="abview" role="group" aria-label="Forma de ver las estadísticas"><span class="lab">Ver como</span><div class="seg">${[['pes', '⚽ PES'], ['fifa', '🃏 FIFA']].map(([k, n]) => `<button type="button" data-abview="${k}" aria-pressed="${v === k}">${n}</button>`).join('')}</div></div>`; };
 function tabAbil(p) {
   const g = k => pget(p, k);
-  return `${hexaCard(p)}<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
+  if (PREFS.abView === 'fifa') return abViewSeg() + fifaView(p);
+  return `${abViewSeg()}${hexaCard(p)}<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
     <div class="row"><button class="btn small" data-bulk="-1" type="button">−1 a todas</button><button class="btn small" data-bulk="1" type="button">+1 a todas</button>
     <input type="number" id="bulkSet" min="40" max="99" placeholder="Valor" style="width:80px" aria-label="Valor para todas"><button class="btn small" id="bulkSetBtn" type="button">Poner todas</button></div></div>
   <div class="abscale" aria-hidden="true">${[['4', '90-99'], ['3', '80-89'], ['2', '70-79'], ['1', '60-69'], ['0', '40-59']].map(([t, r]) => `<span class="abt" data-t="${t}"><i></i>${r}</span>`).join('')}</div>
@@ -1585,7 +1626,7 @@ function bindPlayer(p, m) {
     edit('Copiar ' + $('pCopyWhat').selectedOptions[0].text + ' a ' + nm(), 'p' + p.id, regP(p), () => { for (const k of COPY_KEYS[what]) { PD.player.set(S.d, p.base, k, PD.player.get(S.d, src.base, k)); if (S.autoLock) for (const fl of [...LOCK_FLAGS, ...FIELD_FLAGS(k)]) PD.player.set(S.d, p.base, fl, 1); } });
     toast('Copiado de ' + pget(src, 'name') + '.', 4000, ['Deshacer', undo]); rer();
   };
-  if (S.ptab === 'abil') hexaBind(p, rer);
+  if (S.ptab === 'abil' && PREFS.abView !== 'fifa') hexaBind(p, rer);
   abAnimDiff(p);
   sh.addEventListener('input', e => {
     const el = e.target; if (el.type !== 'range') return;
@@ -1626,6 +1667,7 @@ function bindPlayer(p, m) {
   });
   sh.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.abview) { if (PREFS.abView !== b.dataset.abview) { PREFS.abView = b.dataset.abview; savePrefs(); rer(); } return; }
     if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
     if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }

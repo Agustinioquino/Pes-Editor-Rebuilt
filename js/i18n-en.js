@@ -3863,5 +3863,17 @@ Object.assign(I18N_EN, {
 "Subir uno":"Up one",
 "Escribí primero el apellido.":"Type the last name first.",
 "El jugador necesita un nombre o un apellido.":"The player needs a first or last name.",
-"El nombre completo pasa los {x} caracteres que guarda el juego: se corta al final.":"The full name is longer than the {x} characters the game stores: the end gets cut off."
+"El nombre completo pasa los {x} caracteres que guarda el juego: se corta al final.":"The full name is longer than the {x} characters the game stores: the end gets cut off.",
+"Ver como":"View as",
+"Forma de ver las estadísticas":"How to view the stats",
+"Se calcula con estas habilidades de PES: {x}":"Worked out from these PES abilities: {x}",
+"Es una forma de ver al jugador: las medias se calculan con sus habilidades de PES. Para cambiar valores, volvé a la vista PES.":"This is just another way to look at the player: the ratings are worked out from his PES abilities. To change values, go back to the PES view.",
+"Ritmo":"Pace","Pierna mala":"Weak foot","Peso":"Weight",
+"Aceleración":"Acceleration","Potencia de tiro":"Shot power","Tiros lejanos":"Long shots","Voleas":"Volleys","Penaltis":"Penalties","Definición":"Finishing",
+"Visión":"Vision","Centros":"Crossing","Precisión en faltas":"FK accuracy","Pase corto":"Short passing","Pase largo":"Long passing",
+"Agilidad":"Agility","Reacciones":"Reactions","Control del balón":"Ball control","Compostura":"Composure",
+"Intercepciones":"Interceptions","Precisión de cabeza":"Heading accuracy","Conciencia defensiva":"Def. awareness","Entrada de pie":"Standing tackle","Entrada deslizante":"Sliding tackle",
+"Fuerza":"Strength","Estirada":"Diving","Paradas":"Handling","Saque":"Kicking","Colocación":"Positioning",
+"RIT":"PAC","TIR":"SHO","REG":"DRI","FÍS":"PHY","EST":"DIV","PAR":"HAN","SAQ":"KIC","VEL":"SPD","COL":"POS",
+"POR":"GK","DFC":"CB","LI":"LB","LD":"RB","MCD":"CDM","MC":"CM","MI":"LM","MD":"RM","MCO":"CAM","EI":"LW","ED":"RW","SD":"CF","DC":"ST"
 });

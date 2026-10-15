@@ -1823,3 +1823,67 @@ html[data-gfx="clasico"] .abinfo{border-radius:2px;box-shadow:inset 1px 1px #fff
 html[data-gfx="retro"] .abinfo{border-radius:0;border:2px solid var(--neon);background:#071440;color:var(--neon)}
 html[data-gfx="pes6"] .abinfo{border-radius:0!important;background:linear-gradient(180deg,#e9f2ff,#9fc0e6);border:1px solid #4d6f9a;box-shadow:inset 0 1px #fff,0 2px 3px #0004;color:#0f3050}
 html[data-gfx="pes6"] .abinfo:hover,html[data-gfx="pes6"] .abinfo[aria-describedby]{background:linear-gradient(180deg,#fdf0a0,#e6c02e);border-color:#a8820f;color:#1c1c1a}
+/* ===== Habilidades: selector de vista y vista FIFA ===== */
+.abview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px}
+.abview .seg button{font-family:var(--display);font-size:.9rem;padding:.35rem .9rem}
+.f80{--lc:#14853b}.f70{--lc:#62b331}.f50{--lc:#e6a117}.f0{--lc:#d8412b}
+.fifa{display:grid;grid-template-columns:minmax(230px,270px) minmax(0,1fr);gap:22px;align-items:start}
+.fifaside{display:grid;gap:12px;justify-items:center;position:sticky;top:12px}
+.fifaside .note{font-size:.78rem;margin:0;text-align:center}
+/* la carta: forma de escudo, degradado según la media (bronce, plata, oro, ícono) */
+.fut{--c1:#f8e7a4;--c2:#e2bf55;--c3:#a8801f;--ink:#3a2a04;--edge:#fff6cf;width:232px;aspect-ratio:232/330;padding:3px;background:linear-gradient(160deg,var(--edge),var(--c3));clip-path:polygon(14% 0,86% 0,100% 7%,100% 88%,50% 100%,0 88%,0 7%);filter:drop-shadow(0 10px 18px #0007);position:relative;animation:futIn .5s cubic-bezier(.2,1.2,.4,1)}
+.fut.silver{--c1:#f2f4f7;--c2:#c3c9d3;--c3:#7f8896;--ink:#1f242c;--edge:#ffffff}
+.fut.bronze{--c1:#f0c296;--c2:#c27b45;--c3:#7e4520;--ink:#331a07;--edge:#ffdcbc}
+.fut.icon{--c1:#2a3d8f;--c2:#152262;--c3:#0a1236;--ink:#f7dc84;--edge:#f7dc84}
+.futin{height:100%;clip-path:inherit;background:radial-gradient(120% 60% at 70% 18%,#ffffff70,transparent 60%),repeating-linear-gradient(115deg,#ffffff14 0 10px,transparent 10px 22px),linear-gradient(170deg,var(--c1),var(--c2) 55%,var(--c3));color:var(--ink);display:grid;grid-template-rows:auto auto 1fr;padding:18px 16px 30px;overflow:hidden;position:relative}
+.futin::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,#ffffff55 48%,transparent 60%);transform:translateX(-120%);animation:futShine 3.6s ease-in-out 1s infinite;pointer-events:none}
+.fut.icon .futin::after{background:linear-gradient(110deg,transparent 35%,#f7dc8455 48%,transparent 60%)}
+.futtop{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:4px;min-height:132px}
+.futovr{display:grid;justify-items:center;gap:3px;padding-top:6px}
+.futovr b{font:700 2.6rem/1 var(--display);letter-spacing:-.02em}
+.futovr>span{font:700 .95rem/1 var(--display);letter-spacing:.04em}
+.futovr .flagw{position:relative;display:block;width:30px;height:20px;margin-top:4px}.futovr .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
+.futovr .crest.futcrest{width:30px;height:30px;font-size:.55rem;border-radius:5px;margin-top:2px}
+.futface{display:grid;place-items:end center;align-self:end}
+.face.futf{width:132px;height:132px}.face.futf::before{display:none}.face.futf svg{width:78%!important;height:78%!important}
+.futnm{text-align:center;font:700 1.25rem/1.1 var(--display);text-transform:uppercase;letter-spacing:.03em;padding:6px 0 5px;border-bottom:1px solid color-mix(in srgb,var(--ink) 35%,transparent);margin:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.futstats{display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;grid-template-rows:repeat(3,auto);column-gap:14px;row-gap:3px;padding:9px 10px 0;position:relative;align-content:start}
+.futstats::before{content:"";position:absolute;left:50%;top:10px;bottom:0;width:1px;background:color-mix(in srgb,var(--ink) 35%,transparent)}
+.futstats div{display:flex;align-items:baseline;gap:6px;justify-content:center}
+.futstats b{font:700 1.15rem/1.2 var(--display);min-width:1.4em;text-align:right}.futstats span{font:600 .9rem/1.2 var(--display);opacity:.85;min-width:2.1em}
+@keyframes futIn{0%{opacity:0;transform:perspective(600px) rotateY(-70deg) scale(.85)}100%{opacity:1;transform:none}}
+@keyframes futShine{0%{transform:translateX(-120%)}35%,100%{transform:translateX(120%)}}
+.futinfo{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;width:100%;max-width:270px;font-size:.86rem}
+.futinfo dt{color:var(--muted)}.futinfo dd{margin:0;font-weight:600;text-align:right}
+.fst{color:#e6a117;letter-spacing:1px}.fst s{text-decoration:none;color:var(--line)}
+/* grupos de atributos, con el color de FIFA según el valor */
+.fgrid{columns:2 230px;column-gap:20px}
+.fgrid>.fgrp{break-inside:avoid;margin-bottom:16px}
+.fgrp{gap:5px;animation:fgIn .4s ease both}.fgrp:nth-child(2){animation-delay:.04s}.fgrp:nth-child(3){animation-delay:.08s}.fgrp:nth-child(4){animation-delay:.12s}.fgrp:nth-child(5){animation-delay:.16s}.fgrp:nth-child(6){animation-delay:.2s}.fgrp:nth-child(7){animation-delay:.24s}
+.fat{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;row-gap:3px}
+.fatn{font-size:.86rem;cursor:help;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fatn:hover{color:var(--lc,var(--accent))}
+.fat>b{min-width:2.2em;text-align:center;font:700 .92rem/1.45 var(--display);color:#fff;background:var(--lc);border-radius:5px;text-shadow:0 1px 0 #0004}
+.fbar{grid-column:1/-1;height:4px;border-radius:99px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden}
+.fbar u{display:block;height:100%;background:var(--lc);border-radius:inherit;transform-origin:left;animation:fbGrow .6s cubic-bezier(.2,.9,.3,1) both}
+@keyframes fbGrow{from{transform:scaleX(0)}}
+@keyframes fgIn{from{opacity:0;transform:translateY(6px)}}
+@media (max-width:760px){.fifa{grid-template-columns:1fr}.fifaside{position:static}}
+@media (prefers-reduced-motion:reduce){.fut,.futin::after,.fgrp,.fbar u{animation:none!important}}
+/* Clásico: carta con borde biselado y grupos como ventanas */
+html[data-gfx="clasico"] .fut{filter:drop-shadow(2px 2px 0 #0006)}
+html[data-gfx="clasico"] .fat>b,html[data-gfx="clasico"] .fbar{border-radius:1px}
+html[data-gfx="clasico"] .fat>b{box-shadow:inset 1px 1px #fff6,inset -1px -1px #0005}
+html[data-gfx="clasico"] .fbar{height:6px;border:1px solid #808080;background:#fff}
+html[data-gfx="clasico"] .fbar u{border-radius:0}
+/* Retro: borde neón, sin redondeos */
+html[data-gfx="retro"] .fut{background:var(--neon);filter:drop-shadow(4px 4px 0 #000)}
+html[data-gfx="retro"] .futin{background:repeating-linear-gradient(0deg,#0000 0 2px,#0000001f 2px 3px),linear-gradient(170deg,var(--c1),var(--c2) 55%,var(--c3))}
+html[data-gfx="retro"] .fat>b,html[data-gfx="retro"] .fbar,html[data-gfx="retro"] .fbar u{border-radius:0}
+html[data-gfx="retro"] .fbar{height:6px;background:#000;box-shadow:inset 0 0 0 1px var(--line)}
+html[data-gfx="retro"] .fbar u{background:repeating-linear-gradient(90deg,var(--lc) 0 6px,transparent 6px 8px)}
+/* PES 6: marco gris metálico como sus paneles, números en placas */
+html[data-gfx="pes6"] .fut{background:linear-gradient(180deg,#fafaf8,#6f6c64);filter:drop-shadow(0 0 0 #000) drop-shadow(0 8px 14px #0006)}
+html[data-gfx="pes6"] .fat>b{border-radius:0;border:1px solid color-mix(in srgb,var(--lc) 60%,#000);background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 55%,#fff),var(--lc) 55%,color-mix(in srgb,var(--lc) 80%,#000))}
+html[data-gfx="pes6"] .fbar{border-radius:0;height:6px;background:linear-gradient(180deg,#bdbab2,#e4e2db);box-shadow:inset 0 1px #0003}
+html[data-gfx="pes6"] .fbar u{border-radius:0;background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 50%,#fff),var(--lc) 60%)}
+html[data-gfx="pes6"] .futinfo dd:not(.fst){color:#1c1c1a}html[data-gfx="pes6"] .card .fst .emo{color:inherit;text-shadow:0 1px 0 #fff}html[data-gfx="pes6"] .fst s{color:#b9b6ad}html[data-gfx="pes6"] .fatn{color:#1c1c1a}

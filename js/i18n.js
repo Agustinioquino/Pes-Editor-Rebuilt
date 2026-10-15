@@ -14,7 +14,7 @@ function i18nInit() {
   if (I18N.dict || LANG === 'es' || typeof I18N_EN === 'undefined') return !!I18N.dict;
   I18N.dict = new Map(); I18N.lower = new Map();
   for (const [k, v] of Object.entries(I18N_EN)) {
-    if (!v || k === v) continue;
+    if (!v) continue; // si queda igual ("Estadio del Tauro") también se guarda: así no lo agarra un patrón como "Estadio {x}"
     if (!k.includes('{x}')) { I18N.dict.set(k, v); if (k.length > 3) I18N.lower.set(k.toLowerCase(), v); continue; }
     const lits = k.split('{x}'), longest = lits.reduce((a, b) => (b.length > a.length ? b : a), '');
     if (longest.replace(/[\s·.,:;()]/g, '').length < 2) continue; // sin texto fijo suficiente: atraparía cualquier cosa
@@ -33,6 +33,10 @@ function trCore(s) {
   }
   // frases armadas con " · ": se traduce cada parte
   if (s.includes(' · ')) { const parts = s.split(' · '), t = parts.map(x => tr(x)); if (t.some((x, k) => x !== parts[k])) return t.join(' · '); }
+  // "Kits ·" (el resto de la frase va en otra etiqueta)
+  const dot = s.match(/^(.+?) ·$/); if (dot) { const t = tr(dot[1]); if (t !== dot[1]) return t + ' ·'; }
+  // "25 años (edad normal) → +1": se traduce lo de antes de la flecha
+  const arr = s.match(/^(.+?) → ([^→]+)$/); if (arr) { const t = tr(arr[1]); if (t !== arr[1]) return t + ' → ' + tr(arr[2]); }
   // la barra de texto de PES 6: "Novedad v0.030: …"
   const nv = s.match(/^Novedad (v[\d.]+): (.+)$/); if (nv) return 'New in ' + nv[1] + ': ' + tr(nv[2]);
   // "Inglaterra (45)": se traduce lo de antes del número entre paréntesis
@@ -41,6 +45,10 @@ function trCore(s) {
   const dl = s.match(/^del (\d{1,2} \w{3} \d{4}.*)$/); if (dl) return 'from ' + tr(dl[1]);
   // fechas cortas: "13 oct 2026"
   if (/\b\d{1,2} (ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b/.test(s)) return s.replace(/\b(\d{1,2}) (ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b/g, (_, d, mo) => d + ' ' + { ene: 'Jan', feb: 'Feb', mar: 'Mar', abr: 'Apr', may: 'May', jun: 'Jun', jul: 'Jul', ago: 'Aug', sep: 'Sep', oct: 'Oct', nov: 'Nov', dic: 'Dec' }[mo]);
+  // "en Boca Juniors" (equipo de un jugador en la búsqueda)
+  const en = s.match(/^en ([A-Z0-9][^.]{0,50})$/); if (en) return 'in ' + en[1];
+  // "Capitán: NOMBRE": se traduce la etiqueta
+  const lab = s.match(/^([^:.]{2,40}): (.+)$/); if (lab) { const t = tr(lab[1]); if (t !== lab[1]) return t + ': ' + lab[2]; }
   return null;
 }
 // traduce un texto; si no está en el diccionario queda igual

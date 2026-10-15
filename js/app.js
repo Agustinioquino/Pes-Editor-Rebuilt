@@ -1438,7 +1438,8 @@ document.addEventListener('focusin', e => { const b = e.target.closest && e.targ
 document.addEventListener('click', e => { const b = e.target.closest('[data-tip]'); if (b) { if (ABTIP.on === b && e.pointerType !== 'mouse') abTipHide(); else abTipShow(b); } else abTipHide(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') abTipHide(); });
 addEventListener('scroll', abTipHide, true);
-const tipBtn = (k, title) => AB_TIP[k] ? `<button type="button" class="abi" data-tip="${esc(AB_TIP[k])}" data-tiptitle="${esc(title)}" aria-label="Qué es ${esc(title)}">i</button>` : '';
+// botón ⓘ al lado del +: muestra qué hace la estadística
+const tipBtn = (k, title, lv) => AB_TIP[k] ? `<button type="button" class="abinfo" data-tip="${esc(AB_TIP[k])}" data-tiptitle="${esc(title)}"${lv != null ? ` data-tiplv="${lv}"` : ''} title="Qué hace" aria-label="Qué es ${esc(title)}">i</button>` : '';
 // animaciones al subir o bajar un valor: el número salta, aparece "+1"/"−1" y la barra se desliza
 const AB_ANIM_KEYS = ['star', 'play_attit', 'weak_use', 'weak_acc', 'form', 'injury'];
 function bumpNum(el, d) {
@@ -1480,14 +1481,14 @@ const abP = v => Math.round((v - 40) / 59 * 100) + '%';
 function abAvg(p, list) { return Math.round(list.reduce((a, [k]) => a + pget(p, k), 0) / list.length); }
 // una fila: nombre, barra (se arrastra) y − número +
 function abRow(k, n, v) {
-  return `<div class="abr abt" data-abk="${k}" data-t="${abT(v)}" style="--p:${abP(v)}"><button type="button" class="abn" data-tip="${esc(AB_TIP[k] || '')}" data-tiptitle="${n}" data-tiplv="${abT(v)}"><span>${n}</span><i class="abi" aria-hidden="true">i</i></button>
+  return `<div class="abr abt" data-abk="${k}" data-t="${abT(v)}" style="--p:${abP(v)}"><button type="button" class="abn" data-tip="${esc(AB_TIP[k] || '')}" data-tiptitle="${n}" data-tiplv="${abT(v)}"><span>${n}</span></button>
     <input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}">
-    <span class="abctl"><button type="button" class="abstep" data-abstep="-1" data-k="${k}" title="Bajar uno" aria-label="Bajar uno">−</button><input type="number" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"><button type="button" class="abstep" data-abstep="1" data-k="${k}" title="Subir uno" aria-label="Subir uno">+</button></span></div>`;
+    <span class="abctl"><button type="button" class="abstep" data-abstep="-1" data-k="${k}" title="Bajar uno" aria-label="Bajar uno">−</button><input type="number" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"><button type="button" class="abstep" data-abstep="1" data-k="${k}" title="Subir uno" aria-label="Subir uno">+</button>${tipBtn(k, n, abT(v))}</span></div>`;
 }
 // pierna mala, forma y lesiones: barras con color como Estrellas y Actitud (acá el primer valor también es un nivel)
 function lvlSeg(k, v, labels, label) {
   const n = labels.length, f = (v + 1) / n, t = f >= 1 ? 4 : f > .7 ? 3 : f > .45 ? 2 : f > .25 ? 1 : 0;
-  return `<div class="lvl lvgen" data-segk="${k}" data-max="${n - 1}" data-t="${t}" role="group" aria-label="${label}">${lvlStep(-1, v, n - 1)}${labels.map((l, i) => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${l}"><i></i></button>`).join('')}<b class="lvnum">${labels[v] ?? v}</b>${lvlStep(1, v, n - 1)}</div>`;
+  return `<div class="lvl lvgen" data-segk="${k}" data-max="${n - 1}" data-t="${t}" role="group" aria-label="${label}">${lvlStep(-1, v, n - 1)}${labels.map((l, i) => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${l}"><i></i></button>`).join('')}<b class="lvnum">${labels[v] ?? v}</b>${lvlStep(1, v, n - 1)}${tipBtn(k, label)}</div>`;
 }
 function tabAbil(p) {
   const g = k => pget(p, k);
@@ -1498,10 +1499,10 @@ function tabAbil(p) {
   <div class="groups abgroups">${ABIL_GROUPS.map(([gn, list]) => { const a = abAvg(p, list); return `<div class="group abgrp"><h4>${gn}<b class="gavg abt" data-gavg="${gn}" data-t="${abT(a)}" title="Promedio">${a}</b></h4>${list.map(([k, n]) => abRow(k, n, g(k))).join('')}</div>`; }).join('')}</div>
   <h3 class="sec">Pierna mala, forma y lesiones</h3>
   <div class="lvls">
-    <div class="f"><span class="lab">Uso de pierna mala ${tipBtn('weak_use', 'Uso de pierna mala')}</span>${lvlSeg('weak_use', g('weak_use'), ['1', '2', '3', '4'], 'Uso de pierna mala')}</div>
-    <div class="f"><span class="lab">Precisión de pierna mala ${tipBtn('weak_acc', 'Precisión de pierna mala')}</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
-    <div class="f"><span class="lab">Estado de forma ${tipBtn('form', 'Estado de forma')}</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
-    <div class="f"><span class="lab">Resistencia a lesiones ${tipBtn('injury', 'Resistencia a lesiones')}</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
+    <div class="f"><span class="lab">Uso de pierna mala</span>${lvlSeg('weak_use', g('weak_use'), ['1', '2', '3', '4'], 'Uso de pierna mala')}</div>
+    <div class="f"><span class="lab">Precisión de pierna mala</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
+    <div class="f"><span class="lab">Estado de forma</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
+    <div class="f"><span class="lab">Resistencia a lesiones</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
   </div>`;
 }
 function tabSkills(p) {
@@ -1567,7 +1568,7 @@ function abPaint(row, v) { row.dataset.t = abT(v); row.style.setProperty('--p', 
 function abLive(p, k, dragged) {
   const sh = $('plSheet'); if (!sh) return;
   const v = pget(p, k), row = sh.querySelector(`.abr[data-abk="${k}"]`), o = S.abShown && S.abShown.id === p.id ? S.abShown.vals.get(k) : null;
-  if (row) { abPaint(row, v); const nb = row.querySelector('.abn'); if (nb) nb.dataset.tiplv = abT(v); if (o != null && o !== v) { bumpNum(row.querySelector('input[type=number]'), v - o); if (!dragged) barSlide(row, o, v); } }
+  if (row) { abPaint(row, v); row.querySelectorAll('[data-tiplv]').forEach(x => { x.dataset.tiplv = abT(v); }); if (o != null && o !== v) { bumpNum(row.querySelector('input[type=number]'), v - o); if (!dragged) barSlide(row, o, v); } }
   if (S.abShown && S.abShown.id === p.id) S.abShown.vals.set(k, v);
   for (const [gn, list] of ABIL_GROUPS) { if (!list.some(x => x[0] === k)) continue; const b = sh.querySelector(`[data-gavg="${gn}"]`); if (b) { const a = abAvg(p, list), a0 = +b.textContent; b.textContent = a; b.dataset.t = abT(a); if (a !== a0) bumpNum(b, a - a0); } }
   if (typeof hexaPaint === 'function' && $('hxWrap')) hexaPaint(p, hexaAxes(pget(p, 'reg_pos')), null);

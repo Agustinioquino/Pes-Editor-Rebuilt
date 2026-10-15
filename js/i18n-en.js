@@ -3859,6 +3859,7 @@ Object.assign(I18N_EN, {
 "Muy bueno":"Very good",
 "Élite":"Elite",
 "Qué es {x}":"What is {x}",
+"Qué hace":"What it does",
 "Subir uno":"Up one",
 "Escribí primero el apellido.":"Type the last name first.",
 "El jugador necesita un nombre o un apellido.":"The player needs a first or last name.",

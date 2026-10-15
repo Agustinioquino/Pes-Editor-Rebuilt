@@ -1651,9 +1651,11 @@ html[data-gfx="pes6"] .capsw b{font-size:.68rem;gap:5px;align-self:stretch;paddi
 html[data-gfx="pes6"] .capsw b i{font-size:.9rem;animation:capsBlink 1s steps(1) infinite}
 html[data-gfx="pes6"] .capsw span{padding:.3rem .65rem;text-transform:uppercase}
 @keyframes capsBlink{50%{opacity:.15}}
-/* la letra de PES 6 (QuickExpress) dibuja las minúsculas como mayúsculas chicas: en el nombre se usa una letra con minúsculas de verdad
-   para que se vea exactamente lo que se escribe ("Messi" y "MESSI" se ven distintos), en cursiva para que siga pareciendo del juego */
-.font-pes :is(#pFirst,#pLast,#pShirt,#pFull,.casew b,.casew .btn i){font-family:"Saira","Segoe UI",system-ui,sans-serif;font-style:italic;font-weight:600;letter-spacing:.01em}
+/* la letra de PES 6 (QuickExpress) dibuja las minúsculas como mayúsculas chicas: todo lo que se escribe (campos de texto, buscadores,
+   notas) usa una letra con minúsculas de verdad, en cursiva para que siga pareciendo del juego; títulos, botones y menús siguen con la de PES 6.
+   Los números, las rutas y el sider.ini (letra de código) y la muestra de la camiseta (.ksample) quedan con su letra */
+.font-pes :is(input:is(:not([type]),[type=text],[type=search],[type=url],[type=email]):not(.ksample *,.siothers *),textarea:not(.siraw *),#pFull,.casew b,.casew .btn i){font-family:"Saira","Segoe UI",system-ui,sans-serif;font-style:italic;font-weight:600;letter-spacing:.01em}
+.font-pes :is(input:is(:not([type]),[type=text],[type=search],[type=url],[type=email]),textarea)::placeholder{font-style:italic;font-weight:500}
 
 html[data-gfx="pes6"] .casew{color:#7a4400;font-weight:600}
 @media (max-width:520px){.capsw{width:auto;white-space:normal}}

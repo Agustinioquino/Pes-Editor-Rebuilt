@@ -1,7 +1,7 @@
 // ===================== En desarrollo: lo que se está probando y lo que viene =====================
 // Un cartel abajo a la derecha, una vez por versión, cuando termina la pantalla de carga. También queda arriba de
 // todo en Novedades. "Beta" = ya está en el editor pero en prueba; "Próximamente" = en camino, puede cambiar.
-// Cada uno lleva cuánto falta (porcentaje, aproximado) y si tiene prioridad alta: esos van primero.
+// Cada uno lleva cuánto avanzó (porcentaje, aproximado) y su prioridad: primero los de prioridad alta, después los de media.
 const DEV_ITEMS = [
   ['beta', '⚽', 'Football Life 2026', 'La base leída directo de los archivos del juego, las valoraciones con su tope de 104 y su EDIT en 2026\\save. Está en prueba: si algo no carga o una media no coincide, avisá.', 85, 'alta'],
   ['beta', '👕', 'Kit Studio Pro: cargar kits desde un .zip', 'Versión preliminar: arrastrar un .zip a Uniformes, elegir el puesto, reemplazar o agregar, y los kits que viven en los .cpk. Se probó poco con juegos reales y es probable que tenga fallos: hacé una copia de content\\kit-server antes y avisá si algo sale mal.', 70, ''],
@@ -10,8 +10,10 @@ const DEV_ITEMS = [
   ['beta', '⬡', 'Ficha hexagonal y media rápida', 'Cambiar la media y cada área de un jugador arrastrando el hexágono o desde el plantel. Está en prueba: si una media no queda como esperabas, avisá.', 90, ''],
   ['beta', '🗂', 'Tu trabajo en el caché', 'Al actualizar el editor, tus cambios sin guardar quedan en el navegador y vuelven solos. Está en prueba: guardá en el juego igual cuando termines.', 90, ''],
   ['beta', '📈', 'Valoración dinámica con datos reales', 'La forma de cada jugador ahora usa toda la temporada, los goleadores, las lesiones y el historial de ESPN. Está en prueba: si ves un dato raro, avisá.', 85, ''],
+  ['soon', '📊', 'Importar y exportar en CSV', 'Pasar jugadores, planteles y equipos a una planilla (Excel, Google Sheets), editarlos ahí y volver a cargarlos en el editor. Hoy ya se puede exportar el plantel de un equipo.', 20, 'alta'],
+  ['soon', '✨', 'Mejoras visuales para mayor comodidad', 'Pantallas más claras y cómodas: textos más fáciles de leer, botones más grandes donde se usan seguido y menos pasos para lo de todos los días.', 15, 'alta'],
   ['soon', '📥', 'Instalar mods arrastrándolos', 'Soltar un mod en la pestaña Sider y que se copie solo a livecpk, modules o content, con su readme a la vista y cada paso para deshacer.', 15, ''],
-  ['soon', '🎮', 'Más estilos gráficos', 'Modos inspirados en los menús de otras ediciones de PES, como el de PES 5.', 30, 'alta'],
+  ['soon', '🎮', 'Más estilos gráficos', 'Modos inspirados en los menús de otras ediciones de PES, como el de PES 5.', 30, 'media'],
   ['soon', '🛠️', 'Habilidades desde la ficha', 'Editar las habilidades de cada jugador desde su ficha, con los nombres del juego.', 10, ''],
   ['soon', '📋', 'Formaciones como plantillas', 'Guardar y compartir tus formaciones favoritas.', 5, ''],
   ['soon', '🔁', 'Comparar planteles', 'Ver dos planteles lado a lado antes de un traspaso.', 5, ''],
@@ -19,8 +21,9 @@ const DEV_ITEMS = [
 const DEV_LS = 'pes-editor-dev-seen';
 const DEV_HIDE = 'pes-editor-dev-hide';
 const devColor = n => n >= 80 ? 'hi' : n >= 50 ? 'mid' : n >= 25 ? 'lo' : 'start';
-const devSorted = () => DEV_ITEMS.map((x, i) => [x, i]).sort((a, b) => (b[0][5] === 'alta') - (a[0][5] === 'alta') || a[1] - b[1]).map(x => x[0]);
-const devList = () => `<ul class="devlist">${devSorted().map(([k, ic, h, p, pct, pri]) => `<li class="${pri === 'alta' ? 'devhot' : ''}"><span class="devic" aria-hidden="true">${ic}</span><div><b>${h}</b> <span class="chip ${k === 'beta' ? 'warn' : ''} devst">${k === 'beta' ? 'Beta' : 'Próximamente'}</span>${pri === 'alta' ? ' <span class="chip devpri">⭐ Prioridad alta</span>' : ''}
+const DEV_PRI = { alta: 2, media: 1 };
+const devSorted = () => DEV_ITEMS.map((x, i) => [x, i]).sort((a, b) => (DEV_PRI[b[0][5]] || 0) - (DEV_PRI[a[0][5]] || 0) || a[1] - b[1]).map(x => x[0]);
+const devList = () => `<ul class="devlist">${devSorted().map(([k, ic, h, p, pct, pri]) => `<li class="${pri === 'alta' ? 'devhot' : pri === 'media' ? 'devwarm' : ''}"><span class="devic" aria-hidden="true">${ic}</span><div><b>${h}</b> <span class="chip ${k === 'beta' ? 'warn' : ''} devst">${k === 'beta' ? 'Beta' : 'Próximamente'}</span>${pri === 'alta' ? ' <span class="chip devpri">⭐ Prioridad alta</span>' : pri === 'media' ? ' <span class="chip devpri mid">Prioridad media</span>' : ''}
   <div class="devprog ${devColor(pct)}" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(h)}: ${pct} %"><i><b style="width:${pct}%"></b></i><span>${pct} %</span></div><p>${p}</p></div></li>`).join('')}</ul>`;
 const devHidden = () => { try { return localStorage.getItem(DEV_HIDE) === '1'; } catch { return false; } };
 const devCard = () => devHidden()

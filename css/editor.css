@@ -1609,3 +1609,6 @@ html[data-gfx="pes6"] .card .emo{color:#000;-webkit-text-fill-color:initial;back
 @keyframes devFill{from{width:0}}
 @media (prefers-reduced-motion:reduce){.devprog i b{animation:none}}
 html[data-gfx="pes6"] .devprog i,html[data-gfx="pes6"] .devprog i b,html[data-gfx="pes6"] .devlist li.devhot{border-radius:0}
+.devlist li.devwarm{background:linear-gradient(90deg,#7fb8e61c,transparent 70%);border-left:3px solid #7fb8e6;padding:6px 8px 6px 6px;margin-left:-9px;border-radius:0 8px 8px 0}
+.devlist .devpri.mid{background:linear-gradient(180deg,#e3f2ff,#9cc8ec);color:#0f3050;border-color:#5f93bf}
+html[data-gfx="pes6"] .devlist li.devwarm{border-radius:0}

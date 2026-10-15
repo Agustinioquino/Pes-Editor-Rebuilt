@@ -1594,6 +1594,7 @@ html[data-gfx="pes6"] .qebig b{text-shadow:0 1px 0 #fff}
 html[data-gfx="pes6"] .card :is(p,.note,label,.lab,h2,h3,h4,summary,.sub):not(.ok,.bad,.warn,.btn){color:transparent;background:linear-gradient(180deg,#3a3a37 0%,#3a3a37 24%,#a9a9a3 32%,#74746f 44%,#0b0b0a 52%,#262624 64%,#6c6c66 76%,#3a3a37 84%) 0 0/100% 1lh repeat;-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 .4px #000c) drop-shadow(0 1px 0 #fff)}
 html[data-gfx="pes6"] .card :is(p,.note,label,.lab,h2,h3,h4,summary,.sub):not(.ok,.bad,.warn,.btn) :is(p,.note,label,.lab,.sub){filter:none}
 html[data-gfx="pes6"] .card .emo{color:#000;-webkit-text-fill-color:initial;background:none}
+html[data-gfx="pes6"] .card :is(p,.note,label,.lab,h2,h3,h4,summary,.sub) code{color:#1b1b19;-webkit-text-fill-color:initial}
 /* ---- En desarrollo: barra de avance con color según cuánto falta, y prioridad alta ---- */
 .devhead{justify-content:space-between;gap:12px;flex-wrap:wrap}.devhead h3{margin:0}
 .devleg{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);margin-left:auto}.devleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}

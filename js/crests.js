@@ -6,6 +6,13 @@ const CREST_SET = [ // tamaño de cada archivo cuando la carpeta del juego no tr
   ['f', 256], ['f_l', 512], ['f_ll', 1024], ['r', 256], ['r_l', 256], ['r_ll', 1024],
   ['r_b_l', 256], ['r_b_ll', 1024], ['r_w', 256], ['r_w_l', 256], ['r_w_ll', 1024]];
 const CREST_FLAG = 'common/render/symbol/flag', CREST_ROOT = 'PESEditor-Escudos';
+// calidad: 'hd' copia la medida de los escudos que ya hay en la carpeta; '2k' (prueba) usa medidas fijas más grandes
+const CREST_Q_LS = 'edit21-crest-q', CREST_2K = { ll: [2056, 2088], l: [1028, 1044], n: [512, 520] };
+function crestQ() { try { return localStorage.getItem(CREST_Q_LS) === '2k' ? '2k' : 'hd'; } catch { return 'hd'; } }
+function crestQSet(q) { try { localStorage.setItem(CREST_Q_LS, q); } catch { } }
+// la letra de tamaño va al final: sin letra = normal, _l = grande, _ll = el más grande
+const crestSizeKey = suf => /_ll$/.test(suf) ? 'll' : /_l$/.test(suf) ? 'l' : 'n';
+function crestSize(tg, suf) { return crestQ() === '2k' ? CREST_2K[crestSizeKey(suf)] : tg.size[suf]; }
 // agrega la carpeta a sider.ini (antes de las otras cpk.root, así sus escudos mandan); copia de seguridad la primera vez
 async function crestIniAdd(sider, root, label = 'escudos propios') {
   const f = await sdbFile(sider, 'sider.ini'); if (!f) throw new Error('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).');
@@ -80,13 +87,15 @@ async function crestTarget(t, sider) {
 function crestCard(t) {
   if (CR.team !== t.id) crestReset(t);
   const own = Object.keys(CR.own), ready = CR.main || own.length, tg = CR.target, path = tg ? `livecpk\\${tg.root}\\common\\render\\symbol\\flag\\` : 'livecpk\\…\\common\\render\\symbol\\flag\\';
-  const sizes = tg ? CREST_SET.map(([s]) => `<span class="chip" title="${tg.size[s][0]}×${tg.size[s][1]}">${crestName(t.id, s)}</span>`).join('') : CREST_SET.map(([s]) => `<span class="chip">${crestName(t.id, s)}</span>`).join('');
+  const q = crestQ(), sizes = CREST_SET.map(([s]) => { const z = tg || q === '2k' ? crestSize(tg, s) : null; return `<span class="chip"${z ? ` title="${z[0]}×${z[1]}"` : ''}>${crestName(t.id, s)}${z ? ` <small>${z[0]}×${z[1]}</small>` : ''}</span>`; }).join('');
   return `<div class="card crestup" id="crestCard"><h3>🛡️ Escudo</h3>
     <div class="crestrow">
       <div class="crestbox"><span class="lab">Ahora</span>${crest(t, 'big', true)}</div>
       <div class="crestbox"><span class="lab">Nuevo</span><div class="crestnew${CR.prev ? '' : ' empty'}" id="crestDrop">${CR.prev ? `<img src="${CR.prev}" alt="Escudo nuevo">` : '<span>Soltá acá un PNG<br>o tocá Elegir</span>'}</div></div>
       <div class="crestinfo">
         <p class="note" style="margin:0">Subí un PNG (mejor con fondo transparente). El editor arma los ${CREST_SET.length} archivos que usa el juego, cada uno con su tamaño, y les pone el ID <b>${crestId(t.id)}</b> de este equipo. También podés subir tus propios archivos <code>e_XXXXXX_f.png</code>, <code>e_XXXXXX_r_l.png</code>…: cada uno va a su lugar y el ID se corrige solo.</p>
+        <div class="mfline"><span>Calidad</span><div class="seg" id="crestQSeg">${[['hd', 'HD normal'], ['2k', '2K (prueba)']].map(([k, n]) => `<button type="button" data-crestq="${k}" aria-pressed="${q === k}" ${CR.busy ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
+        <p class="note" style="margin:0">${q === '2k' ? 'En 2K los archivos sin letra de tamaño quedan en <b>512×520</b>, los <code>_l</code> en <b>1028×1044</b> y los <code>_ll</code> en <b>2056×2088</b>. Es una prueba: si el juego no los muestra bien, volvé a HD normal y guardá de nuevo.' : 'En HD normal cada archivo copia la medida de los escudos que ya hay en la carpeta (si no hay ninguno: 256, 512 y 1024).'}</p>
         <div class="row"><button class="btn small" type="button" id="crestPick">📁 Elegir imagen o archivos</button>
           <button class="btn small primary" type="button" id="crestSave" ${ready && !CR.busy ? '' : 'disabled'}>${CR.busy ? 'Guardando…' : '💾 Guardar escudo en el juego'}</button>
           ${ready ? '<button class="btn small ghost" type="button" id="crestClear">✕ Quitar</button>' : ''}</div>
@@ -96,7 +105,8 @@ function crestCard(t) {
         ${tget(t, 'e_emblem') ? '<p class="note warn">Este equipo usa un escudo hecho en el modo Editar del juego, que tapa al de la carpeta Sider. <button class="btn small" type="button" id="crestUsePatch">Usar el escudo de Sider</button></p>' : ''}
       </div>
     </div>
-    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && tg.create ? '. <span>Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk</span>' : tg && !tg.listed ? '. <span>Esa carpeta no figura en sider.ini: al guardar la agrego para que Sider la lea</span>' : ''}. Si ya había un escudo, la primera vez se guarda una copia <code>.bak-edit21</code> al lado. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div></details>
+    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && tg.create ? '. <span>Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk</span>' : tg && !tg.listed ? '. <span>Esa carpeta no figura en sider.ini: al guardar la agrego para que Sider la lea</span>' : ''}. Si ya había un escudo, la primera vez se guarda una copia <code>.bak-edit21</code> al lado. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div>
+      <p class="note"><b>Qué significan las letras.</b> La primera dice dónde se usa el escudo: <code>f</code> plano (como bandera), <code>r</code> render (con relieve), <code>r_b</code> render para fondos oscuros o negros y <code>r_w</code> render para fondos claros o blancos. La última dice el tamaño: sin letra es el normal o miniatura, <code>_l</code> el grande y <code>_ll</code> el más grande.</p></details>
   </div>`;
 }
 async function crestFiles(t, files) {
@@ -122,7 +132,7 @@ async function crestSave(t) {
     const flag = tg.flag || await CREST_FLAG.split('/').reduce(async (d, seg) => (await d).getDirectoryHandle(seg, { create: true }), Promise.resolve(tg.h));
     let backed = 0, n = 0, last = null;
     for (const [suf] of CREST_SET) {
-      const name = crestName(t.id, suf), [w, h] = tg.size[suf], src = CR.own[suf] && CR.own[suf].width === w && CR.own[suf].height === h ? CR.own[suf] : crestFit(CR.own[suf] || CR.main, w, h);
+      const name = crestName(t.id, suf), [w, h] = crestSize(tg, suf), src = CR.own[suf] && CR.own[suf].width === w && CR.own[suf].height === h ? CR.own[suf] : crestFit(CR.own[suf] || CR.main, w, h);
       let old = null; try { old = await flag.getFileHandle(name); } catch { }
       if (old) { let bak = null; try { bak = await flag.getFileHandle(name + '.bak-edit21'); } catch { } if (!bak) { const b = await flag.getFileHandle(name + '.bak-edit21', { create: true }), wr = await b.createWritable(); await wr.write(await old.getFile()); await wr.close(); backed++; } }
       const fh = await flag.getFileHandle(name, { create: true }), wr = await fh.createWritable(); await wr.write(await crestBlob(src)); await wr.close(); n++;
@@ -130,7 +140,7 @@ async function crestSave(t) {
     }
     // el editor muestra el escudo nuevo enseguida
     if (last) { const u = BADGES.url.get(t.id); if (u && u.startsWith('blob:')) URL.revokeObjectURL(u); BADGES.url.delete(t.id); BADGES.idx.set(t.id, last); BADGES.count = BADGES.idx.size; BADGES.loading.add(t.id); await loadLocalBadge(t.id); }
-    CR.done = true; CR.msg = `Listo: ${n} archivos guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó guardado como .bak-edit21)' : ''}. Abrí el juego de nuevo para verlo.`
+    CR.done = true; CR.msg = `Listo: ${n} archivos${crestQ() === '2k' ? ' en 2K' : ''} guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó guardado como .bak-edit21)' : ''}. Abrí el juego de nuevo para verlo.`
       + (iniAdded ? ` <span>Agregué la carpeta ${esc(tg.root)} a sider.ini para que Sider la lea (copia en sider.ini.bak-pes-editor).</span>` : '');
     tg.listed = true; tg.create = false; tg.flag = flag;
     toast('Escudo de ' + tget(t, 'name') + ' guardado.');
@@ -143,6 +153,7 @@ function bindCrest(t) {
   const pick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = 'image/png,image/jpeg,image/webp,.png'; inp.onchange = async () => { await crestFiles(t, [...inp.files]); crestPaint(t); }; inp.click(); };
   $('crestPick').onclick = pick; $('crestDrop').onclick = pick;
   $('crestSave').onclick = () => crestSave(t);
+  card.querySelectorAll('[data-crestq]').forEach(b => b.onclick = () => { crestQSet(b.dataset.crestq); CR.done = false; CR.msg = ''; crestPaint(t); });
   const cl = $('crestClear'); if (cl) cl.onclick = () => { crestReset(t); crestPaint(t); };
   const up = $('crestUsePatch'); if (up) up.onclick = () => { setT(t, [['e_emblem', 0]], 'Escudo de Sider para ' + tget(t, 'name')); crestPaint(t); toast('Listo. Guardá el EDIT para que el juego use el escudo de Sider.'); };
   card.ondragover = e => { e.preventDefault(); card.classList.add('drag'); };

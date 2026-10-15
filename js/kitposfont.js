@@ -59,6 +59,76 @@ const KPF = (() => {
     const all = [...parts, ...cen, new Uint8Array(end.buffer)], out = new Uint8Array(all.reduce((a, b) => a + b.length, 0)); let p = 0; for (const a of all) { out.set(a, p); p += a.length; } return out;
   }
 
+  // ---- plantilla de Photoshop (KitPos_Letras_Template.psd) ----
+  // 4096 px de ancho, una casilla de 256×256 por letra en este orden, con la línea de base a 200 px y el centro a 128 px
+  // (la misma línea de base que las filas de la textura de KitPos, así las letras pasan 1:1).
+  const TPL = ['ABCDEFGHIJKLMNOP', 'QRSTUVWXYZ', 'abcdefghijklmnop', 'qrstuvwxyz', "0123456789.-'", 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏ', 'ÐÑÒÓÔÕÖØÙÚÛÜÝÞ', 'ßàáâãäåæçèéêëìíî',
+    'ïðñòóôõöøùúûüýþÿ', 'ĂăĄąĆćČčĐđĘęĞğİı', 'ŁłŃńŘřŚśŞşŠšŢţȘș', 'ȚțŹźŻżŽžŐőŰűĚěŮů', 'ĎďŤťŇňĽľĹĺŔŕŒœŸƏ', 'əĀāĒēĪīŪūĢģĶķĻļŅ', 'ņĖėĮįŲų'];
+  const TPL_W = 4096, TPL_H = TPL.length * ROW;
+  const tplCells = () => TPL.flatMap((r, row) => [...r].map((ch, col) => ({ ch, col, row })));
+  // busca la tinta de cada casilla en los píxeles RGBA de la plantilla (4096 de ancho): dónde empieza y termina cada letra
+  function tplScan(px, w, h) {
+    let opaque = true; for (let i = 3; i < px.length; i += 4 * 97) if (px[i] < 250) { opaque = false; break; }
+    const glyphs = []; let capTop = null;
+    for (const c of tplCells()) {
+      const x0 = c.col * ROW, y0 = c.row * ROW; if (y0 + ROW > h) continue; let a = ROW, b = -1, top = ROW, bot = -1;
+      for (let y = 0; y < ROW; y++) { const o = ((y0 + y) * w + x0) * 4; for (let x = 0; x < ROW; x++) if (px[o + x * 4 + 3] > 24) { if (x < a) a = x; if (x > b) b = x; if (y < top) top = y; if (y > bot) bot = y; } }
+      if (b < 0) continue; glyphs.push({ ch: c.ch, col: c.col, row: c.row, x0: a, x1: b + 1, top, bottom: bot + 1 });
+      if ('HEIT'.includes(c.ch) && bot + 1 >= BASE - 6 && bot + 1 <= BASE + 6) capTop = capTop == null ? top : Math.min(capTop, top);
+    }
+    const cap = capTop != null ? BASE - capTop : null;
+    return { glyphs, opaque, cap, count: glyphs.length, total: tplCells().length };
+  }
+  // lee un .psd (8 bits, RGB o escala de grises) y devuelve sus capas con los píxeles en RGBA; los efectos de capa no se leen
+  function psdRead(buf) {
+    const d = new DataView(ArrayBuffer.isView(buf) ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) : buf), u8 = new Uint8Array(d.buffer); let p = 0;
+    const u16 = () => { const v = d.getUint16(p); p += 2; return v; }, u32 = () => { const v = d.getUint32(p); p += 4; return v; }, i32 = () => { const v = d.getInt32(p); p += 4; return v; }, str = n => { let s = ''; for (let i = 0; i < n; i++) s += String.fromCharCode(u8[p + i]); p += n; return s; };
+    if (str(4) !== '8BPS') throw new Error('no es un archivo de Photoshop (.psd).');
+    if (u16() !== 1) throw new Error('es un .psb (documento grande): guardalo como .psd.');
+    p += 6; const nch = u16(), H = u32(), W = u32(), depth = u16(), mode = u16();
+    if (depth !== 8) throw new Error('la plantilla tiene que estar en 8 bits por canal (Imagen › Modo › 8 bits/canal).');
+    if (mode !== 3 && mode !== 1) throw new Error('la plantilla tiene que estar en modo RGB.');
+    for (let k = 0; k < 2; k++) { const n = u32(); p += n; } // datos de color e image resources
+    const lmEnd = u32() + p; if (lmEnd <= p) return { w: W, h: H, layers: [] };
+    const liLen = u32(), liEnd = p + liLen; if (!liLen) return { w: W, h: H, layers: [] };
+    let n = d.getInt16(p); p += 2; n = Math.abs(n); const L = [];
+    for (let i = 0; i < n; i++) {
+      const top = i32(), left = i32(), bottom = i32(), right = i32(), cn = u16(), chans = [];
+      for (let c = 0; c < cn; c++) { const id = d.getInt16(p); p += 2; chans.push({ id, len: u32() }); }
+      p += 4; const blend = str(4), opacity = u8[p], clipping = u8[p + 1], flags = u8[p + 2]; p += 4;
+      const xEnd = p + 4 + d.getUint32(p); p += 4; p += 4 + d.getUint32(p); p += 4 + d.getUint32(p); // máscara y rangos de fusión
+      const nl = u8[p]; let name = ''; for (let k = 0; k < nl; k++) name += String.fromCharCode(u8[p + 1 + k]); p += (nl + 4) & ~3;
+      let kind = 'pixel', fill = null;
+      while (p + 12 <= xEnd) { const sig = str(4), key = str(4), len = u32(), s = p; if (sig !== '8BIM' && sig !== '8B64') break;
+        if (key === 'luni') { const k = d.getUint32(p); let t = ''; for (let j = 0; j < k; j++) t += String.fromCharCode(d.getUint16(p + 4 + j * 2)); name = t.replace(/\0+$/, ''); }
+        else if (key === 'lsct' || key === 'lsdk') { const t = d.getUint32(p); if (t) kind = 'group'; }
+        else if (key === 'SoCo') { kind = 'fill'; const col = k => { for (let j = s; j < s + len - 12; j++) if (u8[j] === k.charCodeAt(0) && str4(u8, j) === k && str4(u8, j + 4) === 'doub') return Math.round(d.getFloat64(j + 8)); return 0; }; fill = [col('Rd  '), col('Grn '), col('Bl  ')]; }
+        p = s + len; }
+      p = xEnd; L.push({ name, top, left, w: Math.max(0, right - left), h: Math.max(0, bottom - top), chans, blend, opacity, clipping, visible: !(flags & 2), kind, fill });
+    }
+    for (const l of L) { // píxeles de cada canal (crudo o RLE)
+      const np = l.w * l.h; l.rgba = np ? new Uint8ClampedArray(np * 4).fill(255) : null;
+      for (const c of l.chans) { const end = p + c.len; if (!np || c.len < 2) { p = end; continue; }
+        const comp = u16(), plane = new Uint8Array(np);
+        if (comp === 0) plane.set(u8.subarray(p, p + np));
+        else if (comp === 1) { const counts = []; for (let y = 0; y < l.h; y++) counts.push(u16()); let o = 0;
+          for (let y = 0; y < l.h; y++) { const re = p + counts[y], rowEnd = o + l.w; while (p < re && o < rowEnd) { const b = u8[p++]; if (b < 128) { for (let k = 0; k <= b; k++) plane[o++] = u8[p++]; } else if (b > 128) { const v = u8[p++]; for (let k = 0; k < 257 - b; k++) plane[o++] = v; } } p = re; o = rowEnd; } }
+        else { p = end; continue; } // ZIP: no se usa en los .psd de 8 bits que guarda Photoshop
+        const slot = c.id === -1 ? 3 : mode === 1 && c.id === 0 ? -9 : c.id >= 0 && c.id < 3 ? c.id : null;
+        if (slot === -9) for (let k = 0; k < np; k++) l.rgba[k * 4] = l.rgba[k * 4 + 1] = l.rgba[k * 4 + 2] = plane[k];
+        else if (slot != null) for (let k = 0; k < np; k++) l.rgba[k * 4 + slot] = plane[k];
+        p = end; }
+      delete l.chans;
+    }
+    return { w: W, h: H, layers: L };
+  }
+  const str4 = (u8, j) => String.fromCharCode(u8[j], u8[j + 1], u8[j + 2], u8[j + 3]);
+  // capas que forman las letras: las visibles, menos el fondo, las guías y el ejemplo
+  const tplSkip = n => /fondo|gu[ií]as?|ejemplo|background|guide|sample/i.test(n);
+  const tplLayers = P => P.layers.filter(l => l.visible && l.kind === 'pixel' && l.w && l.h && !tplSkip(l.name));
+  // color de relleno para pintar las letras: una capa de relleno visible recortada sobre las letras
+  const tplFill = P => { const f = P.layers.find(l => l.visible && l.kind === 'fill' && l.clipping && l.fill && !tplSkip(l.name)); return f ? '#' + f.fill.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('') : null; };
+
   // ---- dibujo (solo en el navegador) ----
   const famCss = f => `"${String(f).replace(/["\\]/g, '')}", sans-serif`;
   const fontCss = (o, px) => `${o.italic ? 'italic ' : ''}${o.weight || 700} ${px}px ${famCss(o.font)}`;
@@ -72,17 +142,21 @@ const KPF = (() => {
     for (const ch of UPPER_IMG) { const q = KFONT.glyph(img, 'name', ch); if (!q) continue; const c = KFONT.cell('name', ch, img.width, img.height), r = c[1] === c1[1] ? 1 : 2; m.set(ch, { ...q, top: (q.sy - c[1]) - base[r], cap }); }
     return m;
   }
-  function tinted(o) { // las letras de la imagen pintadas con el color de relleno (se conserva la forma y la transparencia)
-    if (!o.img || !o.imgTint) return o.img; if (o.img.__tint && o.img.__tint.k === o.fill) return o.img.__tint.c;
-    const c = document.createElement('canvas'); c.width = o.img.width; c.height = o.img.height; const g = c.getContext('2d'); g.drawImage(o.img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = o.fill; g.fillRect(0, 0, c.width, c.height);
-    o.img.__tint = { k: o.fill, c }; return c;
+  function tinted(img, on, fill) { // las letras de la imagen pintadas con el color de relleno (se conserva la forma y la transparencia)
+    if (!img || !on) return img; if (img.__tint && img.__tint.k === fill) return img.__tint.c;
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = fill; g.fillRect(0, 0, c.width, c.height);
+    img.__tint = { k: fill, c }; return c;
   }
   function render(o, list) {
-    const mc = document.createElement('canvas').getContext('2d'), wS = o.width || 1, capPx = CAP * (o.size || 1);
+    // con una plantilla de Photoshop, sus letras van 1:1 y las que no dibujó salen de la fuente, a la misma altura
+    const T = o.tpl || null, tsrc = T ? tinted(T.c, o.tplTint, o.fill) : null;
+    const mc = document.createElement('canvas').getContext('2d'), wS = o.width || 1, capPx = ((T && T.cap) || CAP) * (o.size || 1);
     mc.font = fontCss(o, 100); const capRef = mc.measureText('H').actualBoundingBoxAscent || 70, fs = 100 * capPx / capRef; mc.font = fontCss(o, fs);
-    const ext = (+o.stroke1 || 0) + (+o.stroke2 || 0), sh = +o.shadow || 0, IG = o.img ? imgGlyphs(o.img) : null, src = IG ? tinted(o) : null;
+    const ext = (+o.stroke1 || 0) + (+o.stroke2 || 0), sh = +o.shadow || 0, IG = o.img ? imgGlyphs(o.img) : null, src = IG ? tinted(o.img, o.imgTint, o.fill) : null;
     const metrics = list.map(ch => {
-      const up = ch.toUpperCase(), q = IG && (IG.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && IG.get(up)));
+      const up = ch.toUpperCase(), tq = T && (T.g.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && T.g.get(up)));
+      if (tq) { const k = (o.size || 1) * (T.g.has(ch) ? 1 : .76), bear = capPx * .05, iw = tq.x1 - tq.x0; return { ch, left: 0, right: iw * k * wS + bear * 2, tpl: { q: tq, k, bear } }; }
+      const q = IG && (IG.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && IG.get(up)));
       if (q) { const k = capPx / q.cap * (IG.has(ch) ? 1 : .76), bear = capPx * .05, adv = q.sw * k * wS + bear * 2; return { ch, left: 0, right: adv, img: { q, k, bear } }; }
       const m = mc.measureText(ch), adv = m.width * wS;
       if (ch === ' ') return { ch, left: 0, right: adv };
@@ -94,6 +168,8 @@ const KPF = (() => {
     const fill = () => { if (!o.grad) return o.fill; const gr = g.createLinearGradient(0, -capPx, 0, 0); gr.addColorStop(0, o.fill); gr.addColorStop(1, o.fill2 || o.fill); return gr; };
     L.cells.forEach((cell, i) => {
       const mt = metrics[i], ox = cell.x + 2 - mt.left, by = cell.row * ROW + BASE + (+o.lift || 0);
+      if (mt.tpl) { const { q, k, bear } = mt.tpl, iw = q.x1 - q.x0; g.save(); g.beginPath(); g.rect(cell.x, cell.row * ROW, cell.span, ROW); g.clip();
+        g.drawImage(tsrc, q.col * ROW + q.x0, q.row * ROW, iw, ROW, ox + bear, by - BASE * k, iw * k * wS, ROW * k); g.restore(); return; }
       if (mt.img) { const { q, k, bear } = mt.img; g.drawImage(src, q.sx, q.sy, q.sw, q.sh, ox + bear, by + q.top * k, q.sw * k * wS, q.sh * k); return; }
       if (cell.ch === ' ') return;
       g.save(); g.translate(ox, by); g.scale(wS, 1);
@@ -108,23 +184,60 @@ const KPF = (() => {
     const im = g.getImageData(0, 0, L.W, L.H), d = im.data, fc = (o.fill || '#ffffff').match(/[0-9a-f]{2}/gi).map(h => parseInt(h, 16));
     for (let i = 0; i < d.length; i += 4) if (!d[i + 3]) { d[i] = fc[0]; d[i + 1] = fc[1]; d[i + 2] = fc[2]; }
     g.putImageData(im, 0, 0);
-    const label = (o.img ? (o.imgName || 'imagen') + ' + ' : '') + o.font + (o.italic ? ' cursiva' : '');
+    const label = (T ? (o.tplName || 'plantilla') + ' + ' : '') + (o.img ? (o.imgName || 'imagen') + ' + ' : '') + o.font + (o.italic ? ' cursiva' : '');
     c.__kp = glyphMap(letrasTxtList(L), L.W, L.H);
     return { canvas: c, L, px: d, txt: letrasTxt(L, label) };
   }
   const letrasTxtList = L => L.cells.map(c => ({ ch: c.ch, w: c.w, u0: c.x / L.W, v0: c.row * ROW / L.H, u1: (c.x + c.span) / L.W, v1: (c.row + 1) * ROW / L.H }));
   // escribe un texto con una fuente de KitPos (respeta mayúsculas y minúsculas); (cx, cy) es el centro de las mayúsculas, h su alto
-  function drawText(g, tex, text, cx, cy, h, { stretch = 1, spacing = 0, curve = 0 } = {}) {
+  function drawText(g, tex, text, cx, cy, h, { stretch = 1, spacing = 0, curve = 0, maxW = 0 } = {}) {
     const map = tex.__kp, chs = [...String(text)].map(ch => map.get(ch) || map.get(ch.toUpperCase()) || (ch === ' ' ? null : map.get('?')) || null);
     const ref = chs.find(Boolean) || map.values().next().value; if (!ref) return;
     const R = ref.sh, k = h / (R * CAP / ROW), ws = chs.map((q, i) => q ? q.sw * k * stretch : (String(text)[i] === ' ' ? h * .35 : 0)), gap = spacing * h;
     const total = ws.reduce((a, b) => a + b, 0) + gap * Math.max(0, ws.length - 1); let x = cx - total / 2;
+    if (maxW && total > maxW) return drawText(g, tex, text, cx, cy, h * maxW / total * .98, { stretch, spacing, curve });
     chs.forEach((q, i) => {
       if (q) { const w = ws[i], off = curve ? curve * h * ((x + w / 2 - cx) / (total / 2 || 1)) ** 2 : 0; g.drawImage(tex, q.sx, q.sy, q.sw, q.sh, x, cy - (BASE - CAP / 2) / ROW * R * k + off, w, R * k); }
       x += ws[i] + gap;
     });
   }
-  return { W, ROW, BASE, CAP, MAX, SETS, chars, hex, unhex, layout, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs };
+  // plantilla lista para usar a partir de una imagen (canvas) o de un .psd ya leído: { c: canvas 4096×3840, g: Map letra → casilla, cap }
+  function tplLoad(src) {
+    const c = document.createElement('canvas'); c.width = TPL_W; c.height = TPL_H; const g = c.getContext('2d', { willReadFrequently: true });
+    let tint = null;
+    if (src.layers) { // .psd: se juntan las capas de las letras (en el orden de Photoshop, de abajo hacia arriba)
+      const z = TPL_W / src.w; tint = tplFill(src); const ls = tplLayers(src); if (!ls.length) throw new Error('el .psd no tiene una capa visible con letras (la de la plantilla se llama "Letras").');
+      for (const l of ls) { const t = document.createElement('canvas'); t.width = l.w; t.height = l.h; t.getContext('2d').putImageData(new ImageData(l.rgba, l.w, l.h), 0, 0); g.globalAlpha = l.opacity / 255; g.drawImage(t, l.left * z, l.top * z, l.w * z, l.h * z); }
+      g.globalAlpha = 1;
+    } else { const z = TPL_W / src.width; g.drawImage(src, 0, 0, src.width * z, src.height * z); }
+    const im = g.getImageData(0, 0, TPL_W, TPL_H), S = tplScan(im.data, TPL_W, TPL_H);
+    if (S.opaque) throw new Error('la imagen no tiene transparencia. En Photoshop ocultá el fondo y las guías (acción "KitPos Preparar PNG") y guardala como PNG.');
+    if (!S.count) throw new Error('no encontré letras en las casillas de la plantilla (4096 px de ancho, casillas de 256).');
+    if (tint) { g.globalCompositeOperation = 'source-in'; g.fillStyle = tint; g.fillRect(0, 0, TPL_W, TPL_H); g.globalCompositeOperation = 'source-over'; }
+    const m = new Map(); for (const q of S.glyphs) m.set(q.ch, q);
+    return { c, g: m, cap: S.cap, count: S.count, total: S.total, tint };
+  }
+  // las letras de la fuente actual en la plantilla (PNG transparente): para pegar en la capa "Letras" y retocarlas en Photoshop
+  function tplSheet(o) {
+    const R = render(o, tplCells().map(x => x.ch)), c = document.createElement('canvas'); c.width = TPL_W; c.height = TPL_H; const g = c.getContext('2d');
+    const at = new Map(R.L.cells.map(x => [x.ch, x]));
+    for (const t of tplCells()) { const a = at.get(t.ch); if (!a || t.ch === ' ') continue; const sw = Math.min(a.span, ROW); g.drawImage(R.canvas, a.x + (a.span - sw) / 2, a.row * ROW, sw, ROW, t.col * ROW + (ROW - sw) / 2, t.row * ROW, sw, ROW); }
+    // donde no hay letra, transparente del todo (la textura del juego lleva el color de relleno ahí)
+    const im = g.getImageData(0, 0, TPL_W, TPL_H); for (let i = 3; i < im.data.length; i += 4) if (!im.data[i]) im.data[i - 3] = im.data[i - 2] = im.data[i - 1] = 0; g.putImageData(im, 0, 0);
+    return c;
+  }
+  // guías de la plantilla: casillas, línea de base, centro y la letra de cada casilla (por si no se tiene el .psd)
+  function tplGuides() {
+    const c = document.createElement('canvas'); c.width = TPL_W; c.height = TPL_H; const g = c.getContext('2d');
+    g.fillStyle = '#272a33'; g.fillRect(0, 0, TPL_W, TPL_H); g.font = '600 26px system-ui, sans-serif'; g.textBaseline = 'top';
+    for (const t of tplCells()) { const x = t.col * ROW, y = t.row * ROW;
+      g.strokeStyle = '#6b6e78'; g.lineWidth = 2; g.strokeRect(x + 1, y + 1, ROW - 2, ROW - 2);
+      g.strokeStyle = '#c0453f'; g.beginPath(); g.moveTo(x + 7, y + BASE); g.lineTo(x + ROW - 9, y + BASE); g.stroke();
+      g.strokeStyle = '#8d9099'; g.beginPath(); g.moveTo(x + ROW / 2, y + 6); g.lineTo(x + ROW / 2, y + 18); g.stroke();
+      g.fillStyle = '#a9adb6'; g.fillText(t.ch, x + 9, y + 8); }
+    return c;
+  }
+  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides };
 })();
 
 // ===================== La pantalla del creador =====================
@@ -158,6 +271,13 @@ async function kpfAddImage(file) {
   const c = imgToCanvas(img); if (!KPF.imgGlyphs(c)) throw new Error('no encontré las letras A–Z con el formato del juego (dos filas: A a N y O a Z con el punto).');
   Object.assign(kpfOpts(), { img: c, imgName: file.name.replace(/\.[^.]+$/, '') });
 }
+// plantilla de Photoshop con las letras dibujadas (PNG transparente o el .psd)
+async function kpfAddTemplate(file, bmp) {
+  const n = file.name.toLowerCase(), src = n.endsWith('.psd') ? KPF.psdRead(await file.arrayBuffer()) : bmp || await createImageBitmap(file);
+  if ((src.w || src.width) < 1024) throw new Error('la plantilla tiene que tener 4096 px de ancho (o 2048, la mitad).');
+  const T = KPF.tplLoad(src); Object.assign(kpfOpts(), { tpl: T, tplName: file.name.replace(/\.[^.]+$/, ''), tplPsd: n.endsWith('.psd') }); return T;
+}
+async function kpfPng(c, name) { const b = await new Promise(r => c.toBlob(r, 'image/png')); await downloadBytes(name, new Uint8Array(await b.arrayBuffer())); }
 function kpfFontList() {
   const sys = (typeof KS_FONTS !== 'undefined' ? KS_FONTS : []).filter(f => { try { return f === 'Saira Condensed' || ksFontInstalled(f); } catch { return false; } });
   return [...(KPFS.userFonts || []), ...sys.filter(f => !(KPFS.userFonts || []).includes(f))];
@@ -201,6 +321,17 @@ function kpfHtml(has) {
             <label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
             <button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>` : ''}
           <small class="note">.ttf, .otf o .woff; también podés arrastrar el archivo a esta pantalla. Las que subís quedan guardadas para la próxima.</small>`)}
+        ${sec(0, '🎨 Plantilla de Photoshop', `${O.tpl ? `<div class="kpfimg kpftpl"><canvas id="kpfTplTh" width="440" height="112"></canvas><div><b>${esc(O.tplName)}</b><small class="note">${O.tpl.count} de ${O.tpl.total} letras dibujadas en la plantilla${O.tpl.count < O.tpl.total || n > O.tpl.count ? `; las demás (espacio, guion bajo${KPFS.sets.cyr ? ', cirílico' : ''}${KPFS.sets.greek ? ', griego' : ''}…) salen de ${esc(O.font)}` : ''}.${O.tplPsd ? ' Del .psd no se leen los efectos de capa: para conservarlos, cargá el PNG.' : ''}</small>
+            <label class="chk"><input type="checkbox" id="kpfTplTint" ${O.tplTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
+            <div class="kpfup"><button class="btn small" type="button" id="kpfTpl">↻ Cargar otra</button><button class="btn small ghost" type="button" id="kpfTplX">Quitar la plantilla</button></div></div></div>`
+          : `<p class="note">Dibujá o retocá las letras en Photoshop, una por casilla, y traelas acá: pasan a la textura del juego tal cual, con sus colores y efectos.</p>
+            <div class="kpfup"><button class="btn small primary" type="button" id="kpfTpl">📥 Cargar plantilla (.png o .psd)</button></div>`}
+          <div class="kpfup"><button class="btn small ghost" type="button" id="kpfTplOut" title="PNG transparente de 4096 px con cada letra de la fuente en su casilla: pegalo en la capa Letras">⬇ Letras de esta fuente</button><button class="btn small ghost" type="button" id="kpfTplGd" title="Las casillas, la línea de base y el centro, para usar de fondo en cualquier programa">⬇ Guías</button></div>
+          <details class="kpftplhow"><summary>Cómo se usa</summary><ol>
+            <li>4096 px de ancho, una casilla de 256×256 por letra (A–Z, a–z, números, acentos y Europa central). Apoyá cada letra en la línea roja (a 200 px) y centrala en la marca de arriba.</li>
+            <li>Dibujá en la capa <b>Letras</b>, o pegá ahí el PNG de "Letras de esta fuente" para partir de una tipografía y retocarla.</li>
+            <li>Ocultá el fondo y las guías (acción <b>KitPos Preparar PNG</b>) y guardá como PNG con transparencia.</li>
+            <li>Cargalo acá o arrastralo a esta pantalla. Las casillas vacías salen de la fuente elegida.</li></ol></details>`)}
         ${sec(2, 'Estilo', `<div class="kpfpres" id="kpfPre">${Object.entries(KPF_PRESETS).map(([k, p]) => `<button type="button" data-pre="${k}" title="${p.n}"><canvas data-prethumb="${k}" width="120" height="54"></canvas><span>${p.n}</span></button>`).join('')}</div>
           <div class="grid2"><div class="f"><label for="kpfW">Grosor</label><select id="kpfW">${[[400, 'Normal'], [600, 'Semi negrita'], [700, 'Negrita'], [800, 'Extra negrita'], [900, 'Black']].map(([v, l]) => `<option value="${v}" ${+O.weight === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
             <div class="f"><span class="lab">&nbsp;</span><label class="chk"><input type="checkbox" id="kpfIt" ${O.italic ? 'checked' : ''}> Cursiva</label></div></div>
@@ -223,7 +354,7 @@ function kpfHtml(has) {
         ${sec(3, 'Kit', `<div class="f"><label for="kpfTeam">Equipo</label><select id="kpfTeam"><option value="">${KITS.from ? '— Sin equipo: solo descargar el .zip —' : '— Conectá la carpeta Sider para elegir un kit —'}</option>${teams.map(x => `<option value="${x.id}" ${KPFS.team === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
           ${loading ? '<div class="lmload"><span class="spin"></span> Leyendo los kits…</div>' : KPFS.team != null && !has && KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
           ${has ? `<div class="kpfkits" id="kpfKits"><button type="button" class="kpfkit all" data-kit="*" aria-pressed="${KPFS.target === '*'}"><span><b>Todos</b><small>${KS.kits.length} de jugador</small></span></button>${KS.kits.map((k, i) => chip(k, i, false)).join('')}${KS.gk.map((k, i) => chip(k, i, true)).join('')}</div>
-          <figure class="kpfback"><canvas id="kpfBack" width="320" height="380" aria-label="Espalda del kit en 3D con la fuente nueva"></canvas><figcaption>${esc(KS.sel)} · 3D</figcaption></figure>` : ''}`)}
+          ${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>` : ''}`)}
         ${has ? kposHtml(['name'], { save: true }) : ''}
         ${sec(4, 'Llevarla al juego', `${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
             ${S.f && S.ix && S.ix.teamById.get(KPFS.team) ? '<button class="btn" type="button" id="kpfTry" title="Abre Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en Kit Studio Pro</button>' : ''}
@@ -268,28 +399,33 @@ function kpfDrawPreview(sh) {
     // con un kit elegido, el nombre sale con el ancho, la separación y el arco de ese kit (los de KitPos si tiene)
     const p = KPFS.has && KS.cfg ? KS_POS.name() : null, o = p ? { stretch: p.stretch / 1.2, spacing: p.spacing, curve: p.curve } : {};
     g.save(); g.strokeStyle = '#ffffff14'; g.setLineDash([6, 8]); g.beginPath(); g.moveTo(W / 2, 20); g.lineTo(W / 2, H - 20); g.stroke(); g.restore();
-    KPF.drawText(g, tex, KPFS.sample || 'Fernández', W / 2, 170, 128, o);
+    KPF.drawText(g, tex, KPFS.sample || 'Fernández', W / 2, 170, 128, { ...o, maxW: W - 60 });
     const extra = [...new Set(KPF.chars(KPFS.sets).filter(c => !/[A-Za-z0-9 .\-'_]/.test(c)))].slice(0, 26).join('');
-    KPF.drawText(g, tex, 'Aa Bb Cc Ññ 0123456789', W / 2, 336, 52, {}); if (extra) KPF.drawText(g, tex, extra, W / 2, 436, 46, {}); }
+    KPF.drawText(g, tex, 'Aa Bb Cc Ññ 0123456789', W / 2, 336, 52, { maxW: W - 60 }); if (extra) KPF.drawText(g, tex, extra, W / 2, 436, 46, { maxW: W - 60 }); }
   const ac = sh.querySelector('#kpfAtlas'); if (ac) { const g = ac.getContext('2d'), hh = Math.round(ac.width * tex.height / tex.width); if (ac.height !== hh) ac.height = hh;
     for (let y = 0; y < ac.height; y += 10) for (let x = 0; x < ac.width; x += 10) { g.fillStyle = (x + y) / 10 % 2 ? '#2a2f36' : '#353b44'; g.fillRect(x, y, 10, 10); }
     g.drawImage(tex, 0, 0, ac.width, ac.height); g.strokeStyle = '#ffd84a33'; g.lineWidth = 1; const k = ac.width / tex.width;
     for (const c of R.L.cells) g.strokeRect(c.x * k + .5, c.row * KPF.ROW * k + .5, c.span * k, KPF.ROW * k); }
   const dim = sh.querySelector('#kpfDim'); if (dim) dim.textContent = `${R.L.W}×${R.L.H} px · ${R.L.cells.length} letras · DXT5`;
   const it = sh.querySelector('#kpfImgTh'), O = kpfOpts(); if (it && O.img) { const g = it.getContext('2d'); g.fillStyle = '#2a3038'; g.fillRect(0, 0, it.width, it.height); const z = Math.min(it.width / O.img.width, it.height / O.img.height); g.drawImage(O.img, 0, 0, O.img.width * z, O.img.height * z); }
+  const tt = sh.querySelector('#kpfTplTh'); if (tt && O.tpl) { const g = tt.getContext('2d'), z = tt.height / 256; g.fillStyle = '#2a3038'; g.fillRect(0, 0, tt.width, tt.height);
+    g.drawImage(tinted0(O.tpl.c, O), 0, 0, tt.width / z, 256, 0, 0, tt.width, tt.height); }
   kpfBack3d(sh);
 }
-// la espalda del kit con el modelo 3D real, el nombre de prueba y la fuente nueva
-function kpfBack3d(sh) {
-  const cv = sh.querySelector('#kpfBack'); if (!cv || !KPFS.has || !KS.cfg || !KPFS.out) return;
+const tinted0 = (c, O) => { if (!O.tplTint) return c; if (c.__th && c.__th.k === O.fill) return c.__th.c; const t = document.createElement('canvas'); t.width = 1024; t.height = 256; const g = t.getContext('2d'); g.drawImage(c, 0, 0, 1024, 256, 0, 0, 1024, 256); g.globalCompositeOperation = 'source-in'; g.fillStyle = O.fill; g.fillRect(0, 0, 1024, 256); c.__th = { k: O.fill, c: t }; return t; };
+// la espalda del kit con el modelo 3D real, el nombre de prueba y la fuente nueva; ahí se ubican el nombre y el dorsal (kitplace.js)
+function kpfWrap(fn) {
+  const saveT = KS.T.name, saveS = KS.sample; if (KPFS.out) KS.T.name = { c: KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || 'Fernández' }; KS.dispKey = '';
+  try { return fn(); } finally { KS.T.name = saveT; KS.sample = saveS; KS.dispKey = ''; }
+}
+function kpfBack3d(sh, now) {
+  if (!sh.querySelector('#kplBox') || !KPFS.has || !KS.cfg || !KPFS.out) return;
   clearTimeout(kpfBack3d.t); kpfBack3d.t = setTimeout(async () => {
     try {
       if (!KS.model || KS.modelFor !== KS.sel) { KS.model = await k3Load(KS.cfg); KS.modelKey = ''; KS.modelFor = KS.sel; }
-      const saveT = KS.T.name, saveS = KS.sample; KS.T.name = { c: KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || 'Fernández' }; KS.dispKey = '';
-      let tex; try { tex = ksDisplayTex(); } finally { KS.T.name = saveT; KS.sample = saveS; KS.dispKey = ''; }
-      const snap = k3Snapshot(KS.model, KS.cfg, tex, 'back', cv.width, cv.height, ksMaps()); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (snap) g.drawImage(snap, 0, 0);
-    } catch (e) { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.fillStyle = '#888'; g.font = '13px sans-serif'; g.fillText('No se pudo mostrar el 3D.', 12, 24); }
-  }, 180);
+      kplPaint(sh, KPFS.kplApi, KPL.drag ? 'back' : null);
+    } catch (e) { const cv = sh.querySelector('canvas[data-kpl]'); if (cv) { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.fillStyle = '#888'; g.font = '13px sans-serif'; g.fillText('No se pudo mostrar el 3D.', 12, 24); } }
+  }, now ? 0 : 180);
 }
 function kpfRun(sh) {
   clearTimeout(kpfRun.t); kpfRun.t = setTimeout(() => {
@@ -376,7 +512,7 @@ function kpfBind(sh, has) {
   on('kpfW', el => O.weight = +el.value); on('kpfIt', el => O.italic = el.checked); on('kpfWidth', el => O.width = el.value / 100); on('kpfSize', el => O.size = el.value / 100);
   on('kpfFill', el => O.fill = el.value); on('kpfGrad', el => { O.grad = el.checked; $k('kpfFill2').disabled = !el.checked; }); on('kpfFill2', el => O.fill2 = el.value);
   on('kpfSh', el => O.shadow = +el.value); on('kpfShC', el => O.shadowColor = el.value); on('kpfS1', el => O.stroke1 = +el.value); on('kpfC1', el => O.color1 = el.value); on('kpfS2', el => O.stroke2 = +el.value); on('kpfC2', el => O.color2 = el.value);
-  on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgTint', el => O.imgTint = el.checked);
+  on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgTint', el => O.imgTint = el.checked); on('kpfTplTint', el => O.tplTint = el.checked);
   $k('kpfFonts').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; O.font = b.dataset.font; $k('kpfFonts').querySelectorAll('[data-font]').forEach(x => x.setAttribute('aria-selected', x === b)); upd(); };
   $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); rr(); };
   $k('kpfSets').onclick = e => { const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; KPFS.sets[b.dataset.set] = !KPFS.sets[b.dataset.set]; b.setAttribute('aria-pressed', !!KPFS.sets[b.dataset.set]); sh.querySelector('.kpfn').textContent = KPF.chars(KPFS.sets).length + ' letras'; upd(); };
@@ -390,11 +526,17 @@ function kpfBind(sh, has) {
     rr(); };
   const pick = (accept, fn) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.onchange = () => inp.files[0] && fn(inp.files[0]); inp.click(); };
   const addFile = async f => { const n = f.name.toLowerCase();
-    try { if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); } else if (/\.(png|jpe?g|webp|dds|ftex)$/.test(n)) { await kpfAddImage(f); toast('Letras de ' + f.name + ' cargadas.'); } else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff) ni una imagen.', 5000); return; } rr(); }
+    try { let bmp = null; if (/\.(png|webp)$/.test(n)) { try { bmp = await createImageBitmap(f); } catch { } }
+      if (n.endsWith('.psd') || (bmp && bmp.width >= 1024 && bmp.height / bmp.width > .85)) { const T = await kpfAddTemplate(f, bmp); toast(`Plantilla cargada: ${T.count} letras.`); }
+      else if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); } else if (/\.(png|jpe?g|webp|dds|ftex)$/.test(n)) { await kpfAddImage(f); toast('Letras de ' + f.name + ' cargadas.'); } else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff), una imagen ni una plantilla (.psd).', 5000); return; } rr(); }
     catch (e) { toast('No se pudo usar ' + f.name + ': ' + e.message, 7000); } };
   $k('kpfUp').onclick = () => pick('.ttf,.otf,.woff,.woff2', addFile);
   $k('kpfImg').onclick = () => pick('.png,.jpg,.jpeg,.webp,.dds,.ftex', addFile);
   const ix = $k('kpfImgX'); if (ix) ix.onclick = () => { O.img = null; O.imgName = ''; rr(); };
+  $k('kpfTpl').onclick = () => pick('.png,.webp,.psd', addFile);
+  const tx = $k('kpfTplX'); if (tx) tx.onclick = () => { O.tpl = null; O.tplName = ''; rr(); };
+  $k('kpfTplOut').onclick = async () => { try { await kpfPng(KPF.tplSheet({ ...O, tpl: null, img: O.img }), 'letras-plantilla-' + String(O.font).replace(/[^\w-]+/g, '-').toLowerCase() + '.png'); } catch (e) { toast('No se pudo: ' + e.message, 6000); } };
+  $k('kpfTplGd').onclick = () => kpfPng(KPF.tplGuides(), 'guias-plantilla-kitpos.png');
   const dz = $k('kpfDrop'); dz.ondragover = e => { e.preventDefault(); dz.classList.add('over'); }; dz.ondragleave = e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('over'); };
   dz.ondrop = e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('over'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) addFile(f); };
   const busy = (b, fn) => async () => { if (KPFS.busy) return; KPFS.busy = true; const btns = sh.querySelectorAll('.kpfgame .btn'); btns.forEach(x => x.disabled = true);
@@ -413,6 +555,8 @@ function kpfBind(sh, has) {
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : r.lua === 'nuevo' ? 'instalado' : 'listo') + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); rr(); }); }
   // posición, tamaño y arco del nombre (KitPos)
   kposBind(sh, () => kpfDrawPreview(sh), rr);
+  KPFS.kplApi = { cfg: false, wrap: kpfWrap, changed: () => { KS.dispKey = ''; if (KPS.sync) KPS.sync(); if (kpfBind.raf) return; kpfBind.raf = requestAnimationFrame(() => { kpfBind.raf = 0; if (sh.querySelector('#kpfShirt')) kpfDrawPreview(sh); kpfBack3d(sh, true); }); } };
+  kplBind(sh, KPFS.kplApi);
   kpfPresetThumbs(sh);
   if (KPFS.out && KPFS.outFor === JSON.stringify([O.font, KPFS.sets])) kpfDrawPreview(sh);
   KPFS.outFor = JSON.stringify([O.font, KPFS.sets]); kpfRun(sh);

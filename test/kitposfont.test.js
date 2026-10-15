@@ -62,3 +62,72 @@ test('el .zip para descargar tiene los cuatro archivos', async () => {
   assert.deepEqual(J(es.map(e => e.name)), ['u2689p2_name.dds', 'kitpos_letras.txt', 'LEEME.txt']);
   assert.deepEqual(J([...await es[0].data()]), [1, 2, 3]); assert.equal(Buffer.from(await es[2].data()).toString(), 'hola ñ');
 });
+
+// ---- plantilla de Photoshop ----
+test('la plantilla tiene una casilla de 256 por letra, en el orden del .psd, sin repetir', () => {
+  const cells = J(KPF.tplCells());
+  assert.equal(cells.length, 214); assert.equal(new Set(cells.map(c => c.ch)).size, 214);
+  assert.equal(KPF.TPL_W, 4096); assert.equal(KPF.TPL_H, 15 * 256);
+  assert.deepEqual(cells.find(c => c.ch === 'Q'), { ch: 'Q', col: 0, row: 1 });
+  assert.deepEqual(cells.find(c => c.ch === "'"), { ch: "'", col: 12, row: 4 });
+  assert.deepEqual(cells.find(c => c.ch === 'ų'), { ch: 'ų', col: 6, row: 14 });
+  assert.ok(cells.every(c => c.col < 16)); // todas las letras de la plantilla entran en una fuente con Acentos y Europa central
+  const set = new Set(KPF.chars({ latin: true, central: true })); assert.ok(cells.every(c => set.has(c.ch)), cells.filter(c => !set.has(c.ch)).map(c => c.ch).join(''));
+});
+
+test('encuentra la tinta de cada casilla y mide la altura de las mayúsculas', () => {
+  const W = 4096, H = 3840, px = new Uint8ClampedArray(W * H * 4);
+  const ink = (col, row, x0, x1, y0, y1) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) px[((row * 256 + y) * W + col * 256 + x) * 4 + 3] = 255; };
+  ink(7, 0, 70, 186, 61, 200); // H
+  ink(2, 2, 84, 167, 93, 203); // c
+  ink(6, 14, 100, 150, 120, 240); // ų
+  const S = J(KPF.tplScan(px, W, H));
+  assert.equal(S.opaque, false); assert.equal(S.count, 3); assert.equal(S.total, 214); assert.equal(S.cap, 139);
+  assert.deepEqual(S.glyphs.map(g => [g.ch, g.x0, g.x1, g.top, g.bottom]), [['H', 70, 186, 61, 200], ['c', 84, 167, 93, 203], ['ų', 100, 150, 120, 240]]);
+  assert.equal(KPF.tplScan(new Uint8ClampedArray(W * 512 * 4).fill(255), W, 512).opaque, true); // con el fondo puesto
+});
+
+// .psd mínimo: dos capas (Letras con RLE y unas guías ocultas con nombre unicode) y una capa de relleno recortada
+function miniPsd() {
+  const b = [], u8 = v => b.push(v & 255), u16 = v => { u8(v >> 8); u8(v); }, u32 = v => { u16(v >>> 16); u16(v & 65535); }, s = t => { for (const c of t) u8(c.charCodeAt(0)); };
+  const pascal = t => { u8(t.length); s(t); let n = t.length + 1; while (n % 4) { u8(0); n++; } };
+  const rle = rows => { const out = [], counts = []; for (const r of rows) { const enc = [r.length - 1, ...r]; counts.push(enc.length); out.push(...enc); } return { counts, out }; };
+  s('8BPS'); u16(1); for (let i = 0; i < 6; i++) u8(0); u16(3); u32(16); u32(32); u16(8); u16(3); u32(0); u32(0);
+  const layers = [
+    { name: 'Letras', top: 1, left: 3, h: 2, w: 2, flags: 0, ch: { 0: [[10, 20], [30, 40]], 1: [[1, 2], [3, 4]], 2: [[5, 6], [7, 8]], '-1': [[255, 0], [128, 255]] } },
+    { name: 'Guias', uni: 'Guías KitPos', top: 0, left: 0, h: 1, w: 1, flags: 2, ch: { 0: [[9]], 1: [[9]], 2: [[9]], '-1': [[255]] } },
+    { name: 'Color', top: 0, left: 0, h: 0, w: 0, flags: 0, clip: 1, fill: [200, 16, 46], ch: {} },
+  ];
+  const data = []; const rec = [];
+  for (const l of layers) { const chs = Object.entries(l.ch).map(([id, rows]) => { const r = rle(rows), d = []; d.push(0, 1); for (const c of r.counts) d.push(c >> 8, c & 255); d.push(...r.out); return { id: +id, d }; }); l.chs = chs; data.push(...chs.flatMap(c => c.d)); }
+  const body = [], push = arr => body.push(...arr);
+  const lb = []; const L8 = v => lb.push(v & 255), L16 = v => { L8(v >> 8); L8(v); }, L32 = v => { L16(v >>> 16); L16(v & 65535); }, LS = t => { for (const c of t) L8(c.charCodeAt(0)); };
+  L16(layers.length);
+  for (const l of layers) {
+    L32(l.top); L32(l.left); L32(l.top + l.h); L32(l.left + l.w); L16(l.chs.length); for (const c of l.chs) { L16(c.id & 65535); L32(c.d.length); }
+    LS('8BIM'); LS('norm'); L8(255); L8(l.clip || 0); L8(l.flags); L8(0);
+    const x = []; const X8 = v => x.push(v & 255), X32 = v => { X8(v >>> 24); X8(v >>> 16); X8(v >>> 8); X8(v); }, XS = t => { for (const c of t) X8(c.charCodeAt(0)); };
+    X32(0); X32(0); X8(l.name.length); XS(l.name); let n = l.name.length + 1; while (n % 4) { X8(0); n++; }
+    if (l.uni) { const u = []; u.push(0, 0, 0, l.uni.length); for (const c of l.uni) u.push(c.charCodeAt(0) >> 8, c.charCodeAt(0) & 255); while (u.length % 4) u.push(0); XS('8BIM'); XS('luni'); X32(u.length); x.push(...u); }
+    if (l.fill) { const u = []; const US = t => { for (const c of t) u.push(c.charCodeAt(0)); }; US('xxxxClr objcRGBC');
+      for (const [k, v] of [['Rd  ', l.fill[0]], ['Grn ', l.fill[1]], ['Bl  ', l.fill[2]]]) { US(k); US('doub'); const f = new DataView(new ArrayBuffer(8)); f.setFloat64(0, v); u.push(...new Uint8Array(f.buffer)); }
+      while (u.length % 4) u.push(0); XS('8BIM'); XS('SoCo'); X32(u.length); x.push(...u); }
+    L32(x.length); lb.push(...x);
+  }
+  lb.push(...data); while (lb.length % 2) lb.push(0);
+  u32(lb.length + 4 + 4); u32(lb.length); push(lb); b.push(...body); u32(0); // sin máscara global
+  return new Uint8Array(b).buffer;
+}
+
+test('lee las capas de un .psd: nombres (también unicode), visibilidad, RLE y el color de una capa de relleno', () => {
+  const P = KPF.psdRead(miniPsd());
+  assert.equal(P.w, 32); assert.equal(P.h, 16); assert.equal(P.layers.length, 3);
+  const [let_, gu, fill] = P.layers;
+  assert.deepEqual(J([let_.name, let_.visible, let_.top, let_.left, let_.w, let_.h, let_.kind]), ['Letras', true, 1, 3, 2, 2, 'pixel']);
+  assert.deepEqual([...let_.rgba], [10, 1, 5, 255, 20, 2, 6, 0, 30, 3, 7, 128, 40, 4, 8, 255]);
+  assert.deepEqual(J([gu.name, gu.visible]), ['Guías KitPos', false]);
+  assert.deepEqual(J([fill.kind, fill.fill, fill.clipping]), ['fill', [200, 16, 46], 1]);
+  assert.deepEqual(J(KPF.tplLayers(P).map(l => l.name)), ['Letras']); // ni el fondo ni las guías
+  assert.equal(KPF.tplFill(P), '#c8102e');
+  assert.throws(() => KPF.psdRead(new Uint8Array([1, 2, 3, 4, 0, 0, 0, 0]).buffer), /Photoshop/);
+});

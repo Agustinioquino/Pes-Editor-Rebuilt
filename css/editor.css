@@ -392,6 +392,19 @@ td.idc{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
 .ksmock{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:12px;border-radius:12px;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--neon) 10%,var(--sunk)),var(--sunk));border:1px solid var(--line);width:100%}
 .ksmock figure{margin:0;display:grid;justify-items:center;gap:4px}.ksmock figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
 .ksmock canvas{width:200px;height:auto;filter:drop-shadow(0 6px 10px #0004)}
+.kplace{display:grid;gap:8px;width:100%}
+.kplbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px}
+.kplpick button i{display:inline-block;width:.62em;height:.62em;border-radius:50%;margin-right:5px;vertical-align:.02em;box-shadow:0 0 0 1px #0005}
+.kplnudge{display:flex;flex-wrap:wrap;align-items:center;gap:3px}.kplnudge .btn{min-width:2.1em;padding-inline:.45em;justify-content:center}.kplsep{width:1px;height:1.3em;background:var(--line);margin:0 4px}
+.kplpanels{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:10px;padding:10px;border-radius:12px;border:1px solid var(--line);background:radial-gradient(circle at 50% 28%,color-mix(in srgb,var(--neon) 12%,var(--sunk)),var(--sunk))}
+.kplace.solo .kplpanels{grid-template-columns:minmax(0,1fr)}
+.kplcol{display:grid;gap:10px;align-content:start}
+.kplfig{margin:0;display:grid;justify-items:center;gap:4px}.kplfig figcaption{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.kplw{position:relative;width:100%;line-height:0}.kplw canvas{width:100%;height:auto;display:block}
+.kplbase{filter:drop-shadow(0 8px 14px #0005)}
+.kplov{position:absolute;inset:0;touch-action:none;outline:none;border-radius:8px}.kplov:focus-visible{box-shadow:0 0 0 2px var(--neon)}
+.kplval{margin:0;min-height:1.3em}.kplval .warn{color:var(--warn,#e0a020)}
+@media (max-width:700px){.kplpanels{grid-template-columns:minmax(0,1fr)}.kplcol{grid-template-columns:1fr 1fr}}
 .ksshorts{width:110px;height:auto;filter:drop-shadow(0 6px 10px #0004)}
 .kstex{width:100%;max-width:640px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:repeating-conic-gradient(#8882 0 25%,transparent 0 50%) 0 0/20px 20px}
 .kstex canvas{width:100%;height:auto;display:block}
@@ -698,6 +711,7 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .kpfup{display:flex;gap:6px;flex-wrap:wrap}
 .kpfimg{display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--panel)}
 .kpfimg canvas{width:110px;height:auto;border-radius:4px;flex:none}.kpfimg>div{display:grid;gap:4px;min-width:0}
+.kpftpl{flex-direction:column}.kpftpl canvas{width:100%;background:#2a3038}.kpftplhow{font-size:.85rem}.kpftplhow summary{cursor:pointer;font-weight:600;color:var(--muted)}.kpftplhow ol{margin:6px 0 0;padding-left:1.2em;display:grid;gap:4px}
 .kpfpres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .kpfpres button{display:grid;gap:3px;padding:4px 4px 5px;border:1.5px solid var(--line);border-radius:var(--r,8px);background:var(--panel);color:inherit;font:inherit;font-size:.72rem;cursor:pointer;min-width:0}
 .kpfpres button:hover{border-color:var(--accent);transform:translateY(-1px)}.kpfpres canvas{width:100%;height:auto;border-radius:calc(var(--r,8px) * .6)}
@@ -740,7 +754,7 @@ html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sa
 .kposr .kposv{grid-area:v;font-size:.7rem;opacity:.7;line-height:1.2;margin-top:-3px}
 .kposr.own label{color:var(--accent);font-weight:700}
 .kposx{grid-area:x;border:0;background:none;color:inherit;cursor:pointer;font-size:.95rem;padding:0;opacity:.75}.kposx:disabled{opacity:.2;cursor:default}
-html[data-gfx="pes6"] :is(.kpos,.kposg fieldset,.kpfsec,.kpfstage,.kpfkit,.kpfpres button,.kpfhow){border-radius:0!important}
+html[data-gfx="pes6"] :is(.kpos,.kposg fieldset,.kpfsec,.kpfstage,.kpfkit,.kpfpres button,.kpfhow,.kplpanels,.kplov){border-radius:0!important}
 html[data-gfx="pes6"] :is(.kpfhero,.kpffonts button,.kpfimg,.kpfgame,.kpfst li,.kpfback,.kpfprev>canvas,.kpfatlas canvas){border-radius:0!important}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2 label output,.ksgenl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}

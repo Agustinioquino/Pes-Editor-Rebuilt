@@ -3,6 +3,8 @@
 # La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha), el texto sale de release/NOTAS.md
 # y el subtítulo de release/TITULO (opcional). Adjunta el editor en .zip, el módulo de Sider y la app para Windows
 # (instalador y portátil, armados en windows-latest).
+# Todo va primero en inglés y después en español: NOTAS.md lleva el texto en inglés arriba y la versión en español
+# debajo, y TITULO es una línea "Título en inglés / Título en español".
 # Cada release queda marcada como "Latest" en GitHub (no como pre-release), así la página del repo muestra la última.
 name: Publicar release
 

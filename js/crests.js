@@ -57,14 +57,15 @@ async function crestTarget(t, sider) {
   roots.sort((a, b) => a.r - b.r || a.name.localeCompare(b.name));
   const mine = new RegExp('^e_' + crestId(t.id) + '_', 'i'); let best = null;
   for (const ro of roots) {
-    if (ro.r >= 1e6 && ro.name.toLowerCase() !== CREST_ROOT.toLowerCase()) continue; // Sider no la lee: no se toca
+    // Sider no la lee: no se toca (si sider.ini no se pudo leer, por ejemplo en Chrome, vale cualquiera que ya tenga escudos)
+    if (order.length && ro.r >= 1e6 && ro.name.toLowerCase() !== CREST_ROOT.toLowerCase()) continue;
     let flag; try { flag = await subDir(ro.h, CREST_FLAG); } catch { continue; }
     let n = 0, has = false; const sample = {};
     for await (const [name, fh] of flag.entries()) {
       if (fh.kind !== 'file') continue; const m = name.match(/^e_\d{6}_(\w+)\.png$/i); if (!m) continue;
       n++; if (mine.test(name)) has = true; else if (!sample[m[1].toLowerCase()]) sample[m[1].toLowerCase()] = fh;
     }
-    const c = { root: ro.name, h: ro.h, flag, n, has, sample, listed: ro.r < 1e6 };
+    const c = { root: ro.name, h: ro.h, flag, n, has, sample, listed: ro.r < 1e6 || !order.length };
     if (has) { best = c; break; } // la primera (en el orden de Sider) que ya tiene escudo de este equipo
     if (n && (!best || n > best.n)) best = c;
   }
@@ -115,9 +116,10 @@ async function crestSave(t) {
   CR.busy = true; CR.err = ''; CR.msg = ''; crestPaint(t);
   try {
     const sider = await crestSider(true), tg = CR.target = await crestTarget(t, sider);
+    // primero sider.ini: si no se puede agregar la carpeta, no se crea nada (antes quedaba una carpeta vacía)
+    const iniAdded = !tg.listed && await crestIniAdd(sider, tg.root);
     if (!tg.h) tg.h = await (await sider.getDirectoryHandle('livecpk', { create: true })).getDirectoryHandle(tg.root, { create: true });
     const flag = tg.flag || await CREST_FLAG.split('/').reduce(async (d, seg) => (await d).getDirectoryHandle(seg, { create: true }), Promise.resolve(tg.h));
-    const iniAdded = !tg.listed && await crestIniAdd(sider, tg.root);
     let backed = 0, n = 0, last = null;
     for (const [suf] of CREST_SET) {
       const name = crestName(t.id, suf), [w, h] = tg.size[suf], src = CR.own[suf] && CR.own[suf].width === w && CR.own[suf].height === h ? CR.own[suf] : crestFit(CR.own[suf] || CR.main, w, h);

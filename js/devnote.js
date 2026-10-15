@@ -24,7 +24,7 @@ const devColor = n => n >= 80 ? 'hi' : n >= 50 ? 'mid' : n >= 25 ? 'lo' : 'start
 const DEV_PRI = { alta: 2, media: 1 };
 const devSorted = () => DEV_ITEMS.map((x, i) => [x, i]).sort((a, b) => (DEV_PRI[b[0][5]] || 0) - (DEV_PRI[a[0][5]] || 0) || a[1] - b[1]).map(x => x[0]);
 const devList = () => `<ul class="devlist">${devSorted().map(([k, ic, h, p, pct, pri]) => `<li class="${pri === 'alta' ? 'devhot' : pri === 'media' ? 'devwarm' : ''}"><span class="devic" aria-hidden="true">${ic}</span><div><b>${h}</b> <span class="chip ${k === 'beta' ? 'warn' : ''} devst">${k === 'beta' ? 'Beta' : 'Próximamente'}</span>${pri === 'alta' ? ' <span class="chip devpri">⭐ Prioridad alta</span>' : pri === 'media' ? ' <span class="chip devpri mid">Prioridad media</span>' : ''}
-  <div class="devprog ${devColor(pct)}" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(h)}: ${pct} %"><i><b style="width:${pct}%"></b></i><span>${pct} %</span></div><p>${p}</p></div></li>`).join('')}</ul>`;
+  <div class="devprog ${devColor(pct)}" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(typeof tr === 'function' ? tr(h) : h)}: ${pct} %"><i><b style="width:${pct}%"></b></i><span>${pct} %</span></div><p>${p}</p></div></li>`).join('')}</ul>`;
 const devHidden = () => { try { return localStorage.getItem(DEV_HIDE) === '1'; } catch { return false; } };
 const devCard = () => devHidden()
   ? `<section class="card devcard devoff"><h3>🚧 En desarrollo</h3><button class="btn small" type="button" data-devhide="0">Mostrar</button></section>`

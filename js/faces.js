@@ -109,7 +109,7 @@ async function faceTimed(k, fn) {
 // los que no se encontraron se vuelven a buscar al mes (las bases suman fotos todo el tiempo)
 const FACE_RETRY = 30 * 864e5;
 try { const now = Date.now(); let n = 0; for (const [k, v] of FACES.online) if (!v.u && !v.m && v.t && now - v.t > FACE_RETRY) { FACES.online.delete(k); n++; } if (n) saveOnline(); } catch { }
-// v0.051: la búsqueda nueva (nombre completo, ESPN, Wikipedia en otros idiomas) encuentra muchos más: se reintentan una vez
+// v0.052: la búsqueda nueva (nombre completo, ESPN, Wikipedia en otros idiomas) encuentra muchos más: se reintentan una vez
 try { if (!localStorage.getItem('edit21-retry-v051')) { for (const [k, v] of FACES.online) if (!v.u && !v.m) FACES.online.delete(k); saveOnline(); localStorage.setItem('edit21-retry-v051', '1'); } } catch { }
 const PHOTO_SRC = { tsdb: 'Recortadas', mix: 'Mezcla', off: 'No' };
 function setPhotoSrc(v) {

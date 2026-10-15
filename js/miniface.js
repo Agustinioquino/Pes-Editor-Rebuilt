@@ -234,7 +234,7 @@ function mnfCard(pid, kit) {
         ${MNF.own ? `<p class="note">Este jugador tiene una miniface hecha con el editor. <button class="btn small ghost" type="button" id="mnfDel">🗑 Borrarla</button></p>` : ''}
       </div>
     </div>
-    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>livecpk\\${MNF_ROOT}\\common\\render\\symbol\\player\\${pid}.dds</code>. Es una carpeta del editor que va primera en sider.ini, así su miniface manda; las minifaces que ya tenés en otras carpetas no se tocan. Si sider.ini no se puede leer o cambiar (por ejemplo, Chrome no deja tocar los .ini), se guarda en una carpeta que Sider ya lee, con copia de lo que hubiera. Formato DXT3 (BC2) sin mips, con transparencia. Si ya había una del editor, la primera vez queda una copia <code>.bak-edit21</code>. Abrí el juego de nuevo para verla.</p></div>
+    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>livecpk\\${MNF_ROOT}\\common\\render\\symbol\\player\\${pid}.dds</code>. Es una carpeta del editor que va primera en sider.ini, así su miniface manda; las minifaces que ya tenés en otras carpetas no se tocan. Si sider.ini no se puede leer o cambiar (por ejemplo, Chrome no deja tocar los .ini), se guarda en una carpeta que Sider ya lee, con copia de lo que hubiera. Formato DXT3 (BC2) sin mips, con transparencia. Si ya había otra, se guarda una copia <code>.bak-edit21</code> que se borra sola la próxima vez que abrís el editor. Abrí el juego de nuevo para verla.</p></div>
   </div>`;
 }
 function mnfDraw() {

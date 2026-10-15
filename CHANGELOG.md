@@ -2,6 +2,20 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.056 alpha · ¡Abrí el sobre! Jugadores renovados
+
+*15 de octubre de 2026, 05:40 (hora de Argentina)*
+
+La pestaña Jugadores se renovó: un perfil más claro, la foto grande con los colores de sus posiciones, Habilidades y skills en una sola pestaña, y una vista FIFA con su carta y un sobre para abrir.
+
+- **Perfil más claro** (Plantel). Nombre y apellido van por separado (el juego los guarda juntos, el editor los une solo), el nombre en camiseta tiene el botón Usar apellido, el equipo y la selección se ven con su escudo y dorsal, y las estrellas y la actitud se eligen con colores.
+- **Foto grande con el color de sus posiciones** (Interfaz). La foto del jugador es más grande, con su posición arriba a la izquierda y las otras posiciones donde puede jugar al costado. El marco toma los colores de sus posiciones (amarillo portero, azul defensa, verde medio, rojo delantera): cuanto mejor juega en cada una, más lugar ocupa su color.
+- **Habilidades y skills** (Plantel). Habilidades y Especiales ahora son una sola pestaña. Cada habilidad tiene su barra con color, − y +, el promedio de su grupo y un ⓘ que explica qué hace. Cada habilidad especial y cada estilo de la IA tiene su ícono y su explicación al pasar el mouse.
+- **Ver como FIFA** (Interfaz). Un botón muestra al jugador como una carta de FIFA: oro, plata o bronce según su media, especial desde 80 y carta ícono para las leyendas. En PES 6 y Clásico la carta es como la de FIFA 15; en Moderno y Retro, como las de ahora. Es solo para mirar: las medias salen de sus habilidades de PES.
+- **Abrí el sobre** (Interfaz). La primera vez que ves a un jugador en la vista FIFA aparece un sobre: pasá el mouse por arriba para rasgarlo. Salen la bandera, la posición y el escudo, y después la carta, con confeti, sonido y la tribuna: ovación para las medias altas, silbidos para las bajas. Se puede saltar, repetir o apagar, y el sonido también.
+- **Nombres más claros** (Interfaz). Posición registrada ahora se llama Posición natural. En inglés las posiciones usan las siglas de PES (CF, AMF, CB…); en español quedan como siempre (CD, MO, DEC…).
+- **Fichas de Del juego** (Plantel). Arreglado: en Jugadores → Del juego, la ficha dejaba de verse desde el segundo jugador que tocabas.
+
 ## v0.055 alpha · Tus ideas, en el editor
 
 *15 de octubre de 2026, 04:30 (hora de Argentina)*

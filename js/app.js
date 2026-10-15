@@ -1303,7 +1303,7 @@ const num = (k, v, min, max, extra = '') => `<input type="number" data-k="${k}" 
 const selOpts = (arr, v) => arr.map((n, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${esc(n)}</option>`).join('');
 function mapSelect(k, map, v, label) { return `<select data-k="${k}" aria-label="${label}">${map.has(v) ? '' : `<option value="${v}" selected>${v ? 'ID ' + v + ' (del juego)' : 'Ninguno / predeterminado'}</option>`}${[...map].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
 function seg(k, labels, v) { return `<div class="seg" data-segk="${k}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
-function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} ${FLAG_NAMES[k]}</span>`).join(''); }
+function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} <span>${FLAG_NAMES[k]}</span></span>`).join(''); }
 // marco de la foto con los colores de las posiciones que juega: cada color ocupa más o menos según el nivel
 // (posición natural 3, A 2, B 1; las C no cuentan), sumado por línea (arquero, defensa, medio, delantera)
 const POS_GRP_N = { gk: 'Portero', df: 'Defensa', mf: 'Mediocampo', fw: 'Delantera' };
@@ -1442,7 +1442,7 @@ function abTipShow(b) {
   if (!ABTIP.el) { ABTIP.el = document.createElement('div'); ABTIP.el.className = 'abtip'; ABTIP.el.setAttribute('role', 'tooltip'); ABTIP.el.id = 'abTip'; document.body.appendChild(ABTIP.el); }
   const t = ABTIP.el, lv = b.dataset.tiplv;
   t.innerHTML = `<b></b><p></p>${lv != null ? `<span class="abt" data-t="${lv}"><i></i></span>` : ''}`;
-  t.querySelector('b').textContent = b.dataset.tiptitle || ''; t.querySelector('p').textContent = b.getAttribute('data-tip');
+  t.querySelector('b').textContent = tr(b.dataset.tiptitle || ''); t.querySelector('p').textContent = b.getAttribute('data-tip');
   if (lv != null) t.querySelector('span').append(AB_LEVEL[lv] || '');
   ABTIP.on = b; b.setAttribute('aria-describedby', 'abTip');
   t.classList.add('on'); const r = b.getBoundingClientRect(), w = Math.min(320, innerWidth - 24); t.style.width = w + 'px';
@@ -1457,7 +1457,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-tip]
 document.addEventListener('keydown', e => { if (e.key === 'Escape') abTipHide(); });
 addEventListener('scroll', abTipHide, true);
 // botón ⓘ al lado del +: muestra qué hace la estadística
-const tipBtn = (k, title, lv) => AB_TIP[k] ? `<button type="button" class="abinfo" data-tip="${esc(AB_TIP[k])}" data-tiptitle="${esc(title)}"${lv != null ? ` data-tiplv="${lv}"` : ''} title="Qué hace" aria-label="Qué es ${esc(title)}">i</button>` : '';
+const tipBtn = (k, title, lv) => AB_TIP[k] ? `<button type="button" class="abinfo" data-tip="${esc(AB_TIP[k])}" data-tiptitle="${esc(title)}"${lv != null ? ` data-tiplv="${lv}"` : ''} title="Qué hace" aria-label="${LANG === 'en' ? 'What is ' + esc(tr(title)) : 'Qué es ' + esc(title)}">i</button>` : '';
 // animaciones al subir o bajar un valor: el número salta, aparece "+1"/"−1" y la barra se desliza
 const AB_ANIM_KEYS = ['star', 'play_attit', 'weak_use', 'weak_acc', 'form', 'injury'];
 function bumpNum(el, d) {
@@ -1696,11 +1696,11 @@ function fifaView(p) {
   const open = !ANIM.reduce.matches && (force || (fifaPref('fifaOpen') && !S.fifaSeen.has(p.id))); S.fifaSeen.add(p.id);
   const leg = isLegend(p), auto = legendAuto(p), sk = playerSkills(p), ps = g('play_style');
   const skills = `<div class="fskills"><h4><span>Skills</span><b>${sk.length}</b></h4>
-    ${ps ? `<p class="fstyle">Estilo de juego: <b>${esc(STYLES[ps])}</b></p>` : ''}
+    ${ps ? `<p class="fstyle"><span>Estilo de juego</span>: <b>${esc(STYLES[ps])}</b></p>` : ''}
     <div class="fsk">${sk.map(([, nm, gl, tip, cat]) => `<span class="fskb" tabindex="0" data-c="${cat}" data-tip="${esc(tip)}" data-tiptitle="${esc(nm)}"><i>${skSvg(gl)}</i><em>${nm}</em></span>`).join('') || '<span class="fsknone">Sin habilidades especiales</span>'}</div></div>`;
   return `<div class="fifa t-${tier}${open ? ' opening' : ''}">${open ? fifaOpening(p) : ''}
     <div class="fifaside">${tier === 'gold' || tier === 'icon' ? '<i class="futglow" aria-hidden="true"></i>' : ''}${fifaCard(p)}
-      <div class="futbtns"><button type="button" class="btn small" data-fifaopen>🎁 Abrir sobre</button><button type="button" class="btn small" data-legend aria-pressed="${leg}" title="${auto ? 'Juega en un equipo clásico: se lo toma como leyenda' : 'Marcarlo como leyenda muestra la carta ícono'}">⭐ Leyenda</button>
+      <div class="futbtns"><button type="button" class="btn small" data-fifaopen>🎁 <span>Abrir sobre</span></button><button type="button" class="btn small" data-legend aria-pressed="${leg}" title="${auto ? 'Juega en un equipo clásico: se lo toma como leyenda' : 'Marcarlo como leyenda muestra la carta ícono'}">⭐ <span>Leyenda</span></button>
         <button type="button" class="btn small" data-fifapref="fifaOpen" aria-pressed="${fifaPref('fifaOpen')}" title="Mostrar la apertura la primera vez que abrís cada jugador">🎬 Apertura</button><button type="button" class="btn small" data-fifapref="fifaSnd" aria-pressed="${fifaPref('fifaSnd')}" title="Sonido de la apertura">${fifaPref('fifaSnd') ? '🔊' : '🔇'} Sonido</button></div>
       <dl class="futinfo"><dt>Pie hábil</dt><dd>${g('strong_foot') ? 'Izquierdo' : 'Derecho'}</dd><dt>Pierna mala</dt><dd class="fst">${stars(g('weak_acc') + 1)}</dd><dt>Altura</dt><dd>${g('height')} cm</dd><dt>Peso</dt><dd>${g('weight')} kg</dd><dt>Edad</dt><dd>${g('age')} años</dd></dl>
       <p class="note">Es una forma de ver al jugador: las medias se calculan con sus habilidades de PES. Para cambiar valores, volvé a la vista PES.</p></div>
@@ -1854,7 +1854,7 @@ function tabLook(p) {
 }
 function tabMotion(p) {
   const g = k => pget(p, k);
-  return `<div class="grid wide">${MOTION.map(([k, n, min, max, off]) => `<div class="f"><label>${n} (${min}-${max})</label>${num(k, g(k) + off, min, max, `data-off="${off}"`)}</div>`).join('')}</div>
+  return `<div class="grid wide">${MOTION.map(([k, n, min, max, off]) => `<div class="f"><label>${n} <span class="rng">(${min}-${max})</span></label>${num(k, g(k) + off, min, max, `data-off="${off}"`)}</div>`).join('')}</div>
   <p class="note">Los números corresponden a las animaciones del juego, igual que en el modo Editar de PES.</p>`;
 }
 const KIT_BULK = [

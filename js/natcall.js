@@ -37,7 +37,7 @@ function callCard(t) {
   if (cnt.gk < 3 && r.length) warn.push('Conviene tener 3 arqueros.');
   return `<div class="card">
     <div class="row" style="justify-content:space-between"><h3>Convocatoria de ${esc(COUNTRY.get(country) || tget(t, 'name'))} · ${r.length}/${CALL_MAX}</h3>
-      <div class="row">${Object.entries(cnt).map(([k, n]) => `<span class="chip">${GRP_LABEL[k]} ${n}</span>`).join('')}<label class="lab" for="callMax">Lista de</label><select id="callMax" style="width:auto">${[23, 26].map(n => `<option ${n === CALL_MAX ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
+      <div class="row">${Object.entries(cnt).map(([k, n]) => `<span class="chip"><span>${GRP_LABEL[k]}</span> ${n}</span>`).join('')}<label class="lab" for="callMax">Lista de</label><select id="callMax" style="width:auto">${[23, 26].map(n => `<option ${n === CALL_MAX ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
     <div class="row"><button class="btn primary" type="button" id="autoCall">Convocatoria automática (los ${CALL_MAX} mejores)</button><button class="btn" type="button" id="best11">Armar el mejor 11 con los convocados</button>
       <span class="note">Usa la valoración ${PREFS.rateMode === 'form' ? 'por rendimiento' : 'actual'}; los convocados siguen en sus clubes.</span></div>
     ${warn.length ? `<div class="warnbox">${warn.map(esc).join(' ')}</div>` : ''}

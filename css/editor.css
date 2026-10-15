@@ -1777,3 +1777,39 @@ html[data-gfx="pes6"] .lvgen .lvb{border-radius:0;background:linear-gradient(180
 html[data-gfx="pes6"] .lvgen .lvb.on{background:linear-gradient(180deg,#fff 0,color-mix(in srgb,var(--lc) 55%,#fff) 18%,var(--lc) 55%,color-mix(in srgb,var(--lc) 75%,#000));border-color:color-mix(in srgb,var(--lc) 60%,#000)}
 html[data-gfx="pes6"] .abscale i{border-radius:0}
 html[data-gfx="pes6"] .abr .abn{font-size:.76rem}
+
+/* ----- Habilidades: explicación de cada estadística y animaciones al subir o bajar ----- */
+.abr .abn{display:flex;align-items:center;gap:6px;min-width:0;padding:0;border:0;background:none;color:var(--ink);font:inherit;font-size:.83rem;text-align:left;cursor:help}
+.abr .abn>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abi{flex:none;display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line);background:var(--sunk);color:var(--muted);font:italic 700 .62rem/1 Georgia,serif;padding:0;cursor:help;opacity:.75;transition:opacity .15s,border-color .15s,color .15s;vertical-align:middle}
+.abr .abn:hover .abi,.abr .abn:focus-visible .abi,button.abi:hover,button.abi:focus-visible{opacity:1;border-color:var(--lc,var(--accent));color:var(--lc,var(--accent))}
+.abr .abn:hover>span{color:var(--lc)}
+.lab button.abi{margin-left:3px}
+.abtip{position:fixed;z-index:400;display:grid;gap:5px;padding:10px 12px;border-radius:10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 12px 30px -10px #000a;font-size:.8rem;line-height:1.45;pointer-events:none;opacity:0;transform:translateY(4px) scale(.98);transition:opacity .15s,transform .15s;visibility:hidden}
+.abtip.on{opacity:1;transform:none;visibility:visible}.abtip.up{transform-origin:bottom}
+.abtip b{font-family:var(--display);font-size:1rem;letter-spacing:.01em}.abtip p{margin:0;color:var(--muted)}
+.abtip .abt{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.68rem;color:var(--lc)}.abtip .abt i{width:18px;height:6px;border-radius:99px;background:var(--lc)}
+html[data-gfx="clasico"] .abtip{border-radius:2px;background:#ffffe1;color:#000;border-color:#000;box-shadow:2px 2px 0 #0004}html[data-gfx="clasico"] .abtip p{color:#222}
+html[data-gfx="retro"] .abtip{border-radius:0;border:2px solid var(--neon);background:#071440f2;box-shadow:4px 4px 0 #000}
+html[data-gfx="pes6"] .abtip{border-radius:0;background:linear-gradient(180deg,#fafaf8,#dedcd5);border:1px solid #6f6c64;box-shadow:inset 0 1px #fff,0 0 0 2px #ffd23a88,0 8px 18px #0006;color:#1c1c1a}html[data-gfx="pes6"] .abtip p{color:#3a3a37}
+html[data-gfx="pes6"] .abi{border-radius:0;background:linear-gradient(180deg,#fafaf8,#c9c8c2);border-color:#6f6c64;color:#1c1c1a;opacity:.9}
+/* el número salta y cambia de color un momento; "+1"/"−1" sube y se desvanece */
+.abctl{position:relative}
+.bump-up{animation:abBumpUp .55s cubic-bezier(.3,1.6,.5,1)}
+.bump-dn{animation:abBumpDn .55s cubic-bezier(.3,1.6,.5,1)}
+@keyframes abBumpUp{0%{transform:scale(1)}30%{transform:scale(1.28) translateY(-2px);filter:brightness(1.3) drop-shadow(0 0 6px #2fd27a)}100%{transform:none}}
+@keyframes abBumpDn{0%{transform:scale(1)}30%{transform:scale(.8) translateY(2px);filter:brightness(.85) drop-shadow(0 0 6px #ff5a4a)}100%{transform:none}}
+.dchip{position:absolute;left:50%;top:-4px;z-index:20;pointer-events:none;font:700 .78rem/1 var(--display);padding:2px 5px;border-radius:6px;color:#fff;transform:translate(-50%,0);animation:abChip 1s ease-out forwards;white-space:nowrap}
+.dchip.up{background:#1f9d55;box-shadow:0 0 10px #2fd27a99}.dchip.dn{background:#d63a2c;box-shadow:0 0 10px #ff5a4a99}
+@keyframes abChip{0%{opacity:0;transform:translate(-50%,6px) scale(.7)}20%{opacity:1;transform:translate(-50%,-6px) scale(1.05)}100%{opacity:0;transform:translate(-50%,-22px)}}
+.abr.anim input[type=range]::-webkit-slider-runnable-track{transition:none}
+@property --p{syntax:'<percentage>';inherits:true;initial-value:50%}
+.abr.anim{transition:--p .45s cubic-bezier(.2,.9,.3,1)}
+/* barras de nivel: las que se prenden saltan, las que se apagan se encogen */
+.lvl .pop{animation:lvPop .5s cubic-bezier(.3,1.7,.5,1)}
+.lvl .drop{animation:lvDrop .45s ease-out}
+@keyframes lvPop{0%{transform:scale(.4);filter:brightness(1.8)}60%{transform:scale(1.25);filter:brightness(1.3)}100%{transform:none}}
+@keyframes lvDrop{0%{transform:scale(1.1);filter:brightness(1.4)}100%{transform:none}}
+.lvl .lvnum.bump-up,.lvl .lvnum.bump-dn,.gavg.bump-up,.gavg.bump-dn{display:inline-block}
+html[data-gfx="clasico"] .dchip{border-radius:2px;box-shadow:none}html[data-gfx="retro"] .dchip,html[data-gfx="pes6"] .dchip{border-radius:0;box-shadow:2px 2px 0 #000}
+@media (prefers-reduced-motion:reduce){.dchip,.bump-up,.bump-dn,.lvl .pop,.lvl .drop{animation:none!important}.abr.anim{transition:none}}

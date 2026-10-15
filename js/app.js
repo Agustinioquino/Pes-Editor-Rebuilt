@@ -1385,13 +1385,102 @@ function tabPos(p) {
       <div class="row"><button class="btn small" id="ppClear" type="button">Dejar solo la registrada</button></div>
     </div></div>`;
 }
+// qué hace cada estadística en el juego (se muestra al tocar o pasar por el nombre)
+const AB_TIP = {
+  atk: 'Qué tan rápido lee el juego para atacar: se desmarca, busca el espacio y pica al vacío cuando su equipo tiene la pelota. Clave en delanteros.',
+  finish: 'Precisión de los remates con el pie. Con más nivel la pelota va más cerca de donde apuntás.',
+  header: 'Precisión de los cabezazos, tanto para rematar al arco como para pasarla.',
+  kick_pwr: 'Fuerza con la que le pega a la pelota: remates más potentes y desde más lejos.',
+  place_kick: 'Precisión en las jugadas con pelota quieta: tiros libres, córners y penales.',
+  swerve: 'Cuánta comba le puede dar a la pelota en centros, pases y remates.',
+  ball_ctrl: 'Calidad del primer toque y del manejo en general: recibir, girar y proteger la pelota sin perderla.',
+  drib: 'Habilidad para llevar la pelota pegada al pie corriendo rápido y para encarar al rival.',
+  tight_pos: 'Manejo de la pelota en espacios chicos y a poca velocidad: giros cortos y cambios de dirección con marca encima.',
+  lowpass: 'Precisión de los pases por abajo, cortos y largos.',
+  loftpass: 'Precisión de los pases altos, cambios de frente y centros.',
+  speed: 'Velocidad máxima corriendo, con o sin la pelota.',
+  exp_pwr: 'Qué tan rápido llega a su velocidad máxima en los primeros metros. Sirve para ganar el pique y arrancar desde parado.',
+  body_ctrl: 'Equilibrio para no caerse ni perder la pelota en giros bruscos o cuando lo tocan.',
+  phys_cont: 'Fuerza para aguantar cargas y empujones y ganar los choques cuerpo a cuerpo.',
+  jump: 'Altura que alcanza al saltar. Importa en los cabezazos y en las pelotas divididas por arriba.',
+  stamina: 'Cuánto aguanta corriendo durante el partido antes de cansarse. Con poca, rinde menos en el segundo tiempo.',
+  def: 'Qué tan rápido reacciona cuando ataca el rival: marca, cierra espacios y se ubica para cortar pases.',
+  ball_win: 'Capacidad para sacarle la pelota al rival con entradas y quites.',
+  aggres: 'Qué tan encima del rival juega para presionar y disputar la pelota. Mucha también puede traer más faltas.',
+  gk: 'Lectura y ubicación del arquero: qué tan rápido reacciona ante los remates y cuándo sale a cortar.',
+  catching: 'Capacidad del arquero para quedarse con la pelota en las manos en vez de dar rebote.',
+  clearing: 'Calidad de los despejes con los puños: qué tan lejos y hacia dónde manda la pelota.',
+  reflex: 'Velocidad de reacción del arquero para atajar remates desde cerca.',
+  cover: 'Cuánto del arco cubre el arquero al estirarse para llegar a los remates.',
+  weak_use: 'Qué tan seguido usa la pierna menos hábil. En 1 casi nunca la usa; en 4 la usa sin problema.',
+  weak_acc: 'Qué tan precisos son los pases y remates con la pierna menos hábil.',
+  form: 'Qué tan parejo rinde de un partido a otro. Con más nivel su estado (las flechas) cambia menos.',
+  injury: 'Qué tan difícil es que se lesione. A es la más resistente y C la más frágil.',
+};
+const AB_LEVEL = ['Bajo', 'Regular', 'Bueno', 'Muy bueno', 'Élite'];
+// cartel con la explicación: aparece al pasar el mouse, al tocar o con el teclado
+const ABTIP = { el: null, on: null };
+function abTipShow(b) {
+  if (!ABTIP.el) { ABTIP.el = document.createElement('div'); ABTIP.el.className = 'abtip'; ABTIP.el.setAttribute('role', 'tooltip'); ABTIP.el.id = 'abTip'; document.body.appendChild(ABTIP.el); }
+  const t = ABTIP.el, lv = b.dataset.tiplv;
+  t.innerHTML = `<b></b><p></p>${lv != null ? `<span class="abt" data-t="${lv}"><i></i></span>` : ''}`;
+  t.querySelector('b').textContent = b.dataset.tiptitle || ''; t.querySelector('p').textContent = b.getAttribute('data-tip');
+  if (lv != null) t.querySelector('span').append(AB_LEVEL[lv] || '');
+  ABTIP.on = b; b.setAttribute('aria-describedby', 'abTip');
+  t.classList.add('on'); const r = b.getBoundingClientRect(), w = Math.min(320, innerWidth - 24); t.style.width = w + 'px';
+  const h = t.offsetHeight, below = r.bottom + 8 + h < innerHeight;
+  t.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left)) + 'px'; t.style.top = (below ? r.bottom + 8 : r.top - h - 8) + 'px';
+  t.classList.toggle('up', !below);
+}
+function abTipHide() { if (ABTIP.el) ABTIP.el.classList.remove('on'); if (ABTIP.on) ABTIP.on.removeAttribute('aria-describedby'); ABTIP.on = null; }
+document.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const b = e.target.closest('[data-tip]'); if (b) abTipShow(b); else if (ABTIP.on && !e.target.closest('.abtip')) abTipHide(); });
+document.addEventListener('focusin', e => { const b = e.target.closest && e.target.closest('[data-tip]'); if (b) abTipShow(b); else abTipHide(); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-tip]'); if (b) { if (ABTIP.on === b && e.pointerType !== 'mouse') abTipHide(); else abTipShow(b); } else abTipHide(); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') abTipHide(); });
+addEventListener('scroll', abTipHide, true);
+const tipBtn = (k, title) => AB_TIP[k] ? `<button type="button" class="abi" data-tip="${esc(AB_TIP[k])}" data-tiptitle="${esc(title)}" aria-label="Qué es ${esc(title)}">i</button>` : '';
+// animaciones al subir o bajar un valor: el número salta, aparece "+1"/"−1" y la barra se desliza
+const AB_ANIM_KEYS = ['star', 'play_attit', 'weak_use', 'weak_acc', 'form', 'injury'];
+function bumpNum(el, d) {
+  if (!el || !d || ANIM.reduce.matches) return;
+  el.classList.remove('bump-up', 'bump-dn'); void el.offsetWidth; el.classList.add(d > 0 ? 'bump-up' : 'bump-dn');
+  setTimeout(() => el.classList.remove('bump-up', 'bump-dn'), 700);
+  const host = el.closest('.abctl'); if (!host) return;
+  const c = document.createElement('span'); c.className = 'dchip ' + (d > 0 ? 'up' : 'dn'); c.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
+  host.appendChild(c); setTimeout(() => c.remove(), 1000);
+}
+function barSlide(row, from, to) {
+  if (ANIM.reduce.matches) return;
+  row.classList.add('anim'); row.style.setProperty('--p', abP(from));
+  requestAnimationFrame(() => requestAnimationFrame(() => row.style.setProperty('--p', abP(to))));
+  clearTimeout(row._at); row._at = setTimeout(() => row.classList.remove('anim'), 600);
+}
+function lvlAnim(lv, from, to) {
+  if (ANIM.reduce.matches) return;
+  bumpNum(lv.querySelector('.lvnum'), to - from);
+  const zeroBased = lv.classList.contains('lvgen'), lo = Math.min(from, to), hi = Math.max(from, to);
+  lv.querySelectorAll('[data-v]').forEach(b => { const i = +b.dataset.v; if (zeroBased ? i > lo && i <= hi : i > lo && i <= hi && i > 0) { b.classList.add(to > from ? 'pop' : 'drop'); setTimeout(() => b.classList.remove('pop', 'drop'), 600); } });
+}
+// tras dibujar la ficha: compara con lo que se veía antes y anima lo que cambió (botones −/+, todas ±1, hexágono, deshacer)
+function abAnimDiff(p) {
+  const sh = $('plSheet'); if (!sh) return;
+  const now = new Map([...ABIL.map(a => a[0]), ...AB_ANIM_KEYS].map(k => [k, pget(p, k)]));
+  const prev = S.abShown && S.abShown.id === p.id ? S.abShown.vals : null;
+  S.abShown = { id: p.id, vals: now }; if (!prev) return;
+  for (const [k, v] of now) {
+    const o = prev.get(k); if (o == null || o === v) continue;
+    const row = sh.querySelector(`.abr[data-abk="${k}"]`);
+    if (row) { bumpNum(row.querySelector('input[type=number]'), v - o); barSlide(row, o, v); continue; }
+    const lv = sh.querySelector(`.lvl[data-segk="${k}"]`); if (lv) lvlAnim(lv, o, v);
+  }
+}
 // nivel de una habilidad para el color: 90+ rojo, 80+ naranja, 70+ amarillo, 60+ verde, menos gris (la escala de PES)
 const abT = v => v >= 90 ? 4 : v >= 80 ? 3 : v >= 70 ? 2 : v >= 60 ? 1 : 0;
 const abP = v => Math.round((v - 40) / 59 * 100) + '%';
 function abAvg(p, list) { return Math.round(list.reduce((a, [k]) => a + pget(p, k), 0) / list.length); }
 // una fila: nombre, barra (se arrastra) y − número +
 function abRow(k, n, v) {
-  return `<div class="abr abt" data-abk="${k}" data-t="${abT(v)}" style="--p:${abP(v)}"><span class="abn" title="${n}">${n}</span>
+  return `<div class="abr abt" data-abk="${k}" data-t="${abT(v)}" style="--p:${abP(v)}"><button type="button" class="abn" data-tip="${esc(AB_TIP[k] || '')}" data-tiptitle="${n}" data-tiplv="${abT(v)}"><span>${n}</span><i class="abi" aria-hidden="true">i</i></button>
     <input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}">
     <span class="abctl"><button type="button" class="abstep" data-abstep="-1" data-k="${k}" title="Bajar uno" aria-label="Bajar uno">−</button><input type="number" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"><button type="button" class="abstep" data-abstep="1" data-k="${k}" title="Subir uno" aria-label="Subir uno">+</button></span></div>`;
 }
@@ -1409,10 +1498,10 @@ function tabAbil(p) {
   <div class="groups abgroups">${ABIL_GROUPS.map(([gn, list]) => { const a = abAvg(p, list); return `<div class="group abgrp"><h4>${gn}<b class="gavg abt" data-gavg="${gn}" data-t="${abT(a)}" title="Promedio">${a}</b></h4>${list.map(([k, n]) => abRow(k, n, g(k))).join('')}</div>`; }).join('')}</div>
   <h3 class="sec">Pierna mala, forma y lesiones</h3>
   <div class="lvls">
-    <div class="f"><span class="lab">Uso de pierna mala</span>${lvlSeg('weak_use', g('weak_use'), ['1', '2', '3', '4'], 'Uso de pierna mala')}</div>
-    <div class="f"><span class="lab">Precisión de pierna mala</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
-    <div class="f"><span class="lab">Estado de forma</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
-    <div class="f"><span class="lab">Resistencia a lesiones</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
+    <div class="f"><span class="lab">Uso de pierna mala ${tipBtn('weak_use', 'Uso de pierna mala')}</span>${lvlSeg('weak_use', g('weak_use'), ['1', '2', '3', '4'], 'Uso de pierna mala')}</div>
+    <div class="f"><span class="lab">Precisión de pierna mala ${tipBtn('weak_acc', 'Precisión de pierna mala')}</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
+    <div class="f"><span class="lab">Estado de forma ${tipBtn('form', 'Estado de forma')}</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
+    <div class="f"><span class="lab">Resistencia a lesiones ${tipBtn('injury', 'Resistencia a lesiones')}</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
   </div>`;
 }
 function tabSkills(p) {
@@ -1475,10 +1564,12 @@ const COPY_KEYS = {
 // pinta una fila de habilidad (color y largo de la barra) sin redibujar la ficha
 function abPaint(row, v) { row.dataset.t = abT(v); row.style.setProperty('--p', abP(v)); }
 // después de cambiar una habilidad: su fila, el promedio del grupo y el hexágono
-function abLive(p, k) {
+function abLive(p, k, dragged) {
   const sh = $('plSheet'); if (!sh) return;
-  const row = sh.querySelector(`.abr[data-abk="${k}"]`); if (row) abPaint(row, pget(p, k));
-  for (const [gn, list] of ABIL_GROUPS) { if (!list.some(x => x[0] === k)) continue; const b = sh.querySelector(`[data-gavg="${gn}"]`); if (b) { const a = abAvg(p, list); b.textContent = a; b.dataset.t = abT(a); } }
+  const v = pget(p, k), row = sh.querySelector(`.abr[data-abk="${k}"]`), o = S.abShown && S.abShown.id === p.id ? S.abShown.vals.get(k) : null;
+  if (row) { abPaint(row, v); const nb = row.querySelector('.abn'); if (nb) nb.dataset.tiplv = abT(v); if (o != null && o !== v) { bumpNum(row.querySelector('input[type=number]'), v - o); if (!dragged) barSlide(row, o, v); } }
+  if (S.abShown && S.abShown.id === p.id) S.abShown.vals.set(k, v);
+  for (const [gn, list] of ABIL_GROUPS) { if (!list.some(x => x[0] === k)) continue; const b = sh.querySelector(`[data-gavg="${gn}"]`); if (b) { const a = abAvg(p, list), a0 = +b.textContent; b.textContent = a; b.dataset.t = abT(a); if (a !== a0) bumpNum(b, a - a0); } }
   if (typeof hexaPaint === 'function' && $('hxWrap')) hexaPaint(p, hexaAxes(pget(p, 'reg_pos')), null);
 }
 function bindPlayer(p, m) {
@@ -1494,6 +1585,7 @@ function bindPlayer(p, m) {
     toast('Copiado de ' + pget(src, 'name') + '.', 4000, ['Deshacer', undo]); rer();
   };
   if (S.ptab === 'abil') hexaBind(p, rer);
+  abAnimDiff(p);
   sh.addEventListener('input', e => {
     const el = e.target; if (el.type !== 'range') return;
     const ab = el.closest('.ab,.abr'); if (!ab) return;
@@ -1527,7 +1619,7 @@ function bindPlayer(p, m) {
     else { v = Math.round(parseFloat(el.value)); if (isNaN(v)) return; if (el.min !== '' && v < +el.min) v = +el.min; if (el.max !== '' && v > +el.max) v = +el.max; el.value = v; if (el.dataset.off) v -= +el.dataset.off; }
     setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k));
     if (k === 'reg_pos') { const pp = 'pos' + POS_TO_PP[v]; if (pget(p, pp) < 2) setP(p, pp, 2, nm() + ': posiciones'); }
-    if (ABIL.some(a => a[0] === k)) { sh.querySelectorAll(`[data-k="${k}"]`).forEach(x => { if (x !== el) x.value = el.value; if (x.type === 'number') x.className = vcls(+el.value); }); abLive(p, k); }
+    if (ABIL.some(a => a[0] === k)) { sh.querySelectorAll(`[data-k="${k}"]`).forEach(x => { if (x !== el) x.value = el.value; if (x.type === 'number') x.className = vcls(+el.value); }); abLive(p, k, el.type === 'range'); }
     if (['name', 'reg_pos', 'nation', 'age', 'height', 'strong_foot', 'play_style'].includes(k) || el.type === 'checkbox') rer();
     else updateLockUi(p);
   });

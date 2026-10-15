@@ -133,24 +133,51 @@ async function mnfBuild() {
 }
 
 // ---- guardar ----
-async function mnfDir(sider, create) {
-  const live = await sider.getDirectoryHandle('livecpk', create ? { create: true } : undefined), root = await live.getDirectoryHandle(MNF_ROOT, create ? { create: true } : undefined);
-  let d = root; for (const seg of MNF_DIR.split('/')) d = await d.getDirectoryHandle(seg, create ? { create: true } : undefined); return d;
+// dónde guardar: la carpeta propia del editor, que se agrega primera en sider.ini. Si sider.ini no se puede leer o
+// escribir (Chrome esconde los .ini, o no hay permiso), va a una carpeta que Sider ya lee: si no, el juego no la vería.
+const MNF_WHERE_LS = 'edit21-minifaces-where-v1';
+const mnfWhere = () => { try { return JSON.parse(localStorage.getItem(MNF_WHERE_LS) || '{}'); } catch { return {}; } };
+const mnfWhereSet = (pid, root) => { const w = mnfWhere(); if (root) w[pid] = root; else delete w[pid]; try { localStorage.setItem(MNF_WHERE_LS, JSON.stringify(w)); } catch { } };
+async function mnfPlayerDir(root, create) { let d = root; for (const seg of MNF_DIR.split('/')) d = create ? await d.getDirectoryHandle(seg, { create: true }) : await subDir(d, seg); return d; }
+async function mnfRootDir(sider, name, create) { const live = await sider.getDirectoryHandle('livecpk', create ? { create: true } : undefined); return create ? live.getDirectoryHandle(name, { create: true }) : subDir(live, name); }
+async function mnfTarget(sider, pid) {
+  let ini = null, iniErr = ''; try { ini = typeof siReadIni === 'function' ? await siReadIni(sider) : await readText(sider, 'sider.ini'); } catch { }
+  const order = []; for (const m of (ini || '').matchAll(/^\s*cpk\.root\s*=\s*"?([^"\r\n;]+)"?/gim)) { const k = m[1].trim().replace(/\\/g, '/').match(/(?:^|\/)livecpk\/([^/]+)\/?$/i); if (k) order.push(k[1]); }
+  if (order.some(n => n.toLowerCase() === MNF_ROOT.toLowerCase())) return { name: MNF_ROOT };
+  if (ini != null) { try { await crestIniAdd(sider, MNF_ROOT, 'minifaces propias'); return { name: MNF_ROOT, iniAdded: true }; } catch (e) { iniErr = e.message; } }
+  else iniErr = 'el navegador no deja leer sider.ini';
+  let live = null; try { live = await sider.getDirectoryHandle('livecpk'); } catch { }
+  const dirs = []; if (live) for await (const [n, h] of live.entries()) if (h.kind === 'directory' && n.toLowerCase() !== MNF_ROOT.toLowerCase()) dirs.push([n, h]);
+  // sider.ini se pudo leer: la primera carpeta de la lista (es la que manda)
+  for (const n of order) { const d = dirs.find(([x]) => x.toLowerCase() === n.toLowerCase()); if (d) return { name: d[0], iniErr, listed: true }; }
+  // no se pudo leer: la carpeta que ya tiene minifaces (la de este jugador, o la que tiene más)
+  let best = null;
+  for (const [n, h] of dirs) {
+    let pl; try { pl = await mnfPlayerDir(h, false); } catch { continue; }
+    let c = 0, mine = false; for await (const [f, fh] of pl.entries()) if (fh.kind === 'file' && /^\d+\.dds$/i.test(f)) { c++; if (f.toLowerCase() === pid + '.dds') mine = true; }
+    if (mine) return { name: n, iniErr, listed: true };
+    if (c && (!best || c > best.c)) best = { name: n, c };
+  }
+  if (best) return { name: best.name, iniErr, listed: true };
+  return { name: MNF_ROOT, iniErr };
 }
 async function mnfSave() {
   const pid = MNF.pid; MNF.busy = true; MNF.err = ''; MNF.msg = ''; MNF.done = false; MNF.prog = 0; mnfPaint();
   try {
-    const sider = await crestSider(true), { dds, small } = await mnfBuild(), dir = await mnfDir(sider, true), name = pid + '.dds';
+    const sider = await crestSider(true), { dds, small } = await mnfBuild(), tg = await mnfTarget(sider, pid), dir = await mnfPlayerDir(await mnfRootDir(sider, tg.name, true), true), name = pid + '.dds';
     let old = null, backed = false; try { old = await dir.getFileHandle(name); } catch { }
-    if (old) { let bak = null; try { bak = await dir.getFileHandle(name + '.bak-edit21'); } catch { } if (!bak) { const b = await dir.getFileHandle(name + '.bak-edit21', { create: true }), w = await b.createWritable(); await w.write(await old.getFile()); await w.close(); backed = true; } }
+    // copia de lo que había, salvo que sea una miniface que ya hizo el editor
+    if (old && mnfWhere()[pid] !== tg.name) { let bak = null; try { bak = await dir.getFileHandle(name + '.bak-edit21'); } catch { } if (!bak) { const b = await dir.getFileHandle(name + '.bak-edit21', { create: true }), w = await b.createWritable(); await w.write(await old.getFile()); await w.close(); backed = true; } }
     const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(dds); await w.close();
-    let iniAdded = false, iniErr = ''; try { iniAdded = await crestIniAdd(sider, MNF_ROOT, 'minifaces propias'); } catch (e) { iniErr = e.message; }
+    mnfWhereSet(pid, tg.name);
     // el editor la muestra enseguida
     FACES.idx.set(pid, fh); FACES.url.set(pid, small); FACES.err.delete(pid); FACES.loading.delete(pid); FACES.count = FACES.idx.size; paintFace(pid, small);
     MNF.own = true; MNF.done = true;
-    MNF.msg = `Listo: guardé <b>${name}</b> (${MNF.size}×${MNF.size}, DXT3) en livecpk\\${MNF_ROOT}\\common\\render\\symbol\\player${backed ? ' (la anterior quedó como .bak-edit21)' : ''}. Abrí el juego de nuevo para verla.`
-      + (iniAdded ? ` <span>Agregué la carpeta ${MNF_ROOT} a sider.ini, primera en la lista para que mande (copia en sider.ini.bak-pes-editor).</span>` : '')
-      + (iniErr ? ` <span>Ojo: no pude agregarla a sider.ini (${esc(iniErr)}). Agregá a mano la línea cpk.root = ".\\livecpk\\${MNF_ROOT}".</span>` : '');
+    MNF.msg = `Listo: guardé <b>${name}</b> (${MNF.size}×${MNF.size}, DXT3) en livecpk\\${esc(tg.name)}\\common\\render\\symbol\\player${backed ? ' (la anterior quedó como .bak-edit21)' : ''}. Abrí el juego de nuevo para verla.`
+      + (tg.iniAdded ? ` <span>Agregué la carpeta ${MNF_ROOT} a sider.ini, primera en la lista para que mande (copia en sider.ini.bak-pes-editor).</span>` : '')
+      + (tg.iniErr && tg.listed ? ` <span>No pude agregar mi carpeta a sider.ini (${esc(tg.iniErr)}), así que la guardé en ${esc(tg.name)}, que Sider ya lee.</span>` : '')
+      + (tg.iniErr && !tg.listed ? ` <span>Ojo: no pude agregar la carpeta a sider.ini (${esc(tg.iniErr)}). Para que el juego la vea, agregá en sider.ini, antes de las otras, la línea cpk.root = ".\\livecpk\\${MNF_ROOT}".</span>` : '');
+    if (tg.iniErr && !tg.listed) MNF.done = false;
     toast('Miniface de ' + (playerName(pid) || 'ID ' + pid) + ' guardada.');
   } catch (e) { MNF.err = e.message; }
   MNF.busy = false; mnfPaint();
@@ -165,16 +192,16 @@ async function mnfDownload() {
 async function mnfDelete() {
   const pid = MNF.pid, name = pid + '.dds';
   try {
-    const sider = await crestSider(true), dir = await mnfDir(sider, false);
+    const sider = await crestSider(true), dir = await mnfPlayerDir(await mnfRootDir(sider, mnfWhere()[pid] || MNF_ROOT, false), false);
     let bak = null; try { bak = await dir.getFileHandle(name + '.bak-edit21'); } catch { }
     if (bak) { const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(await bak.getFile()); await w.close(); await dir.removeEntry(name + '.bak-edit21'); }
     else await dir.removeEntry(name);
-    MNF.own = !!bak; MNF.msg = bak ? 'Volvió la miniface que había antes en la carpeta del editor.' : 'Borré la miniface que hizo el editor. El juego vuelve a usar la que tenía.'; MNF.done = true;
+    MNF.own = false; mnfWhereSet(pid, null); MNF.msg = bak ? 'Volvió la miniface que había antes.' : 'Borré la miniface que hizo el editor. El juego vuelve a usar la que tenía.'; MNF.done = true;
     FACES.url.delete(pid); await indexFaces(sider); toast('Miniface borrada.'); if (typeof render === 'function') render(); else mnfPaint();
   } catch (e) { MNF.err = e.message; mnfPaint(); }
 }
 async function mnfOwnCheck(pid) {
-  try { const h = await idbGet('sider'); if (!h || (await h.queryPermission({ mode: 'read' })) !== 'granted') return; const d = await mnfDir(h, false); await d.getFileHandle(pid + '.dds'); if (MNF.pid === pid) { MNF.own = true; mnfPaint(); } }
+  try { const h = await idbGet('sider'); if (!h || (await h.queryPermission({ mode: 'read' })) !== 'granted') return; const d = await mnfPlayerDir(await mnfRootDir(h, mnfWhere()[pid] || MNF_ROOT, false), false); await d.getFileHandle(pid + '.dds'); if (MNF.pid === pid) { MNF.own = true; mnfPaint(); } }
   catch { if (MNF.pid === pid && MNF.own == null) MNF.own = false; }
 }
 
@@ -207,7 +234,7 @@ function mnfCard(pid, kit) {
         ${MNF.own ? `<p class="note">Este jugador tiene una miniface hecha con el editor. <button class="btn small ghost" type="button" id="mnfDel">🗑 Borrarla</button></p>` : ''}
       </div>
     </div>
-    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>livecpk\\${MNF_ROOT}\\common\\render\\symbol\\player\\${pid}.dds</code>. Es una carpeta del editor que va primera en sider.ini, así su miniface manda; las minifaces que ya tenés en otras carpetas no se tocan. Formato DXT3 (BC2) sin mips, con transparencia. Si ya había una del editor, la primera vez queda una copia <code>.bak-edit21</code>. Abrí el juego de nuevo para verla.</p></div>
+    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>livecpk\\${MNF_ROOT}\\common\\render\\symbol\\player\\${pid}.dds</code>. Es una carpeta del editor que va primera en sider.ini, así su miniface manda; las minifaces que ya tenés en otras carpetas no se tocan. Si sider.ini no se puede leer o cambiar (por ejemplo, Chrome no deja tocar los .ini), se guarda en una carpeta que Sider ya lee, con copia de lo que hubiera. Formato DXT3 (BC2) sin mips, con transparencia. Si ya había una del editor, la primera vez queda una copia <code>.bak-edit21</code>. Abrí el juego de nuevo para verla.</p></div>
   </div>`;
 }
 function mnfDraw() {

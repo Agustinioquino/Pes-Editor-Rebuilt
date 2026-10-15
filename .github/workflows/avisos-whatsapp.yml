@@ -7,6 +7,7 @@ name: Avisar ideas y fallos por WhatsApp
 on:
   issues:
     types: [opened]
+  workflow_dispatch: # botón "Run workflow" en Actions: manda un mensaje de prueba
 
 permissions: {}
 
@@ -26,6 +27,7 @@ jobs:
           LINK: ${{ github.event.issue.html_url }}
         run: |
           if [ -z "$PHONE" ] || [ -z "$APIKEY" ]; then echo "Faltan WHATSAPP_PHONE o CALLMEBOT_APIKEY: no se manda nada."; exit 0; fi
+          if [ -z "$LINK" ]; then TITULO="Mensaje de prueba"; AUTOR="GitHub Actions"; CUERPO="Si te llegó esto, los avisos de ideas y fallos ya funcionan."; LINK="https://github.com/$GITHUB_REPOSITORY/issues"; fi
           case ",$ETIQUETAS," in
             *,error,*) TIPO="🐛 Nuevo fallo" ;;
             *,idea,*) TIPO="💡 Nueva idea" ;;

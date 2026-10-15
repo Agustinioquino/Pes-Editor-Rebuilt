@@ -2,6 +2,26 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.055 alpha · Tus ideas, en el editor
+
+*15 de octubre de 2026, 04:30 (hora de Argentina)*
+
+Al lado de Novedades hay una pestaña nueva, Ideas: todo lo que viene y lo que piden los usuarios, con cuánto avanzó cada cosa. Y desde ahí podés mandar tu idea o avisar de un fallo.
+
+- **La pestaña Ideas** (Interfaz). Cada idea tiene su barra de avance con el porcentaje, su estado (ya está, en prueba, en camino o pensada), su prioridad, su dificultad y si la pidieron usuarios. Se filtra por pedidos de usuarios, en prueba, en camino o ya están, y se ordena por prioridad, las más fáciles primero o las más avanzadas.
+- **Mandá tu idea o avisá de un fallo** (Interfaz). Los botones Tengo una idea y Algo no anda abren un cuadro para escribirlo. Enviar por GitHub abre la página con tu texto listo (en los fallos se suman la versión, el navegador y el modo gráfico), y si no tenés cuenta, Copiar para Discord o WhatsApp lo deja listo para pegar en el grupo.
+- **Lo que pidieron los usuarios** (Interfaz). Editar jugadores en la Liga Master y pasar el EDIT a la base del juego (y al revés) ya están en la lista con su avance. Cambiar el escudo del equipo y elegir botines, guantes y ropa térmica ya existen: su tarjeta dice dónde encontrarlos.
+- **En desarrollo, con los mismos datos** (Interfaz). El cartel En desarrollo usa la misma lista que la pestaña Ideas, así los porcentajes son iguales en los dos lugares, y tiene un botón 💡 Ideas para ver todo.
+
+## v0.054 alpha · El editor, ahora todo en inglés
+
+*15 de octubre de 2026, 01:45 (hora de Argentina)*
+
+Con el editor en inglés ya no quedan textos en español: la pestaña Sider, las minifaces, los escudos, el Kit Studio Pro y los avisos salen en inglés.
+
+- **Inglés completo** (Interfaz). Se tradujeron unas 220 frases que seguían en español en la versión en inglés: las descripciones de los módulos y carpetas de la pestaña Sider, los mensajes de minifaces, escudos 2K, Kit Studio Pro y kits en .zip, el detalle de la forma de cada jugador, el aviso de cambios sin guardar, la convocatoria y algunos países.
+- **Los estadios conservan su nombre** (Interfaz). En inglés, los estadios del juego como el Estadio del Tauro ya no se traducen a medias: quedan con su nombre original.
+
 ## v0.053 alpha · Miles de escudos de PES Logos, a un clic
 
 *14 de octubre de 2026, 23:45 (hora de Argentina)*

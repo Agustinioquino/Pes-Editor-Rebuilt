@@ -6,11 +6,224 @@
   <img alt="PES Editor Rebuilt" src="assets/logo-claro.svg" width="560">
 </picture>
 
+**🇬🇧 English** · **[🇪🇸 Leer en español](#-español)**
+
+### A renewed PES Editor
+
+*Made by a PES fan for everyone who still builds their Master League by hand.* ⚽
+
+Editor for the **EDIT00000000** file of **eFootball PES 2021** with Sider, right in your browser.
+
+![Version](https://img.shields.io/badge/version-v0.045%20alpha-16d98a)
+![Game](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
+![Browser](https://img.shields.io/badge/Chrome%20%2F%20Edge-or%20Windows%20app-555)
+
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Download for Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Portable.exe)
+
+<sub>The Windows app is the same editor in its own window: it updates itself and connects the Sider folder even when it's inside Program Files. <a href="#-with-the-windows-app">How to install it</a></sub>
+
+</div>
+
+![Home screen](docs/capturas/01-intro.png)
+
+## 🧉 Why does it exist?
+
+Because editing PES has always been part of the game: fixing squads, changing your idol's shirt number, making the kit of your local club. The usual tools get the job done, but they got stuck in time. **PES Editor Rebuilt** brings everything together in one place, with a modern interface, the 3D Kit Studio Pro and, for the nostalgic, menu music playing in the background while you edit.
+
+> [!WARNING]
+> **Alpha version.** It works and saves to the game, but it can still have bugs. The editor makes a backup of the EDIT every time you save. Still, it's a good idea to keep your own copy before you start.
+
+## ✨ Features
+
+### 📁 Game file and folder
+- **Finds the EDIT on its own.** It looks for `KONAMI\eFootball PES 2021 SEASON UPDATE` in your Documents folder and opens the most recent `EDIT00000000` (the one in the `drmp` folder first).
+- **Also as a Windows program.** [PES Editor Rebuilt for Windows](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe) is the same editor in its own window, and it connects the Sider folder even when it's inside `C:\Program Files (x86)`, where Chrome and Edge can't write. It updates itself, just like the web page.
+- **You pick the folder only once.** With "Allow on every visit", next time it goes straight in.
+- **Several EDITs.** *File* shows every EDIT found (`drmp`, `save`, other Steam accounts) and you can switch between them.
+- **Saves straight to the game.** It makes a backup of the previous file before every save.
+- **Detects changes from the game.** If the game saved the EDIT while the editor was open, it reloads it so you see the same thing the game does.
+- **Undo and redo** (Ctrl+Z / Ctrl+Y) for any change.
+- **Installs the Sider module on its own.** When you click *Connect Sider folder*, the editor copies `edit21_db.lua` into `modules\` and adds it to `sider.ini` if it's missing (with a backup of the ini). That module is read-only: when you open the game, it saves a copy of the game database so the editor has full names, teams and squads.
+- **Reads the database straight from the game files, without opening it.** If you pick the game folder when connecting Sider (the one with `PES2021.exe`, or `FL_2026.exe` in Football Life 2026) or a folder above it, the editor reads `common\etc\pesdb` from the `.cpk` files in `Data` and `download` (in Football Life, `data_s2526.cpk`, `data_s2526a.cpk`…: the newest one overrides the previous one) and adds what the Sider folders bring. The module's copy is still used when it's complete and newer.
+- **Warns you if the database isn't loaded** and explains what to do: open the game to the main menu, go to *Match › Friendly* up to team selection, then close it. If Windows didn't let it write the copy, it shows the error left in `sider.log` and how to fix it.
+- **WEPES tab.** Shows the files in that folder with thumbnails (png, jpg, dds, ftex), lets you open subfolders, view them large and copy new files in.
+
+### 📋 Teams, squad and formation
+- **Team list.** Search, filters (edited, unsaved), sorting, rating and estimated value.
+- **Global search** to find any team or player (`/` key).
+- **Squad as a data table:**
+  - sort by column;
+  - filter by text, position and status (starters, bench, reserves);
+  - actions on several players at once (including **gear**: sleeves, socks, gloves, boots…), and the **captain** is picked from each player's *Actions* menu (marked with a **C**);
+  - columns of your choice, three densities and export.
+- **Player photos** (the game's minifaces) in the squad and the formation.
+- **Formation on the pitch:**
+  - drag players to move or swap them;
+  - formation templates and three plans;
+  - substitutes' bench;
+  - team rating.
+- **Strategy like the Game Plan.** The same options and names as the game, each with its explanation; the 4 advanced instructions (2 attacking and 2 defensive); the quick tactical options and Marking settings.
+- **Captain and set pieces.** Free kicks, corners, penalties and the 3 attacking players, by hand or automatic based on abilities.
+- **Rating by performance.** Uses the latest real matches; changes are shown with an animation when you apply them.
+- **Squad from the game database.** If a team is empty in your EDIT, you see the squad the game ships with and you can copy it to the EDIT with one click (undo with Ctrl+Z).
+- **Every player in the game in *Players*.** With the database copied, the tab shows the game's 27,000+ players as well as the ones in your EDIT: search by name, ID or team, a profile with face, teams, shirt number and every ability, and a button to add them to your EDIT and edit them.
+- **National teams.** Call-ups with each country's players.
+- **Data, colours, stadium, rivals and flags** for each team.
+
+### 👕 Kit Studio Pro (Sider kit-server)
+- **3D viewer with the real models:**
+  - shirts, sleeves, 100+ collars, 16 shorts and socks;
+  - stadium-style lighting and its own HDRI background;
+  - fixed camera views and auto-rotate.
+- **Visual editing of `config.txt`:**
+  - collar, shorts, colours, name and number position;
+  - flat view (mock-up) to place the numbers by dragging.
+- **Two parts:** Uniforms (all the team's kits with their textures, order, copies and deleting) and Editor (one kit in wide screen).
+- **Load a kit from a .zip.** Drag it into Uniforms, pick the slot (home, away, third, fourth or goalkeeper), it warns you if the slot already has a kit (replace or add as new), converts everything to FTEX, generates a generic normal map, shine and any missing lettering, and writes the config.txt and order.ini. If the team has no folder in the kit-server (its kits are in the .cpk files), it creates one and adds it to map.txt.
+- **Upload textures to the kit-server.** Kit, normal map and fonts (name, back, chest, shorts). They're converted to the game format (FTEX) with a backup.
+- **Kit shine.** The texture's alpha channel sets how much each area shines: you see it in 3D and you can paint it.
+- **Fabric and relief.** Eight fabric types and a normal map generator that the game applies.
+- **Font generator** for names and numbers, with outlines and shadow, following the game's templates.
+
+### 🎨 Interface
+- **Appearance:**
+  - light or dark mode;
+  - palettes, with colour blending with the open team's colours;
+  - corners and font size;
+  - your own font for the whole page.
+- **A font for each style:** *Outfit* and *Big Shoulders* in Modern (modern and readable), *QuickExpress* in PES 6 Edit, *Pixelify Sans* and *Silkscreen* pixel letters in Retro (in the spirit of the PS1 Winning Elevens) and *Tahoma* in Classic. You can change it for each style in Appearance, and they work offline.
+- **🖥️ Graphics:**
+  - *Modern*, *Classic* (the old desktop editor), *Retro* (PS2 menus) and **PES 6 Edit** modes, the last one inspired by the PES 6 Edit menu: silver bars, golden yellow selection and a blurred amber background;
+  - the PES 6 menu's *confirm* and *undo* sounds when you click options and go back;
+  - with Classic, Retro or PES 6, Appearance only lets you adjust font size, font and effects;
+  - *Low* quality (no animations or effects, for slow PCs), *Medium* or *High* (3D with supersampling and maxed-out effects).
+- **Animated intro** with the logo and a neon glow while the EDIT loads.
+- **Music player** at the bottom left:
+  - cover art, shuffle, repeat and volume;
+  - *Cut*, *Smooth* or *Remix* transitions between songs (DJ-style filters and echo);
+  - add your own songs and the editor reads **title, artist and cover art** from their tags (MP3, FLAC, M4A);
+  - **YouTube playlists and videos** by pasting the link (with the player minimized, the video sits above the bar if there's free space on the left; otherwise, to the side).
+- **What's new.** Every change with its date, an explanation and steps to use it.
+- **Installable as an app** from Chrome or Edge, with its own icon and offline support.
+
+## 📸 Screenshots
+
+| Squad | Formation |
+|---|---|
+| ![Squad](docs/capturas/02-plantel.png) | ![Formation](docs/capturas/03-formacion.png) |
+| **Kit Studio Pro** | **What's new** |
+| ![Kit Studio Pro](docs/capturas/04-estudio-kits.png) | ![What's new](docs/capturas/05-novedades.png) |
+| **Appearance (light mode)** | **Graphics** |
+| ![Appearance](docs/capturas/06-apariencia-modo-claro.png) | ![Graphics](docs/capturas/07-graficos.png) |
+| **PES 6 Edit style** | **Retro style** |
+| ![PES 6 Edit style](docs/capturas/08-estilo-pes6.png) | ![Retro style](docs/capturas/09-estilo-retro.png) |
+
+## 🚀 How to use it
+
+There are two ways to use the same editor: in the browser or with the Windows app. If your Sider folder is inside `C:\Program Files (x86)` (where Steam installs PES 2021), use the app, because the browser can't save there.
+
+### 🌐 In the browser
+
+1. Open **[PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** in **Chrome** or **Edge**. Firefox and Safari don't let a web page read folders yet.
+2. Click **"📂 Pick my Documents folder"** and then *Select folder*.
+3. In the browser prompt, choose **"Allow on every visit"** so you don't have to repeat this step.
+4. **Click "Connect Sider folder"** and pick the game's Sider folder (the one with `sider.exe`, inside the game folder). That loads the **player names, ratings and values**, faces, crests and kits. You only pick it once.
+5. **The first time, prepare the game database** (not needed if you picked the game folder in step 4). The editor installs the `edit21_db.lua` module in Sider and lets you know. Open the game with Sider to the **main menu**, go to **Match › Friendly** up to **team selection** and close the game. Go back to the editor and click **"Done"**.
+6. Edit and click **"Save to the game"**. Close the game before saving.
+
+> [!TIP]
+> **No player names or ratings?** If the squad shows *"no name · connect the Sider folder"* or the rating and value columns are empty, step 4 is missing: click **"Connect Sider folder"** at the top and pick the Sider folder. The EDIT only stores your changes; each player's full data comes from the game database. If you had already connected it and the browser asks for permission again, click **"Allow"**.
+>
+> **The database warning won't go away?** Check `sider.log` in the Sider folder and look for the `[edit21_db]` lines. If it says `copiado ...`, the copy worked: click **"Done"**. If it says `ERROR no puedo escribir ... -> nil`, it's Sider's `io`, which doesn't let it save files on some installs: since v1.5 the module works around it by writing with the Windows functions, as long as `sider.ini` has `luajit.ext.enabled = 1` (the game already has it). If the error says *Permission denied*, check **Windows Security › Virus & threat protection › Ransomware protection › Controlled folder access** and allow `PES2021.exe`.
+
+**Install it from the browser:** in Chrome or Edge, click the install icon in the address bar (or menu ⋮ → *Install PES Editor Rebuilt*). To connect a Sider folder inside Program Files you need the Windows app.
+
+### 💻 With the Windows app
+
+1. Download the **[installer (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe)** or the **[portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Portable.exe)**, which runs without installing anything.
+2. If Windows shows **"Windows protected your PC"**, click **More info › Run anyway**.
+3. Open **PES Editor Rebuilt**, click **"📂 Pick my Documents folder"** and then **"Connect Sider folder"**. The Sider folder is connected where it is, even inside Program Files, with permission to save.
+4. Then follow steps 5 and 6 above: the game database and **"Save to the game"**.
+
+> [!NOTE]
+> **It updates itself.** The app opens the editor from its web page every time it starts, so everything new (the editor, the rating, the interface, the cache) reaches it just like the web, without reinstalling. You only need a new .exe when the app itself changes: the logo, the name or how it reaches your folders. That happens very rarely, and then you install the new one over the old one.
+>
+> **Why does "Windows protected your PC" show up?** The app doesn't have a digital signature yet, which is a certificate that tells Windows who made the program. Without it Windows warns you the first time, but the app works the same. The code and the .exe build are open in this repository ([`desktop/`](desktop/)).
+>
+> **Can't save?** If Windows doesn't let it write to a folder, the app tells you: close it and open it with right click › *Run as administrator*. If the game has a file open, it asks you to close it.
+
+**Privacy:** in the browser and in the app, everything is processed on your PC. Your files are never uploaded to any server.
+
+## 🎵 Music
+
+Because of copyright, the repository **doesn't include** music from the games. The player works anyway:
+
+- **＋ Add songs:** pick files from your PC and they're added with their cover art.
+- **▶ YouTube:** paste the link to a playlist or a video. YouTube doesn't allow hiding its videos, so they show up small above the player (or in place of the cover art, with the panel open).
+
+Everything is saved in your browser.
+
+## 🗺️ Coming next
+
+PES Editor is still in development. This is what's coming (it may change):
+
+- More options in Kit Studio Pro and in stadium editing.
+- Improvements to the installable version (shortcuts, more complete offline support).
+- Fixes based on what users report.
+
+To hear about every version, click **Watch → Custom → Releases** at the top of this repository. Inside the editor, the **What's new** tab shows a dot when there's something new.
+
+Found a bug or had an idea? Open an [issue](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/issues/new/choose): there's a template for **🐛 Algo no anda** (something's not working) and another for **💡 Tengo una idea** (I have an idea). Everything helps, like a good through ball.
+
+## 🧩 How the code is built
+
+It's all HTML, CSS and JavaScript, with no frameworks and nothing to install. `index.html` is short: it loads `css/editor.css` and the files in the `js/` folder, one for each part of the editor, in this order:
+
+| File | What it does |
+|---|---|
+| `pescrypt.js`, `pesdata.js` | Decrypts EDIT00000000 and reads/writes teams, players and tactics |
+| `tables.js`, `dds.js`, `faces.js`, `pitch.js` | Game tables, DDS images, minifaces and crests, pitch drawing |
+| `extras.js`, `matches.js`, `natcall.js` | Formation, rating by performance, national team call-ups |
+| `ftexenc.js`, `kitfont.js`, `kitmat.js`, `kitstudio.js`, `kitpack.js`, `kit3d.js` | Kit Studio Pro: FTEX textures, fonts, fabrics, models and 3D viewer |
+| `luadata.js`, `siderdb.js`, `gamedb.js` | The `edit21_db.lua` Sider module (installs itself) and reading the game database (from the module's copy or straight from the `.cpk` files) |
+| `intro.js`, `news.js`, `help.js` | Loading screen, What's new and help |
+| `app.js`, `motion.js`, `ui.js`, `gfx.js` | The page itself, animations, Appearance and Graphics |
+| `fonts.js`, `logos.js`, `sfxdata.js` | Bundled fonts, logos and sounds |
+| `mptags.js`, `music.js`, `mpyt.js` | Player: song tags, audio and YouTube |
+
+To try a change, just edit the file and reload the page.
+
+## 🙌 Credits and inspiration
+
+This project is inspired by **PES 2020 Editor**, the original tool created by **[ejogc327](https://ejogc327.blogspot.com/2022/10/pes-2020-editor-v0-12.html)**. Thanks for paving the way.
+
+The 3D kit models are based on the *CometKIT previewer*. The font templates follow the game's format. Fonts: *QuickExpress* (repaired and extended with Spanish letters) and, under the free SIL OFL license, *Outfit*, *Big Shoulders*, *Pixelify Sans* and *Silkscreen*. The *PES 6 Edit* style is a tribute: the design is handmade, with no images from the game, and it uses two short sounds from its menu (confirm and undo).
+
+## 📄 License
+
+Code under the [BSD 3-Clause](LICENSE) license.
+
+<div align="center">
+
+Made with ❤️ and mate in Argentina 🇦🇷
+
+</div>
+
+<sub>PES Editor is a fan project with no connection to Konami. *eFootball* and *Pro Evolution Soccer* are trademarks of Konami Digital Entertainment. Use it at your own risk and keep copies of your files.</sub>
+
+<br>
+
+---
+
+## 🇪🇸 Español
+
+<div align="center">
+
 ### Un PES Editor renovado
 
 *Hecho por un fanático del PES para los que todavía arman su Liga Master a mano.* ⚽
 
-Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , directo en el navegador.
+Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider, directo en el navegador.
 
 ![Versión](https://img.shields.io/badge/versi%C3%B3n-v0.045%20alpha-16d98a)
 ![Juego](https://img.shields.io/badge/eFootball-PES%202021-1d6e47)
@@ -21,8 +234,6 @@ Editor del archivo **EDIT00000000** de **eFootball PES 2021** con Sider , direct
 <sub>La app para Windows es el mismo editor en su propia ventana: se actualiza sola y conecta la carpeta Sider aunque esté en Archivos de programa. <a href="#-con-la-app-para-windows">Cómo instalarla</a></sub>
 
 </div>
-
-![Pantalla de inicio](docs/capturas/01-intro.png)
 
 ## 🧉 ¿Por qué existe?
 
@@ -150,20 +361,6 @@ Hay dos formas de usar el mismo editor: en el navegador o con la app para Window
 >
 > **¿No deja guardar?** Si Windows no deja escribir en una carpeta, la app te avisa: cerrala y abrila con clic derecho › *Ejecutar como administrador*. Si el juego tiene un archivo abierto, te pide que lo cierres.
 
-<details><summary>🇬🇧 The Windows app in English</summary>
-
-**PES Editor Rebuilt for Windows** is the same editor as the web page, in its own window. It connects your Sider folder where it is, even inside `C:\Program Files (x86)`, where the browser can't save.
-
-1. Download the **[installer (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Setup.exe)** or the **[portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.045-alpha/PES-Editor-Rebuilt-Portable.exe)**, which runs without installing.
-2. If Windows shows **"Windows protected your PC"**, click **More info › Run anyway**.
-3. Open **PES Editor Rebuilt**, click **"📂 Pick my Documents folder"** and then **"Connect Sider folder"**.
-4. Then follow steps 5 and 6 above: the game database and **"Save to the game"**.
-
-**It updates itself.** The app loads the editor from its web page every time it starts, so every change reaches it just like the web, without reinstalling. You only need a new .exe when the app itself changes (the logo, the name or how it reaches your folders); install it over the old one.
-
-**Why "Windows protected your PC"?** The app has no digital signature yet, a paid certificate that tells Windows who made the program. Without it Windows warns you the first time, but the app works the same.
-
-</details>
 
 **Privacidad:** en el navegador y en la app, todo se procesa en tu PC. Tus archivos no se suben a ningún servidor.
 

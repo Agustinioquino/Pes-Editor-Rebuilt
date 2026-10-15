@@ -1339,10 +1339,10 @@ function teamSlot(kind, list) {
 }
 // estrellas (0 a 5) y actitud de juego (0 a 3): botones con color y brillo que suben con el nivel
 function lvlStars(v) {
-  return `<div class="lvl lvstar" data-segk="star" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Estrellas"><button type="button" class="lv0" data-v="0" aria-pressed="${v === 0}" title="Sin estrellas">0</button>${[1, 2, 3, 4, 5].map(i => `<button type="button" class="lvs ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i} estrella${i > 1 ? 's' : ''}">★</button>`).join('')}<b class="lvnum">${v}<small>/5</small></b></div>`;
+  return `<div class="lvl lvstar" data-segk="star" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Estrellas">${[1, 2, 3, 4, 5].map(i => `<button type="button" class="lvs ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : i + ' estrella' + (i > 1 ? 's' : '')}">★</button>`).join('')}<b class="lvnum">${v}<small>/5</small></b></div>`;
 }
 function lvlAttit(v) {
-  return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego"><button type="button" class="lv0" data-v="0" aria-pressed="${v === 0}" title="Nivel 0">0</button>${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="Nivel ${i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b></div>`;
+  return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego">${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : 'Nivel ' + i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b></div>`;
 }
 function tabProfile(p) {
   const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
@@ -1508,7 +1508,7 @@ function bindPlayer(p, m) {
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
     if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
     const sg = b.closest('[data-segk]');
-    if (sg && b.dataset.v != null) { setP(p, sg.dataset.segk, +b.dataset.v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; }
+    if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.classList.contains('lvl') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0
     if (b.dataset.pp != null) { const k = 'pos' + POS_TO_PP[+b.dataset.pp]; setP(p, k, (pget(p, k) + 1) % 3, nm() + ': posiciones'); rer(); return; }
     if (b.id === 'ppClear') { const reg = pget(p, 'reg_pos'); edit(nm() + ': posiciones', 'p' + p.id, regP(p), () => { POS_TO_PP.forEach((pp, i) => PD.player.set(S.d, p.base, 'pos' + pp, i === reg ? 2 : 0)); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }
     if (b.dataset.bulk) { const d = +b.dataset.bulk; edit(nm() + ': ' + (d > 0 ? '+1' : '−1') + ' a todas las habilidades', 'p' + p.id, regP(p), () => { for (const [k] of ABIL) PD.player.set(S.d, p.base, k, Math.max(40, Math.min(99, PD.player.get(S.d, p.base, k) + d))); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }

@@ -3817,11 +3817,10 @@ Object.assign(I18N_EN, {
 "Ver el plantel de {x}":"See the {x} squad",
 "Para cambiarlo de equipo o de dorsal, tocá el equipo y editá el plantel.":"To move him to another team or change his number, tap the team and edit the squad.",
 "Datos personales":"Personal details",
-"Sin estrellas":"No stars",
 "1 estrella":"1 star",
 "{x} estrellas":"{x} stars",
 "Nivel {x}":"Level {x}",
-"Nivel 0":"Level 0",
+"Tocá de nuevo para dejarlo en 0":"Tap again to set it to 0",
 "Escribí primero el apellido.":"Type the last name first.",
 "El jugador necesita un nombre o un apellido.":"The player needs a first or last name.",
 "El nombre completo pasa los {x} caracteres que guarda el juego: se corta al final.":"The full name is longer than the {x} characters the game stores: the end gets cut off."

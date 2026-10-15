@@ -1653,11 +1653,9 @@ button.tsrow:hover{border-color:var(--accent);background:var(--sel)}
 .lvl{--lc:var(--muted);--gl:0px;display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk);position:relative;overflow:hidden;transition:border-color .25s,box-shadow .25s}
 .lvl:not([data-lv="0"]){border-color:color-mix(in srgb,var(--lc) 60%,var(--line));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--lc) 18%,transparent),0 0 calc(var(--gl) * 1.6) -3px var(--lc)}
 .lvl button{font:inherit;cursor:pointer;border:0;background:none;color:var(--muted);padding:0;line-height:1;position:relative;z-index:1}
-.lvl .lv0{font-family:var(--mono);font-size:.72rem;width:26px;height:26px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--panel)}
-.lvl .lv0[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
 .lvstar .lvs{font-size:1.7rem;width:1.1em;color:color-mix(in srgb,var(--muted) 35%,transparent);transition:transform .15s,color .2s,text-shadow .2s}
 .lvstar .lvs.on{color:var(--lc);text-shadow:0 0 var(--gl) var(--lc),0 1px 0 #0005}
-.lvstar .lvs:hover,.lvl .lv0:hover{transform:scale(1.18)}
+.lvstar .lvs:hover{transform:scale(1.18)}
 .lvatt .lvb{flex:1 1 0;height:18px;min-width:34px;border-radius:99px;background:color-mix(in srgb,var(--muted) 22%,transparent);overflow:hidden;transition:background .2s,box-shadow .2s,transform .15s}
 .lvatt .lvb:hover{transform:scaleY(1.2)}
 .lvatt .lvb.on{background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 62%,#fff),var(--lc) 60%,color-mix(in srgb,var(--lc) 80%,#000));box-shadow:0 0 var(--gl) var(--lc)}
@@ -1682,19 +1680,16 @@ button.tsrow:hover{border-color:var(--accent);background:var(--sel)}
 html[data-gfx="clasico"] .lvl{--gl:0px!important;border-radius:2px;box-shadow:inset 1px 1px #0004,inset -1px -1px #fff8!important;border-color:var(--line)!important}
 html[data-gfx="clasico"] .lvl::after{display:none}html[data-gfx="clasico"] .lvl .on{animation:none!important}
 html[data-gfx="clasico"] .lvatt .lvb{border-radius:0;border:1px solid var(--line)}html[data-gfx="clasico"] .lvatt .lvb.on{background:var(--lc);box-shadow:inset 1px 1px #fff6,inset -1px -1px #0005}
-html[data-gfx="clasico"] .lvl .lv0,html[data-gfx="clasico"] .tsrow,html[data-gfx="clasico"] .tsnum{border-radius:2px}
+html[data-gfx="clasico"] .tsrow,html[data-gfx="clasico"] .tsnum{border-radius:2px}
 html[data-gfx="clasico"] .lvstar .lvs.on{text-shadow:1px 1px 0 #0006}
 /* Retro: cuadrado, sombra dura y barras inclinadas */
 html[data-gfx="retro"] .lvl,html[data-gfx="retro"] .tsrow,html[data-gfx="retro"] .tsnum{border-radius:0;border-width:2px}
-html[data-gfx="retro"] .lvl .lv0{border-radius:0}
 html[data-gfx="retro"] .lvatt .lvb{border-radius:0;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
 html[data-gfx="retro"] .lvstar .lvs.on{text-shadow:2px 2px 0 #000,0 0 var(--gl) var(--lc)}
 html[data-gfx="retro"] .lvnum{text-shadow:2px 2px 0 #000,0 0 var(--gl) var(--lc)}
 /* PES 6: plateado con relieve y rellenos brillantes, como los botones del modo Editar */
 html[data-gfx="pes6"] .lvl{background:linear-gradient(180deg,#fafaf8,#d6d5cf);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 2px 4px #0003}
 html[data-gfx="pes6"] .lvl:not([data-lv="0"]){border-color:color-mix(in srgb,var(--lc) 55%,#6f6c64);box-shadow:inset 0 1px #fff,0 0 0 2px color-mix(in srgb,var(--lc) 35%,transparent),0 2px 6px #0004}
-html[data-gfx="pes6"] .lvl .lv0{background:linear-gradient(180deg,#fafaf8,#c9c8c2);border:1px solid #6f6c64;box-shadow:inset 0 1px #fff}
-html[data-gfx="pes6"] .lvl .lv0[aria-pressed="true"]{background:linear-gradient(180deg,#fdf0a0,#e6c02e);color:#1c1c1a;border-color:#a8820f}
 html[data-gfx="pes6"] .lvatt .lvb{background:linear-gradient(180deg,#bdbcb6,#e8e7e2);border:1px solid #8f8c84;box-shadow:inset 0 1px 2px #0004}
 html[data-gfx="pes6"] .lvatt .lvb.on{background:linear-gradient(180deg,#fff 0,color-mix(in srgb,var(--lc) 55%,#fff) 18%,var(--lc) 55%,color-mix(in srgb,var(--lc) 75%,#000));border-color:color-mix(in srgb,var(--lc) 60%,#000)}
 html[data-gfx="pes6"] .lvstar .lvs{color:#b9b8b1;text-shadow:0 1px #fff}
@@ -1704,7 +1699,7 @@ html[data-gfx="pes6"] .lvl[data-lv="0"] .lvnum{-webkit-text-stroke:0}
 html[data-gfx="pes6"] .tsrow{background:linear-gradient(180deg,#fafaf8,#e2e1db);border-color:#8f8c84;box-shadow:inset 0 1px #fff}
 html[data-gfx="pes6"] button.tsrow:hover{background:linear-gradient(180deg,#fffbe0,#e9dfae)}
 html[data-gfx="pes6"] .tsnum{background:linear-gradient(180deg,#4b4b4b,#2b2b2b);color:#ffd23a;border-color:#1a1a1a}
-html[data-gfx="pes6"] :is(.lvl,.lvl .lv0,.tsrow,.tsnum){border-radius:0!important}
+html[data-gfx="pes6"] :is(.lvl,.tsrow,.tsnum){border-radius:0!important}
 .card h3.sec{border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
 html[data-gfx="pes6"] .card h3.sec{border-top:2px solid #b9b6ad;box-shadow:inset 0 1px #fff}
 html[data-gfx="retro"] .card h3.sec{border-top:2px solid var(--line)}

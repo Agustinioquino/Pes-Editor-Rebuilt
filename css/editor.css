@@ -2033,19 +2033,18 @@ html[data-gfx="retro"] .futin::before{content:"";position:absolute;inset:0;z-ind
 html[data-gfx="retro"] .fat>b,html[data-gfx="retro"] .fbar,html[data-gfx="retro"] .fbar u{border-radius:0}
 html[data-gfx="retro"] .fbar{height:6px;background:#000;box-shadow:inset 0 0 0 1px var(--line)}
 html[data-gfx="retro"] .fbar u{background:repeating-linear-gradient(90deg,var(--lc) 0 6px,transparent 6px 8px)}
-/* PES 6: escenario oscuro con anillos como el menú de FIFA 15, títulos dorados y placas metálicas */
-html[data-gfx="pes6"] .fifa{border-radius:0;--sink:#eceae4;--smut:#a9a59b;--pan:#ffffff0d;border:1px solid #6f6c64;box-shadow:inset 0 1px #ffffff30,0 8px 20px -10px #000c;
-  background:radial-gradient(circle at 140px 200px,color-mix(in srgb,var(--tc) 28%,transparent),transparent 230px),radial-gradient(circle at 140px 200px,transparent 0 205px,#ffffff16 206px 208px,transparent 209px 268px,#ffffff0e 269px 271px,transparent 272px 340px,#ffffff0a 341px 343px,transparent 344px),linear-gradient(180deg,#2c2d32,#111216)}
-html[data-gfx="pes6"] .fifa::before{background:linear-gradient(115deg,transparent 42%,#ffffff12 48%,transparent 54%)}
-html[data-gfx="pes6"] .card div.fifa :is(h4,p,.note,label,.lab,.sub){color:var(--sink);background:none;-webkit-text-fill-color:currentColor;filter:none}
-html[data-gfx="pes6"] .card div.fifa h4>span{color:color-mix(in srgb,var(--tc) 85%,#fff);text-shadow:0 1px 0 #000,0 0 10px color-mix(in srgb,var(--tc) 40%,transparent);font-size:1.1rem}
-html[data-gfx="pes6"] .card div.fifa .note{color:var(--smut)}
-html[data-gfx="pes6"] .fifa .abgrp h4{border-bottom:1px solid #ffffff2a;box-shadow:none}
-html[data-gfx="pes6"] .fgrp{border-radius:0;border:1px solid #ffffff1f;box-shadow:inset 0 1px #ffffff14;backdrop-filter:none}
-html[data-gfx="pes6"] .fatn,html[data-gfx="pes6"] .futinfo dd:not(.fst){color:#eceae4}html[data-gfx="pes6"] .fatn{font-size:.8rem}
+/* PES 6: la vista FIFA mantiene los colores de PES 6 (paneles plateados, títulos metálicos, resaltado amarillo);
+   la carta FIFA 15 conserva su color de oro, plata, bronce o ícono */
+html[data-gfx="pes6"] .fifa{border-radius:0;--sink:#1c1c1a;--smut:#55534c;--pan:linear-gradient(180deg,#fbfbf9,#e9e8e2);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 10px 24px -14px #5a2a00cc;
+  background:repeating-linear-gradient(180deg,#ffffff00 0 3px,#00000008 3px 4px),linear-gradient(180deg,#e2e0d9,#cfcdc5)}
+html[data-gfx="pes6"] .fifa::before{background:linear-gradient(115deg,transparent 42%,#ffffff55 48%,transparent 54%)}
+html[data-gfx="pes6"] .fifa .abgrp h4{border-bottom:2px solid #b9b6ad;box-shadow:0 1px #fff}
+html[data-gfx="pes6"] .fgrp,html[data-gfx="pes6"] .fskills{border-radius:0;background:var(--pan);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff,0 2px 4px -2px #0005;backdrop-filter:none}
+html[data-gfx="pes6"] .fatn,html[data-gfx="pes6"] .futinfo dd:not(.fst){color:#1c1c1a}html[data-gfx="pes6"] .fatn{font-size:.8rem}
+html[data-gfx="pes6"] .futinfo{border-radius:0;padding:8px 10px;box-sizing:border-box;background:var(--pan);border:1px solid #8f8c84;box-shadow:inset 0 1px #fff}
 html[data-gfx="pes6"] .card .fst .emo{color:inherit;text-shadow:none}
 html[data-gfx="pes6"] .fat>b{border-radius:0;border:1px solid color-mix(in srgb,var(--lc) 60%,#000);background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 55%,#fff),var(--lc) 55%,color-mix(in srgb,var(--lc) 80%,#000))}
-html[data-gfx="pes6"] .fbar{border-radius:0;height:5px;background:#ffffff14;box-shadow:inset 0 1px #0006}
+html[data-gfx="pes6"] .fbar{border-radius:0;height:5px;background:#0000001c;box-shadow:inset 0 1px #0003}
 html[data-gfx="pes6"] .fbar u{border-radius:0;background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 50%,#fff),var(--lc) 60%)}
 html[data-gfx="pes6"] .fifa .futbtns .btn:not([aria-pressed="true"]){filter:none}
 
@@ -2084,8 +2083,6 @@ html[data-gfx="pes6"] .skico{border-radius:0;border:1px solid #0003}
 .fsknone{font-size:.85rem;color:var(--smut)}
 html[data-gfx="clasico"] .fskills{border-radius:0;box-shadow:inset 1px 1px #808080,inset -1px -1px #fff,inset 2px 2px #404040}
 html[data-gfx="retro"] .fskills{border-radius:0;box-shadow:inset 0 0 0 2px var(--line)}
-html[data-gfx="pes6"] .fskills{border-radius:0;border:1px solid #ffffff1f;box-shadow:inset 0 1px #ffffff14}
-html[data-gfx="pes6"] .card div.fifa .fskills h4>span{color:color-mix(in srgb,var(--tc) 85%,#fff);text-shadow:0 1px 0 #000}
 html[data-gfx="pes6"] .card div.fifa .fstyle{color:var(--smut)}
 /* ===== Encabezado del jugador: foto grande, posición encima a la izquierda y las otras posiciones al costado ===== */
 .phead{position:relative;flex:none;display:flex;padding:6px 24px 2px 14px}
@@ -2094,6 +2091,12 @@ html[data-gfx="pes6"] .card div.fifa .fstyle{color:var(--smut)}
 .phalt{position:absolute;right:0;bottom:0;z-index:2;display:grid;gap:2px;justify-items:end}
 .phalt .posb{min-width:30px;height:16px;font-size:.62rem;padding:0 4px;box-shadow:0 1px 3px #0004}
 .phalt .posb.pbb{opacity:.72;filter:saturate(.6)}
+/* marco de la foto con los colores de las posiciones (proporción según el nivel en cada una) */
+.pframe{--pf-gk:#d9a514;--pf-df:#2f6db3;--pf-mf:#2e8b57;--pf-fw:#c0392b;padding:5px;border-radius:19px;background:var(--pf);box-shadow:0 3px 10px -3px #0007,inset 0 0 0 1px #ffffff40}
+.pframe .face.pl{background-color:var(--panel)}
+html[data-gfx="clasico"] .pframe{border-radius:4px;padding:3px;box-shadow:inset 1px 1px #ffffff80,inset -1px -1px #0006}
+html[data-gfx="retro"] .pframe{border-radius:0;padding:3px;box-shadow:none;align-self:center}
+html[data-gfx="pes6"] .pframe{--pf-gk:#f2c80f;--pf-df:#19a9c4;--pf-mf:#3cb43a;--pf-fw:#e2392a;border-radius:3px;padding:5px;border:1px solid #000a;box-shadow:inset 0 1px #ffffffa0,inset 0 -2px #0004,0 2px 6px #0004}
 .phmore{font:700 .62rem/1 var(--mono);color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:1px 4px}
 /* Retro: queda como antes (posición al lado y foto chica), para mantener el toque retro */
 html[data-gfx="retro"] .phead{display:contents}

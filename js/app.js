@@ -1303,6 +1303,18 @@ const selOpts = (arr, v) => arr.map((n, i) => `<option value="${i}" ${i === v ? 
 function mapSelect(k, map, v, label) { return `<select data-k="${k}" aria-label="${label}">${map.has(v) ? '' : `<option value="${v}" selected>${v ? 'ID ' + v + ' (del juego)' : 'Ninguno / predeterminado'}</option>`}${[...map].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}" ${id === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
 function seg(k, labels, v) { return `<div class="seg" data-segk="${k}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
 function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} ${FLAG_NAMES[k]}</span>`).join(''); }
+// marco de la foto con los colores de las posiciones que juega: cada color ocupa más o menos según el nivel
+// (posición natural 3, A 2, B 1; las C no cuentan), sumado por línea (arquero, defensa, medio, delantera)
+const POS_GRP_N = { gk: 'Portero', df: 'Defensa', mf: 'Mediocampo', fw: 'Delantera' };
+function posFrame(p, reg) {
+  const w = { gk: 0, df: 0, mf: 0, fw: 0 };
+  POS.forEach((_, i) => { const v = pget(p, 'pos' + POS_TO_PP[i]); w[POS_GRP[i]] += i === reg ? 3 : v === 2 ? 2 : v === 1 ? 1 : 0; });
+  const tot = Object.values(w).reduce((a, b) => a + b, 0) || 1, first = POS_GRP[reg];
+  const parts = Object.keys(w).filter(k => w[k]).sort((a, b) => (b === first) - (a === first) || w[b] - w[a]);
+  let at = 0; const stops = parts.map(k => { const from = at; at += w[k] / tot * 100; return `var(--pf-${k}) ${from.toFixed(1)}% ${at.toFixed(1)}%`; });
+  const tip = parts.map(k => `${typeof LANG !== 'undefined' && LANG === 'en' ? { gk: 'Goalkeeper', df: 'Defence', mf: 'Midfield', fw: 'Attack' }[k] : POS_GRP_N[k]} ${Math.round(w[k] / tot * 100)}%`).join(' · ');
+  return `<span class="dbface pframe" style="--pf:conic-gradient(from -90deg,${stops.join(',')})" title="Marco según dónde puede jugar: ${tip}">`;
+}
 function playerSheet(p) {
   const g = k => pget(p, k), reg = g('reg_pos'), tm = playerTeams(p.id);
   const tchip = (lab, { t, num }) => `<button type="button" class="chip" data-pteam="${t.id}" title="Ver el plantel">${shirtSvg(kitFor(t, reg === 0), '1em', tget(t, 'name'))} <span class="tclab">${lab}</span> ${esc(tget(t, 'name'))}${num != null ? ' · <b>' + num + '</b>' : ''}</button>`;
@@ -1311,7 +1323,7 @@ function playerSheet(p) {
   const changed = S.origData && !S.d.subarray(p.base, p.base + 0x138).every((v, i) => v === S.origData[p.base + i]);
   return `<div class="card">
     <div class="head">${(() => { const c = clubOf(p.id), alt = POS.map((_, i) => [i, g('pos' + POS_TO_PP[i])]).filter(([i, v]) => i !== reg && v > 0).sort((a, b) => b[1] - a[1]);
-      return `<div class="phead">${posBadge(reg, 'phpos')}<span class="dbface">${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>${alt.length ? `<div class="phalt" title="Otras posiciones: A domina, B puede jugar">${alt.slice(0, 4).map(([i, v]) => posBadge(i, v === 2 ? 'pa' : 'pbb')).join('')}${alt.length > 4 ? `<span class="phmore">+${alt.length - 4}</span>` : ''}</div>` : ''}</div>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
+      return `<div class="phead">${posBadge(reg, 'phpos')}${posFrame(p, reg)}${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>${alt.length ? `<div class="phalt" title="Otras posiciones: A domina, B puede jugar">${alt.slice(0, 4).map(([i, v]) => posBadge(i, v === 2 ? 'pa' : 'pbb')).join('')}${alt.length > 4 ? `<span class="phmore">+${alt.length - 4}</span>` : ''}</div>` : ''}</div>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
       <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'} · ID ${p.id}</div>
       ${tm.clubs.length || tm.nats.length ? `<div class="dbteams hdteams">${tm.clubs.map(x => tchip('Equipo', x)).join('')}${tm.nats.map(x => tchip('Selección', x)).join('')}</div>` : ''}</div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
@@ -1385,7 +1397,7 @@ function tabPos(p) {
   return `<div class="row" style="align-items:flex-start;gap:22px">
     <div class="pitch" id="pitch" style="flex:1 1 300px">${POS.map((n, i) => { const v = g('pos' + POS_TO_PP[i]); return `<button type="button" class="pp l${v} ${i === reg ? 'reg' : ''}" data-pp="${i}" style="grid-column:${PITCH[i][0]};grid-row:${PITCH[i][1]}" title="${POS_LONG[i]}: tocá para cambiar el nivel"><b data-noi18n>${posCode(i)}</b><span>${['—', 'B', 'A'][v]}</span></button>`; }).join('')}</div>
     <div class="f" style="flex:1 1 240px;max-width:340px;gap:10px">
-      <div class="f"><label>Posición registrada</label><select data-k="reg_pos">${POS_LONG.map((n, i) => `<option value="${i}" ${i === reg ? 'selected' : ''}>${posCode(i)} · ${n}</option>`).join('')}</select></div>
+      <div class="f"><label>Posición natural</label><select data-k="reg_pos">${POS_LONG.map((n, i) => `<option value="${i}" ${i === reg ? 'selected' : ''}>${posCode(i)} · ${n}</option>`).join('')}</select></div>
       <p class="note">Tocá cada posición en la cancha para pasar de — (no juega) a B (puede jugar) y A (domina). La registrada queda marcada en amarillo y se pone en A sola.</p>
       <div class="row"><button class="btn small" id="ppClear" type="button">Dejar solo la registrada</button></div>
     </div></div>`;

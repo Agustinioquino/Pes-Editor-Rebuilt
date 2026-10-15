@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: Versión de PES Editor
-      description: La ves en la pestaña Novedades o arriba al lado del buscador.
+      description: La ves en la pestaña Novedades. Si mandás el fallo desde la pestaña Ideas del editor, ya viene completa.
       placeholder: v0.010 alpha
     validations:
       required: true
@@ -20,14 +20,14 @@ body:
     id: navegador
     attributes:
       label: Navegador
-      options: [Chrome, Edge, Brave, Opera, Otro]
+      options: [Chrome, Edge, Brave, Opera, App para Windows, Otro]
     validations:
       required: true
   - type: dropdown
-    id: parche
+    id: juego
     attributes:
-      label: ¿Usás parche?
-      options: [Parche con Sider, Parche sin Sider, Juego sin parche]
+      label: ¿Con qué juego?
+      options: [PES 2021 con Sider, PES 2021 sin Sider, Football Life 2026, Otro]
   - type: textarea
     id: que-paso
     attributes:

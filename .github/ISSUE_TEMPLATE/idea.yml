@@ -21,4 +21,4 @@ body:
     id: seccion
     attributes:
       label: Sección
-      options: [Equipos y plantel, Formación, Estudio de kits, Selecciones, Archivo / WEPES, Música, Apariencia, Otra]
+      options: [Equipos y plantel, Jugadores, Formación, Kit Studio Pro, Escudos y minifaces, Selecciones, Sider, Liga Master, Archivo / WEPES, Música, Apariencia, Otra]

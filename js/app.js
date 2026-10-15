@@ -1505,29 +1505,74 @@ const FIFA_GK = [['EST', 'Estirada', { cover: 1 }], ['PAR', 'Paradas', { catchin
 const fifaVal = (get, w) => Math.max(1, Math.min(99, Math.round(Object.entries(w).reduce((a, [k, x]) => a + get(k) * x, 0))));
 const fifaFrom = w => 'Se calcula con estas habilidades de PES: ' + Object.keys(w).map(k => tr(FIELD_LABEL[k] || k)).join(LANG === 'es' ? ' y ' : ' and ');
 const fifaCls = v => v >= 80 ? 'f80' : v >= 70 ? 'f70' : v >= 50 ? 'f50' : 'f0';
+// tipo de carta: bronce (menos de 65), plata (65 a 74), oro (75 o más); ícono si es leyenda.
+// Leyenda: automática si juega en un equipo clásico; se puede marcar o desmarcar a mano (se guarda en este navegador).
+const LEG_LS = 'edit21-legends-v1';
+const LEGEND = (() => { try { return new Map(JSON.parse(localStorage.getItem(LEG_LS) || '[]')); } catch { return new Map(); } })();
+const legendAuto = p => (teamOf.get(p.id) || []).some(t => /^CLASSIC/i.test(leagueOf(t) || '') || /CLASSIC|LEGEND|LEYENDA|ICON|HIST[OÓ]RIC/i.test(tget(t, 'name') || ''));
+const isLegend = p => LEGEND.has(p.id) ? LEGEND.get(p.id) : legendAuto(p);
+const fifaTier = p => { const o = rating(p); return isLegend(p) ? 'icon' : o >= 75 ? 'gold' : o >= 65 ? 'silver' : 'bronze'; };
+// las dos formas de carta: FIFA 15 (PES 6 y Clásico) y la actual (Moderno y Retro); 250 x 350
+const FUT_PATH = {
+  f15: 'M8 36C70 34 92 8 125 8S180 34 242 36L242 306Q242 314 234 317L136 346Q125 349 114 346L16 317Q8 314 8 306Z',
+  fc: 'M34 10Q46 26 68 20Q96 12 125 12T182 20Q204 26 216 10L242 22L242 282Q242 298 228 306L141 343Q125 350 109 343L22 306Q8 298 8 282L8 22Z'
+};
+function fifaStats(p) {
+  const g = k => pget(p, k);
+  return pget(p, 'reg_pos') === 0 ? FIFA_GK.map(([ab, nm, w]) => [ab, nm, fifaVal(g, w)]) : FIFA_ATTR.map(([ab, nm, list]) => [ab, nm, Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0))))]);
+}
 function fifaCard(p) {
   const g = k => pget(p, k), reg = g('reg_pos'), gk = reg === 0, ovr = rating(p), c = clubOf(p.id), kit = c ? kitFor(c, gk) : null;
-  const face = gk ? FIFA_GK.map(([ab, nm, w]) => [ab, nm, fifaVal(g, w)]) : FIFA_ATTR.map(([ab, nm, list]) => [ab, nm, Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0))))]);
-  const tier = ovr >= 90 ? 'icon' : ovr >= 75 ? 'gold' : ovr >= 65 ? 'silver' : 'bronze';
+  const st = fifaStats(p), tier = fifaTier(p), ps = g('play_style');
   const [, last] = splitName(g('name')), nm = g('shirt') || last || g('name');
-  return `<div class="fut ${tier}"><div class="futin">
-    <div class="futtop"><div class="futovr"><b>${ovr}</b><span>${FIFA_POS[reg] || ''}</span>${natFlag(g('nation'))}${c ? crest(c, 'futcrest') : ''}</div>
-      <div class="futface">${faceHtml(p.id, kit, 'futf')}</div></div>
-    <div class="futnm">${esc(nm)}</div>
-    <div class="futstats">${face.map(([ab, n, v]) => `<div title="${n}"><b>${v}</b><span>${ab}</span></div>`).join('')}</div>
-  </div></div>`;
+  // en FIFA 15 los 6 números van en 3 filas de a 2 (izquierda RIT/TIR/PAS, derecha REG/DEF/FÍS)
+  const order = [0, 3, 1, 4, 2, 5];
+  return `<div class="fut ${tier}${ovr >= 85 && tier !== 'icon' ? ' rare' : ''}">
+    <svg class="futfr" viewBox="0 0 250 350" aria-hidden="true"><path class="p15" d="${FUT_PATH.f15}"/><path class="pfc" d="${FUT_PATH.fc}"/></svg>
+    <div class="futin">
+      <div class="fu-ovr"><b>${ovr}</b><span>${FIFA_POS[reg] || ''}</span></div>
+      <div class="fu-club">${c ? crest(c, 'futcrest') : ''}</div>
+      <div class="fu-nat">${natFlag(g('nation'))}</div>
+      <div class="fu-ps" title="${esc(STYLES[ps] || '')}">${ps ? '⚡' : ''}</div>
+      <div class="fu-face">${faceHtml(p.id, kit, 'futf')}</div>
+      <div class="fu-nm">${esc(nm)}</div>
+      <div class="fu-band"><span>⚽</span>${esc(ps ? STYLES[ps] : (tier === 'icon' ? 'Leyenda' : 'Básico'))}</div>
+      <div class="fu-st">${order.map(i => { const [ab, n, v] = st[i]; return `<div title="${n}"><b>${v}</b><span>${ab}</span></div>`; }).join('')}</div>
+      ${tier === 'icon' ? '<div class="fu-icon">ÍCONO</div>' : ''}
+    </div>
+  </div>`;
+}
+// la apertura: sobre que tiembla, destello y aparecen bandera, posición y escudo antes de la carta (como en FIFA)
+function fifaOpening(p) {
+  const c = clubOf(p.id), reg = pget(p, 'reg_pos');
+  return `<div class="fopen" aria-hidden="true"><i class="fo-beam"></i><i class="fo-pack"><b>⚽</b></i><i class="fo-flash"></i>
+    <div class="fo-w fo-w1">${natFlag(pget(p, 'nation')) || '<b>🌍</b>'}</div><div class="fo-w fo-w2"><b>${FIFA_POS[reg] || ''}</b></div><div class="fo-w fo-w3">${c ? crest(c, 'fobig') : '<b>⚽</b>'}</div>
+    <div class="fo-parts">${Array.from({ length: 14 }, (_, i) => `<i style="--a:${i * 360 / 14}deg;--d:${(i % 3) * 40 + 90}px"></i>`).join('')}</div>
+    <button type="button" class="fo-skip" data-foskip>Saltar ⏭</button></div>`;
 }
 function fifaView(p) {
-  const g = k => pget(p, k), gk = g('reg_pos') === 0;
-  const groups = FIFA_ATTR.map(([ab, nm, list]) => { const vals = list.map(([n, w]) => [n, w, fifaVal(g, w)]), avg = Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0)))); return `<div class="group abgrp fgrp"><h4><span>${nm}</span><b class="gavg ${fifaCls(avg)}" title="Media">${avg}</b></h4>${vals.map(([n, w, v]) => `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`).join('')}</div>`; });
-  if (gk) groups.unshift(`<div class="group abgrp fgrp"><h4><span>Portero</span></h4>${FIFA_GK.map(([, n, w]) => { const v = fifaVal(g, w); return `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`; }).join('')}</div>`);
+  const g = k => pget(p, k), gk = g('reg_pos') === 0, tier = fifaTier(p);
+  const row = (n, w) => { const v = fifaVal(g, w); return `<div class="fat"><span class="fatn" data-tip="${esc(fifaFrom(w))}" data-tiptitle="${n}">${n}</span><b class="${fifaCls(v)}">${v}</b><i class="fbar ${fifaCls(v)}"><u style="width:${v}%"></u></i></div>`; };
+  const groups = FIFA_ATTR.map(([, nm, list]) => { const avg = Math.max(1, Math.min(99, Math.round(list.reduce((a, [, w, wt]) => a + fifaVal(g, w) * wt, 0)))); return `<div class="group abgrp fgrp"><h4><span>${nm}</span><b class="gavg ${fifaCls(avg)}" title="Media">${avg}</b></h4>${list.map(([n, w]) => row(n, w)).join('')}</div>`; });
+  if (gk) groups.unshift(`<div class="group abgrp fgrp"><h4><span>Portero</span></h4>${FIFA_GK.map(([, n, w]) => row(n, w)).join('')}</div>`);
   const stars = n => '★'.repeat(n) + '<s>' + '★'.repeat(5 - n) + '</s>';
-  return `<div class="fifa">
-    <div class="fifaside">${fifaCard(p)}
+  S.fifaSeen = S.fifaSeen || new Set();
+  const open = !ANIM.reduce.matches && !S.fifaSeen.has(p.id); S.fifaSeen.add(p.id);
+  const leg = isLegend(p), auto = legendAuto(p);
+  return `<div class="fifa t-${tier}${open ? ' opening' : ''}">
+    <div class="fifaside">${open ? '<i class="fo-rays" aria-hidden="true"></i>' + fifaOpening(p) : ''}${fifaCard(p)}
+      <div class="futbtns"><button type="button" class="btn small" data-fifaopen>🎁 Abrir sobre</button><button type="button" class="btn small" data-legend aria-pressed="${leg}" title="${auto ? 'Juega en un equipo clásico: se lo toma como leyenda' : 'Marcarlo como leyenda muestra la carta ícono'}">⭐ Leyenda</button></div>
       <dl class="futinfo"><dt>Pie hábil</dt><dd>${g('strong_foot') ? 'Izquierdo' : 'Derecho'}</dd><dt>Pierna mala</dt><dd class="fst">${stars(g('weak_acc') + 1)}</dd><dt>Altura</dt><dd>${g('height')} cm</dd><dt>Peso</dt><dd>${g('weight')} kg</dd><dt>Edad</dt><dd>${g('age')} años</dd></dl>
       <p class="note">Es una forma de ver al jugador: las medias se calculan con sus habilidades de PES. Para cambiar valores, volvé a la vista PES.</p></div>
     <div class="fgrid">${groups.join('')}</div>
   </div>`;
+}
+// termina la apertura sola o al tocar
+function fifaBind(sh) {
+  const f = sh.querySelector('.fifa.opening'); if (!f) return;
+  const end = () => { clearTimeout(t); f.classList.remove('opening'); f.classList.add('opened'); f.querySelectorAll('.fopen,.fo-rays').forEach(o => o.remove()); };
+  const t = setTimeout(end, 5600);
+  f.querySelector('.fifaside').addEventListener('click', end, { once: true });
 }
 const abViewSeg = () => { const v = PREFS.abView === 'fifa' ? 'fifa' : 'pes'; return `<div class="abview" role="group" aria-label="Forma de ver las estadísticas"><span class="lab">Ver como</span><div class="seg">${[['pes', '⚽ PES'], ['fifa', '🃏 FIFA']].map(([k, n]) => `<button type="button" data-abview="${k}" aria-pressed="${v === k}">${n}</button>`).join('')}</div></div>`; };
 function tabAbil(p) {
@@ -1627,6 +1672,7 @@ function bindPlayer(p, m) {
     toast('Copiado de ' + pget(src, 'name') + '.', 4000, ['Deshacer', undo]); rer();
   };
   if (S.ptab === 'abil' && PREFS.abView !== 'fifa') hexaBind(p, rer);
+  if (S.ptab === 'abil' && PREFS.abView === 'fifa') fifaBind(sh);
   abAnimDiff(p);
   sh.addEventListener('input', e => {
     const el = e.target; if (el.type !== 'range') return;
@@ -1667,6 +1713,8 @@ function bindPlayer(p, m) {
   });
   sh.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-fifaopen')) { if (S.fifaSeen) S.fifaSeen.delete(p.id); rer(); return; }
+    if (b.hasAttribute('data-legend')) { LEGEND.set(p.id, !isLegend(p)); if (LEGEND.get(p.id) === legendAuto(p)) LEGEND.delete(p.id); try { localStorage.setItem(LEG_LS, JSON.stringify([...LEGEND])); } catch { } rer(); return; }
     if (b.dataset.abview) { if (PREFS.abView !== b.dataset.abview) { PREFS.abView = b.dataset.abview; savePrefs(); rer(); } return; }
     if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }

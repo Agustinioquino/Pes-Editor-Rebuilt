@@ -1827,63 +1827,159 @@ html[data-gfx="pes6"] .abinfo:hover,html[data-gfx="pes6"] .abinfo[aria-described
 .abview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px}
 .abview .seg button{font-family:var(--display);font-size:.9rem;padding:.35rem .9rem}
 .f80{--lc:#14853b}.f70{--lc:#62b331}.f50{--lc:#e6a117}.f0{--lc:#d8412b}
-.fifa{display:grid;grid-template-columns:minmax(230px,270px) minmax(0,1fr);gap:22px;align-items:start}
-.fifaside{display:grid;gap:12px;justify-items:center;position:sticky;top:12px}
+/* el escenario: la pestaña toma el color de la carta (oro, plata, bronce o ícono) */
+.fifa{--tc:#f5c84b;--s1:#f7e7c0;--s2:#c9974a;--sink:#2e2106;--smut:#6b5422;--pan:#fffaf0b0;display:grid;grid-template-columns:minmax(250px,280px) minmax(0,1fr);gap:22px;align-items:start;padding:20px;border-radius:16px;color:var(--sink);position:relative;overflow:hidden;isolation:isolate;
+  background:radial-gradient(120% 80% at 15% 0%,#ffffffb0,transparent 55%),repeating-linear-gradient(115deg,#ffffff16 0 2px,transparent 2px 46px),linear-gradient(140deg,var(--s1),var(--s2));box-shadow:inset 0 0 0 1px #0000001a,0 10px 30px -18px var(--s2)}
+.fifa::before{content:"";position:absolute;inset:-30% -10%;z-index:-1;background:linear-gradient(115deg,transparent 40%,#ffffff40 47%,transparent 54%);animation:stageSweep 7s ease-in-out infinite;pointer-events:none}
+@keyframes stageSweep{0%,20%{transform:translateX(-60%)}60%,100%{transform:translateX(60%)}}
+.fifa.t-silver{--tc:#e3e9f0;--s1:#eef1f5;--s2:#9aa4b1;--sink:#1f252d;--smut:#4d5866;--pan:#ffffffb0}
+.fifa.t-bronze{--tc:#d98f55;--s1:#f1d2b4;--s2:#a8693b;--sink:#2f1a0a;--smut:#6e4526;--pan:#fff5ecb0}
+.fifa.t-icon{--tc:#ffe39a;--s1:#fffaf0;--s2:#d8bf80;--sink:#33280c;--smut:#6d5a2a;--pan:#ffffffc0}
+.fifa .note,.fifa .futinfo dt{color:var(--smut)}
+.fifaside{display:grid;gap:12px;justify-items:center;position:relative}
 .fifaside .note{font-size:.78rem;margin:0;text-align:center}
-/* la carta: forma de escudo, degradado según la media (bronce, plata, oro, ícono) */
-.fut{--c1:#f8e7a4;--c2:#e2bf55;--c3:#a8801f;--ink:#3a2a04;--edge:#fff6cf;width:232px;aspect-ratio:232/330;padding:3px;background:linear-gradient(160deg,var(--edge),var(--c3));clip-path:polygon(14% 0,86% 0,100% 7%,100% 88%,50% 100%,0 88%,0 7%);filter:drop-shadow(0 10px 18px #0007);position:relative;animation:futIn .5s cubic-bezier(.2,1.2,.4,1)}
-.fut.silver{--c1:#f2f4f7;--c2:#c3c9d3;--c3:#7f8896;--ink:#1f242c;--edge:#ffffff}
-.fut.bronze{--c1:#f0c296;--c2:#c27b45;--c3:#7e4520;--ink:#331a07;--edge:#ffdcbc}
-.fut.icon{--c1:#2a3d8f;--c2:#152262;--c3:#0a1236;--ink:#f7dc84;--edge:#f7dc84}
-.futin{height:100%;clip-path:inherit;background:radial-gradient(120% 60% at 70% 18%,#ffffff70,transparent 60%),repeating-linear-gradient(115deg,#ffffff14 0 10px,transparent 10px 22px),linear-gradient(170deg,var(--c1),var(--c2) 55%,var(--c3));color:var(--ink);display:grid;grid-template-rows:auto auto 1fr;padding:18px 16px 30px;overflow:hidden;position:relative}
-.futin::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,#ffffff55 48%,transparent 60%);transform:translateX(-120%);animation:futShine 3.6s ease-in-out 1s infinite;pointer-events:none}
-.fut.icon .futin::after{background:linear-gradient(110deg,transparent 35%,#f7dc8455 48%,transparent 60%)}
-.futtop{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:4px;min-height:132px}
-.futovr{display:grid;justify-items:center;gap:3px;padding-top:6px}
-.futovr b{font:700 2.6rem/1 var(--display);letter-spacing:-.02em}
-.futovr>span{font:700 .95rem/1 var(--display);letter-spacing:.04em}
-.futovr .flagw{position:relative;display:block;width:30px;height:20px;margin-top:4px}.futovr .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
-.futovr .crest.futcrest{width:30px;height:30px;font-size:.55rem;border-radius:5px;margin-top:2px}
-.futface{display:grid;place-items:end center;align-self:end}
-.face.futf{width:132px;height:132px}.face.futf::before{display:none}.face.futf svg{width:78%!important;height:78%!important}
-.futnm{text-align:center;font:700 1.25rem/1.1 var(--display);text-transform:uppercase;letter-spacing:.03em;padding:6px 0 5px;border-bottom:1px solid color-mix(in srgb,var(--ink) 35%,transparent);margin:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.futstats{display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;grid-template-rows:repeat(3,auto);column-gap:14px;row-gap:3px;padding:9px 10px 0;position:relative;align-content:start}
-.futstats::before{content:"";position:absolute;left:50%;top:10px;bottom:0;width:1px;background:color-mix(in srgb,var(--ink) 35%,transparent)}
-.futstats div{display:flex;align-items:baseline;gap:6px;justify-content:center}
-.futstats b{font:700 1.15rem/1.2 var(--display);min-width:1.4em;text-align:right}.futstats span{font:600 .9rem/1.2 var(--display);opacity:.85;min-width:2.1em}
-@keyframes futIn{0%{opacity:0;transform:perspective(600px) rotateY(-70deg) scale(.85)}100%{opacity:1;transform:none}}
-@keyframes futShine{0%{transform:translateX(-120%)}35%,100%{transform:translateX(120%)}}
+.futbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.futbtns [aria-pressed="true"]{background:var(--tc);color:#2b2108;border-color:color-mix(in srgb,var(--tc) 60%,#000)}
+.fgrp{background:var(--pan);border-radius:12px;padding:10px 12px;box-shadow:0 1px 0 #ffffff80 inset,0 4px 14px -10px #0007;backdrop-filter:blur(4px)}
+.fifa .abgrp h4{border-bottom-color:color-mix(in srgb,var(--sink) 18%,transparent)}
+/* ----- la carta (250 x 350). Forma actual por defecto; FIFA 15 en PES 6 y Clásico ----- */
+.fut{--c1:#fbedb9;--c2:#e8c66c;--c3:#b98a2e;--ink:#3a2804;--edge:#fff3c4;--band:#0000001a;position:relative;width:250px;height:350px;flex:none;filter:drop-shadow(0 14px 20px #0007);animation:futIn .55s cubic-bezier(.2,1.2,.4,1);z-index:1}
+.fut.silver{--c1:#f5f7fa;--c2:#cfd5dd;--c3:#8e98a6;--ink:#1e232b;--edge:#fff}
+.fut.bronze{--c1:#f3c9a2;--c2:#c8865a;--c3:#8a4e27;--ink:#34190a;--edge:#ffd9b8}
+.fut.icon{--c1:#fffaf0;--c2:#efe2bf;--c3:#c9a75a;--ink:#3b2c0a;--edge:#e8c76a}
+.futfr{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}
+.futfr path{fill:none;stroke:var(--edge);stroke-width:3;stroke-linejoin:round}.futfr .p15{display:none}
+.fut.icon .futfr path{stroke:url(#none) var(--edge);stroke-width:4;filter:drop-shadow(0 0 3px #c9a75a)}
+.futin{position:absolute;inset:0;clip-path:path('M34 10Q46 26 68 20Q96 12 125 12T182 20Q204 26 216 10L242 22L242 282Q242 298 228 306L141 343Q125 350 109 343L22 306Q8 298 8 282L8 22Z');color:var(--ink);overflow:hidden;
+  background:linear-gradient(115deg,transparent 28%,#ffffff60 33%,transparent 38%,transparent 56%,#ffffff38 59%,transparent 63%),radial-gradient(90% 55% at 80% 12%,#ffffffa0,transparent 60%),linear-gradient(165deg,var(--c1),var(--c2) 55%,var(--c3))}
+.fut.icon .futin{background:radial-gradient(circle at 50% 38%,transparent 0 92px,#c9a75a40 93px 95px,transparent 96px),repeating-conic-gradient(from 0deg at 50% 38%,#c9a75a14 0 6deg,transparent 6deg 12deg),radial-gradient(90% 55% at 80% 12%,#fff,transparent 60%),linear-gradient(165deg,var(--c1),var(--c2) 60%,var(--c3))}
+.futin::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,#ffffff70 48%,transparent 60%);transform:translateX(-130%);animation:futShine 4s ease-in-out 1.2s infinite;pointer-events:none;z-index:2}
+.fut.rare .futin::after{animation-duration:2.6s;background:linear-gradient(110deg,transparent 35%,#fff 48%,transparent 60%);opacity:.75}
+.futin>div{position:absolute}
+.fu-ovr{left:28px;top:48px;display:grid;justify-items:center;line-height:1}
+.fu-ovr b{font:800 3rem/.9 var(--display);letter-spacing:-.03em}
+.fu-ovr span{font:700 1.15rem/1.2 var(--display);letter-spacing:.03em}
+.fu-ps{left:34px;top:128px;width:30px;height:30px;display:grid;place-items:center;font-size:.9rem;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:color-mix(in srgb,var(--ink) 80%,transparent);color:var(--c1)}
+.fu-ps:empty{display:none}
+.fu-face{right:12px;top:30px;width:172px;height:172px;display:grid;place-items:end center}
+.face.futf{width:100%;height:100%}.face.futf::before{display:none}.face.futf svg{width:72%!important;height:72%!important;align-self:center}
+.face.futf.has img{filter:drop-shadow(0 6px 8px #0005)}
+.fu-nm{left:14px;right:14px;top:204px;text-align:center;font:700 1.5rem/1.1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-st{left:20px;right:20px;top:240px;display:grid;grid-template-columns:repeat(6,1fr);text-align:center}
+.fu-st div{display:flex;flex-direction:column-reverse;align-items:center;gap:1px}
+.fu-st span{font:700 .78rem/1 var(--display);opacity:.85}.fu-st b{font:700 1.3rem/1.1 var(--display)}
+.fu-st div:nth-child(1){order:1}.fu-st div:nth-child(3){order:2}.fu-st div:nth-child(5){order:3}.fu-st div:nth-child(2){order:4}.fu-st div:nth-child(4){order:5}.fu-st div:nth-child(6){order:6}
+.fu-nat,.fu-club{top:290px}
+.fu-nat{left:calc(50% - 40px)}.fu-club{left:calc(50% + 10px)}
+.fu-nat .flagw{position:relative;display:block;width:30px;height:20px}.fu-nat .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
+.crest.futcrest{width:28px;height:28px;font-size:.5rem;border-radius:5px;margin-top:-4px}
+.fu-band{display:none}
+.fu-icon{left:0;right:0;top:20px;text-align:center;font:800 .7rem/1 var(--display);letter-spacing:.3em;color:#a8842c}
+@keyframes futIn{0%{opacity:0;transform:perspective(700px) rotateY(-70deg) scale(.85)}100%{opacity:1;transform:none}}
+@keyframes futShine{0%{transform:translateX(-130%)}35%,100%{transform:translateX(130%)}}
+/* FIFA 15: nombre arriba, media y posición a la izquierda con escudo y bandera, franja del estilo y 3 filas de 2 */
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .futin{clip-path:path('M8 36C70 34 92 8 125 8S180 34 242 36L242 306Q242 314 234 317L136 346Q125 349 114 346L16 317Q8 314 8 306Z');color:#fffbe8;text-shadow:0 1px 2px #0000008c;
+  background:linear-gradient(172deg,#ffffff66,transparent 34%),radial-gradient(circle at 74% 44%,transparent 0 58px,#ffffff30 59px 62px,transparent 63px 82px,#ffffff20 83px 86px,transparent 87px 110px,#ffffff14 111px 113px,transparent 114px),linear-gradient(180deg,var(--c1),var(--c2) 50%,var(--c3))}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut{--c1:#f4da70;--c2:#dfb83c;--c3:#b38a1c;--edge:#fff2b0}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.silver{--c1:#eef0f3;--c2:#c4cad2;--c3:#8a939f;--edge:#fff}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.silver .futin{color:#262a31;text-shadow:0 1px 0 #ffffffa0}html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.silver .fu-st div{border-bottom-color:#0000002a}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.bronze{--c1:#dca06a;--c2:#b06f3c;--c3:#7c4520;--edge:#f4c79b}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.icon{--c1:#fdfcff;--c2:#e2daf2;--c3:#a596cf;--edge:#fff}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.icon .futin{color:#463781;text-shadow:0 1px 0 #fff}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .futfr .p15{display:block}html:is([data-gfx="pes6"],[data-gfx="clasico"]) .futfr .pfc{display:none}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-nm{top:40px;font-size:1.55rem;text-transform:uppercase;letter-spacing:.04em}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr{left:26px;top:76px;display:flex;align-items:baseline;gap:6px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr b{font-size:2.4rem}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-club{left:30px;top:118px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .crest.futcrest{width:42px;height:42px;font-size:.65rem;margin:0}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-nat{left:30px;top:168px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-nat .flagw{width:42px;height:28px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-face{right:14px;top:70px;width:138px;height:138px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ps{display:none}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-band{display:flex;left:10px;right:10px;top:206px;height:28px;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,#00000014,#00000026);border-top:1px solid #ffffff55;border-bottom:1px solid #ffffff55;font:700 1rem/1 var(--display);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st{top:238px;left:30px;right:30px;grid-template-columns:1fr 1fr;column-gap:16px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st div{order:0!important;flex-direction:row;justify-content:flex-start;gap:6px;padding:1px 0;border-bottom:1px solid #ffffff38}.fu-st div:nth-last-child(-n+2){border-bottom:0}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st b{font-size:1.15rem;min-width:1.5em;text-align:right}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st span{font-size:.98rem;opacity:1}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-icon{top:24px;color:#7a68b8;text-shadow:none}
+.fu-band .emo{color:inherit!important}
+/* ----- la apertura: el sobre tiembla, destello, bandera → posición → escudo, y la carta gira con rayos ----- */
+.fopen{position:absolute;left:50%;top:0;width:250px;height:350px;margin-left:-125px;z-index:5;pointer-events:none}
+.fopen>*{position:absolute}
+.fo-beam{left:50%;bottom:-40px;width:150px;margin-left:-75px;height:420px;background:linear-gradient(0deg,transparent,var(--tc) 40%,#fff 60%,transparent);filter:blur(14px);opacity:0;animation:foBeam 1.4s ease .1s both}
+.fo-pack{left:50px;top:70px;width:150px;height:210px;border-radius:10px;display:grid;place-items:center;background:repeating-linear-gradient(135deg,#ffffff22 0 6px,transparent 6px 14px),linear-gradient(160deg,var(--tc),color-mix(in srgb,var(--tc) 45%,#000));box-shadow:0 0 30px var(--tc),inset 0 0 0 3px #ffffff80;font-size:3rem;animation:foPack 1.25s cubic-bezier(.3,1.2,.5,1) both}
+.fo-flash{inset:-60px;background:radial-gradient(circle,#fff 0 30%,transparent 70%);opacity:0;animation:foFlash .6s ease 1.05s both}
+.fo-w{left:0;right:0;top:110px;height:130px;display:grid;place-items:center;opacity:0}
+.fo-w1{animation:foWalk .7s ease 1.3s both}.fo-w2{animation:foWalk .7s ease 2s both}.fo-w3{animation:foWalk .7s ease 2.7s both}
+.fo-w1 .flagw{position:relative;display:block;width:120px;height:80px;box-shadow:0 0 30px var(--tc)}.fo-w1 .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
+.fo-w2 b{font:800 4.2rem/1 var(--display);color:#fff;text-shadow:0 0 18px var(--tc),0 3px 0 #0006}
+.fo-w b{font-size:4rem}
+.crest.fobig{width:110px;height:110px;font-size:1.6rem;border-radius:14px;box-shadow:0 0 30px var(--tc)}
+.fo-rays{position:absolute;left:50%;top:175px;width:760px;height:760px;margin:-380px 0 0 -380px;z-index:0;border-radius:50%;pointer-events:none;background:repeating-conic-gradient(from 0deg,var(--tc) 0 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(circle,#000 0 30%,transparent 70%);mask:radial-gradient(circle,#000 0 30%,transparent 70%);opacity:0;animation:foRays 2.4s ease-out 3.2s both}
+.fo-parts{left:50%;top:175px}
+.fo-parts i{position:absolute;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--tc);box-shadow:0 0 8px var(--tc),0 0 2px #fff;opacity:0;animation:foPart 1.1s ease-out 3.35s both}
+.fo-parts i:nth-child(3n){width:5px;height:5px;background:#fff}
+.fo-skip{pointer-events:auto;right:-14px;top:-6px;font:600 .78rem/1 var(--body,inherit);padding:.35rem .6rem;border-radius:99px;border:1px solid #ffffff60;background:#0008;color:#fff;cursor:pointer;animation:fadeOnly .3s ease .3s both}
+.fifa.opening::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 150px 200px,#2a2108e0,#000000f0 70%);animation:foDim 4.2s ease both}
+.fifa.opening .fifaside{z-index:5}
+@keyframes foDim{0%{opacity:0}8%,78%{opacity:1}100%{opacity:0}}
+.fifa.opening .fut{animation:futReveal 1s cubic-bezier(.2,1.25,.4,1) 3.2s both}
+.fifa.opening :is(.futbtns,.futinfo,.fifaside>.note){animation:fadeOnly .5s ease 3.8s both}
+.fifa.opening .fgrid{animation:fgIn .6s ease 3.6s both}
+.fifa.opening .fgrp,.fifa.opened .fgrp,.fifa.opened .fut{animation:none}
+@keyframes foBeam{0%{opacity:0;transform:scaleY(.2)}50%{opacity:.9;transform:none}100%{opacity:0}}
+@keyframes foPack{0%{opacity:0;transform:translateY(120px) scale(.6)}35%{opacity:1;transform:none}45%{transform:rotate(-4deg)}52%{transform:rotate(4deg)}59%{transform:rotate(-5deg) scale(1.03)}66%{transform:rotate(5deg) scale(1.05)}73%{transform:rotate(-6deg) scale(1.08)}80%{transform:rotate(0) scale(1.1);filter:brightness(1.3)}100%{opacity:0;transform:scale(1.6);filter:brightness(3)}}
+@keyframes foFlash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+@keyframes foWalk{0%{opacity:0;transform:scale(.5)}25%{opacity:1;transform:scale(1.08)}40%{transform:none}80%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+@keyframes futReveal{0%{opacity:0;transform:perspective(800px) rotateY(200deg) scale(.5)}55%{opacity:1;transform:perspective(800px) rotateY(-14deg) scale(1.1)}100%{opacity:1;transform:none}}
+@keyframes foRays{0%{opacity:0;transform:rotate(0) scale(.6)}25%{opacity:1}100%{opacity:0;transform:rotate(60deg) scale(1.1)}}
+@keyframes foPart{0%{opacity:0;transform:rotate(var(--a)) translateY(0)}10%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(-1 * var(--d) - 60px))}}
+@keyframes fadeOnly{from{opacity:0}}
 .futinfo{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;width:100%;max-width:270px;font-size:.86rem}
-.futinfo dt{color:var(--muted)}.futinfo dd{margin:0;font-weight:600;text-align:right}
-.fst{color:#e6a117;letter-spacing:1px}.fst s{text-decoration:none;color:var(--line)}
+.futinfo dd{margin:0;font-weight:600;text-align:right}
+.fst{color:#e6a117;letter-spacing:1px}.fst s{text-decoration:none;opacity:.3;color:currentColor}
 /* grupos de atributos, con el color de FIFA según el valor */
-.fgrid{columns:2 230px;column-gap:20px}
-.fgrid>.fgrp{break-inside:avoid;margin-bottom:16px}
+.fgrid{columns:2 230px;column-gap:16px}
+.fgrid>.fgrp{break-inside:avoid;margin-bottom:14px}
 .fgrp{gap:5px;animation:fgIn .4s ease both}.fgrp:nth-child(2){animation-delay:.04s}.fgrp:nth-child(3){animation-delay:.08s}.fgrp:nth-child(4){animation-delay:.12s}.fgrp:nth-child(5){animation-delay:.16s}.fgrp:nth-child(6){animation-delay:.2s}.fgrp:nth-child(7){animation-delay:.24s}
 .fat{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;row-gap:3px}
 .fatn{font-size:.86rem;cursor:help;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fatn:hover{color:var(--lc,var(--accent))}
 .fat>b{min-width:2.2em;text-align:center;font:700 .92rem/1.45 var(--display);color:#fff;background:var(--lc);border-radius:5px;text-shadow:0 1px 0 #0004}
-.fbar{grid-column:1/-1;height:4px;border-radius:99px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden}
+.fbar{grid-column:1/-1;height:4px;border-radius:99px;background:color-mix(in srgb,var(--sink) 14%,transparent);overflow:hidden}
 .fbar u{display:block;height:100%;background:var(--lc);border-radius:inherit;transform-origin:left;animation:fbGrow .6s cubic-bezier(.2,.9,.3,1) both}
 @keyframes fbGrow{from{transform:scaleX(0)}}
-@keyframes fgIn{from{opacity:0;transform:translateY(6px)}}
-@media (max-width:760px){.fifa{grid-template-columns:1fr}.fifaside{position:static}}
-@media (prefers-reduced-motion:reduce){.fut,.futin::after,.fgrp,.fbar u{animation:none!important}}
-/* Clásico: carta con borde biselado y grupos como ventanas */
-html[data-gfx="clasico"] .fut{filter:drop-shadow(2px 2px 0 #0006)}
-html[data-gfx="clasico"] .fat>b,html[data-gfx="clasico"] .fbar{border-radius:1px}
-html[data-gfx="clasico"] .fat>b{box-shadow:inset 1px 1px #fff6,inset -1px -1px #0005}
-html[data-gfx="clasico"] .fbar{height:6px;border:1px solid #808080;background:#fff}
+@keyframes fgIn{from{opacity:0;transform:translateY(8px)}}
+@media (max-width:760px){.fifa{grid-template-columns:1fr;padding:14px}}
+@media (prefers-reduced-motion:reduce){.fut,.futin::after,.fgrp,.fbar u,.fifa::before{animation:none!important}}
+/* Clásico: escenario gris de ventana, grupos como cuadros hundidos */
+html[data-gfx="clasico"] .fifa{border-radius:0;--sink:#000;--smut:#333;--pan:#fff;background:linear-gradient(180deg,color-mix(in srgb,var(--s2) 30%,#d4d0c8),#d4d0c8 160px);box-shadow:inset 1px 1px #808080,inset -1px -1px #fff}
+html[data-gfx="clasico"] .fifa::before{display:none}
+html[data-gfx="clasico"] .fgrp{border-radius:0;box-shadow:inset 1px 1px #808080,inset -1px -1px #fff,inset 2px 2px #404040;backdrop-filter:none}
+html[data-gfx="clasico"] .fut{filter:drop-shadow(2px 3px 0 #0006)}
+html[data-gfx="clasico"] .fat>b{border-radius:1px;box-shadow:inset 1px 1px #fff6,inset -1px -1px #0005}
+html[data-gfx="clasico"] .fbar{height:6px;border:1px solid #808080;background:#fff;border-radius:0}
 html[data-gfx="clasico"] .fbar u{border-radius:0}
-/* Retro: borde neón, sin redondeos */
-html[data-gfx="retro"] .fut{background:var(--neon);filter:drop-shadow(4px 4px 0 #000)}
-html[data-gfx="retro"] .futin{background:repeating-linear-gradient(0deg,#0000 0 2px,#0000001f 2px 3px),linear-gradient(170deg,var(--c1),var(--c2) 55%,var(--c3))}
+/* Retro: escenario de noche con brillo del color de la carta y líneas de TV */
+html[data-gfx="retro"] .fifa{border-radius:0;--sink:#e8f0ff;--smut:#9fb0e0;--pan:#0a1446d0;background:repeating-linear-gradient(0deg,#0000 0 2px,#0000002a 2px 3px),radial-gradient(circle at 140px 200px,color-mix(in srgb,var(--tc) 45%,transparent),transparent 320px),#060d33;box-shadow:inset 0 0 0 2px var(--neon),4px 4px 0 #000}
+html[data-gfx="retro"] .fifa::before{display:none}
+html[data-gfx="retro"] .fgrp{border-radius:0;box-shadow:inset 0 0 0 2px var(--line);backdrop-filter:none}
+html[data-gfx="retro"] .fut{filter:drop-shadow(4px 4px 0 #000)}
+html[data-gfx="retro"] .futin::before{content:"";position:absolute;inset:0;z-index:2;background:repeating-linear-gradient(0deg,#0000 0 2px,#00000018 2px 3px);pointer-events:none}
 html[data-gfx="retro"] .fat>b,html[data-gfx="retro"] .fbar,html[data-gfx="retro"] .fbar u{border-radius:0}
 html[data-gfx="retro"] .fbar{height:6px;background:#000;box-shadow:inset 0 0 0 1px var(--line)}
 html[data-gfx="retro"] .fbar u{background:repeating-linear-gradient(90deg,var(--lc) 0 6px,transparent 6px 8px)}
-/* PES 6: marco gris metálico como sus paneles, números en placas */
-html[data-gfx="pes6"] .fut{background:linear-gradient(180deg,#fafaf8,#6f6c64);filter:drop-shadow(0 0 0 #000) drop-shadow(0 8px 14px #0006)}
+/* PES 6: escenario oscuro con anillos como el menú de FIFA 15, títulos dorados y placas metálicas */
+html[data-gfx="pes6"] .fifa{border-radius:0;--sink:#eceae4;--smut:#a9a59b;--pan:#ffffff0d;border:1px solid #6f6c64;box-shadow:inset 0 1px #ffffff30,0 8px 20px -10px #000c;
+  background:radial-gradient(circle at 140px 200px,color-mix(in srgb,var(--tc) 28%,transparent),transparent 230px),radial-gradient(circle at 140px 200px,transparent 0 205px,#ffffff16 206px 208px,transparent 209px 268px,#ffffff0e 269px 271px,transparent 272px 340px,#ffffff0a 341px 343px,transparent 344px),linear-gradient(180deg,#2c2d32,#111216)}
+html[data-gfx="pes6"] .fifa::before{background:linear-gradient(115deg,transparent 42%,#ffffff12 48%,transparent 54%)}
+html[data-gfx="pes6"] .card div.fifa :is(h4,p,.note,label,.lab,.sub){color:var(--sink);background:none;-webkit-text-fill-color:currentColor;filter:none}
+html[data-gfx="pes6"] .card div.fifa h4>span{color:color-mix(in srgb,var(--tc) 85%,#fff);text-shadow:0 1px 0 #000,0 0 10px color-mix(in srgb,var(--tc) 40%,transparent);font-size:1.1rem}
+html[data-gfx="pes6"] .card div.fifa .note{color:var(--smut)}
+html[data-gfx="pes6"] .fifa .abgrp h4{border-bottom:1px solid #ffffff2a;box-shadow:none}
+html[data-gfx="pes6"] .fgrp{border-radius:0;border:1px solid #ffffff1f;box-shadow:inset 0 1px #ffffff14;backdrop-filter:none}
+html[data-gfx="pes6"] .fatn,html[data-gfx="pes6"] .futinfo dd:not(.fst){color:#eceae4}html[data-gfx="pes6"] .fatn{font-size:.8rem}
+html[data-gfx="pes6"] .card .fst .emo{color:inherit;text-shadow:none}
 html[data-gfx="pes6"] .fat>b{border-radius:0;border:1px solid color-mix(in srgb,var(--lc) 60%,#000);background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 55%,#fff),var(--lc) 55%,color-mix(in srgb,var(--lc) 80%,#000))}
-html[data-gfx="pes6"] .fbar{border-radius:0;height:6px;background:linear-gradient(180deg,#bdbab2,#e4e2db);box-shadow:inset 0 1px #0003}
+html[data-gfx="pes6"] .fbar{border-radius:0;height:5px;background:#ffffff14;box-shadow:inset 0 1px #0006}
 html[data-gfx="pes6"] .fbar u{border-radius:0;background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 50%,#fff),var(--lc) 60%)}
-html[data-gfx="pes6"] .futinfo dd:not(.fst){color:#1c1c1a}html[data-gfx="pes6"] .card .fst .emo{color:inherit;text-shadow:0 1px 0 #fff}html[data-gfx="pes6"] .fst s{color:#b9b6ad}html[data-gfx="pes6"] .fatn{color:#1c1c1a}
+html[data-gfx="pes6"] .fifa .futbtns .btn:not([aria-pressed="true"]){filter:none}

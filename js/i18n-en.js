@@ -3875,5 +3875,12 @@ Object.assign(I18N_EN, {
 "Intercepciones":"Interceptions","Precisión de cabeza":"Heading accuracy","Conciencia defensiva":"Def. awareness","Entrada de pie":"Standing tackle","Entrada deslizante":"Sliding tackle",
 "Fuerza":"Strength","Estirada":"Diving","Paradas":"Handling","Saque":"Kicking","Colocación":"Positioning",
 "RIT":"PAC","TIR":"SHO","REG":"DRI","FÍS":"PHY","EST":"DIV","PAR":"HAN","SAQ":"KIC","VEL":"SPD","COL":"POS",
-"POR":"GK","DFC":"CB","LI":"LB","LD":"RB","MCD":"CDM","MC":"CM","MI":"LM","MD":"RM","MCO":"CAM","EI":"LW","ED":"RW","SD":"CF","DC":"ST"
+"POR":"GK","DFC":"CB","LI":"LB","LD":"RB","MCD":"CDM","MC":"CM","MI":"LM","MD":"RM","MCO":"CAM","EI":"LW","ED":"RW","SD":"CF","DC":"ST",
+"Abrir sobre":"Open pack",
+"Leyenda":"Legend",
+"Saltar ⏭":"Skip ⏭",
+"Básico":"Basic",
+"ÍCONO":"ICON",
+"Juega en un equipo clásico: se lo toma como leyenda":"Plays for a classic team, so he counts as a legend",
+"Marcarlo como leyenda muestra la carta ícono":"Marking him as a legend shows the icon card"
 });

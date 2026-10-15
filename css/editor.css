@@ -1427,6 +1427,15 @@ html[data-gfx="pes6"] .crestnew.empty{border-color:#8f8c84}
 .crestthumb img{max-width:84px;max-height:84px}
 .crestthumb figcaption{font-family:var(--mono);text-align:center}.crestthumb small{color:var(--muted)}.crestthumb .crestfix{display:block;color:var(--accent);font-weight:600}
 @media (max-width:700px){.crestup .crestrow{grid-template-columns:auto auto}.crestinfo{grid-column:1/-1}}
+/* Escudos de PES Logos */
+.plbox{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--sunk)}
+.plbox .row input[type=search]{flex:1;min-width:0}
+.plgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;max-height:360px;overflow:auto;padding:2px}
+.plitem{display:grid;gap:4px;justify-items:center;align-content:start;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:inherit;font:inherit;font-size:.72rem;text-align:center;cursor:pointer}
+.plitem:hover,.plitem:focus-visible{border-color:var(--accent);background:var(--accent-soft)}.plitem:disabled{opacity:.6;cursor:wait}
+.plimg{width:84px;height:84px;display:grid;place-items:center}.plimg img{max-width:100%;max-height:100%}
+.plitem b{font-weight:600;line-height:1.2}.plitem small{color:var(--muted)}
+.plsrc{font-size:.72rem;color:var(--muted);margin:0}
 .mfcard .mfrow{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:18px;align-items:start}
 .mfbox{display:grid;gap:6px;justify-items:center}
 .mfnow .face{width:120px;height:120px}

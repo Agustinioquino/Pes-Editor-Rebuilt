@@ -1184,7 +1184,7 @@ function dbPlayerSheet(id) {
   const n = S.names.get(id) || {}, o = DBRAW && DBRAW.off.get(id), cl = dbClubs(id), c0 = dbClubOf(id), ct = c0 && S.ix.teamById.get(c0.tid), inEdit = S.ix.byId.has(id);
   const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, shirt = o != null ? dbStr(o + 0x81, 61) : '';
   const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0, [fn0, ln0] = splitName(playerName(id));
-  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del juego</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
+  const abil = o != null ? `<div class="card"><h3>Habilidades en la base del juego</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro abt" data-t="${abT(v)}"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
     <div class="grid" style="margin-top:12px">${[['Uso de pierna mala', 'weak_use', 1], ['Precisión de pierna mala', 'weak_acc', 1], ['Estado de forma', 'form', 1], ['Resistencia a lesiones', 'injury', 0]].map(([l, k, add]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="f"><span class="lab">${l}</span><b>${k === 'injury' ? ['C', 'B', 'A'][v] || v : v + add}</b></div>`; }).join('')}</div></div>` : '<div class="card"><p class="note">Las habilidades se ven cuando la copia de Player.bin está en la carpeta Sider.</p></div>';
   return `<div class="card dbsheet">
     <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
@@ -1385,17 +1385,34 @@ function tabPos(p) {
       <div class="row"><button class="btn small" id="ppClear" type="button">Dejar solo la registrada</button></div>
     </div></div>`;
 }
+// nivel de una habilidad para el color: 90+ rojo, 80+ naranja, 70+ amarillo, 60+ verde, menos gris (la escala de PES)
+const abT = v => v >= 90 ? 4 : v >= 80 ? 3 : v >= 70 ? 2 : v >= 60 ? 1 : 0;
+const abP = v => Math.round((v - 40) / 59 * 100) + '%';
+function abAvg(p, list) { return Math.round(list.reduce((a, [k]) => a + pget(p, k), 0) / list.length); }
+// una fila: nombre, barra (se arrastra) y − número +
+function abRow(k, n, v) {
+  return `<div class="abr abt" data-abk="${k}" data-t="${abT(v)}" style="--p:${abP(v)}"><span class="abn" title="${n}">${n}</span>
+    <input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}">
+    <span class="abctl"><button type="button" class="abstep" data-abstep="-1" data-k="${k}" title="Bajar uno" aria-label="Bajar uno">−</button><input type="number" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"><button type="button" class="abstep" data-abstep="1" data-k="${k}" title="Subir uno" aria-label="Subir uno">+</button></span></div>`;
+}
+// pierna mala, forma y lesiones: barras con color como Estrellas y Actitud (acá el primer valor también es un nivel)
+function lvlSeg(k, v, labels, label) {
+  const n = labels.length, f = (v + 1) / n, t = f >= 1 ? 4 : f > .7 ? 3 : f > .45 ? 2 : f > .25 ? 1 : 0;
+  return `<div class="lvl lvgen" data-segk="${k}" data-max="${n - 1}" data-t="${t}" role="group" aria-label="${label}">${lvlStep(-1, v, n - 1)}${labels.map((l, i) => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${l}"><i></i></button>`).join('')}<b class="lvnum">${labels[v] ?? v}</b>${lvlStep(1, v, n - 1)}</div>`;
+}
 function tabAbil(p) {
   const g = k => pget(p, k);
   return `${hexaCard(p)}<div class="row" style="justify-content:space-between"><h3>Habilidades (40 a 99)</h3>
     <div class="row"><button class="btn small" data-bulk="-1" type="button">−1 a todas</button><button class="btn small" data-bulk="1" type="button">+1 a todas</button>
     <input type="number" id="bulkSet" min="40" max="99" placeholder="Valor" style="width:80px" aria-label="Valor para todas"><button class="btn small" id="bulkSetBtn" type="button">Poner todas</button></div></div>
-  <div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, n]) => { const v = g(k); return `<div class="ab"><div class="l"><span>${n}</span><input type="range" min="40" max="99" value="${v}" data-k="${k}" data-twin="1" aria-label="${n}"></div><input type="number" class="${vcls(v)}" min="40" max="99" value="${v}" data-k="${k}" aria-label="${n}"></div>`; }).join('')}</div>`).join('')}</div>
-  <div class="grid">
-    <div class="f"><span class="lab">Uso de pierna mala</span>${seg('weak_use', ['1', '2', '3', '4'], g('weak_use'))}</div>
-    <div class="f"><span class="lab">Precisión de pierna mala</span>${seg('weak_acc', ['1', '2', '3', '4'], g('weak_acc'))}</div>
-    <div class="f"><span class="lab">Estado de forma</span>${seg('form', ['1', '2', '3', '4', '5', '6', '7', '8'], g('form'))}</div>
-    <div class="f"><span class="lab">Resistencia a lesiones</span>${seg('injury', ['C', 'B', 'A'], g('injury'))}</div>
+  <div class="abscale" aria-hidden="true">${[['4', '90-99'], ['3', '80-89'], ['2', '70-79'], ['1', '60-69'], ['0', '40-59']].map(([t, r]) => `<span class="abt" data-t="${t}"><i></i>${r}</span>`).join('')}</div>
+  <div class="groups abgroups">${ABIL_GROUPS.map(([gn, list]) => { const a = abAvg(p, list); return `<div class="group abgrp"><h4>${gn}<b class="gavg abt" data-gavg="${gn}" data-t="${abT(a)}" title="Promedio">${a}</b></h4>${list.map(([k, n]) => abRow(k, n, g(k))).join('')}</div>`; }).join('')}</div>
+  <h3 class="sec">Pierna mala, forma y lesiones</h3>
+  <div class="lvls">
+    <div class="f"><span class="lab">Uso de pierna mala</span>${lvlSeg('weak_use', g('weak_use'), ['1', '2', '3', '4'], 'Uso de pierna mala')}</div>
+    <div class="f"><span class="lab">Precisión de pierna mala</span>${lvlSeg('weak_acc', g('weak_acc'), ['1', '2', '3', '4'], 'Precisión de pierna mala')}</div>
+    <div class="f"><span class="lab">Estado de forma</span>${lvlSeg('form', g('form'), ['1', '2', '3', '4', '5', '6', '7', '8'], 'Estado de forma')}</div>
+    <div class="f"><span class="lab">Resistencia a lesiones</span>${lvlSeg('injury', g('injury'), ['C', 'B', 'A'], 'Resistencia a lesiones')}</div>
   </div>`;
 }
 function tabSkills(p) {
@@ -1455,6 +1472,15 @@ const COPY_KEYS = {
   look: [...BODY.map(b => b[0]), 'skin_col', 'iris_col', 'boot_id', 'glove_id', 'gloves', 'gloves_col', 'sleeve', 'inners', 'socks', 'undershorts', 'wrist_tape', 'wrist_col_l', 'wrist_col_r', 'spec_style', 'spec_col', 'untucked', 'ankle_tape'],
   motion: MOTION.map(mm => mm[0]),
 };
+// pinta una fila de habilidad (color y largo de la barra) sin redibujar la ficha
+function abPaint(row, v) { row.dataset.t = abT(v); row.style.setProperty('--p', abP(v)); }
+// después de cambiar una habilidad: su fila, el promedio del grupo y el hexágono
+function abLive(p, k) {
+  const sh = $('plSheet'); if (!sh) return;
+  const row = sh.querySelector(`.abr[data-abk="${k}"]`); if (row) abPaint(row, pget(p, k));
+  for (const [gn, list] of ABIL_GROUPS) { if (!list.some(x => x[0] === k)) continue; const b = sh.querySelector(`[data-gavg="${gn}"]`); if (b) { const a = abAvg(p, list); b.textContent = a; b.dataset.t = abT(a); } }
+  if (typeof hexaPaint === 'function' && $('hxWrap')) hexaPaint(p, hexaAxes(pget(p, 'reg_pos')), null);
+}
 function bindPlayer(p, m) {
   const sh = $('plSheet'), rer = () => later(() => renderPlayers(m));
   const nm = () => pget(p, 'name') || 'ID ' + p.id;
@@ -1470,8 +1496,9 @@ function bindPlayer(p, m) {
   if (S.ptab === 'abil') hexaBind(p, rer);
   sh.addEventListener('input', e => {
     const el = e.target; if (el.type !== 'range') return;
-    const ab = el.closest('.ab'); if (!ab) return;
+    const ab = el.closest('.ab,.abr'); if (!ab) return;
     const tw = el.dataset.twin ? ab.querySelector('input[type=number]') : null; if (tw) { tw.value = el.value; tw.className = vcls(+el.value); }
+    if (ab.classList.contains('abr')) abPaint(ab, +el.value);
     const o = ab.querySelector('output'); if (o) { const d = +el.value - 7; o.textContent = (d > 0 ? '+' : '') + d; }
   });
   // nombre y apellido: se juntan en el único nombre que guarda el juego
@@ -1500,17 +1527,18 @@ function bindPlayer(p, m) {
     else { v = Math.round(parseFloat(el.value)); if (isNaN(v)) return; if (el.min !== '' && v < +el.min) v = +el.min; if (el.max !== '' && v > +el.max) v = +el.max; el.value = v; if (el.dataset.off) v -= +el.dataset.off; }
     setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k));
     if (k === 'reg_pos') { const pp = 'pos' + POS_TO_PP[v]; if (pget(p, pp) < 2) setP(p, pp, 2, nm() + ': posiciones'); }
-    if (ABIL.some(a => a[0] === k)) sh.querySelectorAll(`[data-k="${k}"]`).forEach(x => { if (x !== el) x.value = el.value; if (x.type === 'number') x.className = vcls(+el.value); });
+    if (ABIL.some(a => a[0] === k)) { sh.querySelectorAll(`[data-k="${k}"]`).forEach(x => { if (x !== el) x.value = el.value; if (x.type === 'number') x.className = vcls(+el.value); }); abLive(p, k); }
     if (['name', 'reg_pos', 'nation', 'age', 'height', 'strong_foot', 'play_style'].includes(k) || el.type === 'checkbox') rer();
     else updateLockUi(p);
   });
   sh.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
     if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
     const sg = b.closest('[data-segk]');
     if (sg && b.dataset.step) { const k = sg.dataset.segk, v = Math.max(0, Math.min(+sg.dataset.max, pget(p, k) + +b.dataset.step)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); rer(); } return; }
-    if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.classList.contains('lvl') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0
+    if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.matches('.lvstar,.lvatt') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0
     if (b.dataset.pp != null) { const k = 'pos' + POS_TO_PP[+b.dataset.pp]; setP(p, k, (pget(p, k) + 1) % 3, nm() + ': posiciones'); rer(); return; }
     if (b.id === 'ppClear') { const reg = pget(p, 'reg_pos'); edit(nm() + ': posiciones', 'p' + p.id, regP(p), () => { POS_TO_PP.forEach((pp, i) => PD.player.set(S.d, p.base, 'pos' + pp, i === reg ? 2 : 0)); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }
     if (b.dataset.bulk) { const d = +b.dataset.bulk; edit(nm() + ': ' + (d > 0 ? '+1' : '−1') + ' a todas las habilidades', 'p' + p.id, regP(p), () => { for (const [k] of ABIL) PD.player.set(S.d, p.base, k, Math.max(40, Math.min(99, PD.player.get(S.d, p.base, k) + d))); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }

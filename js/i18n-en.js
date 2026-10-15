@@ -3822,6 +3822,8 @@ Object.assign(I18N_EN, {
 "Nivel {x}":"Level {x}",
 "Tocá de nuevo para dejarlo en 0":"Tap again to set it to 0",
 "Bajar uno":"Down one",
+"Pierna mala, forma y lesiones":"Weak foot, form and injuries",
+"Promedio":"Average",
 "Subir uno":"Up one",
 "Escribí primero el apellido.":"Type the last name first.",
 "El jugador necesita un nombre o un apellido.":"The player needs a first or last name.",

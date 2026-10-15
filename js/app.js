@@ -1534,10 +1534,10 @@ function fifaCard(p) {
   const order = [0, 3, 1, 4, 2, 5];
   // como en FC: posiciones donde rinde al máximo (pestañas a la derecha), "+" según cantidad de habilidades especiales,
   // y abajo pie hábil, pierna mala y altura
-  const alt = FIFA_POS.map((n, i) => i !== reg && g('pos' + POS_TO_PP[i]) === 2 ? n : null).filter(Boolean).slice(0, 4);
+  const alt = FIFA_POS.map((n, i) => [n, i !== reg ? g('pos' + POS_TO_PP[i]) : 0]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const nsk = SKILLS.flatMap(x => x[1]).filter(([i]) => g('sk' + i)).length, plus = nsk >= 10 ? '++' : nsk >= 5 ? '+' : '';
   return `<div class="fut ${tier}${ovr >= 80 && tier !== 'icon' ? ' rare' : ''}">
-    ${alt.length ? `<div class="fu-alt">${alt.map(n => `<span>${n}</span>`).join('')}</div>` : ''}
+    ${alt.length ? `<div class="fu-alt" title="Otras posiciones: A domina, B puede jugar">${alt.map(([n, v]) => `<span class="${v === 2 ? '' : 'b'}">${n}</span>`).join('')}</div>` : ''}
     <div class="fu-tabs"><span title="Pie hábil">${g('strong_foot') ? 'L' : 'R'}</span><span title="Pierna mala">${g('weak_acc') + 1}★</span><span title="Altura">${g('height')}</span></div>
     <svg class="futfr" viewBox="0 0 250 350" aria-hidden="true"><path class="p15" d="${FUT_PATH.f15}"/><path class="pfc" d="${FUT_PATH.fc}"/></svg>
     <div class="futin">
@@ -1655,11 +1655,21 @@ function skillsBlock(p) {
 // la apertura ocupa toda la pestaña: sobre que tiembla, destello, bandera → posición → escudo, y la carta aparece
 // grande en el centro con rayos antes de ir a su lugar (como en FIFA). Se puede saltar, repetir o apagar.
 function fifaOpening(p) {
-  const c = clubOf(p.id), reg = pget(p, 'reg_pos');
-  return `<div class="fopen" aria-hidden="true"><i class="fo-beam"></i><i class="fo-pack"><b>⚽</b></i><i class="fo-flash"></i>
+  const c = clubOf(p.id), reg = pget(p, 'reg_pos'), tier = fifaTier(p);
+  return `<div class="fopen" aria-hidden="true" data-ovr="${rating(p)}"><i class="fo-beam"></i>
+    <div class="fo-pack" tabindex="0" role="button" aria-label="Abrir el sobre"><div class="fo-top" title="Pasá el mouse de lado a lado para rasgarlo"><i class="fo-cut"></i></div><div class="fo-body"><b>⚽</b><span>${{ gold: 'Oro', silver: 'Plata', bronze: 'Bronce', icon: 'Ícono' }[tier]}</span></div></div>
+    <i class="fo-hand">👆</i><p class="fo-hint">Pasá el mouse por la parte de arriba del sobre para rasgarlo</p>
+    <i class="fo-flash"></i>
     <div class="fo-w fo-w1">${natFlag(pget(p, 'nation')) || '<b>🌍</b>'}</div><div class="fo-w fo-w2"><b>${FIFA_POS[reg] || ''}</b></div><div class="fo-w fo-w3">${c ? crest(c, 'fobig') : '<b>⚽</b>'}</div>
+    <div class="fo-conf">${fifaConfetti(tier)}</div>
     <i class="fo-rays"></i><div class="fo-parts">${Array.from({ length: 22 }, (_, i) => `<i style="--a:${i * 360 / 22}deg;--d:${(i % 4) * 50 + 120}px"></i>`).join('')}</div></div>
     <button type="button" class="fo-skip" data-foskip>Saltar ⏭</button>`;
+}
+// confeti que sale disparado del sobre al rasgarlo (más papelitos y del color de la carta si es oro o ícono)
+function fifaConfetti(tier) {
+  const big = tier === 'gold' || tier === 'icon', tc = { gold: '#f5c542', silver: '#d9dee6', bronze: '#c98a52', icon: '#f0d68a' }[tier];
+  const cols = [tc, tc, '#ffffff', '#3ad17d', '#29a8ff', '#ff4f7b', '#ffd23f', '#a970ff'], r = (a, b) => a + Math.random() * (b - a);
+  return Array.from({ length: big ? 90 : 60 }, () => `<i style="--x:${Math.round(r(-560, 560))}px;--y:${Math.round(r(180, 440))}px;--r:${Math.round(r(-900, 900))}deg;--c:${cols[Math.floor(Math.random() * cols.length)]};--d:${r(0, .3).toFixed(2)}s;--t:${r(2.4, 3.6).toFixed(2)}s"></i>`).join('');
 }
 const fifaPref = k => PREFS[k] !== false;
 function fifaView(p) {
@@ -1684,29 +1694,68 @@ function fifaView(p) {
     <div class="fright">${skills}<div class="fgrid">${groups.join('')}</div></div>
   </div>`;
 }
-// sonidos de la apertura, hechos con el sintetizador del navegador (sin archivos): retumbo del sobre, explosión,
-// un golpe por cada dato (bandera, posición, escudo) y el acorde brillante de la carta
-function fifaSound(tier) {
+// sonidos de la apertura, hechos con el sintetizador del navegador (sin archivos): la tira que se arranca, la explosión,
+// un golpe por cada dato (bandera, posición, escudo), el acorde brillante de la carta y la tribuna según la media
+function fifaSound(tier, ovr) {
   if (!fifaPref('fifaSnd')) return () => { };
   let c; try { c = sfxCtx(); } catch { } if (!c) return () => { };
-  const t = c.currentTime + .05, out = c.createGain(); out.gain.value = Math.max(.05, (GFX().sfxVol ?? .5)) * .9; out.connect(c.destination);
-  const noise = (() => { const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })();
+  const t = c.currentTime + .03, out = c.createGain(); out.gain.value = Math.max(.05, (GFX().sfxVol ?? .5)) * .9; out.connect(c.destination);
+  const { osc, nz } = fifaSynth(c, out, t);
+  // la tira que se arranca y la explosión del sobre
+  nz(0, .35, .45, 'bandpass', 2500, 900, .005, 1.5); nz(.5, 1.1, .55, 'lowpass', 6000, 200); osc('sine', 120, 35, .5, .9, .6);
+  // bandera, posición y escudo: un golpe grave cada uno, más un brillo
+  [1.15, 2.15, 3.15].forEach((at, i) => { osc('sine', 160 - i * 10, 55, at, .5, .7); nz(at, .12, .25, 'highpass', 3000, 6000); osc('triangle', 660 * (1 + i * .26), 660 * (1 + i * .26), at, .4, .05); });
+  // la carta: platillo y acorde que sube (oro e ícono, más largo y con coro)
+  nz(4.1, 1.8, .35, 'highpass', 5000, 9000, .005);
+  const big = tier === 'gold' || tier === 'icon', base = tier === 'bronze' ? 392 : tier === 'silver' ? 440 : 523.25;
+  [1, 1.26, 1.5, 2].forEach((m, i) => osc('triangle', base * m, base * m, 4.1 + i * .08, big ? 2.1 : 1.3, .09));
+  if (big) [.5, .75, 1].forEach(m => osc('sawtooth', base * m, base * m * 1.003, 4.2, 2.3, .025, .4));
+  fifaCrowd(c, out, t, tier === 'icon' || ovr >= 80 ? 2 : ovr >= 70 ? 1 : 0);
+  return () => { try { out.gain.cancelScheduledValues(c.currentTime); out.gain.setTargetAtTime(0, c.currentTime, .05); setTimeout(() => out.disconnect(), 400); } catch { } };
+}
+// la tribuna: con media alta (80+ o ícono) ovación con aplausos, gritos y silbidos de festejo; de 70 a 79 aplausos;
+// con menos de 70 silbatina y la hinchada gritando. Empieza como murmullo al romper el sobre y explota con la carta.
+function fifaCrowd(c, out, t, lvl) {
+  const sr = c.sampleRate, R = (a, b) => a + Math.random() * (b - a);
+  const bus = c.createGain(); bus.connect(out);
+  const swell = (node, pts) => { const g = c.createGain(); g.gain.setValueAtTime(0, t); pts.forEach(([at, v]) => g.gain.linearRampToValueAtTime(v, t + at)); node.connect(g); g.connect(bus); return g; };
+  // hinchada: ruido con las resonancias de muchas voces juntas
+  const noise = SFX.noise, voices = (at, dur, pts) => { [[420, 1.4, 1], [950, 2, .7], [2300, 3, .3]].forEach(([f, q, k]) => { const s = c.createBufferSource(); s.buffer = noise; s.loop = true; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; s.connect(bp); swell(bp, pts.map(([a, v]) => [a, v * k * 3])); s.start(t + at, Math.random()); s.stop(t + at + dur); }); };
+  // gritos: varias voces que suben de tono ("¡uuuh!" / "¡eeeh!")
+  const shouts = (at, n, up, peak) => { for (let i = 0; i < n; i++) { const o = c.createOscillator(), bp = c.createBiquadFilter(), g = c.createGain(), a = at + R(0, .5), f = R(170, 330), d = R(1.2, 2.2); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t + a); o.frequency.linearRampToValueAtTime(f * up, t + a + .5); o.frequency.linearRampToValueAtTime(f * up * .92, t + a + d); bp.type = 'bandpass'; bp.frequency.value = R(650, 1100); bp.Q.value = 3; g.gain.setValueAtTime(0, t + a); g.gain.linearRampToValueAtTime(peak, t + a + .15); g.gain.setValueAtTime(peak, t + a + d - .4); g.gain.linearRampToValueAtTime(0, t + a + d); o.connect(bp); bp.connect(g); g.connect(bus); o.start(t + a); o.stop(t + a + d + .05); } };
+  // silbidos: festejo (de dedos, sube y baja) o silbatina (largos y parejos, muchos a la vez)
+  const whistle = (at, f, d, peak, fest) => { const o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), g = c.createGain(); o.type = 'sine'; lfo.frequency.value = R(5, 9); lg.gain.value = f * .012; lfo.connect(lg); lg.connect(o.frequency);
+    if (fest) { o.frequency.setValueAtTime(f * .6, t + at); o.frequency.exponentialRampToValueAtTime(f, t + at + .12); o.frequency.setValueAtTime(f, t + at + d * .55); o.frequency.exponentialRampToValueAtTime(f * .7, t + at + d * .7); o.frequency.exponentialRampToValueAtTime(f * 1.05, t + at + d); }
+    else { o.frequency.setValueAtTime(f, t + at); o.frequency.linearRampToValueAtTime(f * R(.97, 1.03), t + at + d); }
+    g.gain.setValueAtTime(0, t + at); g.gain.linearRampToValueAtTime(peak, t + at + .06); g.gain.setValueAtTime(peak, t + at + d - .1); g.gain.linearRampToValueAtTime(0, t + at + d); o.connect(g); g.connect(bus); [o, lfo].forEach(x => { x.start(t + at); x.stop(t + at + d + .05); }); };
+  // aplausos: miles de palmas cortas armadas en un buffer
+  const claps = (at, dur, dens, pts) => { const len = Math.floor(sr * dur), b = c.createBuffer(1, len, sr), d = b.getChannelData(0); for (let k = 0, n = dur * dens; k < n; k++) { const s0 = Math.floor(Math.random() * (len - 2000)), L = 300 + Math.floor(Math.random() * 900), amp = R(.2, 1); for (let j = 0; j < L; j++) d[s0 + j] += (Math.random() * 2 - 1) * amp * Math.exp(-j / (L * .22)); } const s = c.createBufferSource(); s.buffer = b; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700; const bp = c.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = 1800; bp.gain.value = 6; s.connect(hp); hp.connect(bp); swell(bp, pts.map(([a, v]) => [a, v * 1.6])); s.start(t + at); };
+  // murmullo mientras pasan bandera, posición y escudo
+  voices(.5, 7, [[.5, 0], [1.4, .05], [3.9, .09], [4.3, lvl === 1 ? .12 : .22], [6.2, .16], [7.4, 0]]);
+  if (lvl === 2) {
+    claps(4, 3.4, 260, [[4, 0], [4.35, .32], [6.4, .26], [7.4, 0]]);
+    shouts(4.05, 10, 1.35, .028);
+    [4.4, 4.9, 5.5, 6.1].forEach(a => whistle(a + R(0, .2), R(2400, 3300), R(.55, .8), .06, true));
+  } else if (lvl === 1) {
+    claps(4.1, 3, 150, [[4.1, 0], [4.5, .22], [6.3, .14], [7.2, 0]]);
+    whistle(4.7, R(2600, 3100), .6, .045, true);
+  } else {
+    shouts(4.1, 7, 1.15, .024);
+    for (let i = 0; i < 12; i++) whistle(4.1 + R(0, 1.6), R(2300, 3600), R(1, 2.2), .028, false);
+    claps(4.6, 1.6, 30, [[4.6, 0], [4.9, .08], [6, 0]]);
+  }
+}
+function fifaSynth(c, out, t) {
+  const noise = SFX.noise || (SFX.noise = (() => { const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })());
   const env = (node, at, a, peak, dur) => { const e = c.createGain(); e.gain.setValueAtTime(0, t + at); e.gain.linearRampToValueAtTime(peak, t + at + a); e.gain.exponentialRampToValueAtTime(.0005, t + at + dur); node.connect(e); e.connect(out); return e; };
   const osc = (type, f0, f1, at, dur, peak, a = .01) => { const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur); env(o, at, a, peak, dur); o.start(t + at); o.stop(t + at + dur + .05); };
-  const nz = (at, dur, peak, type, f0, f1, a = .005, q = 1) => { const s = c.createBufferSource(); s.buffer = noise; const f = c.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t + at); f.frequency.exponentialRampToValueAtTime(f1, t + at + dur); s.connect(f); env(f, at, a, peak, dur); s.start(t + at); s.stop(t + at + dur + .05); };
-  // sobre que tiembla: retumbo que sube
-  osc('sawtooth', 45, 110, 0, 1.05, .12, .5); nz(0, 1.05, .18, 'lowpass', 200, 900, .6);
-  for (let i = 0; i < 6; i++) nz(.45 + i * .09, .07, .1, 'bandpass', 1800, 1200, .005, 4);
-  // explosión del destello
-  nz(1.05, 1, .55, 'lowpass', 6000, 200); osc('sine', 120, 35, 1.05, .8, .6);
-  // bandera, posición y escudo: un golpe grave cada uno, más un brillo
-  [1.3, 2, 2.7].forEach((at, i) => { osc('sine', 160 - i * 10, 55, at, .45, .7); nz(at, .12, .25, 'highpass', 3000, 6000); osc('triangle', 660 * (1 + i * .26), 660 * (1 + i * .26), at, .35, .05); });
-  // la carta: platillo y acorde que sube (oro e ícono, más largo y con coro)
-  nz(3.2, 1.6, .35, 'highpass', 5000, 9000, .005);
-  const big = tier === 'gold' || tier === 'icon', base = tier === 'bronze' ? 392 : tier === 'silver' ? 440 : 523.25;
-  [1, 1.26, 1.5, 2].forEach((m, i) => osc('triangle', base * m, base * m, 3.2 + i * .07, big ? 1.8 : 1.1, .09));
-  if (big) [.5, .75, 1].forEach(m => osc('sawtooth', base * m, base * m * 1.003, 3.3, 2, .025, .4));
-  return () => { try { out.gain.cancelScheduledValues(c.currentTime); out.gain.setTargetAtTime(0, c.currentTime, .05); setTimeout(() => out.disconnect(), 400); } catch { } };
+  const nz = (at, dur, peak, type, f0, f1, a = .005, q = 1) => { const s = c.createBufferSource(); s.buffer = noise; const f = c.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t + at); f.frequency.exponentialRampToValueAtTime(f1, t + at + dur); s.connect(f); env(f, at, a, peak, dur); s.start(t + at, Math.random()); s.stop(t + at + dur + .05); };
+  return { osc, nz };
+}
+// el ruidito de papel mientras se rasga
+function fifaRip(k) {
+  if (!fifaPref('fifaSnd')) return;
+  try { const c = sfxCtx(); if (!c) return; const out = c.createGain(); out.gain.value = Math.max(.05, (GFX().sfxVol ?? .5)) * .6; out.connect(c.destination); setTimeout(() => out.disconnect(), 300); fifaSynth(c, out, c.currentTime).nz(0, .07 + Math.random() * .05, .25 + k * .25, 'bandpass', 1800 + Math.random() * 2500, 900, .003, 2.5); } catch { }
 }
 // arranca y termina la apertura (sola o al tocar)
 function fifaBind(sh) {
@@ -1715,10 +1764,25 @@ function fifaBind(sh) {
   card.style.setProperty('--fx', Math.round(fr.left + fr.width / 2 - (cr.left + cr.width / 2)) + 'px');
   card.style.setProperty('--fy', Math.round(Math.min(fr.height, innerHeight) / 2 - (cr.top - fr.top) - cr.height / 2) + 'px');
   f.style.setProperty('--cy', Math.round(Math.min(fr.height, innerHeight) / 2) + 'px');
-  const stop = fifaSound((card.className.match(/\b(gold|silver|bronze|icon)\b/) || [])[1]);
-  const end = () => { clearTimeout(t); stop(); f.classList.remove('opening'); f.classList.add('opened'); f.querySelectorAll('.fopen,.fo-skip').forEach(o => o.remove()); };
-  const t = setTimeout(() => { f.querySelectorAll('.fopen,.fo-skip').forEach(o => o.remove()); f.classList.remove('opening'); f.classList.add('opened'); }, 5600);
-  f.addEventListener('click', end, { once: true });
+  const tier = (card.className.match(/\b(gold|silver|bronze|icon)\b/) || [])[1];
+  let stop = () => { }, t = 0;
+  const done = () => { f.querySelectorAll('.fopen,.fo-skip').forEach(o => o.remove()); f.classList.remove('opening', 'go'); f.classList.add('opened'); };
+  const end = () => { clearTimeout(t); stop(); done(); };
+  // rasgar: la tira de arriba se corta a medida que el mouse (o el dedo) la recorre de lado a lado
+  const top = f.querySelector('.fo-top'), pack = f.querySelector('.fo-pack'), bins = new Set();
+  const go = () => { if (f.classList.contains('go')) return; top.style.setProperty('--tear', '100%'); f.classList.add('go'); stop = fifaSound(tier, +f.querySelector('.fopen').dataset.ovr || 0); t = setTimeout(done, 7300); };
+  const move = e => {
+    const r = top.getBoundingClientRect(); if (e.clientY < r.top - 14 || e.clientY > r.bottom + 14) return;
+    const k = Math.floor(Math.max(0, Math.min(.999, (e.clientX - r.left) / r.width)) * 16); if (bins.has(k)) return;
+    bins.add(k);
+    top.style.setProperty('--tear', Math.round(bins.size / 16 * 100) + '%'); fifaRip(bins.size / 16);
+    if (bins.size >= 14) go();
+  };
+  f.addEventListener('pointermove', move);
+  pack.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  f.querySelector('.fo-skip').addEventListener('click', e => { e.stopPropagation(); end(); });
+  // una vez abierto, un toque en cualquier lado lo saltea
+  f.addEventListener('click', e => { if (f.classList.contains('go') && !e.target.closest('.fo-pack')) end(); });
 }
 const abViewSeg = () => { const v = PREFS.abView === 'fifa' ? 'fifa' : 'pes'; return `<div class="abview" role="group" aria-label="Forma de ver las estadísticas"><span class="lab">Ver como</span><div class="seg">${[['pes', '⚽ PES'], ['fifa', '🃏 FIFA']].map(([k, n]) => `<button type="button" data-abview="${k}" aria-pressed="${v === k}">${n}</button>`).join('')}</div></div>`; };
 function tabAbil(p) {

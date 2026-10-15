@@ -3939,5 +3939,13 @@ Object.assign(I18N_EN, {
 "La IA busca el espacio a espaldas de la defensa.":"The AI looks for space behind the defence.",
 "La IA busca seguido los pases largos.":"The AI often goes for long passes.",
 "La IA centra apenas puede, sin llegar al fondo.":"The AI crosses early instead of reaching the byline.",
-"La IA remata seguido desde lejos.":"The AI often shoots from distance."
+"La IA remata seguido desde lejos.":"The AI often shoots from distance.",
+"Abrir el sobre":"Open the pack",
+"Pasá el mouse de lado a lado para rasgarlo":"Move the mouse from side to side to tear it",
+"Pasá el mouse por la parte de arriba del sobre para rasgarlo":"Move the mouse across the top of the pack to tear it open",
+"Oro":"Gold",
+"Plata":"Silver",
+"Bronce":"Bronze",
+"Ícono":"Icon",
+"Otras posiciones: A domina, B puede jugar":"Other positions: A = natural, B = can play"
 });

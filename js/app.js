@@ -1149,19 +1149,34 @@ function dbClubs(pid) {
 }
 const dbTeamName = tid => { const t = S.ix && S.ix.teamById.get(tid); if (t) return tget(t, 'name'); const d = typeof SDB !== 'undefined' && SDB.teams && SDB.teams.get(tid); return d ? (d.es || d.name || d.en) : 'Equipo ' + tid; };
 // club (no selección) de un jugador de la base: el primer equipo que no sea selección nacional
-const dbClubOf = pid => { const cl = dbClubs(pid); return cl.find(c => !(S.ix && S.ix.teamById.get(c.tid) && typeof isNat === 'function' && isNat(S.ix.teamById.get(c.tid)))) || cl[0] || null; };
+// se guarda por jugador: la búsqueda lo pide para miles de jugadores en cada tecla
+const DBCLUBOF = { k: '', ix: null, map: new Map() };
+const dbClubOf = pid => {
+  const cl = dbClubs(pid);
+  if (DBCLUBOF.k !== DBCLUB.key || DBCLUBOF.ix !== S.ix) { DBCLUBOF.k = DBCLUB.key; DBCLUBOF.ix = S.ix; DBCLUBOF.map = new Map(); }
+  if (DBCLUBOF.map.has(pid)) return DBCLUBOF.map.get(pid);
+  const c = cl.find(c => !(S.ix && S.ix.teamById.get(c.tid) && typeof isNat === 'function' && isNat(S.ix.teamById.get(c.tid)))) || cl[0] || null;
+  DBCLUBOF.map.set(pid, c); return c;
+};
 function dbPlayerCount() { return DBRAW ? DBRAW.off.size : [...S.names.values()].filter(n => n.pos != null).length; }
+// la lista filtrada y ordenada se recuerda hasta que cambie la búsqueda, el filtro o la base (antes se rehacía en cada clic)
+const DBLIST = { key: '', names: null, raw: null, ix: null, list: [] };
 function dbPlayerList() {
-  const q = S.qPlayer.trim().toLowerCase(), ids = DBRAW ? [...DBRAW.off.keys()] : [...S.names.keys()];
+  dbClubs(0); // pone al día DBCLUB.key (equipos de la base)
+  const q = S.qPlayer.trim().toLowerCase(), key = [q, S.pFilter, S.names.size, RATE_GEN, DBCLUB.key].join('|');
+  if (DBLIST.key === key && DBLIST.names === S.names && DBLIST.raw === DBRAW && DBLIST.ix === S.ix) return DBLIST.list;
+  const ids = DBRAW ? DBRAW.off.keys() : S.names.keys(), tn = new Map(), teamLc = tid => { let v = tn.get(tid); if (v == null) tn.set(tid, v = dbTeamName(tid).toLowerCase()); return v; };
   const out = [];
   for (const id of ids) {
     const n = S.names.get(id); if (!n) continue;
     if (S.pFilter === 'unlocked') { if (S.ix.byId.has(id)) continue; }
     else if (S.pFilter !== 'all' && POS_GRP[n.pos] !== S.pFilter) continue;
-    if (q) { const c = dbClubOf(id); if (!((n.name || '').toLowerCase().includes(q) || String(id) === q || (c && dbTeamName(c.tid).toLowerCase().includes(q)))) continue; }
-    out.push(id);
+    if (q) { if (!((n.name || '').toLowerCase().includes(q) || String(id) === q)) { const c = dbClubOf(id); if (!c || !teamLc(c.tid).includes(q)) continue; } }
+    out.push([id, n.r || 0]);
   }
-  return out.sort((a, b) => ((S.names.get(b).r || 0) - (S.names.get(a).r || 0)) || a - b);
+  out.sort((a, b) => (b[1] - a[1]) || a[0] - b[0]);
+  Object.assign(DBLIST, { key, names: S.names, raw: DBRAW, ix: S.ix, list: out.map(x => x[0]) });
+  return DBLIST.list;
 }
 function dbVal(id, key) { const o = DBRAW && DBRAW.off.get(id); if (o == null) return null; const m = DB_TO_EDIT()[key]; return m ? dbBits(o, m[0], m[1]) + m[2] : null; }
 function dbPlayerSheet(id) {
@@ -1220,9 +1235,40 @@ function renderPlayers(m) {
   if (p) bindPlayer(p, m);
 }
 function bindPSrc(m) { m.querySelectorAll('[data-psrc]').forEach(b => b.onclick = () => { if (S.pSrc === b.dataset.psrc) return; S.pSrc = b.dataset.psrc; later(() => renderPlayers(m)); }); }
+// una fila de la lista de jugadores del juego
+function dbItemHtml(id, sel) {
+  const n = S.names.get(id), c = dbClubOf(id), ct = c && S.ix.teamById.get(c.tid);
+  return `<button class="item ${id === sel ? 'on' : ''}" data-dbsel="${id}" type="button">
+        ${posBadge(n.pos)}<span style="min-width:0"><span class="nm">${ct ? shirtSvg(kitFor(ct, n.pos === 0), '1.05em', tget(ct, 'name')) + ' ' : ''}${esc(n.name || 'ID ' + id)}${S.ix.byId.has(id) ? ' <span class="chip ok tiny" title="También está en tu EDIT">EDIT</span>' : ''}</span>
+        <span class="sub2">${c ? esc(dbTeamName(c.tid)) + (c.num ? ' · ' + c.num : '') : 'Sin equipo'}${n.a ? ' · ' + n.a + ' años' : ''}</span></span><span class="meta"><b class="${vcls(n.r)}">${n.r || '–'}</b></span></button>`;
+}
+const DB_LIM = 250;
+function dbCountNote(all) { return `${all.length.toLocaleString('es-AR')} jugador${all.length === 1 ? '' : 'es'}${all.length > DB_LIM ? `<span> · se ven los ${DB_LIM} de mejor valoración: buscá para encontrar el resto</span>` : ''}`; } // en su propio span para que la traducción lo reconozca
+// cambia solo la ficha de la derecha. Antes la ficha quedaba con la animación de salida puesta (invisible y sin
+// responder a clics) desde el segundo jugador elegido, y había que salir de la pestaña y volver para verla
+function dbShowSheet(m, id) {
+  const sh = m.querySelector('#plSheet'); if (!sh) return;
+  leave(sh, () => {
+    if (S.dbPlayer !== id || !sh.isConnected) return; // otro clic llegó antes de que termine la salida: gana el último
+    sh.innerHTML = id != null ? dbPlayerSheet(id) : ''; sh.classList.remove('leave');
+    if (ANIM.reduce.matches) return;
+    if (document.documentElement.dataset.gfx === 'pes6') tvStatic(sh);
+    cascade([...sh.querySelectorAll(':scope > .card')].slice(0, 6), 6);
+  });
+}
+// búsqueda y filtro: se rehace solo la lista (y la ficha si cambia el primero), sin redibujar toda la pestaña
+function dbRefreshList(m, anim) {
+  const body = $('plItems'), note = $('dbCount'); if (!body || !note) return; // ya no está la vista del juego (cambió a Mi EDIT u otra pestaña)
+  const all = dbPlayerList(), list = all.slice(0, DB_LIM);
+  const first = list[0] ?? null, prev = S.dbPlayer; S.dbPlayer = first;
+  body.innerHTML = list.map(id => dbItemHtml(id, first)).join('') || '<div class="empty">Sin resultados.</div>'; body.scrollTop = 0;
+  note.innerHTML = dbCountNote(all);
+  if (anim && !ANIM.reduce.matches) cascade([...body.querySelectorAll(':scope > .item')].slice(0, 22));
+  if (first !== prev) dbShowSheet(m, first);
+}
 function renderDbPlayers(m, dbN) {
   FACE_CTX.nat = false;
-  const all = dbPlayerList(), LIM = 250, list = all.slice(0, LIM);
+  const all = dbPlayerList(), list = all.slice(0, DB_LIM);
   if (S.dbPlayer == null || !S.names.has(S.dbPlayer)) S.dbPlayer = list[0] ?? null;
   const sel = S.dbPlayer;
   m.innerHTML = `<div class="split">
@@ -1231,18 +1277,16 @@ function renderDbPlayers(m, dbN) {
         <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="false" ${S.ix.players.length ? '' : 'disabled title="Todavía no hay jugadores en tu EDIT"'}>Mi EDIT <b>${S.ix.players.length}</b></button><button type="button" data-psrc="db" aria-pressed="true">Del juego <b>${dbN.toLocaleString('es-AR')}</b></button></div>
         <input type="search" id="qPlayer" placeholder="Buscar en la base: nombre, ID o equipo…" value="${esc(S.qPlayer)}" aria-label="Buscar jugadores de la base">
         <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Solo los que no están en mi EDIT']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
-        <p class="note" style="margin:0">${all.length.toLocaleString('es-AR')} jugador${all.length === 1 ? '' : 'es'}${all.length > LIM ? ` · se ven los ${LIM} de mejor valoración: buscá para encontrar el resto` : ''}</p>
+        <p class="note" id="dbCount" style="margin:0">${dbCountNote(all)}</p>
       </div>
-      <div class="list-body" id="plItems">${list.map(id => { const n = S.names.get(id), c = dbClubOf(id), ct = c && S.ix.teamById.get(c.tid); return `<button class="item ${id === sel ? 'on' : ''}" data-dbsel="${id}" type="button">
-        ${posBadge(n.pos)}<span style="min-width:0"><span class="nm">${ct ? shirtSvg(kitFor(ct, n.pos === 0), '1.05em', tget(ct, 'name')) + ' ' : ''}${esc(n.name || 'ID ' + id)}${S.ix.byId.has(id) ? ' <span class="chip ok tiny" title="También está en tu EDIT">EDIT</span>' : ''}</span>
-        <span class="sub2">${c ? esc(dbTeamName(c.tid)) + (c.num ? ' · ' + c.num : '') : 'Sin equipo'}${n.a ? ' · ' + n.a + ' años' : ''}</span></span><span class="meta"><b class="${vcls(n.r)}">${n.r || '–'}</b></span></button>`; }).join('') || '<div class="empty">Sin resultados.</div>'}</div>
+      <div class="list-body" id="plItems">${list.map(id => dbItemHtml(id, sel)).join('') || '<div class="empty">Sin resultados.</div>'}</div>
     </aside>
     <section class="sheet" id="plSheet">${sel != null ? dbPlayerSheet(sel) : ''}</section>
   </div>`;
   bindPSrc(m);
-  $('qPlayer').oninput = e => { S.qPlayer = e.target.value; const pos = e.target.selectionStart; clearTimeout(S.dbQT); S.dbQT = setTimeout(() => { S.dbPlayer = null; renderPlayers(m); const el = $('qPlayer'); el.focus(); el.setSelectionRange(pos, pos); }, 180); };
-  $('pFilter').onchange = e => { S.pFilter = e.target.value; S.dbPlayer = null; later(() => renderPlayers(m)); };
-  $('plItems').onclick = e => { const b = e.target.closest('[data-dbsel]'); if (!b || +b.dataset.dbsel === S.dbPlayer) return; S.dbPlayer = +b.dataset.dbsel; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); const sh = m.querySelector('.sheet'); leave(sh, () => { sh.innerHTML = dbPlayerSheet(S.dbPlayer); }); };
+  $('qPlayer').oninput = e => { S.qPlayer = e.target.value; clearTimeout(S.dbQT); S.dbQT = setTimeout(() => dbRefreshList(m, false), 180); };
+  $('pFilter').onchange = e => { S.pFilter = e.target.value; dbRefreshList(m, true); };
+  $('plItems').onclick = e => { const b = e.target.closest('[data-dbsel]'); if (!b || +b.dataset.dbsel === S.dbPlayer) return; S.dbPlayer = +b.dataset.dbsel; m.querySelectorAll('#plItems .item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); dbShowSheet(m, S.dbPlayer); };
   m.querySelector('#plSheet').onclick = async e => {
     const a = e.target.closest('[data-dbadd]'); if (a) { await addDbPlayer(+a.dataset.dbadd, false); return; }
     const o = e.target.closest('[data-dbopen]'); if (o) { S.player = +o.dataset.dbopen; S.pSrc = 'edit'; renderPlayers(m); return; }

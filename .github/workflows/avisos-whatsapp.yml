@@ -1,0 +1,39 @@
+# Manda un WhatsApp al dueño del editor cada vez que llega una idea o un fallo nuevo (un issue abierto,
+# por ejemplo desde la pestaña Ideas del editor). Usa CallMeBot, gratis: https://www.callmebot.com/blog/free-api-whatsapp-messages/
+# Necesita dos secretos del repo (Settings → Secrets and variables → Actions): WHATSAPP_PHONE (con código de país,
+# ej. 5491122334455) y CALLMEBOT_APIKEY (la clave que manda CallMeBot por WhatsApp). Sin ellos, no hace nada.
+name: Avisar ideas y fallos por WhatsApp
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  whatsapp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mandar el aviso
+        env:
+          PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+          # el texto del issue lo escribe cualquiera: va por variables, nunca pegado en el script
+          TITULO: ${{ github.event.issue.title }}
+          CUERPO: ${{ github.event.issue.body }}
+          ETIQUETAS: ${{ join(github.event.issue.labels.*.name, ',') }}
+          AUTOR: ${{ github.event.issue.user.login }}
+          LINK: ${{ github.event.issue.html_url }}
+        run: |
+          if [ -z "$PHONE" ] || [ -z "$APIKEY" ]; then echo "Faltan WHATSAPP_PHONE o CALLMEBOT_APIKEY: no se manda nada."; exit 0; fi
+          case ",$ETIQUETAS," in
+            *,error,*) TIPO="🐛 Nuevo fallo" ;;
+            *,idea,*) TIPO="💡 Nueva idea" ;;
+            *) TIPO="📬 Nuevo mensaje" ;;
+          esac
+          RESUMEN=$(printf '%s' "$CUERPO" | grep -v '^\s*$' | grep -v '^###' | grep -v '^_No response_' | head -c 600)
+          TEXTO=$(printf '%s en PES Editor Rebuilt\n*%s*\nde %s\n\n%s\n\n%s' "$TIPO" "$TITULO" "$AUTOR" "$RESUMEN" "$LINK")
+          code=$(curl -sS -o resp.txt -w '%{http_code}' --get https://api.callmebot.com/whatsapp.php \
+            --data-urlencode "phone=$PHONE" --data-urlencode "apikey=$APIKEY" --data-urlencode "text=$TEXTO")
+          echo "CallMeBot respondió $code"
+          [ "$code" = "200" ] || { sed 's/<[^>]*>//g' resp.txt | head -c 400; exit 1; }

@@ -1363,13 +1363,27 @@ function lvlStars(v) {
 function lvlAttit(v) {
   return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego" data-max="3">${lvlStep(-1, v, 3)}${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : 'Nivel ' + i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b>${lvlStep(1, v, 3)}</div>`;
 }
+// mayúsculas y minúsculas en el nombre: aviso de Bloq Mayús mientras se escribe (en PES 6 con la etiqueta dorada de la barra de abajo)
+// y, si el nombre o el apellido quedó todo en mayúsculas, un botón para dejarlo como lo escribe el juego ("Messi", "van Dijk")
+const CAPS_W = '<div class="capsw" hidden role="status"><b><i aria-hidden="true">⇪</i>Bloq Mayús</b><span>Mayúsculas activadas</span></div>';
+const NM_LOW = new Set(['van', 'von', 'der', 'den', 'ter', 'da', 'das', 'do', 'dos', 'y']);
+const allCaps = v => /\p{Lu}.*\p{Lu}/u.test(v) && v === v.toUpperCase() && v !== v.toLowerCase();
+// "LIONEL" → "Lionel", "VAN DE BEEK" → "van de Beek" (si va después del nombre), "DE BRUYNE" → "De Bruyne", "O'NEIL" → "O'Neil"
+function properCase(v, first) {
+  const ws = v.toLowerCase().split(/\s+/).filter(Boolean);
+  return ws.map((w, i) => ((first && i === 0) || !(NM_LOW.has(w) || (w === 'de' && ws[i - 1] === 'van'))) ? w.replace(/(^|[-'’.])(\p{L})/gu, (_, a, c) => a + c.toUpperCase()) : w).join(' ');
+}
+function caseHint(which, first, last) {
+  const v = which === 'first' ? first : last, on = allCaps(v);
+  return `<p class="casew" data-case="${which}" ${on ? '' : 'hidden'}><span>Está todo en mayúsculas.</span> <button type="button" class="btn small" data-casefix="${which}" title="Pasar a mayúsculas y minúsculas, como lo muestra el juego"><i aria-hidden="true">Aa</i> Pasar a <b data-noi18n>${on ? esc(properCase(v, which === 'first' || !first.trim())) : ''}</b></button></p>`;
+}
 function tabProfile(p) {
   const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
   return `<h3>Nombre</h3>
   <div class="grid wide idgrid">
-    <div class="f"><label for="pFirst">Nombre</label><input type="text" id="pFirst" data-nm="first" value="${esc(first)}" maxlength="60" autocomplete="off" spellcheck="false"></div>
-    <div class="f"><label for="pLast">Apellido</label><input type="text" id="pLast" data-nm="last" value="${esc(last)}" maxlength="60" autocomplete="off" spellcheck="false"></div>
-    <div class="f"><label for="pShirt">Nombre en camiseta</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" id="pShirtLast" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div></div>
+    <div class="f capf"><label for="pFirst">Nombre</label><input type="text" id="pFirst" data-nm="first" value="${esc(first)}" maxlength="60" autocomplete="off" spellcheck="false">${CAPS_W}${caseHint('first', first, last)}</div>
+    <div class="f capf"><label for="pLast">Apellido</label><input type="text" id="pLast" data-nm="last" value="${esc(last)}" maxlength="60" autocomplete="off" spellcheck="false">${CAPS_W}${caseHint('last', first, last)}</div>
+    <div class="f capf"><label for="pShirt">Nombre en camiseta</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" id="pShirtLast" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div>${CAPS_W}</div>
   </div>
   <p class="note fullnm">Así lo muestra el juego: <b id="pFull">${esc(g('name') || '—')}</b> <span id="pBytes" class="${nb > NAME_MAX ? 'bad' : ''}">${nb}/${NAME_MAX}</span></p>
   <h3 class="sec">Equipo y selección</h3>
@@ -1906,11 +1920,26 @@ function bindPlayer(p, m) {
   });
   // nombre y apellido: se juntan en el único nombre que guarda el juego
   const fullNm = () => joinName($('pFirst').value, $('pLast').value);
+  const caseUi = () => {
+    const f = $('pFirst'), l = $('pLast'); if (!f || !l) return;
+    sh.querySelectorAll('.casew').forEach(w => {
+      const first = w.dataset.case === 'first', v = (first ? f : l).value.trim(), on = allCaps(v);
+      w.hidden = !on; if (on) w.querySelector('b').textContent = properCase(v, first || !f.value.trim());
+    });
+  };
   sh.addEventListener('input', e => {
     if (!e.target.dataset.nm) return;
     const v = fullNm(), n = nameBytes(v), fb = $('pFull'), bb = $('pBytes');
     if (fb) fb.textContent = v || '—'; if (bb) { bb.textContent = n + '/' + NAME_MAX; bb.classList.toggle('bad', n > NAME_MAX); }
+    caseUi();
   });
+  // Bloq Mayús: el navegador lo dice en cada tecla o clic (getModifierState); el aviso sale solo debajo del campo donde se escribe
+  const CAPS_IN = '#pFirst,#pLast,#pShirt';
+  const capsShow = () => sh.querySelectorAll('.capsw').forEach(w => { w.hidden = !(S.capsOn && w.parentElement.contains(document.activeElement)); });
+  const capsEv = e => { if (e.target.matches && e.target.matches(CAPS_IN) && e.getModifierState) { S.capsOn = e.getModifierState('CapsLock'); capsShow(); } };
+  ['keydown', 'keyup', 'pointerdown'].forEach(t => sh.addEventListener(t, capsEv));
+  sh.addEventListener('focusin', e => { if (e.target.matches && e.target.matches(CAPS_IN)) capsShow(); });
+  sh.addEventListener('focusout', () => setTimeout(capsShow));
   sh.addEventListener('change', e => {
     if (e.target.dataset.nm) {
       const v = fullNm(); if (!v) { toast('El jugador necesita un nombre o un apellido.'); const [f0, l0] = splitName(pget(p, 'name')); $('pFirst').value = f0; $('pLast').value = l0; return; }
@@ -1942,6 +1971,7 @@ function bindPlayer(p, m) {
     if (b.dataset.abview) { if (PREFS.abView !== b.dataset.abview) { PREFS.abView = b.dataset.abview; savePrefs(); rer(); } return; }
     if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
+    if (b.dataset.casefix) { const el = $(b.dataset.casefix === 'first' ? 'pFirst' : 'pLast'), f = $('pFirst'); el.value = properCase(el.value.trim(), b.dataset.casefix === 'first' || !f.value.trim()); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); el.focus(); return; }
     if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
     const sg = b.closest('[data-segk]');
     if (sg && b.dataset.step) { const k = sg.dataset.segk, v = Math.max(0, Math.min(+sg.dataset.max, pget(p, k) + +b.dataset.step)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); rer(); } return; }

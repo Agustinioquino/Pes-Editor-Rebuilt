@@ -4298,5 +4298,10 @@ Object.assign(I18N_EN, {
 "Plata":"Silver",
 "Bronce":"Bronze",
 "Ícono":"Icon",
-"Otras posiciones: A domina, B puede jugar":"Other positions: A = natural, B = can play"
+"Otras posiciones: A domina, B puede jugar":"Other positions: A = natural, B = can play",
+"Bloq Mayús":"Caps Lock",
+"Mayúsculas activadas":"Capitals on",
+"Está todo en mayúsculas.":"It's all in capitals.",
+"Pasar a":"Change to",
+"Pasar a mayúsculas y minúsculas, como lo muestra el juego":"Switch to upper and lower case, the way the game shows it"
 });

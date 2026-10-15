@@ -1179,17 +1179,19 @@ function dbPlayerList() {
   return DBLIST.list;
 }
 function dbVal(id, key) { const o = DBRAW && DBRAW.off.get(id); if (o == null) return null; const m = DB_TO_EDIT()[key]; return m ? dbBits(o, m[0], m[1]) + m[2] : null; }
+const dbIsNat = tid => { const t = S.ix.teamById.get(tid); return t ? isNat(t) : tid < 100 || COUNTRY_NAMES.has(normName(dbTeamName(tid))); };
 function dbPlayerSheet(id) {
   const n = S.names.get(id) || {}, o = DBRAW && DBRAW.off.get(id), cl = dbClubs(id), c0 = dbClubOf(id), ct = c0 && S.ix.teamById.get(c0.tid), inEdit = S.ix.byId.has(id);
   const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, shirt = o != null ? dbStr(o + 0x81, 61) : '';
-  const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0;
+  const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0, [fn0, ln0] = splitName(playerName(id));
   const abil = o != null ? `<div class="card"><h3>Habilidades en la base del juego</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
     <div class="grid" style="margin-top:12px">${[['Uso de pierna mala', 'weak_use', 1], ['Precisión de pierna mala', 'weak_acc', 1], ['Estado de forma', 'form', 1], ['Resistencia a lesiones', 'injury', 0]].map(([l, k, add]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="f"><span class="lab">${l}</span><b>${k === 'injury' ? ['C', 'B', 'A'][v] || v : v + add}</b></div>`; }).join('')}</div></div>` : '<div class="card"><p class="note">Las habilidades se ven cuando la copia de Player.bin está en la carpeta Sider.</p></div>';
   return `<div class="card dbsheet">
     <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
       <div class="sub">${shirt ? esc(shirt) + ' · ' : ''}${nat != null ? esc(COUNTRY.get(nat) || 'País ' + nat) + ' · ' : ''}${age ? age + ' años · ' : ''}${h ? h + ' cm · ' : ''}ID ${id}</div></div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(r)}">${r || '–'}</b><span>Valoración</span></div></div>
-    <div class="dbteams">${cl.length ? cl.map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
+    <div class="idro">${[['Nombre', fn0], ['Apellido', ln0], ['Camiseta', shirt]].map(([l, v]) => `<div><span class="lab">${l}</span><b>${esc(v || '—')}</b></div>`).join('')}</div>
+    <div class="dbteams">${cl.length ? [...cl].sort((a, b) => dbIsNat(a.tid) - dbIsNat(b.tid)).map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}<span class="tclab">${dbIsNat(c.tid) ? 'Selección' : 'Equipo'}</span> ${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
     <div class="dbnote"><span>${inEdit ? 'Este jugador también está en tu EDIT, con los datos que le cambiaste.' : 'Está en la base del juego y todavía no en tu EDIT. Lo que ves acá es lo que usa el juego; para cambiarlo, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del juego.'}</span>
       ${inEdit ? `<button class="btn small" type="button" data-dbopen="${id}">Abrir en mi EDIT</button>` : `<button class="btn primary small" type="button" data-dbadd="${id}" ${canMakeEditPlayer(id) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button>`}</div>
   </div>${mnfCard(id, kit)}${abil}`;
@@ -1299,12 +1301,14 @@ function mapSelect(k, map, v, label) { return `<select data-k="${k}" aria-label=
 function seg(k, labels, v) { return `<div class="seg" data-segk="${k}">${labels.map((n, i) => `<button type="button" data-v="${i}" aria-pressed="${i === v}">${n}</button>`).join('')}</div>`; }
 function flagChips(p) { return Object.keys(FLAG_NAMES).map(k => `<span class="chip ${pget(p, k) ? 'ok' : ''}">${pget(p, k) ? '✓' : '·'} ${FLAG_NAMES[k]}</span>`).join(''); }
 function playerSheet(p) {
-  const g = k => pget(p, k), reg = g('reg_pos'), all = (teamOf.get(p.id) || []).map(t => tget(t, 'name'));
+  const g = k => pget(p, k), reg = g('reg_pos'), tm = playerTeams(p.id);
+  const tchip = (lab, { t, num }) => `<button type="button" class="chip" data-pteam="${t.id}" title="Ver el plantel">${shirtSvg(kitFor(t, reg === 0), '1em', tget(t, 'name'))} <span class="tclab">${lab}</span> ${esc(tget(t, 'name'))}${num != null ? ' · <b>' + num + '</b>' : ''}</button>`;
   const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades'], ['skills', 'Especiales'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
   const changed = S.origData && !S.d.subarray(p.base, p.base + 0x138).every((v, i) => v === S.origData[p.base + i]);
   return `<div class="card">
     <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return c ? shirtSvg(kitFor(c, reg === 0), '2.4em', tget(c, 'name')) : ''; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
-      <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'}${all.length ? ' · ' + esc(all.join(', ')) : ''} · ID ${p.id}</div></div>
+      <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'} · ID ${p.id}</div>
+      ${tm.clubs.length || tm.nats.length ? `<div class="dbteams hdteams">${tm.clubs.map(x => tchip('Equipo', x)).join('')}${tm.nats.map(x => tchip('Selección', x)).join('')}</div>` : ''}</div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>
       <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el juego cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
@@ -1316,11 +1320,44 @@ function playerSheet(p) {
   </div>
   ${S.ptab === 'face' ? (() => { const c = clubOf(p.id); return mnfCard(p.id, c ? kitFor(c, reg === 0) : null); })() : `<div class="card">${({ profile: tabProfile, pos: tabPos, abil: tabAbil, skills: tabSkills, look: tabLook, motion: tabMotion })[S.ptab](p)}</div>`}`;
 }
+// El juego guarda un solo nombre por jugador: acá se muestra en dos partes (la primera palabra es el nombre y el resto
+// el apellido, así "Kevin De Bruyne" queda Kevin / De Bruyne) y al cambiar una se vuelven a juntar con un espacio.
+// Un nombre de una sola palabra ("Neymar") va al apellido, que es el que se usa en la camiseta.
+function splitName(s) { s = String(s || '').trim().replace(/\s+/g, ' '); const i = s.indexOf(' '); return i < 0 ? ['', s] : [s.slice(0, i), s.slice(i + 1)]; }
+const joinName = (a, b) => [a, b].map(x => x.trim().replace(/\s+/g, ' ')).filter(Boolean).join(' ');
+const NAME_MAX = 60, nameBytes = s => new TextEncoder().encode(s).length; // el juego guarda 60 bytes (las letras con tilde ocupan 2)
+// club y selección por separado, con el dorsal que tiene en cada uno
+function playerTeams(id) {
+  const ts = teamOf.get(id) || [], numIn = t => { const r = PD.roster(S.d, t).find(x => x.pid === id); return r ? r.number : null; };
+  const pack = t => ({ t, num: numIn(t) });
+  return { clubs: ts.filter(t => !isNat(t)).map(pack), nats: ts.filter(isNat).map(pack) };
+}
+function teamSlot(kind, list) {
+  const lab = kind === 'nat' ? 'Selección' : 'Equipo';
+  if (!list.length) return `<div class="tslot tsnone"><span class="lab">${lab}</span><div class="tsrow"><span class="crest ghost"><i>–</i></span><span class="tsnm">${kind === 'nat' ? 'Sin selección' : 'Sin equipo'}</span></div></div>`;
+  return `<div class="tslot"><span class="lab">${lab}</span>${list.map(({ t, num }) => `<button type="button" class="tsrow" data-pteam="${t.id}" title="Ver el plantel de ${esc(tget(t, 'name'))}">${crest(t)}<span class="tsnm">${esc(tget(t, 'name'))}</span>${num != null ? `<span class="tsnum" title="Dorsal">${num}</span>` : ''}</button>`).join('')}</div>`;
+}
+// estrellas (0 a 5) y actitud de juego (0 a 3): botones con color y brillo que suben con el nivel
+function lvlStars(v) {
+  return `<div class="lvl lvstar" data-segk="star" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Estrellas"><button type="button" class="lv0" data-v="0" aria-pressed="${v === 0}" title="Sin estrellas">0</button>${[1, 2, 3, 4, 5].map(i => `<button type="button" class="lvs ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i} estrella${i > 1 ? 's' : ''}">★</button>`).join('')}<b class="lvnum">${v}<small>/5</small></b></div>`;
+}
+function lvlAttit(v) {
+  return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego"><button type="button" class="lv0" data-v="0" aria-pressed="${v === 0}" title="Nivel 0">0</button>${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="Nivel ${i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b></div>`;
+}
 function tabProfile(p) {
-  const g = k => pget(p, k);
-  return `<div class="grid wide">
-    <div class="f"><label>Nombre</label><input type="text" data-k="name" value="${esc(g('name'))}" maxlength="60"></div>
-    <div class="f"><label>Nombre en camiseta</label><input type="text" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20"></div>
+  const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
+  return `<h3>Nombre</h3>
+  <div class="grid wide idgrid">
+    <div class="f"><label for="pFirst">Nombre</label><input type="text" id="pFirst" data-nm="first" value="${esc(first)}" maxlength="60" autocomplete="off" spellcheck="false"></div>
+    <div class="f"><label for="pLast">Apellido</label><input type="text" id="pLast" data-nm="last" value="${esc(last)}" maxlength="60" autocomplete="off" spellcheck="false"></div>
+    <div class="f"><label for="pShirt">Nombre en camiseta</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" id="pShirtLast" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div></div>
+  </div>
+  <p class="note fullnm">Así lo muestra el juego: <b id="pFull">${esc(g('name') || '—')}</b> <span id="pBytes" class="${nb > NAME_MAX ? 'bad' : ''}">${nb}/${NAME_MAX}</span></p>
+  <h3 class="sec">Equipo y selección</h3>
+  <div class="tslots">${teamSlot('club', tm.clubs)}${teamSlot('nat', tm.nats)}</div>
+  <p class="note">Para cambiarlo de equipo o de dorsal, tocá el equipo y editá el plantel.</p>
+  <h3 class="sec">Datos personales</h3>
+  <div class="grid wide">
     <div class="f"><label>Nacionalidad</label>${mapSelect('nation', COUNTRY, g('nation'), 'Nacionalidad')}</div>
     <div class="f"><label>ID de nombre para el comentarista</label>${num('comm_id', g('comm_id'), 0, 4294967295)}</div>
   </div>
@@ -1330,8 +1367,11 @@ function tabProfile(p) {
     <div class="f"><label>Peso (kg)</label>${num('weight', g('weight'), 30, 150)}</div>
     <div class="f"><span class="lab">Pie hábil</span>${seg('strong_foot', ['Derecho', 'Izquierdo'], g('strong_foot'))}</div>
     <div class="f"><span class="lab">Mano hábil</span>${seg('strong_hand', ['Derecha', 'Izquierda'], g('strong_hand'))}</div>
-    <div class="f"><span class="lab">Estrellas</span>${seg('star', ['0', '1', '2', '3', '4', '5'], g('star'))}</div>
-    <div class="f"><span class="lab">Actitud de juego</span>${seg('play_attit', ['0', '1', '2', '3'], g('play_attit'))}</div>
+  </div>
+  <h3 class="sec">Nivel</h3>
+  <div class="lvls">
+    <div class="f"><span class="lab">Estrellas</span>${lvlStars(g('star'))}</div>
+    <div class="f"><span class="lab">Actitud de juego</span>${lvlAttit(g('play_attit'))}</div>
   </div>`;
 }
 function tabPos(p) {
@@ -1433,7 +1473,25 @@ function bindPlayer(p, m) {
     const tw = el.dataset.twin ? ab.querySelector('input[type=number]') : null; if (tw) { tw.value = el.value; tw.className = vcls(+el.value); }
     const o = ab.querySelector('output'); if (o) { const d = +el.value - 7; o.textContent = (d > 0 ? '+' : '') + d; }
   });
+  // nombre y apellido: se juntan en el único nombre que guarda el juego
+  const fullNm = () => joinName($('pFirst').value, $('pLast').value);
+  sh.addEventListener('input', e => {
+    if (!e.target.dataset.nm) return;
+    const v = fullNm(), n = nameBytes(v), fb = $('pFull'), bb = $('pBytes');
+    if (fb) fb.textContent = v || '—'; if (bb) { bb.textContent = n + '/' + NAME_MAX; bb.classList.toggle('bad', n > NAME_MAX); }
+  });
   sh.addEventListener('change', e => {
+    if (e.target.dataset.nm) {
+      const v = fullNm(); if (!v) { toast('El jugador necesita un nombre o un apellido.'); const [f0, l0] = splitName(pget(p, 'name')); $('pFirst').value = f0; $('pLast').value = l0; return; }
+      if (nameBytes(v) > NAME_MAX) toast('El nombre completo pasa los ' + NAME_MAX + ' caracteres que guarda el juego: se corta al final.', 5000);
+      if (v === pget(p, 'name')) return;
+      setP(p, 'name', v, nm() + ': nombre');
+      // sin redibujar la ficha, así el cursor sigue en el campo siguiente (Tab de Nombre a Apellido)
+      const h2 = sh.querySelector('.head h2'); if (h2) h2.textContent = nm();
+      const fb = $('pFull'); if (fb) fb.textContent = nm();
+      const it = document.querySelector(`[data-p="${p.id}"] .nm`), tn = it && [...it.childNodes].find(x => x.nodeType === 3 && x.data.trim()); if (tn) tn.data = tn.data.match(/^\s*/)[0] + nm();
+      updateLockUi(p); return;
+    }
     const el = e.target, k = el.dataset.k; if (!k) return;
     let v;
     if (el.type === 'checkbox') v = el.checked ? 1 : 0;
@@ -1447,6 +1505,8 @@ function bindPlayer(p, m) {
   });
   sh.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
+    if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
     const sg = b.closest('[data-segk]');
     if (sg && b.dataset.v != null) { setP(p, sg.dataset.segk, +b.dataset.v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; }
     if (b.dataset.pp != null) { const k = 'pos' + POS_TO_PP[+b.dataset.pp]; setP(p, k, (pget(p, k) + 1) % 3, nm() + ': posiciones'); rer(); return; }

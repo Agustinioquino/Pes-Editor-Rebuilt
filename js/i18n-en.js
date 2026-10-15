@@ -3805,3 +3805,24 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "Escudo de PES Logos cargado. Revisalo y tocá Guardar.":"PES Logos crest loaded. Check it and tap Save.",
 "Disuelto":"Defunct"
 };
+// Ficha del jugador · Perfil: nombre y apellido, equipo y selección, nivel
+Object.assign(I18N_EN, {
+"Apellido":"Last name",
+"Usar apellido":"Use last name",
+"Poner el apellido en mayúsculas en la camiseta":"Put the last name in capitals on the shirt",
+"Así lo muestra el juego:":"How the game shows it:",
+"Equipo y selección":"Club and national team",
+"Sin selección":"No national team",
+"Ver el plantel":"See the squad",
+"Ver el plantel de {x}":"See the {x} squad",
+"Para cambiarlo de equipo o de dorsal, tocá el equipo y editá el plantel.":"To move him to another team or change his number, tap the team and edit the squad.",
+"Datos personales":"Personal details",
+"Sin estrellas":"No stars",
+"1 estrella":"1 star",
+"{x} estrellas":"{x} stars",
+"Nivel {x}":"Level {x}",
+"Nivel 0":"Level 0",
+"Escribí primero el apellido.":"Type the last name first.",
+"El jugador necesita un nombre o un apellido.":"The player needs a first or last name.",
+"El nombre completo pasa los {x} caracteres que guarda el juego: se corta al final.":"The full name is longer than the {x} characters the game stores: the end gets cut off."
+});

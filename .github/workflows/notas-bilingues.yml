@@ -1,0 +1,28 @@
+# Una sola vez: reescribe el texto de las releases ya publicadas con inglés primero y español después.
+# Toma release/notas/<etiqueta>.en.md y <etiqueta>.es.md. No toca títulos, etiquetas ni archivos adjuntos.
+name: Notas de releases en inglés y español
+
+on:
+  push:
+    branches: [claude/project-thread-1tfyd3]
+    paths: ['release/notas/**', '.github/workflows/notas-bilingues.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  notas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Actualizar el texto de cada release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          for es in release/notas/*.es.md; do
+            tag=$(basename "$es" .es.md)
+            bash release/armar-notas.sh "release/notas/$tag.en.md" "$es" > "$RUNNER_TEMP/notas.md"
+            gh release edit "$tag" --notes-file "$RUNNER_TEMP/notas.md" >/dev/null
+            echo "✏️ $tag"
+          done

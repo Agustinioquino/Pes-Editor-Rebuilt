@@ -329,7 +329,7 @@ function setP(p, k, v, label) {
 }
 function setLock(p, on) { edit((on ? 'Proteger ' : 'Desproteger ') + (pget(p, 'name') || p.id), 'p' + p.id, regP(p), () => { for (const k of LOCK_FLAGS) PD.player.set(S.d, p.base, k, on ? 1 : 0); }); }
 function setT(t, fields, label) { edit(label || 'Equipo ' + tget(t, 'name'), 't' + t.id, regT(t), () => { for (const [k, v] of fields) PD.team.set(S.d, t.base, k, v); }); }
-const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
+const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['play_attit', 'actitud de juego'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
 
 // ---------- loading ----------
 function openBytes(bytes, name) {
@@ -1306,7 +1306,7 @@ function playerSheet(p) {
   const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades'], ['skills', 'Especiales'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
   const changed = S.origData && !S.d.subarray(p.base, p.base + 0x138).every((v, i) => v === S.origData[p.base + i]);
   return `<div class="card">
-    <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return c ? shirtSvg(kitFor(c, reg === 0), '2.4em', tget(c, 'name')) : ''; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
+    <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return `<span class="dbface">${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
       <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'} · ID ${p.id}</div>
       ${tm.clubs.length || tm.nats.length ? `<div class="dbteams hdteams">${tm.clubs.map(x => tchip('Equipo', x)).join('')}${tm.nats.map(x => tchip('Selección', x)).join('')}</div>` : ''}</div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
@@ -1338,11 +1338,12 @@ function teamSlot(kind, list) {
   return `<div class="tslot"><span class="lab">${lab}</span>${list.map(({ t, num }) => `<button type="button" class="tsrow" data-pteam="${t.id}" title="Ver el plantel de ${esc(tget(t, 'name'))}">${crest(t)}<span class="tsnm">${esc(tget(t, 'name'))}</span>${num != null ? `<span class="tsnum" title="Dorsal">${num}</span>` : ''}</button>`).join('')}</div>`;
 }
 // estrellas (0 a 5) y actitud de juego (0 a 3): botones con color y brillo que suben con el nivel
+const lvlStep = (d, v, max) => `<button type="button" class="lvstep" data-step="${d}" ${(d < 0 ? v <= 0 : v >= max) ? 'disabled' : ''} title="${d < 0 ? 'Bajar uno' : 'Subir uno'}" aria-label="${d < 0 ? 'Bajar uno' : 'Subir uno'}">${d < 0 ? '−' : '+'}</button>`;
 function lvlStars(v) {
-  return `<div class="lvl lvstar" data-segk="star" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Estrellas">${[1, 2, 3, 4, 5].map(i => `<button type="button" class="lvs ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : i + ' estrella' + (i > 1 ? 's' : '')}">★</button>`).join('')}<b class="lvnum">${v}<small>/5</small></b></div>`;
+  return `<div class="lvl lvstar" data-segk="star" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Estrellas" data-max="5">${lvlStep(-1, v, 5)}${[1, 2, 3, 4, 5].map(i => `<button type="button" class="lvs ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : i + ' estrella' + (i > 1 ? 's' : '')}">★</button>`).join('')}<b class="lvnum">${v}<small>/5</small></b>${lvlStep(1, v, 5)}</div>`;
 }
 function lvlAttit(v) {
-  return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego">${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : 'Nivel ' + i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b></div>`;
+  return `<div class="lvl lvatt" data-segk="play_attit" style="--lv:${v}" data-lv="${v}" role="group" aria-label="Actitud de juego" data-max="3">${lvlStep(-1, v, 3)}${[1, 2, 3].map(i => `<button type="button" class="lvb ${i <= v ? 'on' : ''}" data-v="${i}" aria-pressed="${i === v}" title="${i === v ? 'Tocá de nuevo para dejarlo en 0' : 'Nivel ' + i}"><i></i></button>`).join('')}<b class="lvnum">${v}<small>/3</small></b>${lvlStep(1, v, 3)}</div>`;
 }
 function tabProfile(p) {
   const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
@@ -1508,6 +1509,7 @@ function bindPlayer(p, m) {
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
     if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
     const sg = b.closest('[data-segk]');
+    if (sg && b.dataset.step) { const k = sg.dataset.segk, v = Math.max(0, Math.min(+sg.dataset.max, pget(p, k) + +b.dataset.step)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); rer(); } return; }
     if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.classList.contains('lvl') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0
     if (b.dataset.pp != null) { const k = 'pos' + POS_TO_PP[+b.dataset.pp]; setP(p, k, (pget(p, k) + 1) % 3, nm() + ': posiciones'); rer(); return; }
     if (b.id === 'ppClear') { const reg = pget(p, 'reg_pos'); edit(nm() + ': posiciones', 'p' + p.id, regP(p), () => { POS_TO_PP.forEach((pp, i) => PD.player.set(S.d, p.base, 'pos' + pp, i === reg ? 2 : 0)); if (S.autoLock) for (const fl of LOCK_FLAGS) PD.player.set(S.d, p.base, fl, 1); }); rer(); return; }

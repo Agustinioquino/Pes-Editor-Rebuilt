@@ -3821,6 +3821,8 @@ Object.assign(I18N_EN, {
 "{x} estrellas":"{x} stars",
 "Nivel {x}":"Level {x}",
 "Tocá de nuevo para dejarlo en 0":"Tap again to set it to 0",
+"Bajar uno":"Down one",
+"Subir uno":"Up one",
 "Escribí primero el apellido.":"Type the last name first.",
 "El jugador necesita un nombre o un apellido.":"The player needs a first or last name.",
 "El nombre completo pasa los {x} caracteres que guarda el juego: se corta al final.":"The full name is longer than the {x} characters the game stores: the end gets cut off."

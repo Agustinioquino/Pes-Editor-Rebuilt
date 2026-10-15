@@ -1515,7 +1515,7 @@ const fifaTier = p => { const o = rating(p); return isLegend(p) ? 'icon' : o >= 
 // las dos formas de carta: FIFA 15 (PES 6 y Clásico) y la actual (Moderno y Retro); 250 x 350
 const FUT_PATH = {
   f15: 'M8 36C70 34 92 8 125 8S180 34 242 36L242 306Q242 314 234 317L136 346Q125 349 114 346L16 317Q8 314 8 306Z',
-  fc: 'M34 10Q46 26 68 20Q96 12 125 12T182 20Q204 26 216 10L242 22L242 282Q242 298 228 306L141 343Q125 350 109 343L22 306Q8 298 8 282L8 22Z'
+  fc: 'M8 34Q30 32 34 10Q125 0 216 10Q220 32 242 34L242 292Q242 310 224 316Q168 324 142 336Q125 344 108 336Q82 324 26 316Q8 310 8 292Z'
 };
 function fifaStats(p) {
   const g = k => pget(p, k);
@@ -1527,13 +1527,19 @@ function fifaCard(p) {
   const [, last] = splitName(g('name')), nm = g('shirt') || last || g('name');
   // en FIFA 15 los 6 números van en 3 filas de a 2 (izquierda RIT/TIR/PAS, derecha REG/DEF/FÍS)
   const order = [0, 3, 1, 4, 2, 5];
-  return `<div class="fut ${tier}${ovr >= 85 && tier !== 'icon' ? ' rare' : ''}">
+  // como en FC: posiciones donde rinde al máximo (pestañas a la derecha), "+" según cantidad de habilidades especiales,
+  // y abajo pie hábil, pierna mala y altura
+  const alt = FIFA_POS.map((n, i) => i !== reg && g('pos' + POS_TO_PP[i]) === 2 ? n : null).filter(Boolean).slice(0, 4);
+  const nsk = SKILLS.flatMap(x => x[1]).filter(([i]) => g('sk' + i)).length, plus = nsk >= 10 ? '++' : nsk >= 5 ? '+' : '';
+  return `<div class="fut ${tier}${ovr >= 80 && tier !== 'icon' ? ' rare' : ''}">
+    ${alt.length ? `<div class="fu-alt">${alt.map(n => `<span>${n}</span>`).join('')}</div>` : ''}
+    <div class="fu-tabs"><span title="Pie hábil">${g('strong_foot') ? 'L' : 'R'}</span><span title="Pierna mala">${g('weak_acc') + 1}★</span><span title="Altura">${g('height')}</span></div>
     <svg class="futfr" viewBox="0 0 250 350" aria-hidden="true"><path class="p15" d="${FUT_PATH.f15}"/><path class="pfc" d="${FUT_PATH.fc}"/></svg>
     <div class="futin">
-      <div class="fu-ovr"><b>${ovr}</b><span>${FIFA_POS[reg] || ''}</span></div>
+      <div class="fu-ovr"><b>${ovr}</b><span>${FIFA_POS[reg] || ''}</span>${plus ? `<i title="${nsk} habilidades especiales">${plus}</i>` : ''}</div>
       <div class="fu-club">${c ? crest(c, 'futcrest') : ''}</div>
       <div class="fu-nat">${natFlag(g('nation'))}</div>
-      <div class="fu-ps" title="${esc(STYLES[ps] || '')}">${ps ? '⚡' : ''}</div>
+      <div class="fu-ps" title="${esc(STYLES[ps] || '')}">${ps ? '<i></i>' : ''}</div>
       <div class="fu-face">${faceHtml(p.id, kit, 'futf')}</div>
       <div class="fu-nm">${esc(nm)}</div>
       <div class="fu-band"><span>⚽</span>${esc(ps ? STYLES[ps] : (tier === 'icon' ? 'Leyenda' : 'Básico'))}</div>

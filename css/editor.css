@@ -1843,42 +1843,59 @@ html[data-gfx="pes6"] .abinfo:hover,html[data-gfx="pes6"] .abinfo[aria-described
 .fgrp{background:var(--pan);border-radius:12px;padding:10px 12px;box-shadow:0 1px 0 #ffffff80 inset,0 4px 14px -10px #0007;backdrop-filter:blur(4px)}
 .fifa .abgrp h4{border-bottom-color:color-mix(in srgb,var(--sink) 18%,transparent)}
 /* ----- la carta (250 x 350). Forma actual por defecto; FIFA 15 en PES 6 y Clásico ----- */
-.fut{--c1:#fbedb9;--c2:#e8c66c;--c3:#b98a2e;--ink:#3a2804;--edge:#fff3c4;--band:#0000001a;position:relative;width:250px;height:350px;flex:none;filter:drop-shadow(0 14px 20px #0007);animation:futIn .55s cubic-bezier(.2,1.2,.4,1);z-index:1}
-.fut.silver{--c1:#f5f7fa;--c2:#cfd5dd;--c3:#8e98a6;--ink:#1e232b;--edge:#fff}
-.fut.bronze{--c1:#f3c9a2;--c2:#c8865a;--c3:#8a4e27;--ink:#34190a;--edge:#ffd9b8}
-.fut.icon{--c1:#fffaf0;--c2:#efe2bf;--c3:#c9a75a;--ink:#3b2c0a;--edge:#e8c76a}
+.fut{--c1:#efd88f;--c2:#dcbd66;--c3:#b48f3b;--ink:#3b2c0b;--edge:#f6e6b0;--tab:#d9bb6a;position:relative;width:250px;height:350px;flex:none;filter:drop-shadow(0 14px 20px #0007);animation:futIn .55s cubic-bezier(.2,1.2,.4,1);z-index:1;font-family:var(--body)}
+.fut.rare{--c1:#fbe9a6;--c2:#e9c85f;--c3:#b88c25;--edge:#fff1bf}
+.fut.silver{--c1:#e9ecf0;--c2:#c6ccd4;--c3:#959eaa;--ink:#232830;--edge:#f7f9fb;--tab:#c4cad3}
+.fut.silver.rare{--c1:#f6f8fa;--c2:#cdd3db;--c3:#8d97a5}
+.fut.bronze{--c1:#e9b88f;--c2:#cf9466;--c3:#9c623a;--ink:#3a1f0d;--edge:#f8d2b1;--tab:#cf9466}
+.fut.bronze.rare{--c1:#f4c59b;--c2:#d78f5a;--c3:#93552c}
+.fut.icon{--c1:#f6f4ef;--c2:#e6e1d6;--c3:#cfc6b4;--ink:#4a3a18;--edge:#c9a24e;--tab:#efe7d4}
 .futfr{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}
-.futfr path{fill:none;stroke:var(--edge);stroke-width:3;stroke-linejoin:round}.futfr .p15{display:none}
-.fut.icon .futfr path{stroke:url(#none) var(--edge);stroke-width:4;filter:drop-shadow(0 0 3px #c9a75a)}
-.futin{position:absolute;inset:0;clip-path:path('M34 10Q46 26 68 20Q96 12 125 12T182 20Q204 26 216 10L242 22L242 282Q242 298 228 306L141 343Q125 350 109 343L22 306Q8 298 8 282L8 22Z');color:var(--ink);overflow:hidden;
-  background:linear-gradient(115deg,transparent 28%,#ffffff60 33%,transparent 38%,transparent 56%,#ffffff38 59%,transparent 63%),radial-gradient(90% 55% at 80% 12%,#ffffffa0,transparent 60%),linear-gradient(165deg,var(--c1),var(--c2) 55%,var(--c3))}
-.fut.icon .futin{background:radial-gradient(circle at 50% 38%,transparent 0 92px,#c9a75a40 93px 95px,transparent 96px),repeating-conic-gradient(from 0deg at 50% 38%,#c9a75a14 0 6deg,transparent 6deg 12deg),radial-gradient(90% 55% at 80% 12%,#fff,transparent 60%),linear-gradient(165deg,var(--c1),var(--c2) 60%,var(--c3))}
+.futfr path{fill:none;stroke:var(--edge);stroke-width:2.5;stroke-linejoin:round}.futfr .p15{display:none}
+.fut.icon .futfr path{stroke-width:6;stroke:#c9a24e;filter:drop-shadow(0 0 1px #7a5a17) drop-shadow(0 0 4px #e8c76a99)}
+/* fondo: no rara con arcos suaves; rara con rayos y cintas de luz; abajo la franja del nombre */
+.futin{position:absolute;inset:0;clip-path:path('M8 34Q30 32 34 10Q125 0 216 10Q220 32 242 34L242 292Q242 310 224 316Q168 324 142 336Q125 344 108 336Q82 324 26 316Q8 310 8 292Z');color:var(--ink);overflow:hidden;
+  background:linear-gradient(180deg,transparent 0 198px,#00000014 198px 199px,#ffffff1c 199px),radial-gradient(circle at 108% -6%,transparent 0 70px,#ffffff2e 71px 73px,transparent 74px 104px,#ffffff26 105px 107px,transparent 108px 140px,#ffffff1e 141px 143px,transparent 144px 178px,#ffffff16 179px 181px,transparent 182px 218px,#ffffff10 219px 221px,transparent 222px),linear-gradient(180deg,var(--c1),var(--c2) 62%,var(--c3))}
+.fut.rare .futin{background:linear-gradient(180deg,transparent 0 198px,#00000014 198px 199px,#ffffff1c 199px),linear-gradient(150deg,transparent 30%,#ffffff55 36%,transparent 41%,transparent 47%,#ffffff40 51%,transparent 55%),repeating-conic-gradient(from 180deg at 102% -2%,#ffffff3a 0 .7deg,transparent .7deg 3.2deg),radial-gradient(80% 50% at 85% 10%,#ffffff70,transparent 70%),linear-gradient(180deg,var(--c1),var(--c2) 62%,var(--c3))}
+.fut.icon .futin{background:linear-gradient(180deg,transparent 0 198px,#a8842c33 198px 199px,transparent 199px),radial-gradient(160px 60px at 30% 30%,transparent 0 96%,#c9a24e 97% 99%,transparent 100%),radial-gradient(200px 90px at 78% 64%,transparent 0 96%,#c9a24ecc 97% 99%,transparent 100%),radial-gradient(120px 40px at 18% 72%,#00000010,transparent 70%),radial-gradient(90px 160px at 70% 20%,#0000000c,transparent 70%),repeating-linear-gradient(28deg,transparent 0 18px,#00000008 18px 19px,transparent 19px 41px,#0000000d 41px 42px),repeating-linear-gradient(-52deg,transparent 0 26px,#ffffff70 26px 28px,transparent 28px 63px),linear-gradient(170deg,var(--c1),var(--c2) 60%,var(--c3))}
 .futin::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,#ffffff70 48%,transparent 60%);transform:translateX(-130%);animation:futShine 4s ease-in-out 1.2s infinite;pointer-events:none;z-index:2}
-.fut.rare .futin::after{animation-duration:2.6s;background:linear-gradient(110deg,transparent 35%,#fff 48%,transparent 60%);opacity:.75}
+.fut.rare .futin::after{animation-duration:2.6s;background:linear-gradient(110deg,transparent 35%,#fff 48%,transparent 60%);opacity:.7}
 .futin>div{position:absolute}
-.fu-ovr{left:28px;top:48px;display:grid;justify-items:center;line-height:1}
-.fu-ovr b{font:800 3rem/.9 var(--display);letter-spacing:-.03em}
-.fu-ovr span{font:700 1.15rem/1.2 var(--display);letter-spacing:.03em}
-.fu-ps{left:34px;top:128px;width:30px;height:30px;display:grid;place-items:center;font-size:.9rem;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:color-mix(in srgb,var(--ink) 80%,transparent);color:var(--c1)}
+.fu-ovr{left:44px;top:40px;display:grid;justify-items:center;line-height:1}
+.fu-ovr b{font:800 2.75rem/.92 var(--body);letter-spacing:-.03em}
+.fu-ovr span{font:700 1rem/1.15 var(--body)}
+.fu-ovr i{font:800 .85rem/.9 var(--body);font-style:normal;letter-spacing:-.05em}
+.futin:not(:has(.fu-ps i)) .fu-ovr{left:30px}
+.fu-ps{left:12px;top:52px;width:26px;height:26px;display:grid;place-items:center}
+.fu-ps i{width:19px;height:19px;transform:rotate(45deg);border:1.5px solid var(--ink);border-radius:4px;background:linear-gradient(135deg,color-mix(in srgb,var(--c1) 60%,#fff),var(--c2));position:relative}
+.fu-ps i::after{content:"";position:absolute;inset:4px;border-radius:50%;border:1.5px solid var(--ink);border-top-color:transparent;transform:rotate(-45deg)}
 .fu-ps:empty{display:none}
-.fu-face{right:12px;top:30px;width:172px;height:172px;display:grid;place-items:end center}
-.face.futf{width:100%;height:100%}.face.futf::before{display:none}.face.futf svg{width:72%!important;height:72%!important;align-self:center}
-.face.futf.has img{filter:drop-shadow(0 6px 8px #0005)}
-.fu-nm{left:14px;right:14px;top:204px;text-align:center;font:700 1.5rem/1.1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fu-st{left:20px;right:20px;top:240px;display:grid;grid-template-columns:repeat(6,1fr);text-align:center}
+.fu-face{right:18px;top:24px;width:166px;height:172px;display:grid;place-items:end center}
+.face.futf{width:100%;height:100%}.face.futf::before{display:none}.face.futf svg{width:70%!important;height:70%!important;align-self:center}
+.face.futf.has img{filter:drop-shadow(0 6px 8px #0004)}
+.fu-nm{left:14px;right:14px;top:202px;text-align:center;font:800 1.42rem/1.1 var(--body);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-st{left:18px;right:18px;top:233px;display:grid;grid-template-columns:repeat(6,1fr);text-align:center}
 .fu-st div{display:flex;flex-direction:column-reverse;align-items:center;gap:1px}
-.fu-st span{font:700 .78rem/1 var(--display);opacity:.85}.fu-st b{font:700 1.3rem/1.1 var(--display)}
+.fu-st span{font:700 .72rem/1 var(--body);opacity:.9}.fu-st b{font:800 1.3rem/1.15 var(--body)}
 .fu-st div:nth-child(1){order:1}.fu-st div:nth-child(3){order:2}.fu-st div:nth-child(5){order:3}.fu-st div:nth-child(2){order:4}.fu-st div:nth-child(4){order:5}.fu-st div:nth-child(6){order:6}
-.fu-nat,.fu-club{top:290px}
-.fu-nat{left:calc(50% - 40px)}.fu-club{left:calc(50% + 10px)}
-.fu-nat .flagw{position:relative;display:block;width:30px;height:20px}.fu-nat .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
-.crest.futcrest{width:28px;height:28px;font-size:.5rem;border-radius:5px;margin-top:-4px}
+.fu-nat,.fu-club{top:284px}
+.fu-nat{left:calc(50% - 38px)}.fu-club{left:calc(50% + 12px)}
+.fu-nat .flagw{position:relative;display:block;width:26px;height:17px}.fu-nat .flagw .crest{position:absolute;inset:0;width:auto;height:auto}
+.crest.futcrest{width:24px;height:24px;font-size:.45rem;border-radius:4px;margin-top:-3px}
 .fu-band{display:none}
-.fu-icon{left:0;right:0;top:20px;text-align:center;font:800 .7rem/1 var(--display);letter-spacing:.3em;color:#a8842c}
+/* posiciones extra (pestañas a la derecha) y datos de abajo, como en FC */
+.fu-alt{position:absolute;right:-9px;top:60px;z-index:4;display:grid;gap:2px}
+.fu-alt span{display:block;min-width:34px;padding:4px 4px;text-align:center;font:800 .62rem/1 var(--body);color:var(--ink);background:linear-gradient(180deg,var(--c1),var(--tab));border:1.5px solid color-mix(in srgb,var(--ink) 55%,transparent);border-radius:3px;box-shadow:0 1px 3px #0004}
+.fu-tabs{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);z-index:4;display:flex;gap:3px}
+.fu-tabs span{font:800 .66rem/1 var(--body);color:var(--ink);padding:4px 10px;background:linear-gradient(180deg,var(--c1),var(--tab));clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 50%,calc(100% - 7px) 100%,7px 100%,0 50%);filter:drop-shadow(0 1px 0 #0003)}
+.fu-tabs span:last-child::after{content:" cm";font-size:.55rem}
+.fifaside:has(.fu-tabs) .futbtns{margin-top:10px}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fifaside .futbtns{margin-top:0}
+.fu-icon{left:0;right:0;top:14px;text-align:center;font:800 .62rem/1 var(--body);letter-spacing:.35em;color:#a8842c}
 @keyframes futIn{0%{opacity:0;transform:perspective(700px) rotateY(-70deg) scale(.85)}100%{opacity:1;transform:none}}
 @keyframes futShine{0%{transform:translateX(-130%)}35%,100%{transform:translateX(130%)}}
 /* FIFA 15: nombre arriba, media y posición a la izquierda con escudo y bandera, franja del estilo y 3 filas de 2 */
-html:is([data-gfx="pes6"],[data-gfx="clasico"]) .futin{clip-path:path('M8 36C70 34 92 8 125 8S180 34 242 36L242 306Q242 314 234 317L136 346Q125 349 114 346L16 317Q8 314 8 306Z');color:#fffbe8;text-shadow:0 1px 2px #0000008c;
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut .futin{clip-path:path('M8 36C70 34 92 8 125 8S180 34 242 36L242 306Q242 314 234 317L136 346Q125 349 114 346L16 317Q8 314 8 306Z');color:#fffbe8;text-shadow:0 1px 2px #0000008c;
   background:linear-gradient(172deg,#ffffff66,transparent 34%),radial-gradient(circle at 74% 44%,transparent 0 58px,#ffffff30 59px 62px,transparent 63px 82px,#ffffff20 83px 86px,transparent 87px 110px,#ffffff14 111px 113px,transparent 114px),linear-gradient(180deg,var(--c1),var(--c2) 50%,var(--c3))}
 html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut{--c1:#f4da70;--c2:#dfb83c;--c3:#b38a1c;--edge:#fff2b0}
 html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut.silver{--c1:#eef0f3;--c2:#c4cad2;--c3:#8a939f;--edge:#fff}
@@ -1903,6 +1920,9 @@ html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st b{font-size:1.15rem;min-w
 html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st span{font-size:.98rem;opacity:1}
 html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-icon{top:24px;color:#7a68b8;text-shadow:none}
 .fu-band .emo{color:inherit!important}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) :is(.fu-alt,.fu-tabs){display:none}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fut{font-family:var(--display)}html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr i{display:none}
+html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr b,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-ovr span,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-nm,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st b,html:is([data-gfx="pes6"],[data-gfx="clasico"]) .fu-st span{font-family:var(--display)}
 /* ----- la apertura: el sobre tiembla, destello, bandera → posición → escudo, y la carta gira con rayos ----- */
 .fopen{position:absolute;left:50%;top:0;width:250px;height:350px;margin-left:-125px;z-index:5;pointer-events:none}
 .fopen>*{position:absolute}

@@ -167,13 +167,13 @@ async function mnfSave() {
     const sider = await crestSider(true), { dds, small } = await mnfBuild(), tg = await mnfTarget(sider, pid), dir = await mnfPlayerDir(await mnfRootDir(sider, tg.name, true), true), name = pid + '.dds';
     let old = null, backed = false; try { old = await dir.getFileHandle(name); } catch { }
     // copia de lo que había, salvo que sea una miniface que ya hizo el editor
-    if (old && mnfWhere()[pid] !== tg.name) { let bak = null; try { bak = await dir.getFileHandle(name + '.bak-edit21'); } catch { } if (!bak) { const b = await dir.getFileHandle(name + '.bak-edit21', { create: true }), w = await b.createWritable(); await w.write(await old.getFile()); await w.close(); backed = true; } }
+    if (old && mnfWhere()[pid] !== tg.name) { let bak = null; try { bak = await dir.getFileHandle(name + '.bak-edit21'); } catch { } if (!bak) { const b = await dir.getFileHandle(name + '.bak-edit21', { create: true }), w = await b.createWritable(); await w.write(await old.getFile()); await w.close(); backed = true; bakNote(dir); } }
     const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(dds); await w.close();
     mnfWhereSet(pid, tg.name);
     // el editor la muestra enseguida
     FACES.idx.set(pid, fh); FACES.url.set(pid, small); FACES.err.delete(pid); FACES.loading.delete(pid); FACES.count = FACES.idx.size; paintFace(pid, small);
     MNF.own = true; MNF.done = true;
-    MNF.msg = `Listo: guardé <b>${name}</b> (${MNF.size}×${MNF.size}, DXT3) en livecpk\\${esc(tg.name)}\\common\\render\\symbol\\player${backed ? ' (la anterior quedó como .bak-edit21)' : ''}. Abrí el juego de nuevo para verla.`
+    MNF.msg = `Listo: guardé <b>${name}</b> (${MNF.size}×${MNF.size}, DXT3) en livecpk\\${esc(tg.name)}\\common\\render\\symbol\\player${backed ? ' (la anterior quedó como .bak-edit21 hasta la próxima vez que abras el editor)' : ''}. Abrí el juego de nuevo para verla.`
       + (tg.iniAdded ? ` <span>Agregué la carpeta ${MNF_ROOT} a sider.ini, primera en la lista para que mande (copia en sider.ini.bak-pes-editor).</span>` : '')
       + (tg.iniErr && tg.listed ? ` <span>No pude agregar mi carpeta a sider.ini (${esc(tg.iniErr)}), así que la guardé en ${esc(tg.name)}, que Sider ya lee.</span>` : '')
       + (tg.iniErr && !tg.listed ? ` <span>Ojo: no pude agregar la carpeta a sider.ini (${esc(tg.iniErr)}). Para que el juego la vea, agregá en sider.ini, antes de las otras, la línea cpk.root = ".\\livecpk\\${MNF_ROOT}".</span>` : '');

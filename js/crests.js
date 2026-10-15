@@ -142,8 +142,8 @@ function crestCard(t) {
       <div class="crestbox"><span class="lab">Nuevo</span><div class="crestnew${CR.prev ? '' : ' empty'}" id="crestDrop">${CR.prev ? `<img src="${CR.prev}" alt="Escudo nuevo">` : '<span>Soltá acá un PNG<br>o tocá Elegir</span>'}</div></div>
       <div class="crestinfo">
         <p class="note" style="margin:0">Subí un PNG (mejor con fondo transparente). El editor arma los ${CREST_SET.length} archivos que usa el juego, cada uno con su tamaño, y les pone el ID <b>${crestId(t.id)}</b> de este equipo. También podés subir tus propios archivos <code>e_XXXXXX_f.png</code>, <code>e_XXXXXX_r_l.png</code>…: cada uno va a su lugar y el ID se corrige solo.</p>
-        <div class="mfline"><span>Calidad</span><div class="seg" id="crestQSeg">${[['hd', 'HD normal'], ['2k', '2K (prueba)']].map(([k, n]) => `<button type="button" data-crestq="${k}" aria-pressed="${q === k}" ${CR.busy ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
-        <p class="note" style="margin:0">${q === '2k' ? 'En 2K los archivos sin letra de tamaño quedan en <b>512×520</b>, los <code>_l</code> en <b>1028×1044</b> y los <code>_ll</code> en <b>2056×2088</b>. Es una prueba: si el juego no los muestra bien, volvé a HD normal y guardá de nuevo.' : 'En HD normal cada archivo copia la medida de los escudos que ya hay en la carpeta (si no hay ninguno: 256, 512 y 1024).'}</p>
+        <div class="mfline"><span>Calidad</span><div class="seg" id="crestQSeg">${[['hd', 'HD normal'], ['2k', '2K (experimental)']].map(([k, n]) => `<button type="button" data-crestq="${k}" aria-pressed="${q === k}" ${CR.busy ? 'disabled' : ''}>${n}</button>`).join('')}</div></div>
+        <p class="note" style="margin:0">${q === '2k' ? 'En 2K los archivos sin letra de tamaño quedan en <b>512×520</b>, los <code>_l</code> en <b>1028×1044</b> y los <code>_ll</code> en <b>2056×2088</b>. <b>Es experimental:</b> en las pruebas el juego bajó 3 o 4 FPS y tuvo lag en algunos menús. Si te pasa, volvé a HD normal y guardá de nuevo.' : 'En HD normal cada archivo copia la medida de los escudos que ya hay en la carpeta (si no hay ninguno: 256, 512 y 1024).'}</p>
         <div class="row"><button class="btn small" type="button" id="crestPick">📁 Elegir imagen o archivos</button>
           <button class="btn small primary" type="button" id="crestSave" ${ready && !CR.busy ? '' : 'disabled'}>${CR.busy ? 'Guardando…' : '💾 Guardar escudo en el juego'}</button>
           ${ready ? '<button class="btn small ghost" type="button" id="crestClear">✕ Quitar</button>' : ''}</div>
@@ -155,7 +155,7 @@ function crestCard(t) {
       </div>
     </div>
     ${CR.thumbs ? `<div class="crestprev"><span class="lab">Vista previa de los archivos</span><div class="crestthumbs">${CR.thumbs.map(x => `<figure class="crestthumb ${crestKind(x.suf) || 'n'}"><div><img src="${x.url}" alt="${x.suf}"></div><figcaption><b>${x.suf}</b> <small>${x.w}×${x.h}</small>${crestKind(x.suf) && CR.adj[crestKind(x.suf)] && !CR.own[x.suf] ? ' <small class="crestfix">retocado</small>' : ''}</figcaption></figure>`).join('')}</div></div>` : ''}
-    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && tg.create ? '. <span>Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk</span>' : tg && !tg.listed ? '. <span>Esa carpeta no figura en sider.ini: al guardar la agrego para que Sider la lea</span>' : ''}. Si ya había un escudo, la primera vez se guarda una copia <code>.bak-edit21</code> al lado. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div>
+    <details class="crestfiles"><summary>Dónde y cómo se guarda</summary><p class="note">En <code>${esc(path)}</code>${tg && tg.create ? '. <span>Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk</span>' : tg && !tg.listed ? '. <span>Esa carpeta no figura en sider.ini: al guardar la agrego para que Sider la lea</span>' : ''}. Si ya había un escudo, se guarda una copia <code>.bak-edit21</code> al lado, que se borra sola la próxima vez que abrís el editor. Abrí el juego de nuevo para verlo.</p><div class="chips">${sizes}</div>
       <p class="note"><b>Qué significan las letras.</b> La primera dice dónde se usa el escudo: <code>f</code> plano (como bandera), <code>r</code> render (con relieve), <code>r_b</code> render para fondos oscuros o negros y <code>r_w</code> render para fondos claros o blancos. La última dice el tamaño: sin letra es el normal o miniatura, <code>_l</code> el grande y <code>_ll</code> el más grande.</p></details>
   </div>`;
 }
@@ -190,9 +190,10 @@ async function crestSave(t) {
       const fh = await flag.getFileHandle(name, { create: true }), wr = await fh.createWritable(); await wr.write(await crestBlob(src)); await wr.close(); n++;
       if (suf === 'r') last = fh;
     }
+    if (backed) bakNote(flag);
     // el editor muestra el escudo nuevo enseguida
     if (last) { const u = BADGES.url.get(t.id); if (u && u.startsWith('blob:')) URL.revokeObjectURL(u); BADGES.url.delete(t.id); BADGES.idx.set(t.id, last); BADGES.count = BADGES.idx.size; BADGES.loading.add(t.id); await loadLocalBadge(t.id); }
-    CR.done = true; CR.msg = `Listo: ${n} archivos${crestQ() === '2k' ? ' en 2K' : ''} guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó guardado como .bak-edit21)' : ''}. Abrí el juego de nuevo para verlo.`
+    CR.done = true; CR.msg = `Listo: ${n} archivos${crestQ() === '2k' ? ' en 2K' : ''} guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó como .bak-edit21 hasta la próxima vez que abras el editor)' : ''}. Abrí el juego de nuevo para verlo.`
       + (iniAdded ? ` <span>Agregué la carpeta ${esc(tg.root)} a sider.ini para que Sider la lea (copia en sider.ini.bak-pes-editor).</span>` : '');
     tg.listed = true; tg.create = false; tg.flag = flag;
     toast('Escudo de ' + tget(t, 'name') + ' guardado.');

@@ -1303,7 +1303,7 @@ function playerSheet(p) {
   const tabs = [['profile', 'Perfil'], ['pos', 'Posiciones'], ['abil', 'Habilidades'], ['skills', 'Especiales'], ['look', 'Apariencia'], ['face', '🙂 Miniface'], ['motion', 'Movimientos']];
   const changed = S.origData && !S.d.subarray(p.base, p.base + 0x138).every((v, i) => v === S.origData[p.base + i]);
   return `<div class="card">
-    <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return c ? shirtSvg(kitFor(c, reg === 0), '2.4em', tget(c, 'name')) : ''; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
+    <div class="head">${posBadge(reg)}${(() => { const c = clubOf(p.id); return `<span class="dbface">${faceHtml(p.id, c ? kitFor(c, reg === 0) : null, 'pl')}</span>`; })()}<div style="min-width:0"><h2>${esc(g('name') || 'ID ' + p.id)}</h2>
       <div class="sub">${esc(g('shirt'))} · ${esc(COUNTRY.get(g('nation')) || 'País ' + g('nation'))} · ${g('age')} años · ${g('height')} cm · ${g('strong_foot') ? 'zurdo' : 'diestro'}${all.length ? ' · ' + esc(all.join(', ')) : ''} · ID ${p.id}</div></div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>

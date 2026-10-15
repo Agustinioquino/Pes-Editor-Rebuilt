@@ -1935,14 +1935,16 @@ html[data-gfx="pes6"] .fut .fu-st b{font-size:1.45rem}html[data-gfx="pes6"] .fut
    al rasgarlo: destello, bandera → posición → escudo, y la carta aparece grande en el centro antes de ir a su lugar ----- */
 .fopen{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
 .fopen>*{position:absolute;left:50%;top:var(--cy,300px)}
-.fo-beam{width:240px;height:900px;margin:-450px 0 0 -120px;background:linear-gradient(0deg,transparent,var(--tc) 35%,#fff 50%,var(--tc) 65%,transparent);filter:blur(22px);opacity:.25;animation:foIdleBeam 2.4s ease-in-out infinite}
+.fo-beam{--bc:#dfe6f5;width:240px;height:900px;margin:-450px 0 0 -120px;background:linear-gradient(0deg,transparent,var(--bc) 35%,#fff 50%,var(--bc) 65%,transparent);filter:blur(22px);opacity:.25;animation:foIdleBeam 2.4s ease-in-out infinite}
 /* el sobre: tira de arriba (se rasga) y cuerpo */
 .fo-pack{width:250px;height:360px;margin:-180px 0 0 -125px;display:grid;grid-template-rows:58px 1fr;pointer-events:auto;outline:none;animation:foPackIn .7s cubic-bezier(.3,1.4,.5,1) both,foFloat 2.6s ease-in-out .7s infinite}
-.fo-pack>*{background:repeating-linear-gradient(135deg,#ffffff22 0 6px,transparent 6px 14px),linear-gradient(160deg,color-mix(in srgb,var(--tc) 80%,#fff),var(--tc) 40%,color-mix(in srgb,var(--tc) 45%,#000));box-shadow:0 0 40px color-mix(in srgb,var(--tc) 60%,transparent),inset 0 0 0 3px #ffffff80}
+/* el sobre es igual para todas las cartas: no adelanta si sale oro, plata, bronce o ícono */
+.fo-pack>*{background:repeating-linear-gradient(135deg,#ffffff0d 0 6px,transparent 6px 14px),radial-gradient(ellipse at 50% 38%,#3a4566,transparent 70%),linear-gradient(160deg,#28304a,#121726 55%,#07090f);box-shadow:0 0 40px #dfe6f540,inset 0 0 0 2px #d4a93c,inset 0 0 0 4px #00000080,inset 0 0 0 5px #ffffff30}
 .fo-top{position:relative;border-radius:12px 12px 0 0;cursor:crosshair;touch-action:none;transform-origin:100% 100%;-webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - 6px) no-repeat,conic-gradient(from -45deg at 50% 100%,#000 90deg,transparent 0) 0 100%/12px 6px repeat-x;mask:linear-gradient(#000 0 0) top/100% calc(100% - 6px) no-repeat,conic-gradient(from -45deg at 50% 100%,#000 90deg,transparent 0) 0 100%/12px 6px repeat-x}
 .fo-top::after{content:"";position:absolute;left:8px;right:8px;bottom:9px;border-bottom:2px dashed #fff9}
 .fo-cut{position:absolute;left:0;bottom:7px;height:5px;width:var(--tear,0%);background:linear-gradient(90deg,#fff8,#fff);box-shadow:0 0 12px #fff,0 0 24px var(--tc);border-radius:3px;transition:width .08s}
 .fo-body{position:relative;border-radius:0 0 14px 14px;display:grid;place-items:center;align-content:center;gap:6px;font-size:4.4rem;-webkit-mask:linear-gradient(#000 0 0) bottom/100% calc(100% - 6px) no-repeat,conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 6px repeat-x;mask:linear-gradient(#000 0 0) bottom/100% calc(100% - 6px) no-repeat,conic-gradient(from 135deg at 50% 0,#000 90deg,transparent 0) 0 0/12px 6px repeat-x}
+.fo-logo{width:224px;height:auto;filter:drop-shadow(0 4px 6px #000a);pointer-events:none;user-select:none}
 .fo-body span{font:800 .9rem/1 var(--display);letter-spacing:.2em;color:#fff;text-shadow:0 1px 2px #0008;text-transform:uppercase}
 .fo-hint{width:420px;margin:200px 0 0 -210px;text-align:center;font:600 .95rem/1.3 var(--body,inherit);color:#fff;text-shadow:0 1px 3px #000;animation:fadeOnly .4s ease .6s both}
 .fo-hand{width:34px;height:34px;margin:-186px 0 0 -112px;font-size:1.7rem;filter:drop-shadow(0 2px 3px #000a);animation:foHand 1.8s ease-in-out .8s infinite both;pointer-events:none}
@@ -1965,7 +1967,7 @@ html[data-gfx="pes6"] .fut .fu-st b{font-size:1.45rem}html[data-gfx="pes6"] .fut
 .fifa.go .fo-top{animation:foTear .9s cubic-bezier(.3,.6,.4,1) both;pointer-events:none}
 .fifa.go .fo-pack{animation:foBurst .7s ease-in .45s both}
 .fifa.go :is(.fo-hint,.fo-hand){display:none}
-.fifa.go .fo-beam{animation:foBeam 1.6s ease both}
+.fifa.go .fo-beam{--bc:var(--tc);animation:foBeam 1.6s ease both}
 .fifa.go .fo-flash{animation:foFlash .9s ease .55s both}
 .fifa.go .fo-w1{animation:foWalk 1s ease 1.15s both}.fifa.go .fo-w2{animation:foWalk 1s ease 2.15s both}.fifa.go .fo-w3{animation:foWalk 1s ease 3.15s both}
 .fifa.go .fo-rays{animation:foRays 2.8s ease-out 4.1s both}
@@ -2048,6 +2050,9 @@ html[data-gfx="pes6"] .fbar{border-radius:0;height:5px;background:#0000001c;box-
 html[data-gfx="pes6"] .fbar u{border-radius:0;background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 50%,#fff),var(--lc) 60%)}
 html[data-gfx="pes6"] .fifa .futbtns .btn:not([aria-pressed="true"]){filter:none}
 
+html[data-gfx="pes6"] .card div.fifa .fo-hint{color:#fff;background:none;-webkit-text-fill-color:#fff;filter:none;text-shadow:0 1px 0 #000,0 0 6px #000,0 0 14px #000c}
+html[data-gfx="pes6"] .fo-skip{-webkit-text-fill-color:#fff;color:#fff}
+
 /* ===== Skills: chips con ícono propio (vista PES) e insignias (vista FIFA) ===== */
 :is(.skgrp,.skchip,.fskb)[data-c="0"]{--kc:#8b5cf6}:is(.skgrp,.skchip,.fskb)[data-c="1"]{--kc:#e0452c}:is(.skgrp,.skchip,.fskb)[data-c="2"]{--kc:#2f7fe0}
 :is(.skgrp,.skchip,.fskb)[data-c="3"]{--kc:#13a39a}:is(.skgrp,.skchip,.fskb)[data-c="4"]{--kc:#2e9e4f}:is(.skgrp,.skchip,.fskb)[data-c="ia"]{--kc:#d98a12}
@@ -2111,4 +2116,3 @@ html[data-gfx="pes6"] .posb.df{background:linear-gradient(180deg,#7fe6f2,#19a9c4
 html[data-gfx="pes6"] .posb.mf{background:linear-gradient(180deg,#9df07e,#3cb43a 55%,#227e22)}
 html[data-gfx="pes6"] .posb.fw{background:linear-gradient(180deg,#ff9a86,#e2392a 55%,#a51d14)}
 html[data-gfx="pes6"] .phead .face.pl{width:96px;height:96px;border-radius:2px;border:1px solid #6f6c64;box-shadow:inset 0 0 0 1px #fff,0 2px 6px #0004}
-.fo-body b,.fo-body b .emo{font-size:4.4rem!important;line-height:1}

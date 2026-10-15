@@ -1669,7 +1669,7 @@ function skillsBlock(p) {
 function fifaOpening(p) {
   const c = clubOf(p.id), reg = pget(p, 'reg_pos'), tier = fifaTier(p);
   return `<div class="fopen" aria-hidden="true" data-ovr="${rating(p)}"><i class="fo-beam"></i>
-    <div class="fo-pack" tabindex="0" role="button" aria-label="Abrir el sobre"><div class="fo-top" title="Pasá el mouse de lado a lado para rasgarlo"><i class="fo-cut"></i></div><div class="fo-body"><b>⚽</b><span>${{ gold: 'Oro', silver: 'Plata', bronze: 'Bronce', icon: 'Ícono' }[tier]}</span></div></div>
+    <div class="fo-pack" tabindex="0" role="button" aria-label="Abrir el sobre"><div class="fo-top" title="Pasá el mouse de lado a lado para rasgarlo"><i class="fo-cut"></i></div><div class="fo-body"><img class="fo-logo" src="assets/logo-sobre.png" alt="PES Editor" draggable="false"></div></div>
     <i class="fo-hand">👆</i><p class="fo-hint">Pasá el mouse por la parte de arriba del sobre para rasgarlo</p>
     <i class="fo-flash"></i>
     <div class="fo-w fo-w1">${natFlag(pget(p, 'nation')) || '<b>🌍</b>'}</div><div class="fo-w fo-w2"><b>${FIFA_POS[reg] || ''}</b></div><div class="fo-w fo-w3">${c ? crest(c, 'fobig') : '<b>⚽</b>'}</div>

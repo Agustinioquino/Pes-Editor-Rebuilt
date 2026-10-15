@@ -50,8 +50,10 @@ jobs:
 
           # --- Convierte las notas del release en un resumen corto con emojis ---
           resumen() {
-            local r
-            r=$(printf '%s\n' "$1" \
+            local r txt="$1"
+            # Si la nota viene en inglés y en español, el resumen sale de la parte en español
+            [[ "$txt" == *'<!-- es -->'* ]] && txt="${txt#*<!-- es -->}"
+            r=$(printf '%s\n' "$txt" \
               | { grep -E '^\s*[-*] ' || true; } \
               | sed -E 's/^\s*[-*] //; s/ by @[^ ]+ in https?:\/\/[^ ]+$//' \
               | head -n 8 \

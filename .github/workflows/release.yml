@@ -1,14 +1,16 @@
-# Publica sola una release cada vez que cambia release/VERSION o release/NOTAS.md en main.
+# Publica sola una release cada vez que cambia release/VERSION, release/NOTES.md o release/NOTAS.md en main.
 # Si la release de esa versión ya existe, solo le actualiza el título y el texto (y no vuelve a armar la app).
-# La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha), el texto sale de release/NOTAS.md
-# y el subtítulo de release/TITULO (opcional). Adjunta el editor en .zip, el módulo de Sider y la app para Windows
+# La etiqueta queda como v<VERSION>-alpha (por ejemplo v0.015-alpha) y el subtítulo sale de release/TITULO (opcional).
+# El texto va primero en inglés (release/NOTES.md) y después en español (release/NOTAS.md), unidos por
+# release/armar-notas.sh. Al cambiar de versión hay que actualizar los dos archivos.
+# Adjunta el editor en .zip, el módulo de Sider y la app para Windows
 # (instalador y portátil, armados en windows-latest).
 name: Publicar release
 
 on:
   push:
     branches: [main]
-    paths: ['release/VERSION', 'release/NOTAS.md', 'release/TITULO']
+    paths: ['release/VERSION', 'release/NOTES.md', 'release/NOTAS.md', 'release/TITULO']
   workflow_dispatch:
 
 permissions:
@@ -31,9 +33,10 @@ jobs:
           TAG="v${V}-alpha"
           TITLE="PES Editor Rebuilt v${V} alpha"
           if [ -s release/TITULO ]; then TITLE="$TITLE · $(head -n1 release/TITULO | tr -d '\r')"; fi
+          bash release/armar-notas.sh release/NOTES.md release/NOTAS.md > "$RUNNER_TEMP/notas.md"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "La release $TAG ya existe: actualizo el título y el texto."
-            gh release edit "$TAG" --title "$TITLE" --notes-file release/NOTAS.md
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$RUNNER_TEMP/notas.md"
             echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -42,7 +45,7 @@ jobs:
           zip -qr "$ZIP" index.html manifest.webmanifest sw.js css js icons LICENSE README.md
           FILES=("$ZIP")
           [ -f sider/edit21_db.lua ] && FILES+=("sider/edit21_db.lua")
-          gh release create "$TAG" "${FILES[@]}" --target "$GITHUB_SHA" --title "$TITLE" --notes-file release/NOTAS.md --prerelease
+          gh release create "$TAG" "${FILES[@]}" --target "$GITHUB_SHA" --title "$TITLE" --notes-file "$RUNNER_TEMP/notas.md" --prerelease
           echo "created=true" >> "$GITHUB_OUTPUT"
 
   # la app de escritorio: se arma en Windows y se suma a la release (si ya estaba, se reemplaza)

@@ -162,59 +162,87 @@ function kpfFontList() {
   const sys = (typeof KS_FONTS !== 'undefined' ? KS_FONTS : []).filter(f => { try { return f === 'Saira Condensed' || ksFontInstalled(f); } catch { return false; } });
   return [...(KPFS.userFonts || []), ...sys.filter(f => !(KPFS.userFonts || []).includes(f))];
 }
-function kpfHtml(t, has = !!KS.cfg) {
+// ---- pestaña Fuentes: el creador, aparte de Kit Studio Pro ----
+// Equipos con carpeta en el kit-server (para probar e instalar la fuente en uno de sus kits)
+function kpfTeams() {
+  const out = [];
+  for (const [id, k] of KITS.map) { if (!k || !k.path) continue; const t = S.f && S.ix && S.ix.teamById.get(+id), seg = String(k.path).split(/[\\/]/).pop();
+    out.push({ id: +id, name: t ? tget(t, 'name') || seg : seg, path: k.path }); }
+  return out.sort((x, y) => x.name.localeCompare(y.name, 'es'));
+}
+// abre la pestaña Fuentes con el equipo y el kit que se estaba viendo en Kit Studio Pro
+function kpfGoto(t) { const k = t && KITS.map.get(t.id); if (k && k.path) { KPFS.team = t.id; KPFS.target = KS.team === t.id && KS.sel ? KS.sel : '*'; } setTab('fonts'); }
+function renderFonts(m) {
+  const rr = () => { if (S.tab === 'fonts') renderFonts(m); }; KPFS.rr = rr; ksRerender = () => later(rr);
+  if (KPFS.team == null && KS.team != null && (KITS.map.get(KS.team) || {}).path) KPFS.team = KS.team;
+  const k = KPFS.team != null && KITS.map.get(KPFS.team);
+  if (k && k.path && KS.team !== KPFS.team && !KS.busy) { KS.team = KPFS.team; KS.cfg = null; KS.sel = null; ksLoad({ id: KPFS.team }).then(rr); }
+  const has = !!(k && k.path && KS.cfg && KS.team === KPFS.team);
+  m.innerHTML = `<section class="card kpfpage">${kpfHtml(has)}</section>`; kpfBind(m, has);
+}
+function kpfHtml(has) {
   const O = kpfOpts(), fonts = kpfFontList(), kitsAll = has ? [...KS.kits, ...KS.gk] : [];
-  if (!KPFS.target || (KPFS.target !== '*' && !kitsAll.includes(KPFS.target))) KPFS.target = KS.sel || '*';
+  if (has && (!KPFS.target || (KPFS.target !== '*' && !kitsAll.includes(KPFS.target)))) KPFS.target = KS.sel || '*';
   const n = KPF.chars(KPFS.sets).length, rng = (id, lab, v, min, max, step, fmt) => `<div class="f"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"></div>`;
   const st = KPFS.st, row = (ok, b, txt, fix) => `<li class="${ok === true ? 'ok' : ok === false ? 'bad' : ok === 'info' ? 'info' : 'unk'}"><i aria-hidden="true">${ok === true ? '✓' : ok === false ? '✕' : ok === 'info' ? '•' : '?'}</i><span><b>${b}</b> ${txt}</span>${fix || ''}</li>`;
-  const tgtN = k => k === '*' ? 'Todos los kits de jugador' : k + ' · ' + KS_ROLE(k, (KS.gk.includes(k) ? KS.gk : KS.kits).indexOf(k), KS.gk.includes(k));
+  const teams = kpfTeams(), loading = KPFS.team != null && !has && (KS.busy || (!KS.cfg && !KS.err)), sec = (i, t, body, cls = '') => `<div class="kpfsec ${cls}"><h5>${i ? `<i>${i}</i>` : ''}${t}</h5>${body}</div>`;
+  const chip = (k, i, gk) => { const me = KS.meta[k]; return `<button type="button" class="kpfkit" data-kit="${esc(k)}" aria-pressed="${KPFS.target === k}" title="${esc(k)}">${shirtSvg(me || {}, '1.9em')}<span><b>${esc(k)}</b><small>${KS_ROLE(k, i, gk)}</small></span></button>`; };
+  const step = KPFS.done ? 4 : has ? 3 : 2;
   return `<div class="kpf" id="kpfDrop">
-    <div class="kpfhero"><div><h4>🔤 Creador de fuentes <small>con minúsculas y acentos</small></h4>
-      <p class="note">Armá la fuente del nombre de la camiseta con cualquier tipografía: mayúsculas, minúsculas, tildes, Ñ, cirílico y griego. Se guarda como la textura de letras del kit y la tabla de letras que lee KitPos.</p></div>
-      <span class="chip">${n} letras</span></div>
-    <div class="kpfgrid">
-      <div class="kpfl">
-        <div class="f"><span class="lab">Fuente</span>
-          <div class="kpffonts" id="kpfFonts" role="listbox" aria-label="Fuente">${fonts.map(f => `<button type="button" role="option" data-font="${esc(f)}" aria-selected="${f === O.font}" title="${esc(f)}"><b style="font-family:${esc(KPF.fontCss({ font: f }, 22).replace(/^.*?px /, ''))}">Aa Ññ</b><small>${esc(f)}</small></button>`).join('')}</div>
-          <div class="row" style="gap:6px"><button class="btn small" type="button" id="kpfUp">＋ Subir fuente (.ttf, .otf, .woff)</button><button class="btn small ghost" type="button" id="kpfImg" title="Una textura de letras con el formato del juego (A a Z y el punto): esas letras se usan tal cual">🖼 Letras desde una imagen</button></div>
+    <header class="kpfhero"><div class="kpfht"><h2>🔤 Creador de fuentes</h2>
+      <p class="note">La fuente del nombre de la camiseta con cualquier tipografía: mayúsculas, minúsculas, tildes, Ñ, cirílico y griego. Se guarda como la textura de letras del kit y la tabla de letras que lee KitPos.</p></div>
+      <ol class="kpfsteps" aria-label="Pasos">${['Fuente', 'Estilo', 'Kit', 'Al juego'].map((x, i) => `<li class="${i + 1 < step ? 'done' : i + 1 === step ? 'now' : ''}"><i>${i + 1 < step ? '✓' : i + 1}</i>${x}</li>`).join('')}</ol>
+      <span class="chip kpfn">${n} letras</span></header>
+    <div class="kpfstudio">
+      <aside class="kpfl">
+        ${sec(1, 'Fuente', `<div class="kpffonts" id="kpfFonts" role="listbox" aria-label="Fuente">${fonts.map(f => `<button type="button" role="option" data-font="${esc(f)}" aria-selected="${f === O.font}" title="${esc(f)}"><b style="font-family:${esc(KPF.fontCss({ font: f }, 22).replace(/^.*?px /, ''))}">Aa Ññ</b><small>${esc(f)}</small></button>`).join('')}</div>
+          <div class="kpfup"><button class="btn small primary" type="button" id="kpfUp">＋ Subir fuente</button><button class="btn small" type="button" id="kpfImg" title="Una textura de letras con el formato del juego (A a Z y el punto): esas letras se usan tal cual">🖼 Letras de una imagen</button></div>
           ${O.img ? `<div class="kpfimg"><canvas id="kpfImgTh" width="220" height="56"></canvas><div><b>${esc(O.imgName)}</b><small class="note">A–Z y el punto salen de la imagen; lo demás, de ${esc(O.font)}.</small>
             <label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
             <button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>` : ''}
-          <small class="note">También podés arrastrar el archivo de fuente o la imagen a esta pantalla.</small></div>
-        <div class="f"><span class="lab">Estilo rápido</span><div class="fchips" id="kpfPre">${Object.entries(KPF_PRESETS).map(([k, p]) => `<button type="button" data-pre="${k}" aria-pressed="false">${p.n}</button>`).join('')}</div></div>
-        <div class="grid2"><div class="f"><label for="kpfW">Grosor</label><select id="kpfW">${[[400, 'Normal'], [600, 'Semi negrita'], [700, 'Negrita'], [800, 'Extra negrita'], [900, 'Black']].map(([v, l]) => `<option value="${v}" ${+O.weight === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-          <div class="f"><span class="lab">&nbsp;</span><label class="chk"><input type="checkbox" id="kpfIt" ${O.italic ? 'checked' : ''}> Cursiva</label></div></div>
-        <div class="grid2">${rng('kpfWidth', 'Ancho', Math.round(O.width * 100), 60, 140, 1, v => v + '%')}${rng('kpfSize', 'Tamaño', Math.round(O.size * 100), 70, 110, 1, v => v + '%')}</div>
-        <div class="grid2"><div class="f"><label for="kpfFill">Relleno</label><div class="row" style="flex-wrap:nowrap;gap:6px"><input type="color" id="kpfFill" value="${O.fill}"><label class="chk"><input type="checkbox" id="kpfGrad" ${O.grad ? 'checked' : ''}> Degradado</label><input type="color" id="kpfFill2" value="${O.fill2}" aria-label="Color de abajo del degradado" ${O.grad ? '' : 'disabled'}></div></div>
-          <div class="f"><label for="kpfSh">Sombra <output>${O.shadow}</output></label><div class="row" style="flex-wrap:nowrap"><input type="range" id="kpfSh" min="0" max="12" value="${O.shadow}"><input type="color" id="kpfShC" value="${O.shadowColor}" aria-label="Color de la sombra"></div></div></div>
-        <div class="grid2"><div class="f"><label for="kpfS1">Borde <output>${O.stroke1}</output></label><div class="row" style="flex-wrap:nowrap"><input type="range" id="kpfS1" min="0" max="14" value="${O.stroke1}"><input type="color" id="kpfC1" value="${O.color1}" aria-label="Color del borde"></div></div>
-          <div class="f"><label for="kpfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row" style="flex-wrap:nowrap"><input type="range" id="kpfS2" min="0" max="14" value="${O.stroke2}"><input type="color" id="kpfC2" value="${O.color2}" aria-label="Color del segundo borde"></div></div></div>
-        <div class="f"><span class="lab">Idiomas</span><div class="fchips" id="kpfSets">${KPF.SETS.map(s => `<button type="button" data-set="${s.k}" aria-pressed="${!!(s.fixed || KPFS.sets[s.k])}" ${s.fixed ? 'disabled' : ''} title="${esc(s.d)}">${s.n} <small>${[...s.chars].length}</small></button>`).join('')}</div></div>
+          <small class="note">.ttf, .otf o .woff; también podés arrastrar el archivo a esta pantalla. Las que subís quedan guardadas para la próxima.</small>`)}
+        ${sec(2, 'Estilo', `<div class="kpfpres" id="kpfPre">${Object.entries(KPF_PRESETS).map(([k, p]) => `<button type="button" data-pre="${k}" title="${p.n}"><canvas data-prethumb="${k}" width="120" height="54"></canvas><span>${p.n}</span></button>`).join('')}</div>
+          <div class="grid2"><div class="f"><label for="kpfW">Grosor</label><select id="kpfW">${[[400, 'Normal'], [600, 'Semi negrita'], [700, 'Negrita'], [800, 'Extra negrita'], [900, 'Black']].map(([v, l]) => `<option value="${v}" ${+O.weight === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+            <div class="f"><span class="lab">&nbsp;</span><label class="chk"><input type="checkbox" id="kpfIt" ${O.italic ? 'checked' : ''}> Cursiva</label></div></div>
+          <div class="grid2">${rng('kpfWidth', 'Ancho', Math.round(O.width * 100), 60, 140, 1, v => v + '%')}${rng('kpfSize', 'Tamaño', Math.round(O.size * 100), 70, 110, 1, v => v + '%')}</div>
+          <div class="kpfcolors"><div class="f"><label for="kpfFill">Relleno</label><div class="row"><input type="color" id="kpfFill" value="${O.fill}"><label class="chk"><input type="checkbox" id="kpfGrad" ${O.grad ? 'checked' : ''}> Degradado</label><input type="color" id="kpfFill2" value="${O.fill2}" aria-label="Color de abajo del degradado" ${O.grad ? '' : 'disabled'}></div></div>
+            <div class="f"><label for="kpfSh">Sombra <output>${O.shadow}</output></label><div class="row"><input type="range" id="kpfSh" min="0" max="12" value="${O.shadow}"><input type="color" id="kpfShC" value="${O.shadowColor}" aria-label="Color de la sombra"></div></div>
+            <div class="f"><label for="kpfS1">Borde <output>${O.stroke1}</output></label><div class="row"><input type="range" id="kpfS1" min="0" max="14" value="${O.stroke1}"><input type="color" id="kpfC1" value="${O.color1}" aria-label="Color del borde"></div></div>
+            <div class="f"><label for="kpfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row"><input type="range" id="kpfS2" min="0" max="14" value="${O.stroke2}"><input type="color" id="kpfC2" value="${O.color2}" aria-label="Color del segundo borde"></div></div></div>`)}
+        ${sec(0, 'Idiomas', `<div class="fchips" id="kpfSets">${KPF.SETS.map(s => `<button type="button" data-set="${s.k}" aria-pressed="${!!(s.fixed || KPFS.sets[s.k])}" ${s.fixed ? 'disabled' : ''} title="${esc(s.d)}">${s.n} <small>${[...s.chars].length}</small></button>`).join('')}</div>`)}
+      </aside>
+      <div class="kpfc">
+        <div class="kpfsample"><label class="lab" for="kpfName">Nombre de prueba</label><input type="text" id="kpfName" value="${esc(KPFS.sample)}" maxlength="24"><div class="fchips" id="kpfSam">${KPF_SAMPLES.map(s => `<button type="button" data-s="${esc(s)}" aria-pressed="${s === KPFS.sample}">${esc(s)}</button>`).join('')}</div></div>
+        <div class="kpfstage">
+          <div class="seg kpfview" id="kpfView">${[['shirt', '👕 Camiseta'], ['atlas', '🔠 Textura de letras']].map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${(KPFS.view || 'shirt') === v}">${l}</button>`).join('')}</div>
+          <canvas id="kpfShirt" width="1100" height="520" aria-label="Vista previa del nombre en la camiseta" ${KPFS.view === 'atlas' ? 'hidden' : ''}></canvas>
+          <div class="kpfatlas" ${KPFS.view === 'atlas' ? '' : 'hidden'}><canvas id="kpfAtlas" width="1100" height="275" aria-label="Textura de letras generada"></canvas><small class="note mono" id="kpfDim">—</small></div>
+        </div>
       </div>
-      <div class="kpfr">
-        <div class="row kpfsample"><label class="lab" for="kpfName">Nombre de prueba</label><input type="text" id="kpfName" value="${esc(KPFS.sample)}" maxlength="24" style="width:180px"><div class="fchips" id="kpfSam">${KPF_SAMPLES.map(s => `<button type="button" data-s="${esc(s)}" aria-pressed="${s === KPFS.sample}">${esc(s)}</button>`).join('')}</div></div>
-        <div class="kpfprev"><canvas id="kpfShirt" width="900" height="360" aria-label="Vista previa del nombre en la camiseta"></canvas>${has ? '<figure class="kpfback"><canvas id="kpfBack" width="300" height="360" aria-label="Espalda del kit en 3D con la fuente nueva"></canvas><figcaption>En el kit · 3D</figcaption></figure>' : ''}</div>
-        <div class="kpfatlas"><div class="row" style="justify-content:space-between"><span class="lab">Textura de letras</span><small class="note mono" id="kpfDim">—</small></div><canvas id="kpfAtlas" width="900" height="225" aria-label="Textura de letras generada"></canvas></div>
-      </div>
+      <aside class="kpfr">
+        ${sec(3, 'Kit', `<div class="f"><label for="kpfTeam">Equipo</label><select id="kpfTeam"><option value="">${KITS.from ? '— Sin equipo: solo descargar el .zip —' : '— Conectá la carpeta Sider para elegir un kit —'}</option>${teams.map(x => `<option value="${x.id}" ${KPFS.team === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+          ${loading ? '<div class="lmload"><span class="spin"></span> Leyendo los kits…</div>' : KPFS.team != null && !has && KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
+          ${has ? `<div class="kpfkits" id="kpfKits"><button type="button" class="kpfkit all" data-kit="*" aria-pressed="${KPFS.target === '*'}"><span><b>Todos</b><small>${KS.kits.length} de jugador</small></span></button>${KS.kits.map((k, i) => chip(k, i, false)).join('')}${KS.gk.map((k, i) => chip(k, i, true)).join('')}</div>
+          <figure class="kpfback"><canvas id="kpfBack" width="320" height="380" aria-label="Espalda del kit en 3D con la fuente nueva"></canvas><figcaption>${esc(KS.sel)} · 3D</figcaption></figure>` : ''}`)}
+        ${has ? kposHtml(['name'], { save: true }) : ''}
+        ${sec(4, 'Llevarla al juego', `${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
+            ${S.f && S.ix && S.ix.teamById.get(KPFS.team) ? '<button class="btn" type="button" id="kpfTry" title="Abre Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en Kit Studio Pro</button>' : ''}
+            <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21) y borra kitpos_letras.txt">↩ Volver a la anterior</button></div>`
+            : `<p class="note">Sin un kit elegido la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.</p><div class="kpfbtns"><button class="btn primary" type="button" id="kpfZip">⬇ Descargar .zip</button></div>`}
+          <p class="note kpflog" id="kpfLog" aria-live="polite">${esc(KPFS.log)}</p>
+          ${!has ? '' : st ? `<ul class="kpfst">${row(st.lua ? (st.verOk === false ? false : true) : st.lua, 'KitPos', st.lua ? 'versión ' + esc(st.ver || '?') + (st.verOk === false ? ' (para fuentes por kit hace falta la 6.4 o una más nueva)' : '') : st.lua === false ? 'no está en modules (kitpos.lua)' : 'no se pudo revisar', st.lua === false || st.verOk === false ? `<button class="btn small" type="button" id="kpfKp">${st.lua ? 'Actualizar' : 'Instalar'}</button>` : '')}
+            ${row(st.ini, 'sider.ini', st.ini ? 'carga kitpos.lua' + (st.luajit === false ? ', pero falta luajit.ext.enabled = 1' : '') : st.ini === false ? 'no tiene la línea lua.module = "kitpos.lua"' : 'no se pudo leer (el navegador oculta los .ini; en la app de Windows se revisa solo)', st.ini === false || st.luajit === false ? '<button class="btn small" type="button" id="kpfKp2">Arreglar</button>' : '')}
+            ${row(st.lower, 'Minúsculas en el juego', st.lower ? 'activadas (el nombre llega tal cual se escribe)' : st.lower === false ? 'apagadas: el juego pasa el nombre a mayúsculas' : 'no se pudo revisar kitpos_slots.ini', st.lower === false ? '<button class="btn small" type="button" id="kpfLower">Activar</button>' : '')}
+            ${row(st.kit || 'info', 'Kit ' + esc(KS.sel), st.kit ? 'ya usa una fuente de KitPos (' + st.kitN + ' letras)' : 'usa la fuente común del juego')}</ul>` : '<p class="note">Revisando KitPos en la carpeta Sider…</p>'}`, 'kpfgame')}
+      </aside>
     </div>
-    <section class="kpfgame"><h4>🎮 Llevarla al juego</h4>
-      <div class="kpfgame2"><div>
-        ${has ? `<div class="f"><label for="kpfTgt">Kit</label><select id="kpfTgt"><option value="*" ${KPFS.target === '*' ? 'selected' : ''}>${tgtN('*')}</option>${kitsAll.map(k => `<option value="${esc(k)}" ${KPFS.target === k ? 'selected' : ''}>${esc(tgtN(k))}</option>`).join('')}</select></div>
-        <div class="row" style="gap:6px"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button><button class="btn" type="button" id="kpfTry">👁 Probar en el 3D</button><button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21) y borra kitpos_letras.txt">↩ Volver a la anterior</button></div>`
-        : `<p class="note">Sin la carpeta Sider conectada (o si el equipo no tiene carpeta en content\\kit-server) la fuente se descarga en un .zip para copiarla a mano.</p><div class="row"><button class="btn primary" type="button" id="kpfZip">⬇ Descargar .zip</button></div>`}
-        <p class="note kpflog" id="kpfLog" aria-live="polite">${esc(KPFS.log)}</p>
-        ${!has ? '' : st ? `<ul class="kpfst">${row(st.lua, 'KitPos', st.lua ? 'versión ' + esc(st.ver || '?') + (st.verOk === false ? ' (para fuentes por kit hace falta la 6.4 o una más nueva)' : '') : st.lua === false ? 'no está en modules (kitpos.lua)' : 'no se pudo revisar')}
-          ${row(st.ini, 'sider.ini', st.ini ? 'carga kitpos.lua' + (st.luajit === false ? ', pero falta luajit.ext.enabled = 1' : '') : st.ini === false ? 'no tiene la línea lua.module = "kitpos.lua"' : 'no se pudo leer (el navegador oculta los .ini; en la app de Windows se revisa solo)')}
-          ${row(st.lower, 'Minúsculas en el juego', st.lower ? 'activadas (el nombre llega tal cual se escribe)' : st.lower === false ? 'apagadas: el juego pasa el nombre a mayúsculas' : 'no se pudo revisar kitpos_slots.ini', st.lower === false ? '<button class="btn small" type="button" id="kpfLower">Activar</button>' : '')}
-          ${has ? row(st.kit || 'info', 'Kit ' + esc(KS.sel), st.kit ? 'ya usa una fuente de KitPos (' + st.kitN + ' letras)' : 'usa la fuente común del juego') : ''}</ul>` : '<p class="note">Revisando KitPos en la carpeta Sider…</p>'}
-      </div>
-      <details class="kpfhow" open><summary>Cómo llega al juego</summary><ol>
-        <li><b>KitPos en Sider.</b> Hace falta KitPos 6.4 o más nuevo: <span class="mono">modules\\kitpos.lua</span> y en <span class="mono">sider.ini</span> la línea <span class="mono">lua.module = "kitpos.lua"</span> debajo de la de kserv, con <span class="mono">luajit.ext.enabled = 1</span>.</li>
-        <li><b>Tres archivos en la carpeta del kit.</b> El botón guarda en <span class="mono">content\\kit-server\\&lt;equipo&gt;\\&lt;kit&gt;</span> la textura de letras como .dds y .ftex (DXT5, 4096 px de ancho, con el nombre de <span class="mono">NameFontFile</span> del config.txt) y <span class="mono">kitpos_letras.txt</span>, la tabla con el lugar de cada letra. La primera vez guarda una copia .bak-edit21 de la textura anterior.</li>
-        <li><b>Minúsculas y acentos.</b> Con <span class="mono">minusculas_juego = 1</span> en <span class="mono">content\\kitpos\\kitpos_slots.ini</span> (viene así de fábrica) el juego deja el nombre como está en la base y el editor del juego acepta minúsculas y las letras de la fuente.</li>
-        <li><b>En el juego.</b> Abrí el juego de nuevo, entrá a Editar › Equipos › Uniformes y fijate el nombre en la espalda. Con el panel de KitPos en el overlay de Sider ajustás altura, tamaño, separación y curva.</li>
-        <li><b>Sin la app ni la carpeta conectada.</b> "Descargar .zip" trae los tres archivos y un LEEME: copialos a la carpeta del kit y, si el config.txt no tiene NameFontFile, completalo con el nombre de la textura.</li></ol></details>
-    </div></section>
+    <details class="kpfhow"><summary>Cómo llega al juego</summary><ol>
+      <li><b>KitPos en Sider.</b> Hace falta KitPos 6.4 o más nuevo: <span class="mono">modules\\kitpos.lua</span> y en <span class="mono">sider.ini</span> la línea <span class="mono">lua.module = "kitpos.lua"</span> debajo de la de kserv, con <span class="mono">luajit.ext.enabled = 1</span>. El editor trae KitPos: el botón Instalar lo copia y agrega esas líneas (con copia de sider.ini).</li>
+      <li><b>Tres archivos en la carpeta del kit.</b> El botón guarda en <span class="mono">content\\kit-server\\&lt;equipo&gt;\\&lt;kit&gt;</span> la textura de letras como .dds y .ftex (DXT5, 4096 px de ancho, con el nombre de <span class="mono">NameFontFile</span> del config.txt) y <span class="mono">kitpos_letras.txt</span>, la tabla con el lugar de cada letra. La primera vez guarda una copia .bak-edit21 de la textura anterior.</li>
+      <li><b>Posición, tamaño y arco.</b> El panel 📐 guarda los valores exactos en <span class="mono">content\\kitpos\\kitpos_slots.ini</span>, en la sección del kit (<span class="mono">[equipo ID p1]</span>) o de todo el equipo. Son los mismos que ajusta el panel de KitPos en el overlay de Sider.</li>
+      <li><b>Minúsculas y acentos.</b> Con <span class="mono">minusculas_juego = 1</span> en kitpos_slots.ini (viene así de fábrica) el juego deja el nombre como está en la base y el editor del juego acepta minúsculas y las letras de la fuente.</li>
+      <li><b>En el juego.</b> Abrí el juego de nuevo, entrá a Editar › Equipos › Uniformes y fijate el nombre en la espalda.</li>
+      <li><b>Sin la app ni la carpeta conectada.</b> "Descargar .zip" trae los tres archivos y un LEEME: copialos a la carpeta del kit y, si el config.txt no tiene NameFontFile, completalo con el nombre de la textura.</li></ol></details>
   </div>`;
 }
 // ---- vista previa ----
@@ -223,12 +251,26 @@ function kpfShirtBg(g, w, h) {
   g.fillStyle = c1; g.fillRect(0, 0, w, h); gr.addColorStop(0, '#ffffff22'); gr.addColorStop(.5, '#00000000'); gr.addColorStop(1, '#00000044'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
   g.fillStyle = '#0000000d'; for (let y = 0; y < h; y += 4) g.fillRect(0, y, w, 1); for (let x = 0; x < w; x += 4) g.fillRect(x, 0, 1, h);
 }
+// muestras de los estilos rápidos: "Ab" con la fuente elegida y los colores de cada estilo
+function kpfPresetThumbs(sh) {
+  const O = kpfOpts();
+  sh.querySelectorAll('canvas[data-prethumb]').forEach(c => { const p = { ...O, ...KPF_PRESETS[c.dataset.prethumb] }, g = c.getContext('2d'), w = c.width, h = c.height;
+    g.clearRect(0, 0, w, h); g.fillStyle = '#1d3f8a'; g.fillRect(0, 0, w, h); g.fillStyle = '#0000000f'; for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);
+    g.font = KPF.fontCss(p, 34); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; const x = w / 2, y = h / 2 + 2, t = 'Ab Ñ';
+    if (p.shadow) { g.save(); g.fillStyle = p.shadowColor; g.globalAlpha = .7; g.fillText(t, x + p.shadow * .4, y + p.shadow * .4); g.restore(); }
+    if (p.stroke2) { g.strokeStyle = p.color2; g.lineWidth = (p.stroke1 + p.stroke2) * 1.1; g.strokeText(t, x, y); }
+    if (p.stroke1) { g.strokeStyle = p.color1; g.lineWidth = p.stroke1 * 1.1; g.strokeText(t, x, y); }
+    if (p.grad) { const gr = g.createLinearGradient(0, y - 14, 0, y + 14); gr.addColorStop(0, p.fill); gr.addColorStop(1, p.fill2); g.fillStyle = gr; } else g.fillStyle = p.fill; g.fillText(t, x, y); });
+}
 function kpfDrawPreview(sh) {
   const R = KPFS.out; if (!R) return; const tex = R.canvas;
-  const sc = sh.querySelector('#kpfShirt'); if (sc) { const g = sc.getContext('2d'); kpfShirtBg(g, sc.width, sc.height);
-    KPF.drawText(g, tex, KPFS.sample || 'Fernández', sc.width / 2, 120, 86, {});
+  const sc = sh.querySelector('#kpfShirt'); if (sc) { const g = sc.getContext('2d'), W = sc.width, H = sc.height; kpfShirtBg(g, W, H);
+    // con un kit elegido, el nombre sale con el ancho, la separación y el arco de ese kit (los de KitPos si tiene)
+    const p = KPFS.has && KS.cfg ? KS_POS.name() : null, o = p ? { stretch: p.stretch / 1.2, spacing: p.spacing, curve: p.curve } : {};
+    g.save(); g.strokeStyle = '#ffffff14'; g.setLineDash([6, 8]); g.beginPath(); g.moveTo(W / 2, 20); g.lineTo(W / 2, H - 20); g.stroke(); g.restore();
+    KPF.drawText(g, tex, KPFS.sample || 'Fernández', W / 2, 170, 128, o);
     const extra = [...new Set(KPF.chars(KPFS.sets).filter(c => !/[A-Za-z0-9 .\-'_]/.test(c)))].slice(0, 26).join('');
-    KPF.drawText(g, tex, 'Aa Bb Cc Ññ 0123456789', sc.width / 2, 236, 38, {}); if (extra) KPF.drawText(g, tex, extra, sc.width / 2, 306, 34, {}); }
+    KPF.drawText(g, tex, 'Aa Bb Cc Ññ 0123456789', W / 2, 336, 52, {}); if (extra) KPF.drawText(g, tex, extra, W / 2, 436, 46, {}); }
   const ac = sh.querySelector('#kpfAtlas'); if (ac) { const g = ac.getContext('2d'), hh = Math.round(ac.width * tex.height / tex.width); if (ac.height !== hh) ac.height = hh;
     for (let y = 0; y < ac.height; y += 10) for (let x = 0; x < ac.width; x += 10) { g.fillStyle = (x + y) / 10 % 2 ? '#2a2f36' : '#353b44'; g.fillRect(x, y, 10, 10); }
     g.drawImage(tex, 0, 0, ac.width, ac.height); g.strokeStyle = '#ffd84a33'; g.lineWidth = 1; const k = ac.width / tex.width;
@@ -242,16 +284,16 @@ function kpfBack3d(sh) {
   const cv = sh.querySelector('#kpfBack'); if (!cv || !KPFS.has || !KS.cfg || !KPFS.out) return;
   clearTimeout(kpfBack3d.t); kpfBack3d.t = setTimeout(async () => {
     try {
-      if (!KS.model) { KS.model = await k3Load(KS.cfg); KS.modelKey = ''; }
+      if (!KS.model || KS.modelFor !== KS.sel) { KS.model = await k3Load(KS.cfg); KS.modelKey = ''; KS.modelFor = KS.sel; }
       const saveT = KS.T.name, saveS = KS.sample; KS.T.name = { c: KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || 'Fernández' }; KS.dispKey = '';
       let tex; try { tex = ksDisplayTex(); } finally { KS.T.name = saveT; KS.sample = saveS; KS.dispKey = ''; }
       const snap = k3Snapshot(KS.model, KS.cfg, tex, 'back', cv.width, cv.height, ksMaps()); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (snap) g.drawImage(snap, 0, 0);
     } catch (e) { const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.fillStyle = '#888'; g.font = '13px sans-serif'; g.fillText('No se pudo mostrar el 3D.', 12, 24); }
-  }, 260);
+  }, 180);
 }
 function kpfRun(sh) {
   clearTimeout(kpfRun.t); kpfRun.t = setTimeout(() => {
-    try { KPFS.out = KPF.render(kpfOpts(), KPF.chars(KPFS.sets)); KPFS.rev++; kpfDrawPreview(sh); }
+    try { KPFS.out = KPF.render(kpfOpts(), KPF.chars(KPFS.sets)); KPFS.rev++; kpfDrawPreview(sh); kpfPresetThumbs(sh); }
     catch (e) { KPFS.out = null; const l = sh.querySelector('#kpfLog'); if (l) l.textContent = 'No se pudo armar la fuente: ' + e.message; }
   }, 90);
 }
@@ -323,43 +365,56 @@ async function kpfZip(log) {
   const z = KPF.zipMany([{ name: file + '.dds', data: B.dds }, { name: file + '.ftex', data: B.ftex }, { name: 'kitpos_letras.txt', data: B.R.txt }, { name: 'LEEME.txt', data: kpfReadme(file) }]);
   await downloadBytes('fuente-kitpos-' + String(kpfOpts().font).replace(/[^\w-]+/g, '-').toLowerCase() + '.zip', z); return file;
 }
-function kpfBind(sh, m, has = !!KS.cfg) {
+function kpfBind(sh, has) {
   KPFS.has = has;
-  const O = kpfOpts(), $k = id => sh.querySelector('#' + id), log = s => { KPFS.log = s; const l = $k('kpfLog'); if (l) l.textContent = s; };
+  const O = kpfOpts(), $k = id => sh.querySelector('#' + id), log = s => { KPFS.log = s; const l = $k('kpfLog'); if (l) l.textContent = s; }, rr = () => KPFS.rr && KPFS.rr();
   const upd = () => kpfRun(sh);
-  if (!KPFS.userFonts) kpfLoadUserFonts().then(f => { if (f.length) renderTeams(m); });
-  if (has && (!KPFS.st || KPFS.stFor !== KS.path + '/' + KS.sel)) { KPFS.stFor = KS.path + '/' + KS.sel; kpfCheck().then(st => { KPFS.st = st; if (KS.mode === 'font') renderTeams(m); }); }
+  if (!KPFS.userFonts) kpfLoadUserFonts().then(f => { if (f.length) rr(); });
+  if (has && (!KPFS.st || KPFS.stFor !== KS.path + '/' + KS.sel)) { KPFS.stFor = KS.path + '/' + KS.sel; kpfCheck().then(st => { KPFS.st = st; rr(); }); }
+  if (has && !KPS.st) kpsLoad().then(rr);
   const on = (id, fn) => { const el = $k(id); if (!el) return; el.oninput = el.onchange = () => { fn(el); const o = el.closest('.f') && el.closest('.f').querySelector('output'); if (o && el.type === 'range') o.textContent = /Width|Size/.test(id) ? el.value + '%' : el.value; upd(); }; };
   on('kpfW', el => O.weight = +el.value); on('kpfIt', el => O.italic = el.checked); on('kpfWidth', el => O.width = el.value / 100); on('kpfSize', el => O.size = el.value / 100);
   on('kpfFill', el => O.fill = el.value); on('kpfGrad', el => { O.grad = el.checked; $k('kpfFill2').disabled = !el.checked; }); on('kpfFill2', el => O.fill2 = el.value);
   on('kpfSh', el => O.shadow = +el.value); on('kpfShC', el => O.shadowColor = el.value); on('kpfS1', el => O.stroke1 = +el.value); on('kpfC1', el => O.color1 = el.value); on('kpfS2', el => O.stroke2 = +el.value); on('kpfC2', el => O.color2 = el.value);
   on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgTint', el => O.imgTint = el.checked);
   $k('kpfFonts').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; O.font = b.dataset.font; $k('kpfFonts').querySelectorAll('[data-font]').forEach(x => x.setAttribute('aria-selected', x === b)); upd(); };
-  $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); renderTeams(m); };
-  $k('kpfSets').onclick = e => { const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; KPFS.sets[b.dataset.set] = !KPFS.sets[b.dataset.set]; b.setAttribute('aria-pressed', !!KPFS.sets[b.dataset.set]); sh.querySelector('.kpfhero .chip').textContent = KPF.chars(KPFS.sets).length + ' letras'; upd(); };
+  $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); rr(); };
+  $k('kpfSets').onclick = e => { const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; KPFS.sets[b.dataset.set] = !KPFS.sets[b.dataset.set]; b.setAttribute('aria-pressed', !!KPFS.sets[b.dataset.set]); sh.querySelector('.kpfn').textContent = KPF.chars(KPFS.sets).length + ' letras'; upd(); };
   const nm = $k('kpfName'); nm.oninput = () => { KPFS.sample = nm.value; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x.dataset.s === nm.value)); kpfDrawPreview(sh); };
   $k('kpfSam').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; KPFS.sample = nm.value = b.dataset.s; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x === b)); kpfDrawPreview(sh); };
+  $k('kpfView').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; KPFS.view = b.dataset.v; $k('kpfView').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); $k('kpfShirt').hidden = KPFS.view === 'atlas'; sh.querySelector('.kpfatlas').hidden = KPFS.view !== 'atlas'; };
+  // equipo y kit donde se prueba y se instala
+  const tm = $k('kpfTeam'); if (tm) tm.onchange = () => { KPFS.team = tm.value === '' ? null : +tm.value; KPFS.target = null; KPFS.st = null; KPFS.done = false; KS.model = null; rr(); };
+  const kk = $k('kpfKits'); if (kk) kk.onclick = async e => { const b = e.target.closest('[data-kit]'); if (!b) return; KPFS.target = b.dataset.kit; KPFS.done = false;
+    if (b.dataset.kit !== '*' && b.dataset.kit !== KS.sel) { if (KS.dirty && !await confirmBox('El kit ' + KS.sel + ' tiene cambios sin guardar en Kit Studio Pro. ¿Cambiar de kit igual?')) return; KS.model = null; try { await ksOpenKit(b.dataset.kit); } catch (er) { toast(er.message, 6000); } }
+    rr(); };
   const pick = (accept, fn) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.onchange = () => inp.files[0] && fn(inp.files[0]); inp.click(); };
   const addFile = async f => { const n = f.name.toLowerCase();
-    try { if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); } else if (/\.(png|jpe?g|webp|dds|ftex)$/.test(n)) { await kpfAddImage(f); toast('Letras de ' + f.name + ' cargadas.'); } else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff) ni una imagen.', 5000); return; } renderTeams(m); }
+    try { if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); } else if (/\.(png|jpe?g|webp|dds|ftex)$/.test(n)) { await kpfAddImage(f); toast('Letras de ' + f.name + ' cargadas.'); } else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff) ni una imagen.', 5000); return; } rr(); }
     catch (e) { toast('No se pudo usar ' + f.name + ': ' + e.message, 7000); } };
   $k('kpfUp').onclick = () => pick('.ttf,.otf,.woff,.woff2', addFile);
   $k('kpfImg').onclick = () => pick('.png,.jpg,.jpeg,.webp,.dds,.ftex', addFile);
-  const ix = $k('kpfImgX'); if (ix) ix.onclick = () => { O.img = null; O.imgName = ''; renderTeams(m); };
+  const ix = $k('kpfImgX'); if (ix) ix.onclick = () => { O.img = null; O.imgName = ''; rr(); };
   const dz = $k('kpfDrop'); dz.ondragover = e => { e.preventDefault(); dz.classList.add('over'); }; dz.ondragleave = e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('over'); };
   dz.ondrop = e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('over'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) addFile(f); };
   const busy = (b, fn) => async () => { if (KPFS.busy) return; KPFS.busy = true; const btns = sh.querySelectorAll('.kpfgame .btn'); btns.forEach(x => x.disabled = true);
     try { await fn(); } catch (e) { log('No se pudo: ' + e.message); toast('No se pudo: ' + e.message, 7000); } KPFS.busy = false; btns.forEach(x => x.disabled = false); };
-  const tg = $k('kpfTgt'); if (tg) tg.onchange = () => { KPFS.target = tg.value; };
   const ins = $k('kpfInstall'); if (ins) ins.onclick = busy(ins, async () => {
-    const done = await kpfInstall(log); KPFS.st = null; KPFS.stFor = '';
-    log('Listo: ' + done.join(' · ') + '. Abrí el juego de nuevo para verla.'); toast('Fuente guardada en ' + done.length + (done.length > 1 ? ' kits' : ' kit') + '. Abrí el juego de nuevo para verla.', 8000); renderTeams(m); });
-  const tr3 = $k('kpfTry'); if (tr3) tr3.onclick = () => { if (!KPFS.out) return; KS.T.name = { c: KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || KS.sample.name }; KS.texRev = (KS.texRev || 0) + 1; KS.dispKey = ''; KS.mode = 'edit'; KS.view = '3d'; renderTeams(m);
-    setTimeout(() => { const w = document.getElementById('ks3dWrap'); if (w) w.scrollIntoView({ block: 'center', behavior: 'smooth' }); const b = document.querySelector('[data-cam="back"]'); if (b) b.click(); }, 400); toast('Probando la fuente en el 3D. Para que el juego la use, volvé a Fuentes y tocá el botón de guardar.', 7000); };
+    const done = await kpfInstall(log), kp = await kpsSave(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = true;
+    log('Listo: ' + done.join(' · ') + (kp ? ' · posición en kitpos_slots.ini' : '') + '. Abrí el juego de nuevo para verla.'); toast('Fuente guardada en ' + done.length + (done.length > 1 ? ' kits' : ' kit') + '. Abrí el juego de nuevo para verla.', 8000); rr(); });
+  const tr3 = $k('kpfTry'); if (tr3) tr3.onclick = () => { if (!KPFS.out) return; const t = S.ix.teamById.get(KPFS.team); if (!t) return;
+    KS.T.name = { c: KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || KS.sample.name }; KS.texRev = (KS.texRev || 0) + 1; KS.dispKey = ''; KS.mode = 'edit'; KS.view = '3d';
+    const nat = isNat(t); S.teamByTab[nat ? 'nats' : 'teams'] = t.id; S.ttab = 'kits'; setTab(nat ? 'nats' : 'teams');
+    setTimeout(() => { const w = document.getElementById('ks3dWrap'); if (w) w.scrollIntoView({ block: 'center', behavior: 'smooth' }); const b = document.querySelector('[data-cam="back"]'); if (b) b.click(); }, 500); toast('Probando la fuente en Kit Studio Pro. Para que el juego la use, volvé a Fuentes y tocá el botón de guardar.', 7000); };
   const zp = $k('kpfZip'); if (zp) zp.onclick = busy(zp, async () => { const f = await kpfZip(log); log('Descargado: ' + f + '.dds, ' + f + '.ftex, kitpos_letras.txt y LEEME.txt.'); });
-  const un = $k('kpfUndo'); if (un) un.onclick = busy(un, async () => { if (!await confirmBox('¿Volver a la textura de letras que tenía ' + KS.sel + ' y borrar su kitpos_letras.txt?')) return; const n = await kpfUndo(); KPFS.st = null; KPFS.stFor = ''; await ksLoadSlots(); log(n ? 'Listo: ' + KS.sel + ' volvió a su fuente anterior.' : 'No había nada para volver atrás en ' + KS.sel + '.'); renderTeams(m); });
-  const lw = $k('kpfLower'); if (lw) lw.onclick = busy(lw, async () => { await kpfLowerOn(); KPFS.st = null; KPFS.stFor = ''; toast('Minúsculas activadas en kitpos_slots.ini.'); renderTeams(m); });
+  const un = $k('kpfUndo'); if (un) un.onclick = busy(un, async () => { if (!await confirmBox('¿Volver a la textura de letras que tenía ' + KS.sel + ' y borrar su kitpos_letras.txt?')) return; const n = await kpfUndo(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = false; await ksLoadSlots(); log(n ? 'Listo: ' + KS.sel + ' volvió a su fuente anterior.' : 'No había nada para volver atrás en ' + KS.sel + '.'); rr(); });
+  const lw = $k('kpfLower'); if (lw) lw.onclick = busy(lw, async () => { await kpfLowerOn(); KPFS.st = null; KPFS.stFor = ''; toast('Minúsculas activadas en kitpos_slots.ini.'); rr(); });
+  for (const id of ['kpfKp', 'kpfKp2']) { const b = $k(id); if (b) b.onclick = busy(b, async () => { const r = await kpsInstall(); KPFS.st = null; KPFS.stFor = '';
+    toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : r.lua === 'nuevo' ? 'instalado' : 'listo') + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); rr(); }); }
+  // posición, tamaño y arco del nombre (KitPos)
+  kposBind(sh, () => kpfDrawPreview(sh), rr);
+  kpfPresetThumbs(sh);
   if (KPFS.out && KPFS.outFor === JSON.stringify([O.font, KPFS.sets])) kpfDrawPreview(sh);
   KPFS.outFor = JSON.stringify([O.font, KPFS.sets]); kpfRun(sh);
-  document.fonts && document.fonts.ready.then(() => kpfRun(sh));
+  document.fonts && document.fonts.ready.then(() => { kpfRun(sh); });
 }

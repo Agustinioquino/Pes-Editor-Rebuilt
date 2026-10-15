@@ -41,7 +41,7 @@ const MOTION = [['mo_hunchd', 'Postura al regatear', 1, 5, 1], ['mo_armd', 'Braz
 const LOCK_FLAGS = ['e_player', 'e_basic', 'e_regpos', 'e_playpos', 'e_ability', 'e_skill', 'e_style', 'e_com', 'e_motion'];
 const FLAG_NAMES = { e_player: 'Datos', e_basic: 'Básicos', e_regpos: 'Posición', e_playpos: 'Posiciones', e_ability: 'Habilidades', e_skill: 'Especiales', e_style: 'Estilo', e_com: 'IA', e_motion: 'Movimientos', e_phys: 'Físico', e_strip: 'Equipación', e_face: 'Cara', e_hair: 'Pelo' };
 const FIELD_FLAGS = k => {
-  if (/^(name|shirt|comm_id)$/.test(k)) return ['e_player'];
+  if (/^(name|shirt|shirt_nt|comm_id)$/.test(k)) return ['e_player'];
   if (/^(nation|age|height|weight|strong_foot|strong_hand|star|play_attit)$/.test(k)) return ['e_player', 'e_basic'];
   if (k === 'reg_pos') return ['e_regpos'];
   if (/^pos\d+$/.test(k)) return ['e_playpos'];
@@ -332,7 +332,7 @@ function setP(p, k, v, label) {
 }
 function setLock(p, on) { edit((on ? 'Proteger ' : 'Desproteger ') + (pget(p, 'name') || p.id), 'p' + p.id, regP(p), () => { for (const k of LOCK_FLAGS) PD.player.set(S.d, p.base, k, on ? 1 : 0); }); }
 function setT(t, fields, label) { edit(label || 'Equipo ' + tget(t, 'name'), 't' + t.id, regT(t), () => { for (const [k, v] of fields) PD.team.set(S.d, t.base, k, v); }); }
-const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['play_attit', 'actitud de juego'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
+const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['shirt_nt', 'camiseta en la selección'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['play_attit', 'actitud de juego'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
 
 // ---------- loading ----------
 function openBytes(bytes, name) {
@@ -1380,10 +1380,11 @@ function caseHint(which, first, last) {
 function tabProfile(p) {
   const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
   return `<h3>Nombre</h3>
-  <div class="grid wide idgrid">
+  <div class="grid idgrid">
     <div class="f capf"><label for="pFirst">Nombre</label><input type="text" id="pFirst" data-nm="first" value="${esc(first)}" maxlength="60" autocomplete="off" spellcheck="false">${CAPS_W}${caseHint('first', first, last)}</div>
     <div class="f capf"><label for="pLast">Apellido</label><input type="text" id="pLast" data-nm="last" value="${esc(last)}" maxlength="60" autocomplete="off" spellcheck="false">${CAPS_W}${caseHint('last', first, last)}</div>
-    <div class="f capf"><label for="pShirt">Nombre en camiseta</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" id="pShirtLast" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div>${CAPS_W}</div>
+    <div class="f capf"><label for="pShirt">Camiseta en el club</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" data-shirtlast="pShirt" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div>${CAPS_W}</div>
+    <div class="f capf"><label for="pShirtNt">Camiseta en la selección</label><div class="inrow"><input type="text" id="pShirtNt" data-k="shirt_nt" value="${esc(g('shirt_nt'))}" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Vacío: la misma del club"><button class="btn small" data-shirtlast="pShirtNt" type="button" title="Poner el apellido en mayúsculas en la camiseta de la selección">Usar apellido</button></div>${CAPS_W}</div>
   </div>
   <p class="note fullnm">Así lo muestra el juego: <b id="pFull">${esc(g('name') || '—')}</b> <span id="pBytes" class="${nb > NAME_MAX ? 'bad' : ''}">${nb}/${NAME_MAX}</span></p>
   <h3 class="sec">Equipo y selección</h3>
@@ -1934,7 +1935,7 @@ function bindPlayer(p, m) {
     caseUi();
   });
   // Bloq Mayús: el navegador lo dice en cada tecla o clic (getModifierState); el aviso sale solo debajo del campo donde se escribe
-  const CAPS_IN = '#pFirst,#pLast,#pShirt';
+  const CAPS_IN = '#pFirst,#pLast,#pShirt,#pShirtNt';
   const capsShow = () => sh.querySelectorAll('.capsw').forEach(w => { w.hidden = !(S.capsOn && w.parentElement.contains(document.activeElement)); });
   const capsEv = e => { if (e.target.matches && e.target.matches(CAPS_IN) && e.getModifierState) { S.capsOn = e.getModifierState('CapsLock'); capsShow(); } };
   ['keydown', 'keyup', 'pointerdown'].forEach(t => sh.addEventListener(t, capsEv));
@@ -1972,7 +1973,7 @@ function bindPlayer(p, m) {
     if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
     if (b.dataset.casefix) { const el = $(b.dataset.casefix === 'first' ? 'pFirst' : 'pLast'), f = $('pFirst'); el.value = properCase(el.value.trim(), b.dataset.casefix === 'first' || !f.value.trim()); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); el.focus(); return; }
-    if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
+    if (b.dataset.shirtlast) { const k = $(b.dataset.shirtlast).dataset.k, v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + FIELD_LABEL[k]); rer(); } return; }
     const sg = b.closest('[data-segk]');
     if (sg && b.dataset.step) { const k = sg.dataset.segk, v = Math.max(0, Math.min(+sg.dataset.max, pget(p, k) + +b.dataset.step)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); rer(); } return; }
     if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.matches('.lvstar,.lvatt') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0

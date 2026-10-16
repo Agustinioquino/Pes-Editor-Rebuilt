@@ -1635,6 +1635,7 @@ html[data-gfx="pes6"] .devlist li.devwarm{border-radius:0}
 .inrow{display:flex;gap:6px;align-items:center}.inrow input{flex:1 1 auto;min-width:0}.inrow .btn{flex:none}
 /* mayúsculas: aviso de Bloq Mayús justo debajo del campo (no tapa la vista previa del nombre) y ayuda si el nombre quedó todo en mayúsculas.
    La columna del campo no se ensancha por el aviso: si es más largo que el campo, sobresale hacia la derecha */
+.idgrid{grid-template-columns:repeat(2,minmax(0,300px))}@media (max-width:560px){.idgrid{grid-template-columns:minmax(0,1fr)}}
 .capf{grid-template-columns:minmax(0,1fr)}
 .capsw{position:relative;z-index:6;justify-self:start;width:max-content;margin-top:5px;display:inline-flex;align-items:center;gap:6px;padding:.22rem .55rem;border-radius:99px;font-size:.74rem;font-weight:600;color:var(--warn);background:var(--warn-soft,#fff3d6);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);box-shadow:0 4px 12px -6px #0006;white-space:nowrap;overflow:visible;pointer-events:none;animation:popIn .16s ease-out}
 .capsw[hidden]{display:none}

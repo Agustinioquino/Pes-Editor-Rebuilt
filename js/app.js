@@ -41,7 +41,7 @@ const MOTION = [['mo_hunchd', 'Postura al regatear', 1, 5, 1], ['mo_armd', 'Braz
 const LOCK_FLAGS = ['e_player', 'e_basic', 'e_regpos', 'e_playpos', 'e_ability', 'e_skill', 'e_style', 'e_com', 'e_motion'];
 const FLAG_NAMES = { e_player: 'Datos', e_basic: 'Básicos', e_regpos: 'Posición', e_playpos: 'Posiciones', e_ability: 'Habilidades', e_skill: 'Especiales', e_style: 'Estilo', e_com: 'IA', e_motion: 'Movimientos', e_phys: 'Físico', e_strip: 'Equipación', e_face: 'Cara', e_hair: 'Pelo' };
 const FIELD_FLAGS = k => {
-  if (/^(name|shirt|comm_id)$/.test(k)) return ['e_player'];
+  if (/^(name|shirt|shirt_nt|comm_id)$/.test(k)) return ['e_player'];
   if (/^(nation|age|height|weight|strong_foot|strong_hand|star|play_attit)$/.test(k)) return ['e_player', 'e_basic'];
   if (k === 'reg_pos') return ['e_regpos'];
   if (/^pos\d+$/.test(k)) return ['e_playpos'];
@@ -332,7 +332,7 @@ function setP(p, k, v, label) {
 }
 function setLock(p, on) { edit((on ? 'Proteger ' : 'Desproteger ') + (pget(p, 'name') || p.id), 'p' + p.id, regP(p), () => { for (const k of LOCK_FLAGS) PD.player.set(S.d, p.base, k, on ? 1 : 0); }); }
 function setT(t, fields, label) { edit(label || 'Equipo ' + tget(t, 'name'), 't' + t.id, regT(t), () => { for (const [k, v] of fields) PD.team.set(S.d, t.base, k, v); }); }
-const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['play_attit', 'actitud de juego'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
+const FIELD_LABEL = Object.fromEntries([...ABIL, ...BODY, ...MOTION.map(m => [m[0], m[1]]), ['name', 'nombre'], ['shirt', 'camiseta'], ['shirt_nt', 'camiseta en la selección'], ['nation', 'nacionalidad'], ['age', 'edad'], ['height', 'altura'], ['weight', 'peso'], ['reg_pos', 'posición'], ['play_style', 'estilo'], ['strong_foot', 'pie hábil'], ['strong_hand', 'mano hábil'], ['star', 'estrellas'], ['play_attit', 'actitud de juego'], ['weak_use', 'pierna mala'], ['weak_acc', 'precisión pierna mala'], ['form', 'forma'], ['injury', 'lesiones'], ['boot_id', 'botines'], ['glove_id', 'guantes']]);
 
 // ---------- loading ----------
 function openBytes(bytes, name) {
@@ -360,9 +360,11 @@ async function openFile(file) {
 // ---- base del juego (Player.bin) → entradas del EDIT ----
 let DBRAW = null;
 // campos de la sección "Habilidad" del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
-const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0] });
+const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30] });
 function dbBits(o, pos, n) { const b = DBRAW.b; let v = 0; for (let i = 0; i < n; i++) { const q = pos + i; if ((b[o + (q >> 3)] >> (q & 7)) & 1) v |= 1 << i; } return v; }
 function dbStr(o, l) { const s = DBRAW.b.subarray(o, o + l), z = s.indexOf(0); return new TextDecoder().decode(z < 0 ? s : s.subarray(0, z)); }
+// peso en la base del juego: 7 bits desde el bit 256, en kg menos 30 (comprobado con la base de Football Life 2026)
+const dbWeight = id => { const o = DBRAW && DBRAW.off.get(id); return o == null ? null : dbBits(o, 256, 7) + 30; };
 const canMakeEditPlayer = id => !!(DBRAW && DBRAW.off.has(id));
 // agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, el resto lo sigue tomando el juego
 function editPlayersRegion(extra) { const n = S.d[96] | S.d[97] << 8; return [[96, 2], [0x7C, (n + extra) * 0x138]]; }
@@ -379,7 +381,7 @@ function insertEditPlayers(ids) {
     const o = DBRAW.off.get(id), set = (key, v) => PD.player.set(S.d, start, key, v);
     set('id', id); set('comm_id', id);
     for (const [key, [pos, bits, add]] of Object.entries(DB_TO_EDIT())) set(key, dbBits(o, pos, bits) + add);
-    set('name', dbStr(o + 0xFB, 61)); set('shirt', dbStr(o + 0x81, 61)); set('height', DBRAW.b[o + 0x1B] + 100);
+    set('name', dbStr(o + 0xFB, 61)); set('shirt', dbStr(o + 0x81, 61)); set('shirt_nt', dbStr(o + 0xBE, 61)); set('height', DBRAW.b[o + 0x1B] + 100);
     set('e_ability', 1);
     made.push(id);
     S.ix = PD.index(S.d, S.f.game);
@@ -1186,15 +1188,15 @@ function dbVal(id, key) { const o = DBRAW && DBRAW.off.get(id); if (o == null) r
 const dbIsNat = tid => { const t = S.ix.teamById.get(tid); return t ? isNat(t) : tid < 100 || COUNTRY_NAMES.has(normName(dbTeamName(tid))); };
 function dbPlayerSheet(id) {
   const n = S.names.get(id) || {}, o = DBRAW && DBRAW.off.get(id), cl = dbClubs(id), c0 = dbClubOf(id), ct = c0 && S.ix.teamById.get(c0.tid), inEdit = S.ix.byId.has(id);
-  const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, shirt = o != null ? dbStr(o + 0x81, 61) : '';
+  const pos = o != null ? dbVal(id, 'reg_pos') : n.pos, age = o != null ? dbVal(id, 'age') : n.a, nat = o != null ? dbVal(id, 'nation') : n.nat, h = o != null ? DBRAW.b[o + 0x1B] + 100 : null, w = o != null ? dbWeight(id) : null, shirt = o != null ? dbStr(o + 0x81, 61) : '', shirtNt = o != null ? dbStr(o + 0xBE, 61) : '';
   const kit = ct ? kitFor(ct, pos === 0) : null, r = n.r || 0, [fn0, ln0] = splitName(playerName(id));
   const abil = o != null ? `<div class="card"><h3>Habilidades en la base del juego</h3>${hexaRo(k => dbVal(id, k), pos)}<div class="groups">${ABIL_GROUPS.map(([gn, list]) => `<div class="group"><h4>${gn}</h4>${list.map(([k, nm]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="ab ro abt" data-t="${abT(v)}"><div class="l"><span>${nm}</span><i class="abbar"><b style="width:${Math.round((v - 40) / 59 * 100)}%"></b></i></div><b class="abv ${vcls(v)}">${v}</b></div>`; }).join('')}</div>`).join('')}</div>
     <div class="grid" style="margin-top:12px">${[['Uso de pierna mala', 'weak_use', 1], ['Precisión de pierna mala', 'weak_acc', 1], ['Estado de forma', 'form', 1], ['Resistencia a lesiones', 'injury', 0]].map(([l, k, add]) => { const v = dbVal(id, k); return v == null ? '' : `<div class="f"><span class="lab">${l}</span><b>${k === 'injury' ? ['C', 'B', 'A'][v] || v : v + add}</b></div>`; }).join('')}</div></div>` : '<div class="card"><p class="note">Las habilidades se ven cuando la copia de Player.bin está en la carpeta Sider.</p></div>';
   return `<div class="card dbsheet">
     <div class="head">${posBadge(pos)}<span class="dbface">${faceHtml(id, kit, 'pl')}</span><div style="min-width:0"><h2>${esc(playerName(id) || 'ID ' + id)}</h2>
-      <div class="sub">${shirt ? esc(shirt) + ' · ' : ''}${nat != null ? esc(COUNTRY.get(nat) || 'País ' + nat) + ' · ' : ''}${age ? age + ' años · ' : ''}${h ? h + ' cm · ' : ''}ID ${id}</div></div>
+      <div class="sub">${shirt ? esc(shirt) + ' · ' : ''}${nat != null ? esc(COUNTRY.get(nat) || 'País ' + nat) + ' · ' : ''}${age ? age + ' años · ' : ''}${h ? h + ' cm · ' : ''}${w ? w + ' kg · ' : ''}ID ${id}</div></div>
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(r)}">${r || '–'}</b><span>Valoración</span></div></div>
-    <div class="idro">${[['Nombre', fn0], ['Apellido', ln0], ['Camiseta', shirt]].map(([l, v]) => `<div><span class="lab">${l}</span><b>${esc(v || '—')}</b></div>`).join('')}</div>
+    <div class="idro">${[['Nombre', fn0], ['Apellido', ln0], ['Camiseta en el club', shirt], ['Camiseta en la selección', shirtNt]].map(([l, v]) => `<div><span class="lab">${l}</span><b>${esc(v || '—')}</b></div>`).join('')}</div>
     <div class="dbteams">${cl.length ? [...cl].sort((a, b) => dbIsNat(a.tid) - dbIsNat(b.tid)).map(c => `<button type="button" class="chip" data-dbteam="${c.tid}">${S.ix.teamById.get(c.tid) ? shirtSvg(kitFor(S.ix.teamById.get(c.tid), pos === 0), '1em', dbTeamName(c.tid)) + ' ' : ''}<span class="tclab">${dbIsNat(c.tid) ? 'Selección' : 'Equipo'}</span> ${esc(dbTeamName(c.tid))}${c.num ? ' · <b>' + c.num + '</b>' : ''}</button>`).join('') : '<span class="note">Sin equipo en la base</span>'}</div>
     <div class="dbnote"><span>${inEdit ? 'Este jugador también está en tu EDIT, con los datos que le cambiaste.' : 'Está en la base del juego y todavía no en tu EDIT. Lo que ves acá es lo que usa el juego; para cambiarlo, agregalo a tu EDIT: se copia con todas sus habilidades y la cara y el nombre siguen saliendo del juego.'}</span>
       ${inEdit ? `<button class="btn small" type="button" data-dbopen="${id}">Abrir en mi EDIT</button>` : `<button class="btn primary small" type="button" data-dbadd="${id}" ${canMakeEditPlayer(id) ? '' : 'disabled title="Falta la copia de Player.bin o el EDIT está lleno"'}>Agregar a mi EDIT para editarlo</button>`}</div>
@@ -1380,10 +1382,11 @@ function caseHint(which, first, last) {
 function tabProfile(p) {
   const g = k => pget(p, k), [first, last] = splitName(g('name')), tm = playerTeams(p.id), nb = nameBytes(g('name'));
   return `<h3>Nombre</h3>
-  <div class="grid wide idgrid">
+  <div class="grid idgrid">
     <div class="f capf"><label for="pFirst">Nombre</label><input type="text" id="pFirst" data-nm="first" value="${esc(first)}" maxlength="60" autocomplete="off" spellcheck="false">${CAPS_W}${caseHint('first', first, last)}</div>
     <div class="f capf"><label for="pLast">Apellido</label><input type="text" id="pLast" data-nm="last" value="${esc(last)}" maxlength="60" autocomplete="off" spellcheck="false">${CAPS_W}${caseHint('last', first, last)}</div>
-    <div class="f capf"><label for="pShirt">Nombre en camiseta</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" id="pShirtLast" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div>${CAPS_W}</div>
+    <div class="f capf"><label for="pShirt">Camiseta en el club</label><div class="inrow"><input type="text" id="pShirt" data-k="shirt" value="${esc(g('shirt'))}" maxlength="20" autocomplete="off" spellcheck="false"><button class="btn small" data-shirtlast="pShirt" type="button" title="Poner el apellido en mayúsculas en la camiseta">Usar apellido</button></div>${CAPS_W}</div>
+    <div class="f capf"><label for="pShirtNt">Camiseta en la selección</label><div class="inrow"><input type="text" id="pShirtNt" data-k="shirt_nt" value="${esc(g('shirt_nt'))}" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Vacío: la misma del club"><button class="btn small" data-shirtlast="pShirtNt" type="button" title="Poner el apellido en mayúsculas en la camiseta de la selección">Usar apellido</button></div>${CAPS_W}</div>
   </div>
   <p class="note fullnm">Así lo muestra el juego: <b id="pFull">${esc(g('name') || '—')}</b> <span id="pBytes" class="${nb > NAME_MAX ? 'bad' : ''}">${nb}/${NAME_MAX}</span></p>
   <h3 class="sec">Equipo y selección</h3>
@@ -1397,7 +1400,7 @@ function tabProfile(p) {
   <div class="grid">
     <div class="f"><label>Edad</label>${num('age', g('age'), 15, 50)}</div>
     <div class="f"><label>Altura (cm)</label>${num('height', g('height'), 140, 220)}</div>
-    <div class="f"><label>Peso (kg)</label>${num('weight', g('weight'), 30, 150)}</div>
+    <div class="f"><label>Peso (kg)</label>${num('weight', g('weight'), 30, 150)}${!g('weight') && dbWeight(p.id) ? `<button type="button" class="btn small" data-dbweight="${dbWeight(p.id)}" title="El peso quedó en 0 al pasar el jugador al EDIT">Usar ${dbWeight(p.id)} kg (base del juego)</button>` : ''}</div>
     <div class="f"><span class="lab">Pie hábil</span>${seg('strong_foot', ['Derecho', 'Izquierdo'], g('strong_foot'))}</div>
     <div class="f"><span class="lab">Mano hábil</span>${seg('strong_hand', ['Derecha', 'Izquierda'], g('strong_hand'))}</div>
   </div>
@@ -1934,7 +1937,7 @@ function bindPlayer(p, m) {
     caseUi();
   });
   // Bloq Mayús: el navegador lo dice en cada tecla o clic (getModifierState); el aviso sale solo debajo del campo donde se escribe
-  const CAPS_IN = '#pFirst,#pLast,#pShirt';
+  const CAPS_IN = '#pFirst,#pLast,#pShirt,#pShirtNt';
   const capsShow = () => sh.querySelectorAll('.capsw').forEach(w => { w.hidden = !(S.capsOn && w.parentElement.contains(document.activeElement)); });
   const capsEv = e => { if (e.target.matches && e.target.matches(CAPS_IN) && e.getModifierState) { S.capsOn = e.getModifierState('CapsLock'); capsShow(); } };
   ['keydown', 'keyup', 'pointerdown'].forEach(t => sh.addEventListener(t, capsEv));
@@ -1971,8 +1974,9 @@ function bindPlayer(p, m) {
     if (b.dataset.abview) { if (PREFS.abView !== b.dataset.abview) { PREFS.abView = b.dataset.abview; savePrefs(); rer(); } return; }
     if (b.dataset.abstep) { const k = b.dataset.k, v = Math.max(40, Math.min(99, pget(p, k) + +b.dataset.abstep)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); sh.querySelectorAll(`[data-k="${k}"]:not(button)`).forEach(x => { x.value = v; if (x.type === 'number') x.className = vcls(v); }); abLive(p, k); updateLockUi(p); } return; }
     if (b.dataset.pteam) { S.team = +b.dataset.pteam; S.ttab = 'roster'; setTab('teams'); return; }
+    if (b.dataset.dbweight) { setP(p, 'weight', +b.dataset.dbweight, nm() + ': peso'); rer(); return; }
     if (b.dataset.casefix) { const el = $(b.dataset.casefix === 'first' ? 'pFirst' : 'pLast'), f = $('pFirst'); el.value = properCase(el.value.trim(), b.dataset.casefix === 'first' || !f.value.trim()); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); el.focus(); return; }
-    if (b.id === 'pShirtLast') { const v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, 'shirt')) { setP(p, 'shirt', v, nm() + ': camiseta'); rer(); } return; }
+    if (b.dataset.shirtlast) { const k = $(b.dataset.shirtlast).dataset.k, v = $('pLast').value.trim().toUpperCase(); if (!v) { toast('Escribí primero el apellido.'); return; } if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + FIELD_LABEL[k]); rer(); } return; }
     const sg = b.closest('[data-segk]');
     if (sg && b.dataset.step) { const k = sg.dataset.segk, v = Math.max(0, Math.min(+sg.dataset.max, pget(p, k) + +b.dataset.step)); if (v !== pget(p, k)) { setP(p, k, v, nm() + ': ' + (FIELD_LABEL[k] || k)); rer(); } return; }
     if (sg && b.dataset.v != null) { let v = +b.dataset.v; if (sg.matches('.lvstar,.lvatt') && v === pget(p, sg.dataset.segk)) v = 0; setP(p, sg.dataset.segk, v, nm() + ': ' + (FIELD_LABEL[sg.dataset.segk] || sg.dataset.segk)); rer(); return; } // en estrellas y actitud, tocar el nivel marcado lo deja en 0

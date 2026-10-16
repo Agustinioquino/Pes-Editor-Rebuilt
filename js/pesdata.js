@@ -21,7 +21,7 @@ const PesData = (() => {
     ['sk16', 6, 1], ['sk34', 7, 1], ['sk17', 0, 1], ['sk18', 1, 1], ['sk35', 2, 1], ['sk19', 3, 1], ['sk20', 4, 1], ['sk36', 5, 1],
     ['sk37', 6, 1], ['sk21', 7, 1], ['sk22', 0, 1], ['sk23', 1, 1], ['sk38', 2, 1], ['sk24', 3, 1], ['sk25', 4, 1], ['sk26', 5, 1],
     ['sk27', 6, 1], ['skip', 1],
-    ['str', 'name', 61], ['str', 'shirt', 61], ['skip', 64],
+    ['str', 'name', 61], ['str', 'shirt', 61], ['str', 'shirt_nt', 61], ['skip', 3], // camiseta en el club y en la selección
     ['skip', 4], ['e_face', 0, 1], ['e_hair', 1, 1], ['e_phys', 2, 1], ['e_strip', 3, 1], ['boot_id', 4, 14], ['glove_id', 2, 14],
     ['copy_id', 0, 32],
     ['neck_len', 0, 4], ['neck_size', 4, 4], ['shldr_hi', 0, 4], ['shldr_wid', 4, 4], ['chest', 0, 4], ['waist', 4, 4],

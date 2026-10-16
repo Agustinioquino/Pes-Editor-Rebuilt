@@ -4303,5 +4303,12 @@ Object.assign(I18N_EN, {
 "Mayúsculas activadas":"Capitals on",
 "Está todo en mayúsculas.":"It's all in capitals.",
 "Pasar a":"Change to",
-"Pasar a mayúsculas y minúsculas, como lo muestra el juego":"Switch to upper and lower case, the way the game shows it"
+"Pasar a mayúsculas y minúsculas, como lo muestra el juego":"Switch to upper and lower case, the way the game shows it",
+"Camiseta en el club":"Shirt name (club)",
+"Camiseta en la selección":"Shirt name (national team)",
+"Vacío: la misma del club":"Empty: same as the club",
+"Poner el apellido en mayúsculas en la camiseta de la selección":"Put the last name in capitals on the national team shirt",
+"camiseta en la selección":"national team shirt name",
+"Usar {x} kg (base del juego)":"Use {x} kg (game database)",
+"El peso quedó en 0 al pasar el jugador al EDIT":"The weight was left at 0 when the player was added to the EDIT"
 });

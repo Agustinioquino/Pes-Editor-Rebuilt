@@ -510,7 +510,7 @@ function renderSider(m) {
   const mods = info.mods.map((x, k) => `<div class="sirow ${x.it.off ? 'off' : ''} ${x.exists === false ? 'miss' : ''} ${SI.flash === x.it.id ? 'flash' : ''}">
       <span class="sinum">${k + 1}</span>${siSw(x.it, 'Prender o apagar este módulo (comenta la línea en sider.ini, no la borra)')}
       <div class="simain"><div class="siname"><b data-noi18n>${esc(x.name)}</b><span class="sidesc">${x.desc ? esc(x.desc) : x.type && SI_TYPES[x.type] ? esc(siType(x.type).desc) : 'Módulo que no conozco: abrí el .lua para ver qué hace.'}</span></div>
-        <div class="sitypes">${x.exists === null ? '<span class="chip" title="El navegador no deja ver este archivo: puede que esté igual. En la app para Windows se ve.">👁 El navegador no deja verlo</span>' : x.exists ? '' : `<span class="chip warn">⚠ Falta el archivo en modules</span>${x.sug ? ` <button class="btn small" type="button" data-si="fixmod" data-id="${x.it.id}" data-v="${esc(x.sug)}" title="Cambia la línea por el nombre del archivo que sí está en modules">¿Es <b data-noi18n>${esc(x.sug)}</b>? Corregir</button>` : ''}`}${x.rel && !x.top && x.exists ? `<span class="chip">📁 modules\\${esc(x.rel)}</span>` : ''}${x.type && SI_TYPES[x.type] ? siChip(Object.assign(siType(x.type), { sure: true })) : ''}${info.content.filter(c => c.mods.some(y => y.it === x.it)).map(c => `<span class="chip">📂 content\\${esc(c.name)}</span>`).join('')}${x.type && siType(x.type).tool ? siToolChip(siType(x.type).tool) : ''}</div></div>
+        <div class="sitypes">${x.exists === null ? '<span class="chip" title="El navegador no deja ver este archivo: puede que esté igual. En la app para Windows se ve.">👁 El navegador no deja verlo</span>' : x.exists ? '' : `<span class="chip warn">⚠ Falta el archivo en modules</span>${siBundled(x.name) ? ` <button class="btn small primary" type="button" data-si="instmod" data-n="${siBundled(x.name)}" title="El editor trae este módulo: lo copia en la carpeta modules de Sider">⬇ Instalar el archivo</button>` : x.sug ? ` <button class="btn small" type="button" data-si="fixmod" data-id="${x.it.id}" data-v="${esc(x.sug)}" title="Cambia la línea por el nombre del archivo que sí está en modules">¿Es <b data-noi18n>${esc(x.sug)}</b>? Corregir</button>` : ''}`}${x.rel && !x.top && x.exists ? `<span class="chip">📁 modules\\${esc(x.rel)}</span>` : ''}${x.type && SI_TYPES[x.type] ? siChip(Object.assign(siType(x.type), { sure: true })) : ''}${info.content.filter(c => c.mods.some(y => y.it === x.it)).map(c => `<span class="chip">📂 content\\${esc(c.name)}</span>`).join('')}${x.type && siType(x.type).tool ? siToolChip(siType(x.type).tool) : ''}</div></div>
       ${siAct(x.it, 'Quitar la línea de sider.ini')}</div>`).join('');
   const modFree = info.modFree.length ? `<div class="sifree"><span class="lab">En la carpeta modules hay módulos que no están en sider.ini:</span><div class="row">${info.modFree.map(x => `<button class="btn small" type="button" data-si="addmod" data-n="${esc(x.name)}" title="${esc(x.desc || 'Agregar lua.module al final')}">＋ ${esc(x.name)}</button>`).join('')}</div></div>` : '';
   const content = info.content.length ? `<div class="sigrid">${info.content.map(c => { const t = c.type || c.ltype ? siType(c.type || c.ltype) : null, tool = t && t.tool ? SI_TOOLS[t.tool] : null; return `<div class="sifold">
@@ -564,6 +564,7 @@ function renderSider(m) {
     else if (a === 'addroot') { SI.flash = siAdd('cpk.root', '.\\livecpk\\' + b.dataset.n).id; await refresh(); toast('Carpeta agregada al final de cpk.root (la de menos prioridad). Subila con las flechas si hace falta y después tocá Guardar.', 6000); }
     else if (a === 'addmod') { SI.flash = siAdd('lua.module', b.dataset.n).id; await refresh(); toast(siGet('lua.enabled') === '0' ? 'Módulo agregado al final. Ojo: lua.enabled está en 0, los módulos no corren; arriba hay un botón para activarlo.' : 'Módulo agregado al final de lua.module. Tocá Guardar cuando termines.', 6000); }
     else if (a === 'fixmod') { if (it) { it.val = b.dataset.v; it.ch = true; SI.flash = it.id; } await refresh(); toast('Nombre corregido. Tocá Guardar para escribirlo en sider.ini.', 5000); }
+    else if (a === 'instmod') siInstMod(b.dataset.n);
     else if (a === 'save') siSave();
     else if (a === 'undo') { siParse(SI.orig); await refresh(); }
     else if (a === 'reload') { if (siDirty() && !await confirmBox('Hay cambios sin guardar. ¿Volver a leer el archivo y perderlos?')) return; siLoad(true); render(); }
@@ -577,6 +578,21 @@ function renderSider(m) {
     if (t.dataset.set) { const k = t.dataset.set, v = t.type === 'checkbox' ? (t.checked ? '1' : '0') : t.value.trim(); if (v === '') { const it = siKv(k)[0]; if (it) { it.off = true; it.ch = true; } } else siSet(k, v); render(); return; }
     if (t.dataset.oset) { const it = siById(+t.dataset.oset); if (it) { it.val = t.value.trim(); it.ch = true; } render(); }
   };
+}
+// módulos que trae el editor: si sider.ini los carga pero el archivo no está, se pueden volver a poner con un clic
+const siBundled = n => { const b = String(n).replace(/^["\u201c\u201d']+|["\u201c\u201d']+$/g, '').split(/[\\/]/).pop().toLowerCase().replace(/\.lua$/, ''); return b === 'edit21_db' ? 'edit21' : b === 'kitpos' ? 'kitpos' : null; };
+async function siInstMod(n) {
+  const h = SI.h; if (!h) return;
+  if (h.readOnly) { toast(RO_MSG, 8000); return; }
+  if (siDirty()) { toast('Primero guardá o deshacé los cambios de sider.ini.', 5000); return; }
+  try { if (h.queryPermission && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted' && (await h.requestPermission({ mode: 'readwrite' })) !== 'granted') { toast('Sin permiso para escribir en la carpeta Sider.', 6000); return; } } catch { }
+  toast('Instalando el módulo…', 6000);
+  try {
+    if (n === 'kitpos') await kpsInstall();
+    else await sdbInstall(h);
+  } catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 15000); await siLoad(true, h); return; }
+  await siLoad(true, h);
+  toast(n === 'kitpos' ? 'KitPos instalado en modules. Abrí el juego de nuevo con Sider para que lo cargue.' : 'edit21_db.lua instalado en modules. Abrí el juego con Sider hasta el menú principal para que copie la base.', 8000);
 }
 async function siSave() {
   const h = SI.h, text = siText(); if (!h || text === SI.orig) return;

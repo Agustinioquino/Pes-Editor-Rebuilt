@@ -10,20 +10,46 @@ async function sdbFile(dir, name) { try { return await (await fsFile(dir, name))
 // sider.ini se escribe con la misma codificación con la que se leyó (siReadIni la anota en SI.enc)
 async function sdbWrite(dir, name, text) { const h = await fsFile(dir, name, true); const w = await h.createWritable(); await w.write(/^sider\.ini/i.test(name) && typeof siEncode === 'function' && typeof SI !== 'undefined' ? siEncode(text, SI.enc) : text); await w.close(); }
 
+// la línea del módulo en sider.ini, como la escriba cada uno: "edit21_db.lua", edit21_db, .\\modules\\edit21_db.lua,
+// con un comentario al final; apagada (con ; o # adelante) cuenta como que el usuario la quiere así
+const LUA_LINE = /^\s*lua\.module\s*=\s*["\u201c\u201d]?(?:\.?[\\/]+)?(?:modules[\\/]+)?edit21_db(?:\.lua)?["\u201c\u201d]?\s*(?:[;#].*)?$/mi;
+const LUA_LINE_OFF = /^\s*[;#]+\s*lua\.module\s*=\s*["\u201c\u201d]?(?:\.?[\\/]+)?(?:modules[\\/]+)?edit21_db(?:\.lua)?["\u201c\u201d]?\s*(?:[;#].*)?$/mi;
+const sdbVer = t => (String(t).match(/v(\d+\.\d+)/) || [])[1] || '0';
+// cuánto se espera para volver a mirar el archivo recién escrito (el antivirus lo puede borrar apenas se crea)
+SDB.verifyMs = 1500;
+// el módulo en modules\: si está, su versión y si es igual al que trae el editor
+async function sdbModState(sider) {
+  let mods = null; try { mods = await sider.getDirectoryHandle('modules'); } catch { }
+  const f = mods ? await sdbFile(mods, LUA_NAME) : null; if (!f) return { have: false, mods };
+  const t = await f.text(); return { have: true, mods, ver: sdbVer(t), same: t === EDIT21_LUA, old: parseFloat(sdbVer(t)) < parseFloat(LUA_VERSION) };
+}
+// escribe el módulo y comprueba que quedó: se lee de nuevo enseguida y otra vez un momento después
+async function sdbPutLua(mods) {
+  await sdbWrite(mods, LUA_NAME, EDIT21_LUA);
+  const back = async () => { const f = await sdbFile(mods, LUA_NAME); return f ? await f.text() : null; };
+  let t = await back();
+  if (t === EDIT21_LUA && SDB.verifyMs) { await new Promise(r => setTimeout(r, SDB.verifyMs)); t = await back(); }
+  if (t === EDIT21_LUA) return;
+  throw Object.assign(new Error(t == null
+    ? 'guardé ' + LUA_NAME + ' en modules, pero el archivo desapareció enseguida. Casi siempre es el antivirus: en Seguridad de Windows › Protección contra virus y amenazas › Historial de protección, restauralo (Permitir en el dispositivo) o agregá tu carpeta Sider a las exclusiones, y volvé a conectar la carpeta.'
+    : 'guardé ' + LUA_NAME + ' en modules, pero al leerlo de nuevo no es el mismo archivo (otro programa lo cambió o lo bloqueó). Cerrá el juego y volvé a conectar la carpeta.'), { name: 'GoneError' });
+}
+
 // ---- instalación del módulo (necesita permiso de escritura en la carpeta Sider) ----
+// El archivo se instala antes que la línea de sider.ini: si no se pudo guardar, sider.ini no se toca.
 async function sdbInstall(sider) {
   const r = { module: 'ok', ini: 'ok', folder: 'ok', changed: false };
   let ini = await sdbFile(sider, 'sider.ini');
   if (!ini) { r.ini = 'no-sider'; return r; }
   // 1) modules\edit21_db.lua
   const mods = await sider.getDirectoryHandle('modules', { create: true });
-  const cur = await sdbFile(mods, LUA_NAME); let curVer = null;
-  if (cur) { const t = await cur.text(); curVer = (t.match(/v(\d+\.\d+)/) || [])[1] || '0'; }
-  if (!cur) { await sdbWrite(mods, LUA_NAME, EDIT21_LUA); r.module = 'nuevo'; r.changed = true; }
-  else if (parseFloat(curVer) < parseFloat(LUA_VERSION)) { try { await sdbWrite(mods, LUA_NAME + '.anterior', await cur.text()); } catch { } await sdbWrite(mods, LUA_NAME, EDIT21_LUA); r.module = 'actualizado'; r.changed = true; }
-  // 2) sider.ini: lua.enabled = 1 y la línea del módulo
+  const cur = await sdbFile(mods, LUA_NAME), curText = cur ? await cur.text() : null;
+  if (curText == null) { await sdbPutLua(mods); r.module = 'nuevo'; r.changed = true; }
+  else if (parseFloat(sdbVer(curText)) < parseFloat(LUA_VERSION)) { try { await sdbWrite(mods, LUA_NAME + '.anterior', curText); } catch { } await sdbPutLua(mods); r.module = 'actualizado'; r.changed = true; }
+  // 2) sider.ini: lua.enabled = 1 y la línea del módulo (si el usuario la apagó, queda apagada)
   let text = typeof siReadIni === 'function' ? await siReadIni(sider) : await ini.text(), orig = text;
-  if (!/^\s*lua\.module\s*=\s*"?edit21_db\.lua"?\s*$/mi.test(text)) {
+  if (LUA_LINE_OFF.test(text) && !LUA_LINE.test(text)) r.ini = 'apagado';
+  else if (!LUA_LINE.test(text)) {
     const nl = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/); let last = -1;
     lines.forEach((l, i) => { if (/^\s*lua\.module\s*=/.test(l)) last = i; });
@@ -31,12 +57,24 @@ async function sdbInstall(sider) {
     if (last >= 0) lines.splice(last + 1, 0, line); else { let s = lines.findIndex(l => /^\s*\[sider\]/i.test(l)); lines.splice(s >= 0 ? s + 1 : lines.length, 0, '', '; PES Editor: copia de la base del juego (solo lectura)', 'lua.enabled = 1', line); }
     text = lines.join(nl); r.ini = 'agregado';
   }
-  if (/^\s*lua\.enabled\s*=\s*0\s*$/m.test(text)) { text = text.replace(/^(\s*lua\.enabled\s*=\s*)0(\s*)$/m, '$11$2'); r.ini = 'agregado'; }
+  if (r.ini !== 'apagado' && /^\s*lua\.enabled\s*=\s*0\s*$/m.test(text)) { text = text.replace(/^(\s*lua\.enabled\s*=\s*)0(\s*)$/m, '$11$2'); r.ini = 'agregado'; }
   if (text !== orig) { if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', orig); await sdbWrite(sider, 'sider.ini', text); r.changed = true; if (typeof siReset === 'function') siReset(); }
   // 3) content\edit21-db (el módulo no puede crear carpetas)
   const content = await sider.getDirectoryHandle('content', { create: true }); await content.getDirectoryHandle('pes-editor-db', { create: true }); const out = await content.getDirectoryHandle('edit21-db', { create: true });
   if (!await sdbFile(out, 'LEEME.txt')) await sdbWrite(out, 'LEEME.txt', 'Carpeta de salida del modulo edit21_db.lua (PES Editor).\r\nAca se guarda una copia de la base de datos que carga el juego (Player.bin, Team.bin, PlayerAssignment.bin, etc.).\r\nNo borres esta carpeta: si falta, el modulo no puede escribir.\r\n');
   SDB.installed = true; return r;
+}
+// Al abrir el editor con la carpeta recordada: si sider.ini carga edit21_db pero el archivo falta en modules (lo borró
+// el antivirus, una actualización del juego que reemplazó modules, o alguien copió el sider.ini de otro) o es una versión
+// vieja, se vuelve a poner. Solo si ya hay permiso para escribir (no se pregunta nada al arrancar).
+async function sdbRepair(sider) {
+  if (!sider || sider.readOnly) return null;
+  try { if (sider.queryPermission && (await sider.queryPermission({ mode: 'readwrite' })) !== 'granted') return null; } catch { return null; }
+  const ini = typeof siReadIni === 'function' ? await siReadIni(sider) : await (await sdbFile(sider, 'sider.ini') || { text: async () => null }).text();
+  if (ini == null || !LUA_LINE.test(ini)) return null;
+  const m = await sdbModState(sider); if (m.have && !m.old) return null;
+  try { const r = await sdbInstall(sider); if (typeof siReset === 'function') { siReset(); if (typeof S !== 'undefined' && S.tab === 'sider') render(); } toast(m.have ? 'Actualicé el módulo edit21_db.lua de Sider a la v' + LUA_VERSION + '.' : 'Faltaba el archivo edit21_db.lua en la carpeta modules de Sider (sider.ini lo carga): lo volví a poner.', 7000); return r; }
+  catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 15000); return null; }
 }
 
 // ---- estado de la copia: qué archivos hay y cuáles faltan ----
@@ -171,7 +209,7 @@ function sdbNotice(st, inst) {
 // se llama al conectar la carpeta (con escritura) y al arrancar con la carpeta recordada (solo lectura)
 async function sdbSetup(sider, canWrite) {
   let inst = null;
-  if (canWrite) { try { inst = await sdbInstall(sider); } catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 7000); } }
+  if (canWrite) { try { inst = await sdbInstall(sider); } catch (e) { toast('No pude instalar el módulo en Sider: ' + e.message, 15000); } }
   const st = await sdbLoadAll(sider);
   if (inst && inst.ini === 'no-sider') { let more = ''; try { if (typeof siNoIniDetail === 'function') more = ' ' + siNoIniText(await siNoIniDetail(sider)); } catch { } toast(tr('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).') + more + (window.showOpenFilePicker && !sider.native ? ' ' + tr('Si el archivo sí está, el navegador lo oculta: elegilo a mano en la pestaña Sider.') : ''), 16000); return st; }
   if (st.src === 'juego' && !st.missing.length) { const nm = st.game && st.game.exe ? gdbGameName(st.game.exe) : /^SiderAddons$/i.test(sider.name || '') ? 'Football Life' : ''; toast(`${nm ? 'Base de ' + nm : 'Base del juego'} leída directo de sus archivos (${st.from.join(', ')}): ${S.names.size.toLocaleString('es-AR')} jugadores y ${SDB.teams.size.toLocaleString('es-AR')} equipos.`, 7000); return st; }

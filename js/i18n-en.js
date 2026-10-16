@@ -4391,7 +4391,9 @@ const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
 "{x} letras":"{x} letters",
 "{x} de jugador":"{x} player",
 "＋ Subir fuente":"＋ Upload font",
-"Dorado":"Gold"
+"Dorado":"Gold",
+"Camiseta del club y de la selección, y el peso":"Club shirt, national team shirt and weight",
+"En Jugadores → Perfil, el nombre en la camiseta del club y el de la selección van por separado, cada uno con Usar apellido: el EDIT guarda los dos (por ejemplo, GAKU en el club y SHIBASAKI en Japón). Al pasar un jugador de la base del juego al EDIT se copian las dos camisetas y el peso, que antes quedaba en 0; los que ya habían quedado en 0 muestran un botón para usar el peso de la base. La ficha Del juego también muestra el peso.":"In Players → Profile, the name on the club shirt and on the national team shirt are now separate, each with Use last name: the EDIT stores both (for example, GAKU at his club and SHIBASAKI for Japan). When you bring a player from the game database into the EDIT, both shirt names and the weight come along, which used to end up at 0; players already at 0 show a button to use the database weight. The From the game sheet also shows the weight."
 };
 // Ficha del jugador · Perfil: nombre y apellido, equipo y selección, nivel
 Object.assign(I18N_EN, {

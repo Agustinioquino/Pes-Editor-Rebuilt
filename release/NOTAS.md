@@ -58,6 +58,12 @@ The **📐 Free position** panel sets, without steps, the height, size, width, s
 - If **Caps Lock** is on, a warning shows up under the field.
 - If a player's name ended up all in capitals, his profile offers **Aa Change to** upper and lower case in one click.
 
+## 👕 Club shirt, national team shirt and weight
+
+- In **Players → Profile**, the name on the **club shirt** and on the **national team shirt** are now separate, each with **Use last name**. The EDIT stores both: for example, GAKU at his club and SHIBASAKI for Japan.
+- When you bring a player from the game database into the EDIT, **both shirt names and his weight** come along. The weight used to end up at 0; players that already had 0 show a button to use the weight from the game database.
+- The **From the game** sheet now shows the weight too.
+
 ## ⬇️ Do I need to download anything?
 
 **No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it.
@@ -132,6 +138,12 @@ El panel **📐 Posición libre** ajusta sin pasos la altura, el tamaño, el anc
 - En el modo gráfico **PES 6**, todos los campos donde se escribe usan ahora una letra con **minúsculas de verdad**, así ves exactamente cómo queda un nombre.
 - Si **Bloq Mayús** está activado, aparece un aviso debajo del campo.
 - Si el nombre de un jugador quedó todo en mayúsculas, su perfil ofrece **Aa Pasar a** mayúsculas y minúsculas con un clic.
+
+## 👕 Camiseta del club, de la selección y el peso
+
+- En **Jugadores → Perfil**, el nombre en la **camiseta del club** y el de la **camiseta de la selección** van por separado, cada uno con **Usar apellido**. El EDIT guarda los dos: por ejemplo, GAKU en el club y SHIBASAKI en Japón.
+- Al pasar un jugador de la base del juego al EDIT se copian **las dos camisetas y el peso**. Antes el peso quedaba en 0; los que ya habían quedado así muestran un botón para usar el peso de la base del juego.
+- La ficha **Del juego** ahora también muestra el peso.
 
 ## ⬇️ ¿Tengo que descargar algo?
 

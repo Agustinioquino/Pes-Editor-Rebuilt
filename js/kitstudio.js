@@ -285,7 +285,7 @@ async function kpsInstall() {
   const content = await sider.getDirectoryHandle('content', { create: true }); await content.getDirectoryHandle('kitpos', { create: true });
   await kpsLoad(true); return r;
 }
-// panel de posición libre (lo usan el Editor de Kit Studio Pro y la pestaña Fuentes)
+// panel de posición libre (lo usan el Editor y Fuentes de Kit Studio Pro)
 function kposHtml(groups = ['name', 'num', 'chest', 'leg'], o = {}) {
   const st = KPS.st, on = ksKpOn(), gk = KS.cfg && kpsKit().gk;
   if (!st) return '<section class="kpos"><p class="note">Revisando KitPos en la carpeta Sider…</p></section>';
@@ -594,14 +594,20 @@ function ksOverview(t) {
     <p class="note">El orden es el de order.ini y gk_order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…), 🧤 copia un kit de jugador como kit de arquero y 🗑 borra el kit (su carpeta queda guardada en _borrados). Verde: la textura está en la carpeta del kit; azul: suelta en livecpk; gris: dentro de los .cpk del juego o sin usar.</p>`;
 }
 // ---- tarjeta ----
+// Uniformes, Editor y Fuentes (el creador de fuentes de KitPos, kitposfont.js); sin carpeta de kits solo hay Uniformes y Fuentes
+function ksModeSeg(n) {
+  const b = (v, l) => `<button type="button" data-v="${v}" aria-pressed="${KS.mode === v || (v === 'list' && n == null && KS.mode !== 'fonts')}">${l}</button>`;
+  return `<div class="seg ksmode" id="ksMode" aria-label="Sección de Kit Studio Pro">${b('list', `👕 Uniformes${n != null ? ` <small>${n}</small>` : ''}`)}${n != null ? b('edit', `🛠 Editor · ${esc(KS.sel)}`) : ''}${b('fonts', '🔤 Fuentes')}</div>`;
+}
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
   if (!k || !k.path) {
-    // el creador de fuentes también se puede usar sin kits (pestaña Fuentes): la fuente se descarga en un .zip
-    const solo = '<button class="btn small" type="button" data-kpfgo title="Fuentes con minúsculas y acentos para KitPos">🔤 Creador de fuentes</button>';
-    if (!KITS.from) return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro</h3>${solo}</div><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+    // el creador de fuentes también se puede usar sin kits: la fuente se descarga en un .zip
+    const head = `<div class="row"><h3>Kit Studio Pro</h3>${ksModeSeg(null)}</div>`;
+    if (KS.mode === 'fonts') return `<div class="card kscard">${head}${kpfCard(t, false)}</div>`;
+    if (!KITS.from) return `<div class="card kscard">${head}<p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
     // el equipo no está en map.txt: sus kits viven en los .cpk del juego (cifrados). Lo que sí se puede es cargarle uno por Sider.
-    return `<div class="card kscard"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro</h3>${solo}</div>
+    return `<div class="card kscard">${head}
       <div class="warnbox" id="ksCpk"><b>Este equipo no tiene carpeta en el kit-server de Sider.</b> Sus kits están dentro de los archivos .cpk del juego, que vienen cifrados: desde acá no se pueden ver ni editar. Lo que sí se puede es cargarle un kit por Sider: arrastrá abajo un .zip con las texturas y se crea la carpeta del equipo en content\\kit-server (con su línea en map.txt) para que el juego lo use.</div>
       ${ksDropHtml()}
       <p class="note">Después de cargarlo, abrí el juego de nuevo (o en kserv apretá [0] para recargar el mapa) y fijate en la pantalla de uniformes del partido.</p></div>`;
@@ -631,11 +637,11 @@ function kitStudioCard(t) {
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
   return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
     <div class="row" style="justify-content:space-between"><div class="row"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
-      <div class="seg ksmode" id="ksMode"><button type="button" data-v="list" aria-pressed="${KS.mode === 'list'}">👕 Uniformes <small>${KS.kits.length + KS.gk.length}</small></button><button type="button" data-v="edit" aria-pressed="${KS.mode === 'edit'}">🛠 Editor · ${esc(KS.sel)}</button></div><button class="btn small" type="button" data-kpfgo title="Abre el creador de fuentes con este kit: minúsculas, acentos, cirílico y griego para KitPos">🔤 Creador de fuentes</button></div>
+      ${ksModeSeg(KS.kits.length + KS.gk.length)}</div>
       ${KS.mode !== 'edit' ? '' : `<div class="row">${KS.dirty || kpsDirty() ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
       <button class="btn" type="button" id="ksUndo" ${KS.dirty || kpsDirty() ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty || kpsDirty() ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
-    ${KS.mode === 'list' ? ksOverview(t) : `
+    ${KS.mode === 'list' ? ksOverview(t) : KS.mode === 'fonts' ? kpfCard(t, true) : `
     <div class="kssel" aria-label="Kit que se edita">${KS.kits.map((n, i) => chip(n, i, false)).join('')}${KS.gk.map((n, i) => chip(n, i, true)).join('')}</div>
     <div class="kslayout">
       <section class="ksprev">
@@ -707,7 +713,9 @@ function bindKitStudio(t, m) {
   ksRerender = () => later(() => { if (S.ttab === 'kits' && (S.tab === 'teams' || S.tab === 'nats')) renderTeams(m); });
   const sh = $('teamSheet'), dz = $('ksDrop');
   if (dz) ksBindDrop(dz, files => ksZipDrop(files, t, m, !(KITS.map.get(t.id) || {}).path)); // también en la tarjeta del equipo sin carpeta (.cpk)
-  sh.querySelectorAll('[data-kpfgo]').forEach(b => b.onclick = () => kpfGoto(t));
+  const mode = $('ksMode'); if (mode) mode.onclick = e => { const b = e.target.closest('[data-v]'); if (!b || KS.mode === b.dataset.v) return; if (b.dataset.v === 'fonts') KPFS.target = KS.team === t.id && KS.sel ? KS.sel : '*'; KS.mode = b.dataset.v; renderTeams(m); };
+  sh.querySelectorAll('[data-kpfgo]').forEach(b => b.onclick = () => kpfGoto(t, m));
+  if (KS.mode === 'fonts') { if (K3.viewer) { K3.viewer.dispose(); K3.viewer = null; } kpfBindIn(t, m, sh); return; }
   if (!KS.cfg) return;
   if (K3.viewer) { K3.viewer.dispose(); K3.viewer = null; }
   ksBindList(sh, m); if (KS.mode === 'list') return;
@@ -866,7 +874,6 @@ function bindKitStudio(t, m) {
 }
 // Uniformes y la tira de kits del Editor: abrir, ordenar, copiar y borrar
 function ksBindList(sh, m) {
-  const mode = $('ksMode'); if (mode) mode.onclick = e => { const b = e.target.closest('[data-v]'); if (!b || KS.mode === b.dataset.v) return; KS.mode = b.dataset.v; renderTeams(m); };
   sh.querySelectorAll('[data-open]').forEach(b => b.onclick = async () => {
     const n = b.dataset.open;
     if (n !== KS.sel) { if (KS.dirty && !await confirmBox('Hay cambios sin guardar en ' + KS.sel + '. ¿Descartarlos?')) return; try { await ksOpenKit(n); KS.genNrm = null; KS.nsrc = null; } catch (e) { toast(e.message, 6000); return; } }

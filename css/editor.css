@@ -685,8 +685,10 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .ksgenl{display:grid;gap:10px;align-content:start}.ksgenr{display:grid;gap:8px;align-content:start}
 .ksgenr canvas{width:100%;height:auto;border-radius:8px;border:1px solid var(--line)}
 /* Kit Studio Pro › Fuentes (creador de fuentes para KitPos) */
-/* ---- Creador de fuentes (pestaña Fuentes) ---- */
-.kpfpage{padding:14px 16px}
+/* ---- Creador de fuentes (Kit Studio Pro › 🔤 Fuentes) ---- */
+.kpfin{margin-top:12px}
+/* dentro de la ficha del equipo hay menos ancho: los pasos van debajo del título */
+.kpfin .kpfhero{grid-template-columns:minmax(0,1fr) auto}.kpfin .kpfsteps{grid-column:1/-1;grid-row:2}
 .kpf{display:grid;gap:14px;border-radius:var(--r,8px);outline:2px dashed transparent;outline-offset:4px;transition:outline-color .2s}
 .kpf.over{outline-color:var(--accent)}
 .kpfhero{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--r,8px);border:1px solid var(--line);background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 20%,transparent),transparent 55%),var(--sunk)}
@@ -700,7 +702,7 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .kpfstudio{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr) minmax(270px,330px);gap:14px;align-items:start}
 @media (max-width:1280px){.kpfstudio{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}.kpfr{grid-column:1 / -1;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}}
 @media (max-width:820px){.kpfstudio{grid-template-columns:minmax(0,1fr)}}
-.kpfl,.kpfr{display:grid;gap:10px;align-content:start;min-width:0}.kpfl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}
+.kpfl,.kpfr{display:grid;gap:10px;align-content:start;align-items:start;min-width:0}.kpfl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}
 .kpfsec{display:grid;gap:8px;padding:10px 12px 12px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk);min-width:0}
 .kpfsec h5{margin:0;display:flex;align-items:center;gap:7px;font-family:var(--display);font-size:1.02rem;letter-spacing:.01em}
 .kpfsec h5 i{font-style:normal;display:grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--accent);color:var(--panel);font-size:.8rem;font-family:var(--mono)}
@@ -735,6 +737,17 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .kpfst li{display:flex;gap:8px;align-items:center;padding:5px 8px;border-radius:var(--r,6px);border:1px solid var(--line);font-size:.84rem;background:var(--panel)}
 .kpfst li>i{font-style:normal;font-weight:800;width:1.3em;text-align:center}.kpfst li>span{flex:1;min-width:0}
 .kpfst li.ok>i{color:var(--ok,#2fa35a)}.kpfst li.bad>i{color:var(--bad,#d0453b)}.kpfst li.unk>i{color:var(--muted)}
+.kpfreqs{display:grid;gap:8px;padding:10px 12px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk)}
+.kpfreqs h5{margin:0;font-family:var(--display);font-size:1.02rem}
+.kpfreqs ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:8px}
+.kpfreq{display:grid;gap:6px;align-content:start;min-width:0;padding:8px 10px;border-radius:var(--r,6px);border:1px solid var(--line);border-left:4px solid var(--muted);background:var(--panel)}
+.kpfreq.ok{border-left-color:var(--ok,#2fa35a)}.kpfreq.later{opacity:.8}.kpfreq.bad{border-left-color:var(--bad,#d0453b)}
+.kpfrh{display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px;min-width:0}.kpfrh b{flex:1;min-width:0;font-size:.9rem}
+.kpfrh>i{font-style:normal;flex:none;display:grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--accent);color:var(--panel);font-size:.78rem;font-family:var(--mono)}
+.kpfrh .chip{flex:none;font-size:.7rem}
+.kpfreq p{margin:0;font-size:.82rem;line-height:1.35}
+.kpfreq .mono,.kpfreq .kpfini{font-family:var(--mono);font-size:.92em;background:color-mix(in srgb,var(--line) 45%,transparent);padding:0 3px;border-radius:3px;overflow-wrap:anywhere}
+.kpfreq .kpfini{margin:0;padding:5px 7px;font-size:.74rem;line-height:1.4;white-space:pre;overflow-x:auto}
 .kpfhow{padding:10px 14px;border-radius:var(--r,8px);border:1px solid var(--line)}
 .kpfhow summary{font-weight:700;cursor:pointer}.kpfhow ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:6px;font-size:.88rem;max-width:110ch}
 .kpfhow .mono{font-family:var(--mono);font-size:.92em;background:color-mix(in srgb,var(--line) 45%,transparent);padding:0 3px;border-radius:3px}
@@ -755,7 +768,7 @@ html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sa
 .kposr.own label{color:var(--accent);font-weight:700}
 .kposx{grid-area:x;border:0;background:none;color:inherit;cursor:pointer;font-size:.95rem;padding:0;opacity:.75}.kposx:disabled{opacity:.2;cursor:default}
 html[data-gfx="pes6"] :is(.kpos,.kposg fieldset,.kpfsec,.kpfstage,.kpfkit,.kpfpres button,.kpfhow,.kplpanels,.kplov){border-radius:0!important}
-html[data-gfx="pes6"] :is(.kpfhero,.kpffonts button,.kpfimg,.kpfgame,.kpfst li,.kpfback,.kpfprev>canvas,.kpfatlas canvas){border-radius:0!important}
+html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts button,.kpfimg,.kpfgame,.kpfst li,.kpfback,.kpfprev>canvas,.kpfatlas canvas){border-radius:0!important}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2 label output,.ksgenl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}
 

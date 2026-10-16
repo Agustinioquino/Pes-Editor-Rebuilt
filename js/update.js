@@ -160,12 +160,12 @@ function sessApply(s, dataless) {
     if (s.mtime) S.mtime = s.mtime;
   }
   const u = s.ui || {};
-  if (['teams', 'nats', 'players', 'wepes', 'fonts', 'file', 'news', 'ideas'].includes(u.tab)) S.tab = u.tab;
+  if (['teams', 'nats', 'players', 'wepes', 'file', 'news', 'ideas'].includes(u.tab)) S.tab = u.tab;
   if (u.teamByTab) S.teamByTab = u.teamByTab;
   if (u.team != null && S.ix.teamById.has(u.team)) S.team = u.team;
   for (const k of ['ttab', 'ptab', 'pSrc', 'dbPlayer']) if (u[k] != null) S[k] = u[k];
   if (u.player != null && (S.ix.byId.has(u.player) || S.pSrc !== 'edit')) S.player = u.player;
-  for (const [id, k] of [['tTeams', 'teams'], ['tNats', 'nats'], ['tPlayers', 'players'], ['tWepes', 'wepes'], ['tFonts', 'fonts'], ['tFile', 'file'], ['tNews', 'news'], ['tIdeas', 'ideas']]) { const b = $(id); if (b) b.setAttribute('aria-selected', String(k === S.tab)); }
+  for (const [id, k] of [['tTeams', 'teams'], ['tNats', 'nats'], ['tPlayers', 'players'], ['tWepes', 'wepes'], ['tFile', 'file'], ['tNews', 'news'], ['tIdeas', 'ideas']]) { const b = $(id); if (b) b.setAttribute('aria-selected', String(k === S.tab)); }
   RATE_GEN++; updateTop(); render();
   if (u.y) setTimeout(() => window.scrollTo({ top: u.y }), 400);
   return true;

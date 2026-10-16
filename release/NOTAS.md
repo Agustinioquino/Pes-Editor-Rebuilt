@@ -2,73 +2,47 @@
 
 <div align="center">
 
-# 🔤 Your font on the shirt, placed by hand
+# 🔤 Fonts move into Kit Studio, with their requirements
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-Shirt names don't have to be ALL CAPS anymore. With the new **Fonts** tab you build the name font from any typeface (or from letters you draw in Photoshop), with **lowercase, accents, Ñ, Cyrillic and Greek**, and it goes straight into the kit folder. And in **Kit Studio Pro** you can now **grab the name and the numbers on the 3D kit and drag them** where you want them. 👕
+A small one, but it puts things where they belong. The shirt font creator now lives **inside Kit Studio Pro**, next to the kits it's made for. And before you start, it tells you **exactly what the game needs** to show it, and fixes it for you. 👕
 
-<img alt="Dragging the name on the back of the 3D shirt: it moves up and down and its arch changes, with the value shown next to the mouse" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/arrastrar-en.gif" width="60%">
+## 🔤 Fonts, now a Kit Studio Pro section
 
-## ✥ Move the name and numbers with the mouse
+**Teams → pick the club → Kit Studio Pro** now has three sections: **👕 Uniforms · 🛠 Editor · 🔤 Fonts**.
 
-In **Kit Studio Pro → Editor**, the new **✥ Place** view shows the back, the front and the shorts in 3D:
+- Fonts works on the team you're looking at, so there's no team list to pick from anymore.
+- **👁 View in the Editor** jumps to the 3D kit with the new font on, without saving it.
+- Teams without a kit folder can use it too: the font downloads as a .zip to copy by hand.
+- The separate Fonts tab at the top is gone.
 
-- **Grab** the name, the back number, the chest number or the shorts number and **move it**.
-- **Corners** change the size, **sides** the width (on the back number, the spacing) and the **handle above the name** its arch.
-- The **mouse wheel** and the **keyboard** work too: arrows to move, + and − for size, [ and ] for the arch.
-- Without KitPos it moves in the game's own steps (the ones in config.txt). **With KitPos the value is exact**, no steps.
+<img alt="Kit Studio Pro with its three sections, Uniforms, Editor and Fonts, and the font creator open with its requirements box" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/fuentes-en.png" width="100%">
 
-<img alt="The Place view: the back, the front and the shorts in 3D, with the name, back number, chest number and shorts number boxed in colors" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/ubicar-en.png" width="100%">
+## ✅ Requirements to see it in the game
 
-## 🔤 The Fonts tab
+At the top of Fonts there's a box with the four things the game needs. If your Sider folder is connected, each one says whether it's **Done** or **Missing**, and brings a button to fix it:
 
-A font creator for the shirt name, in its own tab:
+1. **Sider with kserv**: kserv.lua and the content\kit-server folder, where the kits live.
+2. **Download KitPos 6.4 or newer**: the Sider module that draws the name with your font, in Sider\modules\kitpos.lua. **Install KitPos** copies it for you, and **Download kitpos.lua** gives you the file to copy by hand.
+3. **Set it up in sider.ini**: it shows the exact lines (kitpos.lua below kserv.lua, with luajit.ext.enabled = 1), with **Copy lines** and **Fix sider.ini** (a backup is kept).
+4. **Lowercase enabled**: minusculas_juego = 1 in content\kitpos\kitpos_slots.ini, with an **Enable lowercase** button.
 
-- **Pick a typeface** or upload a **.ttf, .otf or .woff**, and give it a style: colors, gradient, two outlines and shadow.
-- **Choose the languages**: accents, Central Europe and Turkey, Cyrillic, Greek.
-- See it **live on the shirt** and on the **back of the kit**, where you can also drag the name and number.
-- **One button saves it in the kit folder**: the letter texture as **.dds and .ftex** (DXT5 with all its sizes) and **kitpos_letras.txt**, the table KitPos reads. Another downloads it as a .zip, and another undoes it (a .bak-edit21 copy is kept).
+<img alt="The requirements box with the four steps marked Done" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/requisitos-en.png" width="70%">
 
-It needs **KitPos 6.4 or newer** in Sider. If you don't have it, the editor installs it for you and adds it to sider.ini (with a backup).
+## 🧩 Sider modules come back by themselves
 
-<img alt="The Fonts tab: the font, the Photoshop template with its letters loaded, the name on a green shirt and the back of the kit with the name and number boxed" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-en.png" width="100%">
-
-## 🎨 Letters drawn in Photoshop
-
-Draw the letters yourself in the **KitPos Photoshop template** (one 256 px cell per letter, sitting on the red line) and load it as a **transparent PNG or straight as .psd**:
-
-- Every letter you drew goes into the game texture **as it is, with its colors**.
-- Empty cells (space, underscore, Cyrillic…) come from the chosen typeface.
-- **⬇ Letters of this font** gives you a typeface already laid out in the template, to touch it up in Photoshop. **⬇ Guides** gives you the cells alone.
-
-<img alt="The Photoshop template section with the template loaded: 214 of 214 letters drawn" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/plantilla-en.png" width="50%">
-
-## 📐 Free position with KitPos
-
-The **📐 Free position** panel sets, without steps, the height, size, width, spacing and arch of the name and the back, chest and shorts numbers, **for one kit or for the whole team**. It's saved in content\kitpos\kitpos_slots.ini, the same file the KitPos panel reads in the game.
-
-<img alt="The Fonts tab in PES 6 mode" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-pes6-en.png" width="100%">
-
-## 🔠 Upper and lower case in PES 6
-
-- In the **PES 6** graphics mode, every text field now uses a font with **real lowercase**, so you see exactly how a name looks.
-- If **Caps Lock** is on, a warning shows up under the field.
-- If a player's name ended up all in capitals, his profile offers **Aa Change to** upper and lower case in one click.
-
-## 👕 Club shirt, national team shirt and weight
-
-- In **Players → Profile**, the name on the **club shirt** and on the **national team shirt** are now separate, each with **Use last name**. The EDIT stores both: for example, GAKU at his club and SHIBASAKI for Japan.
-- When you bring a player from the game database into the EDIT, **both shirt names and his weight** come along. The weight used to end up at 0; players that already had 0 show a button to use the weight from the game database.
-- The **From the game** sheet now shows the weight too.
+- If sider.ini loads **edit21_db.lua** but the file isn't in modules (or it's an old one), the editor **puts it back when it opens**.
+- In the **Sider** tab, a module marked "File missing in modules" now has an **⬇ Install the file** button for the ones the editor comes with (edit21_db.lua and kitpos.lua).
+- If the file disappears right after being saved, the editor tells you: it's almost always the **antivirus**, and it explains how to restore it.
 
 ## ⬇️ Do I need to download anything?
 
 **No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it.
 
-> This is an alpha version and the fonts haven't been tested much in the game yet. If a letter shows up shifted or cut off, or the name doesn't move where you put it, tell us in 💡 Ideas → Something's not working. ⚽
+> This is an alpha version and the fonts are still being tested in the game. If a letter shows up shifted or cut off, tell us in 💡 Ideas → Something's not working. ⚽
 
 <br>
 
@@ -83,70 +57,44 @@ The **📐 Free position** panel sets, without steps, the height, size, width, s
 
 <div align="center">
 
-# 🔤 Tu fuente en la camiseta, ubicada a mano
+# 🔤 Las fuentes pasan a Kit Studio, con sus requisitos
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-Los nombres de las camisetas ya no tienen que ir TODO EN MAYÚSCULAS. Con la nueva pestaña **Fuentes** armás la fuente del nombre con cualquier tipografía (o con letras que dibujás en Photoshop), con **minúsculas, tildes, Ñ, cirílico y griego**, y va directo a la carpeta del kit. Y en **Kit Studio Pro** ahora podés **agarrar el nombre y los números sobre el kit en 3D y arrastrarlos** adonde quieras. 👕
+Una versión chica, pero que pone las cosas en su lugar. El creador de fuentes de la camiseta ahora vive **dentro de Kit Studio Pro**, al lado de los kits para los que se hace. Y antes de empezar te dice **exactamente qué necesita el juego** para mostrarla, y te lo arregla. 👕
 
-<img alt="Arrastrar el nombre en la espalda de la camiseta en 3D: sube y baja y cambia su arco, con el valor al lado del mouse" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/arrastrar-es.gif" width="60%">
+## 🔤 Fuentes, ahora una sección de Kit Studio Pro
 
-## ✥ Mové el nombre y los números con el mouse
+**Equipos → elegí el club → Kit Studio Pro** ahora tiene tres secciones: **👕 Uniformes · 🛠 Editor · 🔤 Fuentes**.
 
-En **Kit Studio Pro → Editor**, la nueva vista **✥ Ubicar** muestra la espalda, el frente y el short en 3D:
+- Fuentes trabaja con el equipo que estás viendo, así que ya no hay que elegirlo de una lista.
+- **👁 Ver en el Editor** salta al kit en 3D con la fuente nueva puesta, sin guardarla.
+- Los equipos sin carpeta de kits también pueden usarla: la fuente se baja en un .zip para copiarla a mano.
+- La pestaña Fuentes de arriba ya no está.
 
-- **Agarrá** el nombre, el dorsal, el número del pecho o el del short y **movelo**.
-- **Las esquinas** cambian el tamaño, **los costados** el ancho (en el dorsal, la separación) y **la manija de arriba del nombre** su arco.
-- También andan **la rueda del mouse** y **el teclado**: flechas para mover, + y − para el tamaño, [ y ] para el arco.
-- Sin KitPos se mueve con los pasos del juego (los del config.txt). **Con KitPos queda el valor exacto**, sin pasos.
+<img alt="Kit Studio Pro con sus tres secciones, Uniformes, Editor y Fuentes, y el creador de fuentes abierto con su cuadro de requisitos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/fuentes-es.png" width="100%">
 
-<img alt="La vista Ubicar: la espalda, el frente y el short en 3D, con el nombre, el dorsal, el número del pecho y el del short marcados en colores" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/ubicar-es.png" width="100%">
+## ✅ Requisitos para verla en el juego
 
-## 🔤 La pestaña Fuentes
+Arriba de Fuentes hay un cuadro con las cuatro cosas que necesita el juego. Si tu carpeta Sider está conectada, cada una dice si está **Listo** o **Falta**, y trae un botón para arreglarlo:
 
-Un creador de fuentes para el nombre de la camiseta, en su propia pestaña:
+1. **Sider con kserv**: kserv.lua y la carpeta content\kit-server, donde viven los kits.
+2. **Descargar KitPos 6.4 o más nuevo**: el módulo de Sider que dibuja el nombre con tu fuente, en Sider\modules\kitpos.lua. **Instalar KitPos** lo copia solo, y **Descargar kitpos.lua** te da el archivo para copiarlo a mano.
+3. **Configurarlo en sider.ini**: muestra las líneas exactas (kitpos.lua debajo de kserv.lua, con luajit.ext.enabled = 1), con **Copiar líneas** y **Arreglar sider.ini** (se guarda una copia).
+4. **Minúsculas activadas**: minusculas_juego = 1 en content\kitpos\kitpos_slots.ini, con un botón **Activar minúsculas**.
 
-- **Elegí una tipografía** o subí un **.ttf, .otf o .woff**, y dale estilo: colores, degradado, dos bordes y sombra.
-- **Elegí los idiomas**: acentos, Europa central y Turquía, cirílico, griego.
-- Mirala **en vivo sobre la camiseta** y en **la espalda del kit**, donde también podés arrastrar el nombre y el dorsal.
-- **Un botón la guarda en la carpeta del kit**: la textura de letras en **.dds y .ftex** (DXT5 con todos sus tamaños) y **kitpos_letras.txt**, la tabla que lee KitPos. Otro la baja en .zip y otro la deshace (queda una copia .bak-edit21).
+<img alt="El cuadro de requisitos con los cuatro pasos en Listo" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/requisitos-es.png" width="70%">
 
-Hace falta **KitPos 6.4 o más nuevo** en Sider. Si no lo tenés, el editor lo instala y lo agrega a sider.ini (con copia).
+## 🧩 Los módulos de Sider vuelven solos
 
-<img alt="La pestaña Fuentes: la fuente, la plantilla de Photoshop con sus letras cargadas, el nombre sobre una camiseta verde y la espalda del kit con el nombre y el dorsal marcados" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-es.png" width="100%">
-
-## 🎨 Letras dibujadas en Photoshop
-
-Dibujá las letras vos en la **plantilla de Photoshop de KitPos** (una casilla de 256 px por letra, apoyada en la línea roja) y cargala como **PNG transparente o directo el .psd**:
-
-- Cada letra que dibujaste pasa a la textura del juego **tal cual, con sus colores**.
-- Las casillas vacías (espacio, guion bajo, cirílico…) salen de la tipografía elegida.
-- **⬇ Letras de esta fuente** te da una tipografía ya acomodada en la plantilla, para retocarla en Photoshop. **⬇ Guías** te da las casillas solas.
-
-<img alt="La sección Plantilla de Photoshop con la plantilla cargada: 214 de 214 letras dibujadas" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/plantilla-es.png" width="50%">
-
-## 📐 Posición libre con KitPos
-
-El panel **📐 Posición libre** ajusta sin pasos la altura, el tamaño, el ancho, la separación y el arco del nombre y de los números de la espalda, el pecho y el short, **para un kit o para todo el equipo**. Se guarda en content\kitpos\kitpos_slots.ini, el mismo archivo que lee el panel de KitPos en el juego.
-
-<img alt="La pestaña Fuentes en modo PES 6" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-pes6-es.png" width="100%">
-
-## 🔠 Mayúsculas y minúsculas en PES 6
-
-- En el modo gráfico **PES 6**, todos los campos donde se escribe usan ahora una letra con **minúsculas de verdad**, así ves exactamente cómo queda un nombre.
-- Si **Bloq Mayús** está activado, aparece un aviso debajo del campo.
-- Si el nombre de un jugador quedó todo en mayúsculas, su perfil ofrece **Aa Pasar a** mayúsculas y minúsculas con un clic.
-
-## 👕 Camiseta del club, de la selección y el peso
-
-- En **Jugadores → Perfil**, el nombre en la **camiseta del club** y el de la **camiseta de la selección** van por separado, cada uno con **Usar apellido**. El EDIT guarda los dos: por ejemplo, GAKU en el club y SHIBASAKI en Japón.
-- Al pasar un jugador de la base del juego al EDIT se copian **las dos camisetas y el peso**. Antes el peso quedaba en 0; los que ya habían quedado así muestran un botón para usar el peso de la base del juego.
-- La ficha **Del juego** ahora también muestra el peso.
+- Si sider.ini carga **edit21_db.lua** pero el archivo no está en modules (o es uno viejo), el editor **lo vuelve a poner al abrirse**.
+- En la pestaña **Sider**, un módulo con "Falta el archivo en modules" ahora trae el botón **⬇ Instalar el archivo** para los que trae el editor (edit21_db.lua y kitpos.lua).
+- Si el archivo desaparece justo después de guardarlo, el editor te avisa: casi siempre es el **antivirus**, y te explica cómo recuperarlo.
 
 ## ⬇️ ¿Tengo que descargar algo?
 
 **No.** Todo esto está en el editor, y la app de Windows lo carga sola desde internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés.
 
-> Es una versión alfa y las fuentes todavía se probaron poco en el juego. Si una letra sale corrida o cortada, o el nombre no queda donde lo pusiste, avisanos en 💡 Ideas → Algo no anda. ⚽
+> Es una versión alfa y las fuentes todavía se están probando en el juego. Si una letra sale corrida o cortada, avisanos en 💡 Ideas → Algo no anda. ⚽

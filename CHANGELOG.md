@@ -2,6 +2,16 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.058 alpha · Las fuentes pasan a Kit Studio, con sus requisitos
+
+*16 de octubre de 2026, 12:30 (hora de Argentina)*
+
+El creador de fuentes de la camiseta ahora es una sección de Kit Studio Pro, y te dice qué necesita el juego para mostrarla.
+
+- **Fuentes dentro de Kit Studio Pro** (Kits). Kit Studio Pro ahora tiene tres secciones: Uniformes, Editor y 🔤 Fuentes. Fuentes trabaja con el equipo que estás viendo y 👁 Ver en el Editor salta al kit en 3D con la fuente puesta. Los equipos sin carpeta de kits también pueden crearla y bajarla en un .zip. La pestaña Fuentes de arriba ya no está.
+- **Requisitos para ver la fuente en el juego** (Sider). Arriba de Fuentes, un cuadro con lo que necesita el juego: Sider con kserv, KitPos 6.4 o más nuevo (instalarlo o descargar kitpos.lua), sus líneas en sider.ini (para copiar o arreglar con un clic) y las minúsculas activadas en kitpos_slots.ini. Con la carpeta Sider conectada, cada uno dice si está listo o falta.
+- **Los módulos de Sider vuelven solos** (Sider). Si sider.ini carga edit21_db.lua y el archivo no está en modules (o es viejo), el editor lo vuelve a poner al abrirse. En la pestaña Sider, "Falta el archivo en modules" trae el botón Instalar el archivo para edit21_db.lua y kitpos.lua. Si el archivo desaparece al guardarlo, avisa que suele ser el antivirus.
+
 ## v0.057 alpha · Tu fuente en la camiseta, ubicada a mano
 
 *15 de octubre de 2026, 21:30 (hora de Argentina)*

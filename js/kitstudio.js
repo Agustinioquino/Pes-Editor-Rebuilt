@@ -87,7 +87,7 @@ async function ksLoad(t) {
     KS.team = t.id; KS.path = k.path; KS.kits = ord.length ? ord : all.filter(n => /^p/i.test(n)).sort(); KS.gk = gk.length ? gk : all.filter(n => /^g/i.test(n)).sort(); KS.all = all;
     if (!KS.sel || ![...KS.kits, ...KS.gk].includes(KS.sel)) KS.sel = KS.kits[0] || KS.gk[0];
     KS.meta = {}; KS.cfgTxt = {}; KS.thumbs = {}; for (const n of all) { try { const c = await readText(await dir.getDirectoryHandle(n), 'config.txt'); if (c) { KS.meta[n] = parseKitCfg(c, n); KS.cfgTxt[n] = c; } } catch { } }
-    await ksOpenKit(KS.sel, dir);
+    await kpsLoad(); await ksOpenKit(KS.sel, dir);
   } catch (e) { KS.err = e.message; }
   KS.busy = false;
 }
@@ -145,12 +145,14 @@ async function ksLoadSlots(dir) {
     const file = ksSlotFile(S); if (!file) { KS.T[S.k] = { none: true }; return; }
     const key = KS.path + '/' + KS.sel + ':' + file; if (KS.tex.has(key)) { KS.T[S.k] = KS.tex.get(key); return; }
     try { const f = await ksFindTex(dir, file); if (!f) { KS.T[S.k] = { missing: true, file }; return; }
-      const c = await ksDecodeTex(f.h, S); KS.T[S.k] = { c, g: c.__gloss || null, file: f.h.name, where: f.where }; KS.tex.set(key, KS.T[S.k]);
+      const c = await ksDecodeTex(f.h, S); if (S.k === 'name') await ksKitPosFont(dir, KS.sel, c); KS.T[S.k] = { c, g: c.__gloss || null, file: f.h.name, where: f.where }; KS.tex.set(key, KS.T[S.k]);
     } catch (e) { KS.T[S.k] = { err: e.message, file }; }
   }));
   KS.dispKey = '';
 }
 const ksTexOf = k => KS.T && KS.T[k] && KS.T[k].c || null;
+// fuente de KitPos: si la carpeta del kit tiene kitpos_letras.txt, la textura del nombre se lee con esa tabla (con minúsculas)
+async function ksKitPosFont(dir, kit, c) { try { const t = await readText(await dir.getDirectoryHandle(kit), 'kitpos_letras.txt'), list = t ? KPF.parseLetras(t) : []; if (list.length) c.__kp = KPF.glyphMap(list, c.width, c.height); } catch { } }
 // escribe una textura en la carpeta del kit (la primera vez guarda copia de la anterior) y actualiza el config si hacía falta
 async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), kd = await dir.getDirectoryHandle(KS.sel);
@@ -212,12 +214,131 @@ let ksRerender = () => { };
 // Regiones de la textura (sacadas de los modelos reales): la espalda está girada 180°.
 const UVR = { back: [.357, .642, .023, .464], front: [.344, .656, .49, .906] };
 const ksN = k => +(cfgGet(KS.cfg, k) || 0);
+// ---- KitPos: posición libre, sin pasos (content\kitpos\kitpos_slots.ini, js/kitpos.js) ----
+// Los valores se guardan como los usa el juego; en el editor se trabajan en "pasos de kserv" con decimales para
+// que la vista previa use las mismas cuentas que con el config.txt.
+const KPS = { st: null, for: '', base: null, orig: '', curText: '', cur: null, scope: 'kit' };
+const KS_KP = { NameShape: 'NameCurve' }; // campo del config.txt -> campo de KitPos (cuando se llaman distinto)
+const kpsVerN = v => { const [a, b] = String(v || '0').split('.').map(Number); return (a || 0) * 100 + (b || 0); };
+const kpsDirty = () => !!KPS.cur && KPS.curText !== KPS.orig;
+const ksKpOn = () => !!(KPS.st && KPS.st.lua && KPS.st.slots !== 'hidden' && KPS.cur && PREFS.kpFree !== false && KS.cfg);
+function kpsKit() { const gk = KS.gk.includes(KS.sel); return { gk, n: gk ? 0 : KS.kits.indexOf(KS.sel) + 1 }; }
+function kpsSec(scope = KPS.scope) { const k = kpsKit(); return scope === 'team' && !k.gk ? KPOS.secKey(KS.team) : KPOS.secKey(KS.team, k.n, k.gk); }
+function kpsVals() { if (!KPS.cur || !KS.cfg) return {}; const k = kpsKit(); return KPOS.resolve(KPS.cur, KS.team, k.n, k.gk); }
+const kpsOwn = scope => (KPS.cur && KPS.cur.secs[kpsSec(scope)]) || {};
+// cambia campos de KitPos ({campo: valor o null para quitarlo}); con "todo el equipo" también se saca el valor propio del kit
+function kpsSet(vals) {
+  let t = KPOS.setValues(KPS.curText, kpsSec(), vals);
+  if (KPS.scope === 'team' && !kpsKit().gk) { const own = kpsOwn('kit'), drop = {}; for (const f of Object.keys(vals)) if (f in own) drop[f] = null; if (Object.keys(drop).length) t = KPOS.setValues(t, kpsSec('kit'), drop); }
+  KPS.curText = t; KPS.cur = KPOS.parse(t); KS.dispKey = '';
+}
+const ksSide = () => +(cfgGet(KS.cfg, 'ShortsNumberSide') || 0);
+// paso (con decimales) de un campo: el de KitPos si este kit tiene uno, si no el del config.txt
+function ksP(k) {
+  if (KS.pOver && KS.pOver[k] != null) return KS.pOver[k]; // valor de prueba (para medir cuánto se mueve en pantalla un paso)
+  if (ksKpOn()) { const f = KS_KP[k] || k, v = kpsVals()[f]; if (v != null) return KPOS.toSteps(f, v, ksSide()); }
+  const n = ksN(k); return k === 'NameStretch' && n === 0 ? 3 : n; // el juego toma NameStretch 0 como 3 (ancho normal)
+}
+const ksKpSetSteps = (k, s) => { const f = KS_KP[k] || k; kpsSet({ [f]: KPOS.fromSteps(f, s, ksSide()) }); };
+// curva de la vista previa para un paso de NameShape con decimales (negativo = al revés)
+const ksCurve = s => { const C = [0, .12, .25, .45]; if (s <= 0) return s * .12; if (s >= 3) return .45 + (s - 3) * .2; const i = Math.floor(s); return C[i] + (s - i) * (C[i + 1] - C[i]); };
+async function kpsLoad(force) {
+  const key = KITS.from + '|' + (KITS.when || 0); if (!force && KPS.st && KPS.for === key) return KPS.st;
+  const st = { lua: false, ver: '', old: false, slots: null };
+  try {
+    const { sider } = await ksRoot(false);
+    try { const t = await readText(await sider.getDirectoryHandle('modules'), 'kitpos.lua'); if (t) { st.lua = true; st.ver = (t.match(/version\s*=\s*"([\d.]+)"/) || [])[1] || ''; } } catch { }
+    let text = null, blocked = false;
+    try { const kd = await subDir(sider, 'content/kitpos'); try { await kd.getFileHandle('kitpos_slots.ini'); } catch (e) { blocked = !!e && e.name === 'TypeError'; } text = await readText(kd, 'kitpos_slots.ini'); } catch { }
+    st.slots = text != null ? 'ok' : blocked ? 'hidden' : 'none';
+    KPS.base = text; KPS.orig = text ?? KPOS.SEED; KPS.curText = KPS.orig; KPS.cur = KPOS.parse(KPS.orig);
+  } catch (e) { st.err = e.message; KPS.cur = null; }
+  KPS.for = key; KPS.st = st; KS.dispKey = ''; return st;
+}
+async function kpsSave() {
+  if (!kpsDirty()) return false;
+  const { sider } = await ksRoot(true), content = await sider.getDirectoryHandle('content', { create: true }), kd = await content.getDirectoryHandle('kitpos', { create: true });
+  if (KPS.base != null) { try { await kd.getFileHandle('kitpos_slots.ini.bak-edit21'); } catch { const b = await kd.getFileHandle('kitpos_slots.ini.bak-edit21', { create: true }), w0 = await b.createWritable(); await w0.write(KPS.base); await w0.close(); } }
+  const h = await fsFile(kd, 'kitpos_slots.ini', true), w = await h.createWritable(); await w.write(KPS.curText); await w.close();
+  KPS.base = KPS.orig = KPS.curText; KPS.st.slots = 'ok'; return true;
+}
+// Chrome no deja leer los .ini por nombre: se elige el archivo una vez con el selector y el editor lo recuerda
+async function kpsPick() {
+  const { sider } = await ksRoot(true), kd = await subDir(sider, 'content/kitpos'); let f;
+  try { [f] = await window.showOpenFilePicker({ id: 'kitposini', startIn: kd, types: [{ description: 'kitpos_slots.ini', accept: { 'text/plain': ['.ini'] } }] }); } catch (e) { if (e.name === 'AbortError') return false; throw e; }
+  if ((f.name || '').toLowerCase() !== 'kitpos_slots.ini') throw new Error('ese archivo se llama ' + f.name + ': tiene que ser kitpos_slots.ini');
+  let r = null; try { r = await kd.resolve(f); } catch { } if (!r || r.length !== 1) throw new Error('ese kitpos_slots.ini no está en content\\kitpos de esta carpeta Sider');
+  try { if ((await f.queryPermission({ mode: 'readwrite' })) !== 'granted') await f.requestPermission({ mode: 'readwrite' }); } catch { }
+  await fsPin(f); await kpsLoad(true); return true;
+}
+// instala o actualiza KitPos: modules\kitpos.lua (el que viene con el editor) y sus líneas en sider.ini, con copias
+async function kpsInstall() {
+  const { sider } = await ksRoot(true), r = { lua: 'ok', ini: 'ok' };
+  const res = await fetch('sider/kitpos.lua', { cache: 'no-cache' }); const src = res.ok ? await res.text() : '';
+  const ver = (src.match(/local m = \{ version = "([\d.]+)"/) || [])[1]; if (!ver) throw new Error('no se pudo bajar kitpos.lua (¿sin internet?)');
+  const mods = await sider.getDirectoryHandle('modules', { create: true }), cur = await readText(mods, 'kitpos.lua'), curV = cur && (cur.match(/version\s*=\s*"([\d.]+)"/) || [])[1];
+  if (cur && kpsVerN(curV) > kpsVerN(ver)) r.lua = 'mas-nuevo';
+  else if (cur !== src) { if (cur) { const b = await mods.getFileHandle('kitpos.lua.anterior', { create: true }), w0 = await b.createWritable(); await w0.write(cur); await w0.close(); } const h = await mods.getFileHandle('kitpos.lua', { create: true }), w = await h.createWritable(); await w.write(src); await w.close(); r.lua = cur ? 'actualizado' : 'nuevo'; }
+  const ini = typeof siReadIni === 'function' ? await siReadIni(sider) : await readText(sider, 'sider.ini');
+  if (ini == null) r.ini = 'oculto';
+  else { const o = KPOS.siderIni(ini); if (o.changed) { if (!await sdbFile(sider, 'sider.ini.bak-pes-editor')) await sdbWrite(sider, 'sider.ini.bak-pes-editor', ini); await sdbWrite(sider, 'sider.ini', o.text); r.ini = 'agregado'; if (typeof siReset === 'function') siReset(); } }
+  const content = await sider.getDirectoryHandle('content', { create: true }); await content.getDirectoryHandle('kitpos', { create: true });
+  await kpsLoad(true); return r;
+}
+// panel de posición libre (lo usan el Editor de Kit Studio Pro y la pestaña Fuentes)
+function kposHtml(groups = ['name', 'num', 'chest', 'leg'], o = {}) {
+  const st = KPS.st, on = ksKpOn(), gk = KS.cfg && kpsKit().gk;
+  if (!st) return '<section class="kpos"><p class="note">Revisando KitPos en la carpeta Sider…</p></section>';
+  const head = `<div class="kposh"><h4>📐 Posición libre <small>KitPos</small></h4>
+    ${st.lua && st.slots !== 'hidden' ? `<label class="chk"><input type="checkbox" id="kposOn" ${PREFS.kpFree !== false ? 'checked' : ''}> Sin pasos</label>` : ''}
+    ${on && !gk ? `<div class="seg" id="kposScope" aria-label="Dónde se guarda">${[['kit', 'Este kit · ' + esc(KS.sel)], ['team', 'Todo el equipo']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KPS.scope === v}">${n}</button>`).join('')}</div>` : ''}
+    ${on ? `<span class="chip mono" title="Sección de content\\kitpos\\kitpos_slots.ini">[${esc(kpsSec())}]</span>` : ''}
+    ${on && o.save ? `<button class="btn small primary" type="button" id="kposSave" ${kpsDirty() ? '' : 'disabled'} title="Guarda solo la posición en kitpos_slots.ini, sin tocar la textura">💾 Guardar posición</button>` : ''}</div>`;
+  let body;
+  if (!st.lua) body = `<div class="kposinst"><p>Con <b>KitPos</b> en Sider, el nombre y los números se ubican sin los pasos del juego: altura, tamaño, ancho, separación y arco exactos, también en el pecho y el short.</p><button class="btn primary small" type="button" id="kposInstall">⬇ Instalar KitPos en Sider</button></div>`;
+  else if (st.slots === 'hidden') body = `<div class="kposinst"><p>El navegador no deja leer <span class="mono">content\\kitpos\\kitpos_slots.ini</span> por su nombre. Elegilo una vez con el selector y el editor lo recuerda (en la app de Windows no hace falta).</p><button class="btn small" type="button" id="kposPick">📄 Elegir kitpos_slots.ini</button></div>`;
+  else if (!on) body = '<p class="note">Apagado: el nombre y los números se mueven con los pasos del config.txt.</p>';
+  else {
+    const vals = kpsVals(), own = kpsOwn(), inh = KPS.scope === 'kit' && !gk ? kpsOwn('team') : {};
+    const row = f => { const F = KPOS.FIELDS[f], [a, b] = KPOS.range(f), s = F.unit ? (vals[f] || 0) : ksP(F.cfg || f), mine = f in own, from = mine ? '' : f in inh ? 'del equipo' : 'del kit';
+      return `<div class="kposr ${mine ? 'own' : ''}" data-f="${f}"><label for="kpos_${f}">${F.n}</label><input type="range" class="k3r" id="kpos_${f}" min="${a}" max="${b}" step="${F.unit ? .5 : .05}" value="${s}" style="--p:${((s - a) / (b - a) * 100).toFixed(1)}%"><input type="number" step="${F.unit ? .5 : .05}" value="${+s.toFixed(2)}" aria-label="${F.n}: valor exacto"><small class="kposv">${kposLabel(f, s)}${from ? ' · ' + from : ''}</small><button type="button" class="kposx" data-reset="${f}" title="Volver al valor ${KPS.scope === 'team' ? 'del config.txt' : 'del config.txt (o del equipo)'}" ${mine ? '' : 'disabled'}>↺</button></div>`; };
+    body = `<div class="kposg">${groups.map(g => `<fieldset><legend>${KPOS.GROUPS[g]}</legend>${Object.keys(KPOS.FIELDS).filter(f => KPOS.FIELDS[f].g === g).map(row).join('')}</fieldset>`).join('')}</div>
+      <p class="note">El config.txt solo admite pasos enteros (NameY de 0 a 39, por ejemplo); KitPos los usa con decimales y un poco más allá del rango del juego. ${groups.length > 1 ? 'Arrastrá el nombre o un número en el 3D o en la maqueta y queda exacto. ' : ''}Se guarda en content\\kitpos\\kitpos_slots.ini${KPS.st.slots === 'none' ? ' (se crea al guardar)' : ''}; en el juego, el panel de KitPos en el overlay de Sider lee lo mismo.</p>`;
+  }
+  return `<section class="kpos ${on ? 'on' : ''}" id="kposBox">${head}${body}</section>`;
+}
+function kposLabel(f, s) {
+  const F = KPOS.FIELDS[f];
+  if (F.unit) return (s > 0 ? '+' : '') + (+s.toFixed(1)) + ' px';
+  if (/Size$/.test(f) && Math.abs(KPOS.fromSteps(f, s)) < 1e-4) return 'oculto (tamaño 0)';
+  if (f === 'NameCurve') { if (Math.abs(s) < .05) return 'recto'; if (s < 0) return 'al revés'; const n = ['recto', 'leve', 'media', 'extrema'], i = Math.min(3, Math.round(s)); return (Math.abs(s - i) < .05 ? '' : '≈ ') + (i ? 'curva ' + n[i] : 'casi recto') + (s > 3.05 ? ' +' : ''); }
+  return 'paso ' + (+s.toFixed(2)) + ' de ' + F.max + (s < -.01 || s > F.max + .01 ? ' (fuera del rango del juego)' : '');
+}
+// enlaza el panel; changed() redibuja la vista previa
+function kposBind(root, changed, rerender) {
+  const box = root.querySelector('#kposBox'); if (!box) return;
+  const sync = () => box.querySelectorAll('.kposr').forEach(r => { const f = r.dataset.f, F = KPOS.FIELDS[f], s = F.unit ? (kpsVals()[f] || 0) : ksP(F.cfg || f), [rg, nb] = r.querySelectorAll('input'), [a, b] = KPOS.range(f), own = f in kpsOwn(), inh = KPS.scope === 'kit' && !kpsKit().gk && f in kpsOwn('team');
+    if (document.activeElement !== rg) rg.value = s; rg.style.setProperty('--p', ((s - a) / (b - a) * 100).toFixed(1) + '%'); if (document.activeElement !== nb) nb.value = +s.toFixed(2);
+    r.querySelector('.kposv').textContent = kposLabel(f, s) + (own ? '' : inh ? ' · del equipo' : ' · del kit'); r.classList.toggle('own', own); r.querySelector('[data-reset]').disabled = !own; });
+  KPS.sync = () => { sync(); const sv = box.querySelector('#kposSave'); if (sv) sv.disabled = !kpsDirty(); };
+  const put = (f, s) => { const F = KPOS.FIELDS[f]; if (F.unit) kpsSet({ [f]: s }); else ksKpSetSteps(F.cfg || f, s); KPS.sync(); changed(); };
+  box.querySelectorAll('.kposr').forEach(r => { const f = r.dataset.f, [rg, nb] = r.querySelectorAll('input');
+    rg.oninput = () => put(f, +rg.value); nb.onchange = () => { const v = parseFloat(String(nb.value).replace(',', '.')); if (isFinite(v)) put(f, v); }; });
+  box.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => { kpsSet({ [b.dataset.reset]: null }); KPS.sync(); changed(); });
+  const sv = box.querySelector('#kposSave'); if (sv) sv.onclick = async () => { sv.disabled = true; try { await kpsSave(); toast('Posición guardada en content\\kitpos\\kitpos_slots.ini. Abrí el juego de nuevo (o tocá C en el panel de KitPos) para verla.', 7000); } catch (e) { toast('No se pudo guardar: ' + e.message, 7000); } KPS.sync(); };
+  const sc = box.querySelector('#kposScope'); if (sc) sc.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; KPS.scope = b.dataset.v; sc.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); const c = box.querySelector('.kposh .chip'); if (c) c.textContent = '[' + kpsSec() + ']'; KPS.sync(); };
+  const on = box.querySelector('#kposOn'); if (on) on.onchange = () => { PREFS.kpFree = on.checked; savePrefs(); KS.dispKey = ''; rerender(); };
+  const ins = box.querySelector('#kposInstall'); if (ins) ins.onclick = async () => { ins.disabled = true; try { const r = await kpsInstall();
+    toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : 'instalado') + ' en modules\\kitpos.lua' + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); }
+    catch (e) { toast('No se pudo instalar KitPos: ' + e.message, 8000); } rerender(); };
+  const pk = box.querySelector('#kposPick'); if (pk) pk.onclick = async () => { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); rerender(); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } };
+}
 // posiciones aproximadas a partir del config (0..1 dentro de cada región)
 const KS_POS = {
-  name: () => ({ y: .07 + (39 - ksN('NameY')) / 39 * .35, h: .05 + ksN('NameSize') * .006, stretch: .75 + ksN('NameStretch') * .15, curve: [0, .12, .25, .45][ksN('NameShape')] || 0 }),
-  num: () => ({ y: .22 + (29 - ksN('BackNumberY')) / 29 * .35, h: .12 + ksN('BackNumberSize') / 28 * .22, spacing: (ksN('BackNumberSpacing') - 7) * .012 }),
-  chest: () => ({ x: .2 + ksN('ChestNumberX') / 29 * .6, y: .05 + ksN('ChestNumberY') / 29 * .35, h: .04 + ksN('ChestNumberSize') / 28 * .1 }),
-  leg: () => ({ x: ksN('ShortsNumberX') / 31, y: ksN('ShortsNumberY') / 31, h: .25 + ksN('ShortsNumberSize') / 28 * .5 }),
+  name: () => ({ y: .07 + (39 - ksP('NameY')) / 39 * .35, h: .05 + ksP('NameSize') * .006, stretch: .75 + ksP('NameStretch') * .15, curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 110 : 0 }),
+  num: () => ({ y: .22 + (29 - ksP('BackNumberY')) / 29 * .35, h: .12 + ksP('BackNumberSize') / 28 * .22, spacing: (ksP('BackNumberSpacing') - 7) * .012 }),
+  chest: () => ({ x: .2 + ksP('ChestNumberX') / 29 * .6, y: .05 + ksP('ChestNumberY') / 29 * .35, h: .04 + ksP('ChestNumberSize') / 28 * .1 }),
+  leg: () => ({ x: ksP('ShortsNumberX') / 31, y: ksP('ShortsNumberY') / 31, h: .25 + ksP('ShortsNumberSize') / 28 * .5 }),
 };
 // ---- mover nombre y números directo sobre el modelo 3D: la posición tocada se pasa a los valores del config.txt ----
 function ksDecalAt(u, v) {
@@ -229,13 +350,13 @@ function ksDecalAt(u, v) {
 function ksDecalVals(k, x, y) { const out = ksDecalVals0(k, x, y); for (const key of Object.keys(out)) out[key] = ksClampKey(key, out[key]); return out; }
 // el rango de cada valor sale del comentario del config.txt (algunos kits traen, por ejemplo, ChestNumberY de 0 a 6)
 function ksClampKey(key, v) { const f = KS.cfg && KS.cfg.fields.find(x => x.key === key), ty = f && fieldType(f); return ty && ty.t === 'range' ? Math.max(ty.min, Math.min(ty.max, v)) : v; }
-function ksDecalVals0(k, x, y) {
-  const S = 1024, cl = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
+function ksDecalVals0(k, x, y, fine) {
+  const S = 1024, cl = fine ? (v, a, b, f) => { const [lo, hi] = KPOS.range(f); return Math.max(lo, Math.min(hi, v)); } : (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
   if (k === 'name' || k === 'num') { const [, , v0, v1] = UVR.back, f = (v1 * S - y) / ((v1 - v0) * S);
-    return k === 'name' ? { NameY: cl(39 - (f - .07) / .35 * 39, 0, 39) } : { BackNumberY: cl(29 - (f - .22) / .35 * 29, 0, 29) }; }
-  if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29) }; }
+    return k === 'name' ? { NameY: cl(39 - (f - .07) / .35 * 39, 0, 39, 'NameY') } : { BackNumberY: cl(29 - (f - .22) / .35 * 29, 0, 29, 'BackNumberY') }; }
+  if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29, 'ChestNumberX'), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29, 'ChestNumberY') }; }
   if (k === 'leg' && KS.legM) { const [a, b, c, d, e, f] = KS.legM, px = x / S - e, py = y / S - f, det = a * d - b * c, lx = (d * px - c * py) / det, ly = (-b * px + a * py) / det;
-    return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29) }; }
+    return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29, 'ShortsNumberX'), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29, 'ShortsNumberY') }; }
   return {};
 }
 const KS_DECAL_SIZE = { name: ['NameSize', 20], num: ['BackNumberSize', 28], chest: ['ChestNumberSize', 28], leg: ['ShortsNumberSize', 28] };
@@ -248,29 +369,32 @@ function ksFallbackTex(S = 1024) {
   g.fillStyle = col('ShortsColor'); g.fillRect(0, .585 * S, .335 * S, .4 * S); g.fillRect(.665 * S, .585 * S, .335 * S, .4 * S);
   return c;
 }
+// nombre y números sobre la textura del kit (S×S); only: dibuja uno solo ('name', 'num', 'chest' o 'leg'); D: cajas en escala 1024
+function ksDrawDecals(g, S, only, D) {
+  const kk = 1024 / S, on = k => !only || only === k, box = (k, x, y, w, h) => { if (D) D[k] = { x: x * kk, y: y * kk, w: Math.max(w * kk, 24), h: Math.max(h * kk, 24) }; };
+  const [u0, u1, v0, v1] = UVR.back, bw = (u1 - u0) * S, bh = (v1 - v0) * S;
+  g.save(); g.translate(u1 * S, v1 * S); g.rotate(Math.PI); // espalda: girada 180° en la textura
+  if (on('name') && cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: p.stretch, curve: p.curve, spacing: p.spacing }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
+  if (on('num') && KS.sample.num) { const p = KS_POS.num(); KFONT.drawText(g, ksTexOf('back'), 'back', KS.sample.num, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.num.length * p.h * bh * .62, p.h * bh); }
+  g.restore();
+  if (on('chest') && (cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && KS.sample.num) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
+  if (on('leg') && ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && KS.sample.num) {
+    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna)
+    const L = cfgGet(KS.cfg, 'ShortsNumberSide') !== '1', M = L ? [.0007, -.0063, .0065, .0007, .944, .865] : [.0008, .0066, -.0066, .001, .053, .862];
+    g.save(); g.setTransform(M[0] * S, M[1] * S, M[2] * S, M[3] * S, M[4] * S, M[5] * S);
+    const dx = (ksP('ShortsNumberX') - 15) / 15 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksP('ShortsNumberY') / 29 * 8, hh = 3 + ksP('ShortsNumberSize') / 28 * 5;
+    KFONT.drawText(g, ksTexOf('leg') || ksTexOf('back'), ksTexOf('leg') ? 'leg' : 'back', KS.sample.num, dx, dy, hh); g.restore();
+    const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
+  }
+}
 function ksDisplayTex() {
-  const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0, KS.hot || '']);
+  const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0, KS.hot || '', ksKpOn() ? kpsVals() : 0]);
   if (KS.dispKey === key && KS.disp) return KS.disp;
   // la textura se muestra a su resolución completa (hasta 4096); las cajas de nombre y números se guardan en escala 1024
-  const S = base ? Math.min(4096, base.width) : 1024, kk = 1024 / S, D = KS.decals = {}, box = (k, x, y, w, h) => { D[k] = { x: x * kk, y: y * kk, w: Math.max(w * kk, 24), h: Math.max(h * kk, 24) }; };
+  const S = base ? Math.min(4096, base.width) : 1024, D = KS.decals = {};
   const c = KS.disp && KS.disp.width === S ? KS.disp : document.createElement('canvas'); c.width = S; c.height = S; const g = c.getContext('2d');
   g.clearRect(0, 0, S, S); g.drawImage(base || ksFallbackTex(S), 0, 0, S, S);
-  if (K3.light.decals !== false) {
-    const [u0, u1, v0, v1] = UVR.back, bw = (u1 - u0) * S, bh = (v1 - v0) * S;
-    g.save(); g.translate(u1 * S, v1 * S); g.rotate(Math.PI); // espalda: girada 180° en la textura
-    if (cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: p.stretch, curve: p.curve }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
-    if (KS.sample.num) { const p = KS_POS.num(); KFONT.drawText(g, ksTexOf('back'), 'back', KS.sample.num, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.num.length * p.h * bh * .62, p.h * bh); }
-    g.restore();
-    if ((cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && KS.sample.num) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
-    if (ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && KS.sample.num) {
-      // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna)
-      const L = cfgGet(KS.cfg, 'ShortsNumberSide') !== '1', M = L ? [.0007, -.0063, .0065, .0007, .944, .865] : [.0008, .0066, -.0066, .001, .053, .862];
-      g.save(); g.setTransform(M[0] * S, M[1] * S, M[2] * S, M[3] * S, M[4] * S, M[5] * S);
-      const dx = (ksN('ShortsNumberX') - 15) / 15 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksN('ShortsNumberY') / 29 * 8, hh = 3 + ksN('ShortsNumberSize') / 28 * 5;
-      KFONT.drawText(g, ksTexOf('leg') || ksTexOf('back'), ksTexOf('leg') ? 'leg' : 'back', KS.sample.num, dx, dy, hh); g.restore();
-      const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
-    }
-  }
+  if (K3.light.decals !== false) ksDrawDecals(g, S, null, D);
   const hb = KS.hot && D[KS.hot]; if (hb) { const q = S / 1024; g.save(); g.lineWidth = 3 * q; g.setLineDash([10 * q, 6 * q]); g.strokeStyle = '#ffd84a'; g.strokeRect((hb.x - hb.w / 2 - 4) * q, (hb.y - hb.h / 2 - 4) * q, (hb.w + 8) * q, (hb.h + 8) * q); g.restore(); }
   c.__rev = (c.__rev || 0) + 1; KS.disp = c; KS.dispKey = key; return c;
 }
@@ -321,16 +445,6 @@ async function ksGlossSave(progress) {
   for (let i = 0; i < px.length; i += 4) px[i + 3] = lut[ad[i]];
   const P2 = FTEXW.pow2Pixels(px, W, H, 4096), bytes = await FTEXW.fromPixels(P2.px, P2.w, P2.h, { dxt5: true, progress });
   const out = await ksWriteTex(KS_SLOTS[0], null, { bytes }); const T = KS.T.kit; T.file = out; T.g = ksGloss(); KS.gl.changed = false; return out;
-}
-
-// ---- maqueta (frente, espalda, short) dibujada con el modelo 3D real; se puede arrastrar número y nombre ----
-function ksMockDraw(id, side) {
-  const cv = $(id); if (!cv || !KS.model) return; const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height);
-  const tex = ksDisplayTex(), maps = ksMaps();
-  let snap;
-  if (side === 'shorts') { const parts = KS.model.parts.filter(p => p.k === 'shorts' || p.k === 'socks'); if (!KS.shortsModel || KS.shortsModel.src !== KS.model) KS.shortsModel = { parts, raw: true, src: KS.model }; snap = parts.length ? k3Snapshot(KS.shortsModel, KS.cfg, tex, 'front', cv.width, cv.height, maps) : null; }
-  else snap = k3Snapshot(KS.model, KS.cfg, tex, side, cv.width, cv.height, maps);
-  if (snap) g.drawImage(snap, 0, 0);
 }
 
 // ---- generadores (fuentes y normal map) en ventanas ----
@@ -483,9 +597,11 @@ function ksOverview(t) {
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
   if (!k || !k.path) {
-    if (!KITS.from) return `<div class="card"><h3>Kit Studio Pro</h3><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
+    // el creador de fuentes también se puede usar sin kits (pestaña Fuentes): la fuente se descarga en un .zip
+    const solo = '<button class="btn small" type="button" data-kpfgo title="Fuentes con minúsculas y acentos para KitPos">🔤 Creador de fuentes</button>';
+    if (!KITS.from) return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro</h3>${solo}</div><p class="note">Tocá "Conectar carpeta Sider" y elegí la carpeta de Sider de tu juego. Si este equipo no tiene carpeta en content\\kit-server, el juego usa los kits de la base y no se pueden editar desde acá.</p></div>`;
     // el equipo no está en map.txt: sus kits viven en los .cpk del juego (cifrados). Lo que sí se puede es cargarle uno por Sider.
-    return `<div class="card kscard"><h3>Kit Studio Pro</h3>
+    return `<div class="card kscard"><div class="row" style="justify-content:space-between"><h3>Kit Studio Pro</h3>${solo}</div>
       <div class="warnbox" id="ksCpk"><b>Este equipo no tiene carpeta en el kit-server de Sider.</b> Sus kits están dentro de los archivos .cpk del juego, que vienen cifrados: desde acá no se pueden ver ni editar. Lo que sí se puede es cargarle un kit por Sider: arrastrá abajo un .zip con las texturas y se crea la carpeta del equipo en content\\kit-server (con su línea en map.txt) para que el juego lo use.</div>
       ${ksDropHtml()}
       <p class="note">Después de cargarlo, abrí el juego de nuevo (o en kserv apretá [0] para recargar el mapa) y fijate en la pantalla de uniformes del partido.</p></div>`;
@@ -508,23 +624,23 @@ function kitStudioCard(t) {
   const slotCard = S => { const T = KS.T[S.k] || {}, file = ksSlotFile(S);
     const st = T.c ? (T.where === 'kit' ? 'En la carpeta del kit' : T.where === 'live' ? 'Suelta en livecpk' : 'Generada, sin guardar') : T.none ? (S.font ? 'No usa (campo vacío)' : 'Sin textura') : T.missing ? 'Dentro de los .cpk del juego' : T.err ? 'No se pudo leer' : 'Buscando…';
     return `<div class="ksslot ${T.c ? 'has' : ''}"><div class="kst">${T.c ? `<canvas data-slot="${S.k}" width="160" height="${S.font ? 50 : 160}"></canvas>` : `<span>${S.k === 'nrm' || S.k === 'srm' ? '◌' : '?'}</span>`}</div>
-      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small><span class="note">${S.d}</span>
+      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small>${S.k === 'name' && T.c && T.c.__kp ? `<small class="ok">Fuente de KitPos: ${T.c.__kp.size} letras, con minúsculas</small>` : ''}<span class="note">${S.d}</span>
         <div class="row" style="gap:4px"><button class="btn small" type="button" data-upl="${S.k}" title="Elegí una imagen (.png, .jpg, .dds o .ftex): se convierte a .ftex y se guarda en la carpeta del kit">Subir…</button>
-        ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
+        ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'name' ? `<button class="btn small" type="button" data-kpfgo title="Fuente con minúsculas, acentos, cirílico y griego para KitPos">🔤 Con minúsculas…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
   return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
     <div class="row" style="justify-content:space-between"><div class="row"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
-      <div class="seg ksmode" id="ksMode"><button type="button" data-v="list" aria-pressed="${KS.mode === 'list'}">👕 Uniformes <small>${KS.kits.length + KS.gk.length}</small></button><button type="button" data-v="edit" aria-pressed="${KS.mode !== 'list'}">🛠 Editor · ${esc(KS.sel)}</button></div></div>
-      ${KS.mode === 'list' ? '' : `<div class="row">${KS.dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
-      <button class="btn" type="button" id="ksUndo" ${KS.dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
+      <div class="seg ksmode" id="ksMode"><button type="button" data-v="list" aria-pressed="${KS.mode === 'list'}">👕 Uniformes <small>${KS.kits.length + KS.gk.length}</small></button><button type="button" data-v="edit" aria-pressed="${KS.mode === 'edit'}">🛠 Editor · ${esc(KS.sel)}</button></div><button class="btn small" type="button" data-kpfgo title="Abre el creador de fuentes con este kit: minúsculas, acentos, cirílico y griego para KitPos">🔤 Creador de fuentes</button></div>
+      ${KS.mode !== 'edit' ? '' : `<div class="row">${KS.dirty || kpsDirty() ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
+      <button class="btn" type="button" id="ksUndo" ${KS.dirty || kpsDirty() ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty || kpsDirty() ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
     ${KS.mode === 'list' ? ksOverview(t) : `
     <div class="kssel" aria-label="Kit que se edita">${KS.kits.map((n, i) => chip(n, i, false)).join('')}${KS.gk.map((n, i) => chip(n, i, true)).join('')}</div>
     <div class="kslayout">
       <section class="ksprev">
-        <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', 'Maqueta'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
-          <div class="row ksample"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
+        <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', '✥ Ubicar'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
+          <div class="row ksample ${ksTexOf('name') && ksTexOf('name').__kp ? 'kp' : ''}"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
         ${KS.view === '3d' ? `<div class="ks3dwrap" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar, flechas del teclado"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
               <div class="k3hud"><span>${K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'}</span></div></div>
             <aside class="k3side">
@@ -571,9 +687,9 @@ function kitStudioCard(t) {
                 <p class="note">El juego usa el normal map del kit (_nrm) para el relieve de la tela y de los dibujos que tengan relieve en él.</p></details>
               <p class="note" id="k3Info">${esc(KS.model ? `Modelo: camiseta${cfgGet(KS.cfg, 'TightKit') === '1' ? ' ajustada' : ''}, ${KS.model.collarName ? 'cuello ' + KS.model.collarName.split('_')[1] + (KS.model.collarExact ? '' : ' (el más parecido al ' + cfgGet(KS.cfg, 'Collar') + ')') : 'sin cuello'}, short ${ksN('ShortsModel')}.` : 'Cargando los modelos…')} ${ksTexOf('kit') ? '' : 'Sin textura del kit (está dentro de los .cpk): se pinta con los colores del config. Subí la textura en "Texturas" para verla.'}</p>
             </aside></div>`
-        : KS.view === 'mock' ? `<div class="ksmock"><figure><canvas id="ksFront" width="240" height="280" data-drag="front"></canvas><figcaption>Frente</figcaption></figure><figure><canvas id="ksBack" width="240" height="280" data-drag="back"></canvas><figcaption>Espalda</figcaption></figure><figure><canvas id="ksShorts" width="240" height="280" data-drag="shorts"></canvas><figcaption>Short y medias</figcaption></figure></div>
-          <p class="note">Arrastrá el número o el nombre para moverlos y usá la rueda del mouse encima para agrandarlos o achicarlos: los valores del config.txt cambian solos. La posición es aproximada; el tamaño y la fuente salen de las texturas del kit.</p>`
+        : KS.view === 'mock' ? kplHtml()
         : `<div class="ksslots">${KS_SLOTS.map(slotCard).join('')}</div>${KS.see ? `<div class="kstex"><canvas id="ksTex"></canvas></div>` : ''}<p class="note">Todo lo que subís o generás se convierte a .ftex (DXT5) con todos sus tamaños internos y se guarda en content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}. Si ya había un archivo con ese nombre, la primera vez se guarda una copia .bak-edit21.</p>`}
+        ${KS.view === 'tex' ? '' : kposHtml()}
       </section>
     </div>
     <div class="ksmodel"><h4>Modelo</h4>
@@ -588,9 +704,10 @@ function kitStudioCard(t) {
   </div>`;
 }
 function bindKitStudio(t, m) {
-  ksRerender = () => later(() => { if (S.ttab === 'kits') renderTeams(m); });
+  ksRerender = () => later(() => { if (S.ttab === 'kits' && (S.tab === 'teams' || S.tab === 'nats')) renderTeams(m); });
   const sh = $('teamSheet'), dz = $('ksDrop');
   if (dz) ksBindDrop(dz, files => ksZipDrop(files, t, m, !(KITS.map.get(t.id) || {}).path)); // también en la tarjeta del equipo sin carpeta (.cpk)
+  sh.querySelectorAll('[data-kpfgo]').forEach(b => b.onclick = () => kpfGoto(t));
   if (!KS.cfg) return;
   if (K3.viewer) { K3.viewer.dispose(); K3.viewer = null; }
   ksBindList(sh, m); if (KS.mode === 'list') return;
@@ -601,7 +718,7 @@ function bindKitStudio(t, m) {
   const draw = () => {
     const tex = ksDisplayTex();
     if (K3.viewer) { K3.viewer.setCfg(KS.cfg); K3.viewer.setTex(tex); K3.viewer.setMaps(ksMaps()); }
-    if (KS.view === 'mock') { ksMockDraw('ksFront', 'front'); ksMockDraw('ksBack', 'back'); ksMockDraw('ksShorts', 'shorts'); }
+    if (KS.view === 'mock') kplPaint(sh, KS.kplApi, KPL.drag ? KPL.drag.side : null);
     sh.querySelectorAll('canvas[data-slot]').forEach(c => { const T = ksTexOf(c.dataset.slot); if (!T) return; const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); const k = Math.min(c.width / T.width, c.height / T.height); if (KS_SLOTS.find(s => s.k === c.dataset.slot).font) { g.fillStyle = '#2a3038'; g.fillRect(0, 0, c.width, c.height); } g.drawImage(T, (c.width - T.width * k) / 2, (c.height - T.height * k) / 2, T.width * k, T.height * k); });
     const tx = $('ksTex'), T = KS.see && ksTexOf(KS.see); if (tx && T) { tx.width = T.width; tx.height = T.height; tx.getContext('2d').drawImage(T, 0, 0); }
   };
@@ -618,9 +735,9 @@ function bindKitStudio(t, m) {
     K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
       onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
       onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; setHot(k); return true; },
-      onGrabMove: hit => { if (!grab) return; const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
+      onGrabMove: hit => { if (!grab) return; if (ksKpOn()) { const fv = ksDecalVals0(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy, true); for (const [key, v] of Object.entries(fv)) ksKpSetSteps(key, v); kpChanged(); hud(KS_DECAL_N[grab.k] + ' (KitPos): ' + Object.entries(fv).map(([key, v]) => key + ' ' + (+v.toFixed(2))).join(', ')); return; } const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
       onGrabEnd: () => { grab = null; },
-      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; } });
+      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; if (ksKpOn()) { const key = KS_DECAL_SIZE[k][0]; ksKpSetSteps(key, ksP(key) + dir * .5); kpChanged(); setHot(k); hud(KS_DECAL_N[k] + ' (KitPos): ' + key + ' paso ' + (+ksP(key).toFixed(2))); return true; } const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; } });
     if (!K3.viewer) { const i = $('k3Info'); if (i) i.textContent = 'Este navegador no tiene WebGL activado: no se puede mostrar la vista 3D.'; }
     cv.addEventListener('pointerdown', e => { if (K3.paint && e.button === 0 && !e.shiftKey) ksGlossPush(); }, true); };
   const modelKey = () => ['TightKit', 'ShortsModel', 'Collar', 'ShortSleevesModel'].map(k => cfgGet(KS.cfg, k)).join('|') + '|' + K3.sleeve + K3.socks + K3.tuck + K3.cap + KS.sel;
@@ -632,7 +749,9 @@ function bindKitStudio(t, m) {
       draw(); thumbs(); const i = $('k3Info'); if (i && M.collarName) i.textContent = i.textContent.replace(/cuello [^,]*,/, `cuello ${M.collarName.split('_')[1]}${M.collarExact ? '' : ' (el más parecido al ' + cfgGet(KS.cfg, 'Collar') + ')'},`); }).catch(e => { const i = $('k3Info'); if (i) i.textContent = 'No se pudieron preparar los modelos: ' + e.message; });
   };
   ensureModel();
-  const status = () => { const c = sh.querySelector('.kscard .chip'); if (c) { c.className = 'chip ' + (KS.dirty ? 'warn' : ''); c.textContent = KS.dirty ? 'Cambios sin guardar en el kit' : 'Guardado'; } $('ksSave').disabled = !KS.dirty; $('ksUndo').disabled = !KS.dirty; };
+  const status = () => { const dirty = KS.dirty || kpsDirty(), c = sh.querySelector('.kscard .chip'); if (c) { c.className = 'chip ' + (dirty ? 'warn' : ''); c.textContent = dirty ? 'Cambios sin guardar en el kit' : 'Guardado'; } $('ksSave').disabled = !dirty; $('ksUndo').disabled = !dirty; };
+  // posición libre de KitPos: no toca el config.txt, se guarda en kitpos_slots.ini con "Guardar kit"
+  const kpChanged = () => { KS.dispKey = ''; if (KPS.sync) KPS.sync(); if (!setVal.raf) setVal.raf = requestAnimationFrame(() => { setVal.raf = 0; draw(); }); status(); };
   const setVal = (k, v) => {
     v = String(v); cfgSet(KS.cfg, k, v);
     if (KS.sync && (k === 'ShirtColor1' || k === 'ShirtColor2')) cfgSet(KS.cfg, k === 'ShirtColor1' ? 'UniColor_Color1' : 'UniColor_Color2', v);
@@ -647,9 +766,11 @@ function bindKitStudio(t, m) {
   const on = (id, ev, fn) => { const el = $(id); if (el) el[ev] = fn; return el; };
   on('ksSync', 'onchange', e => { KS.sync = e.target.checked; });
   on('ksView', 'onclick', e => { const b = e.target.closest('[data-v]'); if (b && KS.view !== b.dataset.v) { KS.view = b.dataset.v; renderTeams(m); } });
-  on('ksUndo', 'onclick', () => { KS.cfg = cfgParse(KS.orig); KS.dirty = false; KS.dispKey = ''; renderTeams(m); });
-  on('ksSave', 'onclick', async () => { try { await ksSave(); RATE_GEN++; toast('Kit ' + KS.sel + ' guardado en el juego.'); renderTeams(m); } catch (e) { toast('No se pudo guardar: ' + e.message, 7000); } });
-  on('ksName', 'oninput', e => { KS.sample.name = e.target.value.toUpperCase().replace(/[^A-Z. ]/g, ''); draw(); });
+  on('ksUndo', 'onclick', () => { KS.cfg = cfgParse(KS.orig); KS.dirty = false; if (KPS.cur) { KPS.curText = KPS.orig; KPS.cur = KPOS.parse(KPS.orig); } KS.dispKey = ''; renderTeams(m); });
+  on('ksSave', 'onclick', async () => { try { if (KS.dirty) await ksSave(); const kp = await kpsSave(); RATE_GEN++; toast('Kit ' + KS.sel + ' guardado en el juego' + (kp ? ' (posición libre en content\\kitpos\\kitpos_slots.ini)' : '') + '.'); renderTeams(m); } catch (e) { toast('No se pudo guardar: ' + e.message, 7000); } });
+  kposBind(sh, kpChanged, () => renderTeams(m));
+  KS.kplApi = { cfg: true, set: (k, v) => setVal(k, v), changed: kpChanged };
+  on('ksName', 'oninput', e => { const kp = ksTexOf('name') && ksTexOf('name').__kp; KS.sample.name = kp ? e.target.value : e.target.value.toUpperCase().replace(/[^A-Z. ]/g, ''); draw(); });
   on('ksNum', 'oninput', e => { KS.sample.num = e.target.value.replace(/\D/g, '').slice(0, 2); draw(); });
   // vista 3D
   const V3 = () => K3.viewer;
@@ -740,21 +861,8 @@ function bindKitStudio(t, m) {
   sh.querySelectorAll('[data-see]').forEach(b => b.onclick = () => { KS.see = b.dataset.see; renderTeams(m); });
   sh.querySelectorAll('[data-nrmsave]').forEach(b => b.onclick = () => saveRelief(['nrm']));
   sh.querySelectorAll('[data-srmsave]').forEach(b => b.onclick = () => saveRelief(['srm']));
-  // maqueta: arrastrar número y nombre, rueda para el tamaño
-  sh.querySelectorAll('canvas[data-drag]').forEach(cv => {
-    const side = cv.dataset.drag, clamp = (k, v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(v)));
-    const target = y => side === 'front' ? 'chest' : side === 'shorts' ? 'leg' : (y / cv.clientHeight < .28 ? 'name' : 'num');
-    let d = null;
-    cv.onpointerdown = e => { const r = cv.getBoundingClientRect(); d = { t: target(e.clientY - r.top), x: e.clientX, y: e.clientY, v: { NameY: ksN('NameY'), BackNumberY: ksN('BackNumberY'), ChestNumberX: ksN('ChestNumberX'), ChestNumberY: ksN('ChestNumberY'), ShortsNumberX: ksN('ShortsNumberX'), ShortsNumberY: ksN('ShortsNumberY') } }; cv.setPointerCapture(e.pointerId); cv.classList.add('grab'); };
-    cv.onpointermove = e => { if (!d) return; const H = cv.clientHeight, W = cv.clientWidth, dx = e.clientX - d.x, dy = e.clientY - d.y;
-      if (d.t === 'name') setVal('NameY', clamp('', d.v.NameY - dy / (H * .62 * .35 / 39), 0, 39));
-      else if (d.t === 'num') setVal('BackNumberY', clamp('', d.v.BackNumberY - dy / (H * .62 * .35 / 29), 0, 29));
-      else if (d.t === 'chest') { setVal('ChestNumberX', clamp('', d.v.ChestNumberX + dx / (W * .55 * .6 / 29), 0, 29)); setVal('ChestNumberY', clamp('', d.v.ChestNumberY + dy / (H * .62 * .35 / 29), 0, 29)); }
-      else { setVal('ShortsNumberX', clamp('', d.v.ShortsNumberX + dx / (W * .2 / 31), 0, 29)); setVal('ShortsNumberY', clamp('', d.v.ShortsNumberY + dy / (H * .15 / 31), 0, 29)); } };
-    cv.onpointerup = cv.onpointercancel = () => { d = null; cv.classList.remove('grab'); };
-    cv.onwheel = e => { e.preventDefault(); const r = cv.getBoundingClientRect(), tg = target(e.clientY - r.top), s = e.deltaY < 0 ? 1 : -1;
-      const k = { name: ['NameSize', 20], num: ['BackNumberSize', 28], chest: ['ChestNumberSize', 28], leg: ['ShortsNumberSize', 28] }[tg]; setVal(k[0], Math.max(0, Math.min(k[1], ksN(k[0]) + s))); };
-  });
+  // ubicar: mover nombre y números a mano sobre la maqueta (kitplace.js)
+  if (KS.view === 'mock') kplBind(sh, KS.kplApi);
 }
 // Uniformes y la tira de kits del Editor: abrir, ordenar, copiar y borrar
 function ksBindList(sh, m) {

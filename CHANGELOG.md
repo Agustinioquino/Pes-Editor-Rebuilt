@@ -2,6 +2,19 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.057 alpha · Tu fuente en la camiseta, ubicada a mano
+
+*15 de octubre de 2026, 21:30 (hora de Argentina)*
+
+Los nombres de las camisetas ahora pueden llevar minúsculas, tildes y cualquier tipografía, y el nombre y los números se acomodan arrastrándolos sobre el kit en 3D.
+
+- **Pestaña Fuentes** (Kits). Un creador de fuentes para el nombre de la camiseta: elegís una tipografía o subís un .ttf, .otf o .woff, le das estilo (colores, degradado, bordes, sombra) y elegís los idiomas (acentos, Europa central, cirílico, griego). Se ve en vivo sobre la camiseta y en la espalda del kit. Un botón la guarda en la carpeta del kit (textura .dds y .ftex y kitpos_letras.txt), otro la baja en .zip y otro la deshace. Hace falta KitPos 6.4 o más nuevo en Sider.
+- **Plantilla de Photoshop** (Kits). Las letras se pueden dibujar a mano en una plantilla de Photoshop, una por casilla de 256 px, y cargarla como PNG transparente o .psd: cada letra pasa tal cual a la textura del juego, con sus colores, y las casillas vacías salen de la tipografía elegida. También se pueden bajar las letras de una tipografía ya puestas en la plantilla, para retocarlas, y las guías.
+- **Mover el nombre y los números con el mouse** (Kits). En Kit Studio Pro → Editor, la vista ✥ Ubicar muestra la espalda, el frente y el short en 3D. Agarrás el nombre, el dorsal, el número del pecho o el del short y lo movés; las esquinas cambian el tamaño, los costados el ancho y la manija de arriba el arco del nombre. También con la rueda y el teclado. Sin KitPos se mueve con los pasos del config.txt; con KitPos queda el valor exacto.
+- **Posición libre con KitPos** (Sider). El panel 📐 Posición libre ajusta sin pasos la altura, el tamaño, el ancho, la separación y el arco del nombre, y los números de la espalda, el pecho y el short, para un kit o para todo el equipo. Se guarda en content\kitpos\kitpos_slots.ini, el mismo archivo que usa el panel de KitPos en el juego. Si KitPos no está en Sider, un botón lo instala y lo agrega a sider.ini (con copia).
+- **Mayúsculas y minúsculas en PES 6** (Interfaz). En el modo gráfico PES 6, los campos donde se escribe usan una letra con minúsculas reales, así se ve cómo queda el nombre. Si Bloq Mayús está activado aparece un aviso, y si un nombre quedó todo en mayúsculas, el perfil del jugador ofrece pasarlo a mayúsculas y minúsculas.
+- **Camiseta del club y de la selección, y el peso** (Plantel). En Jugadores → Perfil, el nombre en la camiseta del club y el de la selección van por separado, cada uno con Usar apellido: el EDIT guarda los dos (por ejemplo, GAKU en el club y SHIBASAKI en Japón). Al pasar un jugador de la base del juego al EDIT se copian las dos camisetas y el peso, que antes quedaba en 0; los que ya habían quedado en 0 muestran un botón para usar el peso de la base. La ficha Del juego también muestra el peso.
+
 ## v0.056 alpha · ¡Abrí el sobre! Jugadores renovados
 
 *15 de octubre de 2026, 05:40 (hora de Argentina)*

@@ -56,6 +56,7 @@ const KFONT = (() => {
   }
   // dibuja un texto con los caracteres de la textura; centrado en (cx, cy), alto h, curva opcional
   function drawText(g, tex, kind, text, cx, cy, h, { stretch = 1, spacing = 0, curve = 0, fallback } = {}) {
+    if (tex && tex.__kp && typeof KPF !== 'undefined') return KPF.drawText(g, tex, text, cx, cy, h, { stretch, spacing, curve }); // fuente de KitPos (con minúsculas)
     const gl = [...String(text).toUpperCase()].map(ch => ch === ' ' ? { sp: true } : glyph(tex, kind, ch));
     if (!tex || gl.some(x => x === null)) { // sin textura de fuente: texto común
       g.save(); g.font = `800 ${h}px ${fallback || '"Saira Condensed", sans-serif'}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#ffffff'; g.strokeStyle = '#000000aa'; g.lineWidth = h * .06; g.translate(cx, cy); g.scale(stretch, 1); g.strokeText(text, 0, 0); g.fillText(text, 0, 0); g.restore(); return;

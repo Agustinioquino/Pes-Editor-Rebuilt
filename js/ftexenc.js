@@ -81,6 +81,10 @@ const FTEXW = (() => {
   }
   // píxeles crudos (sin pasar por un canvas: el canvas multiplica el color por el alfa y arruina los kits con brillo en el alfa)
   async function fromPixels(px, W, H, { dxt5 = true, progress } = {}) {
+    return assemble(await mipLevels(px, W, H, { dxt5, progress }), W, H, dxt5, progress);
+  }
+  // todos los tamaños (mips) ya comprimidos en DXT, del más grande al más chico: sirven para el .ftex y para el .dds
+  async function mipLevels(px, W, H, { dxt5 = true, progress } = {}) {
     const levels = []; let cur = px, w = W, h = H; const total = W * H * 4 / 3; let done = 0;
     while (true) {
       levels.push(encode(cur, w, h, dxt5)); done += w * h; if (progress) progress(Math.min(.95, done / total)); await new Promise(r => setTimeout(r, 0));
@@ -89,7 +93,16 @@ const FTEXW = (() => {
       for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) for (let c = 0; c < 4; c++) { const x0 = Math.min(w - 1, x * 2), x1 = Math.min(w - 1, x * 2 + 1), y0 = Math.min(h - 1, y * 2), y1 = Math.min(h - 1, y * 2 + 1); nx[(y * nw + x) * 4 + c] = (cur[(y0 * w + x0) * 4 + c] + cur[(y0 * w + x1) * 4 + c] + cur[(y1 * w + x0) * 4 + c] + cur[(y1 * w + x1) * 4 + c] + 2) >> 2; }
       cur = nx; w = nw; h = nh;
     }
-    return assemble(levels, W, H, dxt5, progress);
+    return levels;
+  }
+  // .dds DXT5 con todos sus mips (misma cabecera que las texturas de letras que arma KitPos)
+  function ddsMips(levels, W, H) {
+    const size = levels.reduce((a, l) => a + l.length, 0), out = new Uint8Array(128 + size), dv = new DataView(out.buffer);
+    dv.setUint32(0, 0x20534444, true); dv.setUint32(4, 124, true); dv.setUint32(8, 0xA1007, true); dv.setUint32(12, H, true); dv.setUint32(16, W, true);
+    dv.setUint32(20, levels[0].length, true); dv.setUint32(28, levels.length, true);
+    dv.setUint32(76, 32, true); dv.setUint32(80, 4, true); for (let i = 0; i < 4; i++) out[84 + i] = 'DXT5'.charCodeAt(i); dv.setUint32(108, 0x401008, true);
+    let o = 128; for (const l of levels) { out.set(l, o); o += l.length; }
+    return out;
   }
   async function assemble(levels, W, H, dxt5, progress) {
     const packed = []; for (const l of levels) packed.push(await packMip(l));
@@ -142,5 +155,5 @@ const FTEXW = (() => {
     const out = new Uint8Array(bm.width * bm.height * 4); gl.readPixels(0, 0, bm.width, bm.height, gl.RGBA, gl.UNSIGNED_BYTE, out); gl.getExtension('WEBGL_lose_context')?.loseContext();
     return { w: bm.width, h: bm.height, data: out };
   }
-  return { fromCanvas, fromPixels, encode, encodeDxt3, ddsFile, pow2Canvas, pow2Pixels, rawFromImage };
+  return { fromCanvas, fromPixels, mipLevels, assemble, ddsMips, encode, encodeDxt3, ddsFile, pow2Canvas, pow2Pixels, rawFromImage };
 })();

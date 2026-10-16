@@ -309,8 +309,11 @@ const K3GL = (() => {
     gl.disable(gl.POLYGON_OFFSET_FILL);
     return M;
   }
-  // coordenada de textura bajo el puntero (para pintar el brillo)
-  function pick(R, sc, x, y) {
+  // coordenada de textura bajo el puntero (para pintar el brillo); pickAll devuelve la de cada píxel (RGBA, de abajo hacia arriba)
+  function pick(R, sc, x, y) { const px = pickPass(R, sc, [Math.round(x), Math.round(R.gl.canvas.height - 1 - y), 1, 1]); if (!px[3]) return null; return uvOf(px, 0); }
+  const uvOf = (px, i) => ({ u: (px[i] * 16 + (px[i + 1] >> 4)) / 4095, v: ((px[i + 1] & 15) * 256 + px[i + 2]) / 4095 });
+  const pickAll = (R, sc) => pickPass(R, sc, [0, 0, R.gl.canvas.width, R.gl.canvas.height]);
+  function pickPass(R, sc, [rx, ry, rw, rh]) {
     const { gl } = R, W = gl.canvas.width, H = gl.canvas.height;
     if (!R.fb || R.fbW !== W || R.fbH !== H) { if (R.fb) { gl.deleteFramebuffer(R.fb); gl.deleteTexture(R.fbt); gl.deleteRenderbuffer(R.fbd); }
       R.fb = gl.createFramebuffer(); R.fbt = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, R.fbt); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -320,11 +323,11 @@ const K3GL = (() => {
     const M = matrices(R, sc); gl.useProgram(R.pp); gl.uniformMatrix4fv(R.pl.mvp, false, M.MVP); gl.uniform1f(R.pl.grow, 1);
     for (const b of R.bufs) { if (!b.uv || !sc.textured.has(b.k)) continue; const off = b.k === 'collar' ? 3 : b.k === 'sleeve' ? 1.5 : 0; if (off) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-off, -off); } else gl.disable(gl.POLYGON_OFFSET_FILL); bindMesh(gl, [[R.pl.p, b.p, 3], [R.pl.t, b.t, 2]], b); gl.drawElements(gl.TRIANGLES, b.c, gl.UNSIGNED_SHORT, 0); }
     gl.disable(gl.POLYGON_OFFSET_FILL);
-    const px = new Uint8Array(4); gl.readPixels(Math.round(x), Math.round(H - 1 - y), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(R.pr);
+    const px = new Uint8Array(rw * rh * 4); gl.readPixels(rx, ry, rw, rh, gl.RGBA, gl.UNSIGNED_BYTE, px); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(R.pr);
     for (const at of [R.pl.p, R.pl.t]) if (at >= 0) gl.disableVertexAttribArray(at);
-    if (!px[3]) return null; const u = (px[0] * 16 + (px[1] >> 4)) / 4095, v = ((px[1] & 15) * 256 + px[2]) / 4095; return { u, v };
+    return px;
   }
-  return { make, upload, setTex, setTexture, draw, pick, weld };
+  return { make, upload, setTex, setTexture, draw, pick, pickAll, uvOf, weld };
 })();
 // estado de luz: escena + ajustes del usuario; se interpola para que los cambios se vean como una transición
 function k3LightTarget() {
@@ -386,6 +389,18 @@ function k3Snapshot(model, cfg, tex, side, w = 240, h = 280, maps) {
   const L = K3STUDIO(); k3SetEnv(O.R, L); K3GL.setTex(O.R, 5, null);
   K3GL.draw(O.R, k3Scene(cfg, O.fit, { yaw: O.fit.yaw0 + (side === 'back' ? Math.PI : 0), pitch: 0, ortho: true, dist: 0, panX: 0, panY: 0, L, bg: false, debug: 0 }));
   const out = document.createElement('canvas'); out.width = w; out.height = h; out.getContext('2d').drawImage(O.c, 0, 0, w, h); return out;
+}
+// coordenada de textura de cada píxel de la maqueta (misma cámara que k3Snapshot): sirve para saber dónde quedó el
+// nombre o un número sobre la imagen y para arrastrarlos. Devuelve { w, h, uv } con uv[i*2] = u, uv[i*2+1] = v (-1 = vacío)
+function k3UvMap(model, cfg, side, w = 240, h = 280) {
+  const O = k3Off(); if (!O || !model || !model.parts.length) return null;
+  const shirt = model.raw ? model.parts : model.parts.filter(p => p.k === 'shirt' || p.k === 'sleeve' || p.k === 'collar'); if (!shirt.length) return null;
+  if (O.c.width !== w * 2 || O.c.height !== h * 2) { O.c.width = w * 2; O.c.height = h * 2; }
+  if (O.model !== model) { K3GL.upload(O.R, shirt); O.fit = k3Fit(shirt); O.model = model; }
+  const px = K3GL.pickAll(O.R, k3Scene(cfg, O.fit, { yaw: O.fit.yaw0 + (side === 'back' ? Math.PI : 0), pitch: 0, ortho: true, dist: 0, panX: 0, panY: 0, bg: false, debug: 0 }));
+  const W = w * 2, H = h * 2, uv = new Float32Array(w * h * 2).fill(-1);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = ((H - 1 - (y * 2 + 1)) * W + x * 2 + 1) * 4; if (!px[i + 3]) continue; const q = K3GL.uvOf(px, i), o = (y * w + x) * 2; uv[o] = q.u; uv[o + 1] = q.v; }
+  return { w, h, uv };
 }
 // miniatura (cuello sobre el torso, o short con medias) para elegir modelo
 function k3Thumb(parts, tex, kind, size = 112, maps) {

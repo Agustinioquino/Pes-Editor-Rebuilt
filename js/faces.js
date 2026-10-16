@@ -37,7 +37,7 @@ async function indexFaces(sider) {
 }
 async function restoreFaces() {
   const h = await idbGet('sider'); if (!h) return;
-  try { if ((await h.queryPermission({ mode: 'read' })) === 'granted') { await indexFaces(h); await indexBadges(h); await loadDbQuiet(h); if (typeof sdbLoadAll === 'function') { const st = await sdbLoadAll(h); let told = false; try { told = sessionStorage.getItem('pes-editor-db-notice') === '1'; } catch { } if (st.missing.length && !told) { try { sessionStorage.setItem('pes-editor-db-notice', '1'); } catch { } setTimeout(() => { if (!document.querySelector('.intro')) sdbNotice(st); else setTimeout(() => sdbNotice(st), 2500); }, 1500); } } } else FACES.needsPerm = h; } catch { }
+  try { if ((await h.queryPermission({ mode: 'read' })) === 'granted') { await indexFaces(h); await indexBadges(h); await loadDbQuiet(h); if (typeof sdbRepair === 'function') await sdbRepair(h); if (typeof sdbLoadAll === 'function') { const st = await sdbLoadAll(h); let told = false; try { told = sessionStorage.getItem('pes-editor-db-notice') === '1'; } catch { } if (st.missing.length && !told) { try { sessionStorage.setItem('pes-editor-db-notice', '1'); } catch { } setTimeout(() => { if (!document.querySelector('.intro')) sdbNotice(st); else setTimeout(() => sdbNotice(st), 2500); }, 1500); } } } else FACES.needsPerm = h; } catch { }
 }
 async function grantFaces() {
   const h = FACES.needsPerm; if (!h) return;

@@ -1,6 +1,16 @@
 // Diccionario español → inglés de lo que se ve en pantalla. La clave es el texto original; {x} es una parte que cambia.
 // Si algo queda en español, se agrega acá.
-const I18N_EN = {"\" aplicada al plan":"\" applied to plan",
+const I18N_EN = {"⬇ Instalar el archivo":"⬇ Install the file",
+"El editor trae este módulo: lo copia en la carpeta modules de Sider":"The editor ships this module: it copies it into Sider's modules folder",
+"Primero guardá o deshacé los cambios de sider.ini.":"Save or undo your sider.ini changes first.",
+"Instalando el módulo…":"Installing the module…",
+"KitPos instalado en modules. Abrí el juego de nuevo con Sider para que lo cargue.":"KitPos installed in modules. Open the game again with Sider so it loads it.",
+"edit21_db.lua instalado en modules. Abrí el juego con Sider hasta el menú principal para que copie la base.":"edit21_db.lua installed in modules. Open the game with Sider up to the main menu so it copies the database.",
+"Faltaba el archivo edit21_db.lua en la carpeta modules de Sider (sider.ini lo carga): lo volví a poner.":"The edit21_db.lua file was missing from Sider's modules folder (sider.ini loads it): I put it back.",
+"Actualicé el módulo edit21_db.lua de Sider a la v{x}.":"I updated Sider's edit21_db.lua module to v{x}.",
+"No pude instalar el módulo en Sider: guardé edit21_db.lua en modules, pero el archivo desapareció enseguida. Casi siempre es el antivirus: en Seguridad de Windows › Protección contra virus y amenazas › Historial de protección, restauralo (Permitir en el dispositivo) o agregá tu carpeta Sider a las exclusiones, y volvé a conectar la carpeta.":"Couldn't install the module in Sider: I saved edit21_db.lua in modules, but the file disappeared right away. It's almost always the antivirus: in Windows Security › Virus & threat protection › Protection history, restore it (Allow on device) or add your Sider folder to the exclusions, then connect the folder again.",
+"No pude instalar el módulo en Sider: guardé edit21_db.lua en modules, pero al leerlo de nuevo no es el mismo archivo (otro programa lo cambió o lo bloqueó). Cerrá el juego y volvé a conectar la carpeta.":"Couldn't install the module in Sider: I saved edit21_db.lua in modules, but reading it back it isn't the same file (another program changed or locked it). Close the game and connect the folder again.",
+"\" aplicada al plan":"\" applied to plan",
 "\" en":"\" in",
 "\" en la web.":"\" on the web.",
 "\" en la web. Probá buscarlo con otro nombre.":"\" on the web. Try searching with another name.",

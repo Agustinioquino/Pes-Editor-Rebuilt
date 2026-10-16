@@ -61,9 +61,9 @@ function kplPut(k, s, api) {
   const v = ksClampKey(k, Math.max(0, Math.min(kplMax(k), Math.round(s)))); if (String(v) !== String(cfgGet(KS.cfg, k))) api.set(k, v); return true;
 }
 const kplStep = () => ksKpOn() ? .25 : 1;
-function kplVal(k) { const s = ksP(k), F = KPOS.FIELDS[kplF(k)]; return (F ? F.n : k) + ' ' + (+s.toFixed(ksKpOn() ? 2 : 0)) + (s < -.01 || s > kplMax(k) + .01 ? ' (fuera del rango del juego)' : ''); }
+function kplVal(k) { const s = ksP(k), F = KPOS.FIELDS[kplF(k)]; return tr(F ? F.n : k) + ' ' + (+s.toFixed(ksKpOn() ? 2 : 0)) + (s < -.01 || s > kplMax(k) + .01 ? ' (' + tr('fuera del rango del juego') + ')' : ''); }
 function kplHtml(sides = ['back', 'front', 'shorts'], o = {}) {
-  const fig = side => { const [w, h] = o.size || KPL_SIZE[side]; return `<figure class="kplfig kpl-${side}"><div class="kplw"><canvas class="kplbase" data-kpl="${side}" width="${w}" height="${h}"></canvas><canvas class="kplov" data-kplov="${side}" width="${w * 2}" height="${h * 2}" tabindex="0" aria-label="${side === 'back' ? 'Espalda' : side === 'front' ? 'Frente' : 'Short'}: arrastrá el nombre o un número para moverlo, las esquinas para el tamaño${side === 'back' ? ', los costados para el ancho y la manija de arriba para el arco' : ''}. Flechas: mover; + y −: tamaño"></canvas></div><figcaption>${side === 'back' ? 'Espalda' : side === 'front' ? 'Frente' : 'Short y medias'}</figcaption></figure>`; };
+  const fig = side => { const [w, h] = o.size || KPL_SIZE[side]; return `<figure class="kplfig kpl-${side}"><div class="kplw"><canvas class="kplbase" data-kpl="${side}" width="${w}" height="${h}"></canvas><canvas class="kplov" data-kplov="${side}" width="${w * 2}" height="${h * 2}" tabindex="0" aria-label="${tr((side === 'back' ? 'Espalda' : side === 'front' ? 'Frente' : 'Short') + ': arrastrá el nombre o un número para moverlo, las esquinas para el tamaño' + (side === 'back' ? ', los costados para el ancho y la manija de arriba para el arco' : '') + '. Flechas: mover; + y −: tamaño')}"></canvas></div><figcaption>${side === 'back' ? 'Espalda' : side === 'front' ? 'Frente' : 'Short y medias'}</figcaption></figure>`; };
   const els = sides.flatMap(s => KPL_SIDES[s]); if (!els.includes(KPL.sel)) KPL.sel = els[0];
   const chips = els.map(el => `<button type="button" data-kplsel="${el}" aria-pressed="${KPL.sel === el}" ${kplOn(el) ? '' : `disabled title="${el === 'chest' ? 'Este kit no lleva número en el pecho (ChestNumbersFile vacío)' : el === 'leg' ? 'Este kit no lleva número en el short' : 'No se muestra en este kit'}"`}><i style="background:${KPL_EL[el].col}"></i>${KPL_EL[el].n}</button>`).join('');
   const btn = (a, t, l) => `<button class="btn small" type="button" data-kpla="${a}" title="${t}">${l}</button>`;
@@ -91,7 +91,7 @@ function kplPaint(root, api, only) {
 function kplInfo(box, api) {
   const v = box.querySelector('#kplVal'), E = KPL_EL[KPL.sel]; if (!v || !E) return;
   const ks = [...E.move, E.size, E.wide, E.arc].filter(Boolean);
-  v.innerHTML = `<b style="color:${E.col}">● ${E.n}</b> · ${kplOn(KPL.sel) ? (KPL.box[KPL.sel] ? '' : 'oculto o fuera de la prenda · ') + ks.map(k => esc(kplVal(k))).join(' · ') : 'no se usa en este kit'}${!api.cfg && !ksKpOn() ? ' · <span class="warn">Instalá KitPos (abajo) para moverlo desde acá</span>' : ''}`;
+  v.innerHTML = `<b style="color:${E.col}">● ${tr(E.n)}</b> · ${kplOn(KPL.sel) ? (KPL.box[KPL.sel] ? '' : tr('oculto o fuera de la prenda') + ' · ') + ks.map(k => esc(kplVal(k))).join(' · ') : 'no se usa en este kit'}${!api.cfg && !ksKpOn() ? ' · <span class="warn">Instalá KitPos (abajo) para moverlo desde acá</span>' : ''}`;
   box.querySelectorAll('[data-kplsel]').forEach(b => b.setAttribute('aria-pressed', b.dataset.kplsel === KPL.sel));
   const arc = !!E.arc; box.querySelectorAll('[data-kpla="arcm"],[data-kpla="arcp"]').forEach(b => b.disabled = !arc);
   const two = E.move.length > 1; box.querySelectorAll('[data-kpla="left"],[data-kpla="right"]').forEach(b => b.disabled = !two);
@@ -116,7 +116,7 @@ function kplOverlay(box, side) {
     if (sel || hov) { g.fillStyle = col + '1f'; g.fillRect(b.x0 - p, b.y0 - p, b.w + p * 2, b.h + p * 2); }
     g.strokeRect(b.x0 - p + .5, b.y0 - p + .5, b.w + p * 2 - 1, b.h + p * 2 - 1); g.restore();
     // etiqueta
-    g.save(); g.font = '600 11px system-ui, sans-serif'; const t = E.n + (out ? ' · fuera de rango' : ''), tw = g.measureText(t).width + 12, ty = Math.max(0, b.y0 - p - 19), tx = Math.min(W - tw, Math.max(0, b.x0 - p));
+    g.save(); g.font = '600 11px system-ui, sans-serif'; const t = tr(E.n) + (out ? ' · ' + tr('fuera de rango') : ''), tw = g.measureText(t).width + 12, ty = Math.max(0, b.y0 - p - 19), tx = Math.min(W - tw, Math.max(0, b.x0 - p));
     if (!(sel && E.arc)) { g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(tx, ty, tw, 17, 4) : g.rect(tx, ty, tw, 17); g.fill(); g.fillStyle = '#111'; g.fillText(t, tx + 6, ty + 12.5); }
     else { g.fillStyle = col; g.beginPath(); g.roundRect ? g.roundRect(tx, b.y1 + p + 3, tw, 17, 4) : g.rect(tx, b.y1 + p + 3, tw, 17); g.fill(); g.fillStyle = '#111'; g.fillText(t, tx + 6, b.y1 + p + 15.5); }
     g.restore();

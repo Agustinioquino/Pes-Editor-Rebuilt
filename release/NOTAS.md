@@ -2,72 +2,67 @@
 
 <div align="center">
 
-# 🎁 Open the pack! Players, redesigned
+# 🔤 Your font on the shirt, placed by hand
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.056-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.056-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-The **Players** tab got its biggest makeover yet. Every player now has a clearer profile, a big photo framed in the colours of his positions, all his stats and skills in one place, and a FIFA view with his own card... inside a pack you tear open yourself. 🃏
+Shirt names don't have to be ALL CAPS anymore. With the new **Fonts** tab you build the name font from any typeface (or from letters you draw in Photoshop), with **lowercase, accents, Ñ, Cyrillic and Greek**, and it goes straight into the kit folder. And in **Kit Studio Pro** you can now **grab the name and the numbers on the 3D kit and drag them** where you want them. 👕
 
-<img alt="Opening a pack: you tear the top with the mouse, the flag, position and crest come out, and the gold card appears with confetti" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/sobre-en.gif" width="100%">
+<img alt="Dragging the name on the back of the 3D shirt: it moves up and down and its arch changes, with the value shown next to the mouse" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/arrastrar-en.gif" width="60%">
 
-## 🎁 Open the pack
+## ✥ Move the name and numbers with the mouse
 
-The first time you look at a player in the FIFA view, a pack shows up. **Move the mouse across the top to tear it open**, and out come his flag, his position and his crest, then the card, with rays, confetti and sound.
+In **Kit Studio Pro → Editor**, the new **✥ Place** view shows the back, the front and the shorts in 3D:
 
-- **The crowd reacts to his rating**: a standing ovation with whistles of joy for 80 or more (and for legends), applause for 70 to 79, and whistling and shouting fans below that.
-- **The pack doesn't give anything away**: it looks the same for every card, so you only find out if it's gold, silver, bronze or an icon when you open it.
-- **You're in charge**: skip it, replay it with 🎁 Open pack, or turn off the opening or the sound for the next players.
+- **Grab** the name, the back number, the chest number or the shorts number and **move it**.
+- **Corners** change the size, **sides** the width (on the back number, the spacing) and the **handle above the name** its arch.
+- The **mouse wheel** and the **keyboard** work too: arrows to move, + and − for size, [ and ] for the arch.
+- Without KitPos it moves in the game's own steps (the ones in config.txt). **With KitPos the value is exact**, no steps.
 
-## 🃏 View as FIFA
+<img alt="The Place view: the back, the front and the shorts in 3D, with the name, back number, chest number and shorts number boxed in colors" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/ubicar-en.png" width="100%">
 
-In **Stats & skills**, the **View as** switch shows the player as a FIFA card:
+## 🔤 The Fonts tab
 
-- **Gold, silver or bronze** by rating, a special card from 80, and the **icon card** for legends (classic teams count as legends on their own, and you can mark anyone with ⭐ Legend).
-- In **PES 6 and Classic** the card looks like **FIFA 15**; in **Modern and Retro**, like today's cards. In PES 6 the rest of the screen keeps the PES 6 colours.
-- The card shows the other positions he can play, his skills as icons (hover them to see what they do) and his attributes grouped the FIFA way.
+A font creator for the shirt name, in its own tab:
 
-It's view-only: the ratings are worked out from his PES abilities, and to change values you go back to the PES view.
+- **Pick a typeface** or upload a **.ttf, .otf or .woff**, and give it a style: colors, gradient, two outlines and shadow.
+- **Choose the languages**: accents, Central Europe and Turkey, Cyrillic, Greek.
+- See it **live on the shirt** and on the **back of the kit**, where you can also drag the name and number.
+- **One button saves it in the kit folder**: the letter texture as **.dds and .ftex** (DXT5 with all its sizes) and **kitpos_letras.txt**, the table KitPos reads. Another downloads it as a .zip, and another undoes it (a .bak-edit21 copy is kept).
 
-<img alt="The FIFA view in Modern mode: the gold card, the skills with icons and the attributes by group" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/fifa-moderno-en.png" width="100%">
+It needs **KitPos 6.4 or newer** in Sider. If you don't have it, the editor installs it for you and adds it to sider.ini (with a backup).
 
-<img alt="The FIFA view in PES 6 mode: a FIFA 15 style card on the silver PES 6 panels" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/fifa-pes6-en.png" width="100%">
+<img alt="The Fonts tab: the font, the Photoshop template with its letters loaded, the name on a green shirt and the back of the kit with the name and number boxed" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-en.png" width="100%">
 
-## 🙋 A clearer profile, with a big photo
+## 🎨 Letters drawn in Photoshop
 
-- **Big photo** next to the name, with his position on top and the other positions he can play on the side.
-- **The frame takes the colours of his positions**: yellow keeper, blue defence, green midfield, red attack. The better he plays in each one (natural position, A or B), the more room its colour takes. Hover the photo to see the percentages.
-- **First name and last name apart**: the game stores them together, the editor joins them for you and tells you how many letters are left.
-- **Name on the shirt** with a **Use last name** button, and **team and national team** with their crest and shirt number.
-- **Stars and attitude** picked with colours, like in the game.
+Draw the letters yourself in the **KitPos Photoshop template** (one 256 px cell per letter, sitting on the red line) and load it as a **transparent PNG or straight as .psd**:
 
-<img alt="The player profile: big photo with the position-coloured frame, first and last name, name on shirt, team and national team" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/perfil-en.png" width="100%">
+- Every letter you drew goes into the game texture **as it is, with its colors**.
+- Empty cells (space, underscore, Cyrillic…) come from the chosen typeface.
+- **⬇ Letters of this font** gives you a typeface already laid out in the template, to touch it up in Photoshop. **⬇ Guides** gives you the cells alone.
 
-## 📊 Stats & skills, all in one tab
+<img alt="The Photoshop template section with the template loaded: 214 of 214 letters drawn" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/plantilla-en.png" width="50%">
 
-**Abilities** and **Special** are now a single tab, **Stats & skills**:
+## 📐 Free position with KitPos
 
-- Each stat has a bar with its colour, **− and +**, its group average and an **ⓘ** that explains what it does.
-- Each **special skill** and **AI playing style** has its own icon, and hovering it tells you what it does.
+The **📐 Free position** panel sets, without steps, the height, size, width, spacing and arch of the name and the back, chest and shorts numbers, **for one kit or for the whole team**. It's saved in content\kitpos\kitpos_slots.ini, the same file the KitPos panel reads in the game.
 
-<img alt="Special skills grouped by type, each with its own icon" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/skills-en.png" width="100%">
+<img alt="The Fonts tab in PES 6 mode" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-pes6-en.png" width="100%">
 
-## ✏️ Clearer names
+## 🔠 Upper and lower case in PES 6
 
-- **Registered position** is now **Natural position**.
-- In English, positions use the **PES abbreviations** (CF, AMF, CB…). In Spanish they stay as always (CD, MO, DEC…).
-- Everything new is available in English and Spanish.
-
-## 🔧 Also fixed
-
-- In **Players → From the game**, the sheet stopped showing from the second player you tapped. Fixed.
+- In the **PES 6** graphics mode, every text field now uses a font with **real lowercase**, so you see exactly how a name looks.
+- If **Caps Lock** is on, a warning shows up under the field.
+- If a player's name ended up all in capitals, his profile offers **Aa Change to** upper and lower case in one click.
 
 ## ⬇️ Do I need to download anything?
 
 **No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it.
 
-> This is an alpha version. The FIFA view is just another way to look at your players; nothing changes in the game until you edit and save in the PES view. Have fun opening packs! ⚽
+> This is an alpha version and the fonts haven't been tested much in the game yet. If a letter shows up shifted or cut off, or the name doesn't move where you put it, tell us in 💡 Ideas → Something's not working. ⚽
 
 <br>
 
@@ -82,69 +77,64 @@ It's view-only: the ratings are worked out from his PES abilities, and to change
 
 <div align="center">
 
-# 🎁 ¡Abrí el sobre! Jugadores renovados
+# 🔤 Tu fuente en la camiseta, ubicada a mano
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.056-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.056-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.057-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-La pestaña **Jugadores** tuvo su renovación más grande. Cada jugador tiene ahora un perfil más claro, una foto grande con los colores de sus posiciones, todas sus habilidades y skills en un solo lugar, y una vista FIFA con su propia carta... adentro de un sobre que abrís vos. 🃏
+Los nombres de las camisetas ya no tienen que ir TODO EN MAYÚSCULAS. Con la nueva pestaña **Fuentes** armás la fuente del nombre con cualquier tipografía (o con letras que dibujás en Photoshop), con **minúsculas, tildes, Ñ, cirílico y griego**, y va directo a la carpeta del kit. Y en **Kit Studio Pro** ahora podés **agarrar el nombre y los números sobre el kit en 3D y arrastrarlos** adonde quieras. 👕
 
-<img alt="Abrir un sobre: rasgás la parte de arriba con el mouse, salen la bandera, la posición y el escudo, y aparece la carta de oro con confeti" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/sobre-es.gif" width="100%">
+<img alt="Arrastrar el nombre en la espalda de la camiseta en 3D: sube y baja y cambia su arco, con el valor al lado del mouse" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/arrastrar-es.gif" width="60%">
 
-## 🎁 Abrí el sobre
+## ✥ Mové el nombre y los números con el mouse
 
-La primera vez que mirás a un jugador en la vista FIFA aparece un sobre. **Pasá el mouse por la parte de arriba para rasgarlo** y salen su bandera, su posición y su escudo, y después la carta, con rayos, confeti y sonido.
+En **Kit Studio Pro → Editor**, la nueva vista **✥ Ubicar** muestra la espalda, el frente y el short en 3D:
 
-- **La tribuna reacciona según la media**: ovación con silbidos de festejo desde 80 (y para las leyendas), aplausos de 70 a 79, y silbatina con la hinchada gritando para las más bajas.
-- **El sobre no adelanta nada**: es igual para todas las cartas, así que recién al abrirlo sabés si es oro, plata, bronce o ícono.
-- **Lo manejás vos**: saltalo, repetilo con 🎁 Abrir sobre, o apagá la apertura o el sonido para los próximos jugadores.
+- **Agarrá** el nombre, el dorsal, el número del pecho o el del short y **movelo**.
+- **Las esquinas** cambian el tamaño, **los costados** el ancho (en el dorsal, la separación) y **la manija de arriba del nombre** su arco.
+- También andan **la rueda del mouse** y **el teclado**: flechas para mover, + y − para el tamaño, [ y ] para el arco.
+- Sin KitPos se mueve con los pasos del juego (los del config.txt). **Con KitPos queda el valor exacto**, sin pasos.
 
-## 🃏 Ver como FIFA
+<img alt="La vista Ubicar: la espalda, el frente y el short en 3D, con el nombre, el dorsal, el número del pecho y el del short marcados en colores" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/ubicar-es.png" width="100%">
 
-En **Habilidades y skills**, el selector **Ver como** muestra al jugador como una carta de FIFA:
+## 🔤 La pestaña Fuentes
 
-- **Oro, plata o bronce** según su media, carta especial desde 80, y la **carta ícono** para las leyendas (los equipos clásicos cuentan como leyendas solos, y podés marcar a cualquiera con ⭐ Leyenda).
-- En **PES 6 y Clásico** la carta es como la de **FIFA 15**; en **Moderno y Retro**, como las de ahora. En PES 6 el resto de la pantalla mantiene los colores de PES 6.
-- La carta muestra las otras posiciones donde puede jugar, sus habilidades especiales como íconos (pasá el mouse para ver qué hacen) y sus atributos agrupados como en FIFA.
+Un creador de fuentes para el nombre de la camiseta, en su propia pestaña:
 
-Es solo para mirar: las medias salen de sus habilidades de PES, y para cambiar valores volvés a la vista PES.
+- **Elegí una tipografía** o subí un **.ttf, .otf o .woff**, y dale estilo: colores, degradado, dos bordes y sombra.
+- **Elegí los idiomas**: acentos, Europa central y Turquía, cirílico, griego.
+- Mirala **en vivo sobre la camiseta** y en **la espalda del kit**, donde también podés arrastrar el nombre y el dorsal.
+- **Un botón la guarda en la carpeta del kit**: la textura de letras en **.dds y .ftex** (DXT5 con todos sus tamaños) y **kitpos_letras.txt**, la tabla que lee KitPos. Otro la baja en .zip y otro la deshace (queda una copia .bak-edit21).
 
-<img alt="La vista FIFA en modo Moderno: la carta de oro, las habilidades especiales con íconos y los atributos por grupo" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/fifa-moderno-es.png" width="100%">
+Hace falta **KitPos 6.4 o más nuevo** en Sider. Si no lo tenés, el editor lo instala y lo agrega a sider.ini (con copia).
 
-<img alt="La vista FIFA en modo PES 6: una carta estilo FIFA 15 sobre los paneles plateados de PES 6" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/fifa-pes6-es.png" width="100%">
+<img alt="La pestaña Fuentes: la fuente, la plantilla de Photoshop con sus letras cargadas, el nombre sobre una camiseta verde y la espalda del kit con el nombre y el dorsal marcados" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-es.png" width="100%">
 
-## 🙋 Un perfil más claro, con foto grande
+## 🎨 Letras dibujadas en Photoshop
 
-- **Foto grande** al lado del nombre, con su posición arriba y las otras posiciones donde puede jugar al costado.
-- **El marco toma los colores de sus posiciones**: amarillo portero, azul defensa, verde medio, rojo delantera. Cuanto mejor juega en cada una (posición natural, A o B), más lugar ocupa su color. Pasá el mouse por la foto para ver los porcentajes.
-- **Nombre y apellido por separado**: el juego los guarda juntos, el editor los une solo y te dice cuántas letras quedan.
-- **Nombre en camiseta** con el botón **Usar apellido**, y **equipo y selección** con su escudo y su dorsal.
-- **Estrellas y actitud** con colores, como en el juego.
+Dibujá las letras vos en la **plantilla de Photoshop de KitPos** (una casilla de 256 px por letra, apoyada en la línea roja) y cargala como **PNG transparente o directo el .psd**:
 
-<img alt="El perfil del jugador: foto grande con el marco de colores de sus posiciones, nombre y apellido, nombre en camiseta, equipo y selección" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/perfil-es.png" width="100%">
+- Cada letra que dibujaste pasa a la textura del juego **tal cual, con sus colores**.
+- Las casillas vacías (espacio, guion bajo, cirílico…) salen de la tipografía elegida.
+- **⬇ Letras de esta fuente** te da una tipografía ya acomodada en la plantilla, para retocarla en Photoshop. **⬇ Guías** te da las casillas solas.
 
-## 📊 Habilidades y skills, en una sola pestaña
+<img alt="La sección Plantilla de Photoshop con la plantilla cargada: 214 de 214 letras dibujadas" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/plantilla-es.png" width="50%">
 
-**Habilidades** y **Especiales** ahora son una sola pestaña, **Habilidades y skills**:
+## 📐 Posición libre con KitPos
 
-- Cada habilidad tiene su barra con color, **− y +**, el promedio de su grupo y un **ⓘ** que explica qué hace.
-- Cada **habilidad especial** y cada **estilo de la IA** tiene su ícono, y al pasar el mouse te dice qué hace.
+El panel **📐 Posición libre** ajusta sin pasos la altura, el tamaño, el ancho, la separación y el arco del nombre y de los números de la espalda, el pecho y el short, **para un kit o para todo el equipo**. Se guarda en content\kitpos\kitpos_slots.ini, el mismo archivo que lee el panel de KitPos en el juego.
 
-<img alt="Las habilidades especiales agrupadas por tipo, cada una con su ícono" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.056/skills-es.png" width="100%">
+<img alt="La pestaña Fuentes en modo PES 6" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.057/fuentes-pes6-es.png" width="100%">
 
-## ✏️ Nombres más claros
+## 🔠 Mayúsculas y minúsculas en PES 6
 
-- **Posición registrada** ahora se llama **Posición natural**.
-- En inglés las posiciones usan las **siglas de PES** (CF, AMF, CB…). En español quedan como siempre (CD, MO, DEC…).
-- Todo lo nuevo está en español y en inglés.
+- En el modo gráfico **PES 6**, todos los campos donde se escribe usan ahora una letra con **minúsculas de verdad**, así ves exactamente cómo queda un nombre.
+- Si **Bloq Mayús** está activado, aparece un aviso debajo del campo.
+- Si el nombre de un jugador quedó todo en mayúsculas, su perfil ofrece **Aa Pasar a** mayúsculas y minúsculas con un clic.
 
-## 🔧 También se arregló
-
-- En **Jugadores → Del juego**, la ficha dejaba de verse desde el segundo jugador que tocabas. Ya no pasa.
-
-## ⬇️ ¿Tengo que bajar algo?
+## ⬇️ ¿Tengo que descargar algo?
 
 **No.** Todo esto está en el editor, y la app de Windows lo carga sola desde internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés.
 
-> Es una versión alpha. La vista FIFA es otra forma de mirar a tus jugadores: en el juego no cambia nada hasta que edites y guardes en la vista PES. ¡A abrir sobres! ⚽
+> Es una versión alfa y las fuentes todavía se probaron poco en el juego. Si una letra sale corrida o cortada, o el nombre no queda donde lo pusiste, avisanos en 💡 Ideas → Algo no anda. ⚽

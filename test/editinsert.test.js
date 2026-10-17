@@ -18,7 +18,7 @@ const toasts = [], hist = [];
 const ctx = vm.createContext({
   TextDecoder, TextEncoder, Blob, Response, DecompressionStream, PD, toasts, hist, RATE_GEN: 0,
   S: null, toast: m => toasts.push(m), undo: () => { }, playerName: () => 'ALMADA',
-  pget: null, edit: (label, key, regions, fn) => { hist.push(label); return fn(); },
+  pget: null, rebuildTeamOf: () => { }, edit: (label, key, regions, fn) => { hist.push(label); return fn(); },
 });
 vm.runInContext(code + `
 pget = (p, k) => PD.player.get(S.d, p.base, k);
@@ -41,7 +41,7 @@ const app = new Uint8Array(60); app.set([ID & 255, ID >> 8, 0, 0], 0); for (let 
 
 function freshEdit() {
   const d = new Uint8Array(0x7C + 4 * 0x138);
-  ctx.S = { d, f: { game: '2021' }, ix: null };
+  ctx.S = { d, f: { game: '2021' }, ix: null, hist: [], hp: 0 };
   run(`S.ix = PD.index(S.d, S.f.game); DBRAW = { b: DBX, off: new Map([[${ID}, 0]]) };`);
 }
 ctx.DBX = db;
@@ -84,4 +84,18 @@ test('los jugadores que se agregaron sin posiciones ni físico se arreglan al le
   assert.match(toasts[0], /Arreglé a ALMADA/);
   // ya arreglado: no se vuelve a tocar
   assert.equal(run('repairEditPlayers()'), 0);
+});
+
+test('"Volver a la base del juego" saca al jugador del EDIT sin tocar a los demás', () => {
+  freshEdit(); run('DBAPP = null');
+  const d = ctx.S.d, other = 0x7C, R = 0x138;
+  // un jugador propio del EDIT (id 5) antes del agregado
+  d[96] = 1; d.set([5, 0, 0, 0], other); PD.player.set(d, other, 'name', 'PROPIO'); run('S.ix = PD.index(S.d, S.f.game)');
+  run(`insertEditPlayers([${ID}])`);
+  assert.equal(d[96], 2);
+  assert.equal(run(`backToDb([${ID}, 5])`), 1); // el 5 no está en la base: no se toca
+  assert.equal(d[96] | d[97] << 8, 1);
+  assert.equal(PD.player.get(d, other, 'name'), 'PROPIO');
+  assert.ok([...d.subarray(other + R, other + 2 * R)].every(v => v === 0));
+  assert.match(toasts.at(-1), /volvió a la base del juego/);
 });

@@ -439,6 +439,33 @@ function repairEditPlayers() {
   toast(list.length === 1 ? `Arreglé a ${playerName(list[0].id) || 'un jugador'}: se había agregado desde la base sin posiciones ni físico. Guardá el EDIT para llevarlo al juego.` : `Arreglé ${list.length} jugadores que se habían agregado desde la base sin posiciones ni físico. Guardá el EDIT para llevarlo al juego.`, 9000, ['Deshacer', undo]);
   return list.length;
 }
+// "Volver a la base del juego": saca jugadores del EDIT y el juego vuelve a usar los de su base. Solo para jugadores que
+// están en la base (uno creado en el EDIT se perdería). Se puede deshacer.
+function removeEditPlayers(ids) {
+  const out = new Set(ids), n = S.d[96] | S.d[97] << 8, R = 0x138; let w = 0;
+  for (let k = 0; k < n; k++) {
+    const o = 0x7C + k * R, id = (S.d[o] | S.d[o + 1] << 8 | S.d[o + 2] << 16 | S.d[o + 3] << 24) >>> 0;
+    if (out.has(id)) continue;
+    if (w !== k) S.d.copyWithin(0x7C + w * R, o, o + R);
+    w++;
+  }
+  S.d.fill(0, 0x7C + w * R, 0x7C + n * R); S.d[96] = w & 255; S.d[97] = w >> 8;
+  return n - w;
+}
+const canBackToDb = id => !!(S.ix && S.ix.byId.has(id) && DBRAW && DBRAW.off.has(id));
+// los que cambió la media por rendimiento y siguen en el EDIT
+const formEditIds = () => typeof APPLIED === 'undefined' ? [] : [...APPLIED.keys()].filter(canBackToDb);
+function backToDb(ids) {
+  ids = ids.filter(canBackToDb); if (!ids.length) return 0;
+  const one = ids.length === 1, nm = one ? playerName(ids[0]) || 'ID ' + ids[0] : '';
+  edit(one ? 'Volver a la base del juego: ' + nm : 'Volver a la base del juego (' + ids.length + ' jugadores)', 'players', editPlayersRegion(0), () => removeEditPlayers(ids));
+  S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf();
+  if (typeof APPLIED !== 'undefined') { ids.forEach(id => APPLIED.delete(id)); saveApplied(); }
+  if (ids.includes(S.player)) S.player = S.ix.players.length ? S.ix.players[0].id : null;
+  RATE_GEN++;
+  toast(one ? `${nm} volvió a la base del juego: el juego lo usa como venía. Guardá el EDIT para llevarlo al juego.` : `${ids.length} jugadores volvieron a la base del juego. Guardá el EDIT para llevarlo al juego.`, 7000, ['Deshacer', undo]);
+  return ids.length;
+}
 // después de leer la base: el físico (PlayerAppearance.bin) y el arreglo de los jugadores agregados con datos vacíos
 async function dbAfterLoad(st) {
   try { const a = typeof sdbAppearanceBin === 'function' ? await sdbAppearanceBin(st) : null; if (a) await appearanceFromBin(a); } catch { }
@@ -1283,6 +1310,7 @@ function renderPlayers(m) {
         <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Sin proteger']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="autoLock" ${S.autoLock ? 'checked' : ''}> Proteger al editar</label>
         <button class="btn small" id="lockAll" type="button" ${locked === S.ix.players.length ? 'disabled' : ''}>Proteger todos (${locked}/${S.ix.players.length})</button></div>
+        ${formEditIds().length ? `<button class="btn small" id="formToDb" type="button" title="Saca de tu EDIT a los jugadores que cambió la media por rendimiento: el juego vuelve a usarlos como venían">↩ Volver a la base los de la media (${formEditIds().length})</button>` : ''}
       </div>
       <div class="list-body" id="plItems">${list.map(x => { const c = clubOf(x.id), rp = pget(x, 'reg_pos'); return `<button class="item ${p && x.id === p.id ? 'on' : ''}" data-p="${x.id}" type="button">
         ${posBadge(rp)}<span style="min-width:0"><span class="nm">${c ? shirtSvg(kitFor(c, rp === 0), '1.05em', tget(c, 'name')) + ' ' : ''}${esc(pget(x, 'name') || 'ID ' + x.id)}${dk.has('p' + x.id) ? '<span class="dot" title="Con cambios sin guardar"></span>' : ''}</span>
@@ -1295,6 +1323,7 @@ function renderPlayers(m) {
   $('plItems').onclick = e => { const b = e.target.closest('[data-p]'); if (b && +b.dataset.p !== S.player) { S.player = +b.dataset.p; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); const sh = m.querySelector('.sheet'); leave(sh, () => renderPlayers(m)); } };
   $('autoLock').onchange = e => { S.autoLock = e.target.checked; };
   bindPSrc(m);
+  const fdb = $('formToDb'); if (fdb) fdb.onclick = async () => { const ids = formEditIds(); if (await confirmBox(`¿Volver a la base del juego a los ${ids.length} jugadores que cambió la media por rendimiento? Salen de tu EDIT y el juego los usa como venían. Se puede deshacer con Ctrl+Z.`)) { backToDb(ids); renderPlayers(m); } };
   $('lockAll').onclick = () => { const ps = S.ix.players.filter(x => !isLocked(x)); edit('Proteger todos los jugadores', 'all', ps.flatMap(regP), () => { for (const x of ps) for (const k of LOCK_FLAGS) PD.player.set(S.d, x.base, k, 1); }); toast(ps.length + ' jugadores protegidos.'); later(() => renderPlayers(m)); };
   if (p) bindPlayer(p, m);
 }
@@ -1388,7 +1417,7 @@ function playerSheet(p) {
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>
       <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el juego cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
-    <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}
+    <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}${canBackToDb(p.id) ? '<button class="btn small" id="pToDb" type="button" title="Lo saca de tu EDIT: el juego vuelve a usar el jugador de su base, con todo como venía">↩ Volver a la base del juego</button>' : ''}
       <select id="pCopy" style="width:auto;max-width:260px" aria-label="Copiar de otro jugador"><option value="">Copiar de otro jugador…</option>${S.ix.players.filter(x => x.id !== p.id).map(x => `<option value="${x.id}">${esc(pget(x, 'name') || x.id)}</option>`).join('')}</select>
       <select id="pCopyWhat" style="width:auto" aria-label="Qué copiar"><option value="abil">habilidades</option><option value="skills">especiales y estilos</option><option value="pos">posiciones</option><option value="look">apariencia</option><option value="motion">movimientos</option></select>
       <button class="btn small" id="pCopyBtn" type="button">Copiar</button></div>
@@ -1961,6 +1990,7 @@ function bindPlayer(p, m) {
   sh.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => { S.ptab = b.dataset.ptab; renderPlayers(m); });
   $('pLock').onchange = e => { setLock(p, e.target.checked); rer(); };
   const rv = $('pRevert'); if (rv) rv.onclick = () => { edit('Volver al original: ' + nm(), 'p' + p.id, regP(p), () => S.d.set(S.origData.subarray(p.base, p.base + 0x138), p.base)); toast('Jugador restaurado como estaba al abrir el archivo.', 4000, ['Deshacer', undo]); rer(); };
+  const tdb = $('pToDb'); if (tdb) tdb.onclick = async () => { if (await confirmBox(`¿Volver a ${nm()} a la base del juego? Sale de tu EDIT y el juego usa el jugador como venía: se pierde lo que le cambiaste (media, habilidades, físico…). Se puede deshacer con Ctrl+Z.`)) { backToDb([p.id]); renderPlayers(m); } };
   $('pCopyBtn').onclick = () => {
     const src = S.ix.byId.get(+$('pCopy').value); if (!src) { toast('Elegí de qué jugador copiar.'); return; }
     const what = $('pCopyWhat').value;

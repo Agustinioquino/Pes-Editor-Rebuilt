@@ -817,7 +817,7 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 .ksdor .ksf{min-width:0}.ksdor .ksf small.note{display:none}
 html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 .ksdors{max-height:min(84vh,900px);overflow:auto}
-.ksside{display:flex;width:100%}.ksside button{flex:1;min-width:0;padding:.3rem .4rem;font-size:.8rem;line-height:1.15;overflow-wrap:anywhere}
+.ksside{display:flex;width:100%}.ksside button{flex:1;min-width:0;padding:.3rem .35rem;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kspane{display:grid;gap:8px;min-width:0}.kspane[hidden]{display:none}
 .kspane .k3pan{background:var(--panel)}
 /* atajos sobre el 3D: qué mover, cruz de flechas con un círculo para arrastrar y tamaño / ancho / curva */
@@ -838,11 +838,17 @@ html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 .k3pad.drag{cursor:grabbing;box-shadow:0 0 0 4px color-mix(in srgb,var(--dc) 35%,transparent)}
 .k3tcol{display:grid;gap:4px}.k3tg{display:flex;gap:2px}
 .k3tval,.k3thint{margin:0;font-size:.68rem;opacity:.85;text-align:center;max-width:250px}
-.ks3d:has(.k3tools) .k3hud{max-width:calc(100% - 400px);border-radius:10px}
+.ks3d:has(.k3tools) .k3hud{max-width:calc(100% - 340px);border-radius:10px}
 @media (max-width:700px){.ks3d:has(.k3tools) .k3hud{display:none}}
-.ks3dwrap.present .k3tools,.ks3dwrap.present .k3hud{display:none}
-html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button){border-radius:0!important}
-.k3tools :is(.k3tval,.k3thint){color:#fff!important}
+.k3float{position:absolute;z-index:5;display:grid;gap:4px;justify-items:center;padding:6px;border-radius:12px;background:#0b0f16d9;color:#fff;border:1px solid color-mix(in srgb,var(--dc) 60%,transparent);box-shadow:0 6px 22px #0007;backdrop-filter:blur(6px);transition:left .12s ease-out,top .12s ease-out}
+.k3float[hidden],.k3arc[hidden]{display:none}
+.k3float .k3tval{max-width:120px;font-size:.62rem;line-height:1.25}
+.k3arc{position:absolute;z-index:5;display:inline-flex;align-items:center;gap:4px;padding:3px 10px 3px 7px;border-radius:99px;border:2px solid var(--dc);background:#0b0f16d9;color:#fff;font:inherit;font-size:.72rem;font-weight:700;cursor:ns-resize;touch-action:none;user-select:none;transition:left .12s ease-out,top .12s ease-out}
+.k3arc span{color:var(--dc);font-size:1rem;line-height:1}.k3arc.drag,.k3arc:hover{background:var(--dc);color:#111}.k3arc.drag span,.k3arc:hover span{color:#111}
+.k3tools .k3thint:empty{display:none}
+.ks3dwrap.present .k3tools,.ks3dwrap.present .k3float,.ks3dwrap.present .k3arc,.ks3dwrap.present .k3hud{display:none}
+html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button,.k3float,.k3arc){border-radius:0!important}
+:is(.k3tools,.k3float) :is(.k3tval,.k3thint){color:#fff!important}
 /* aviso: elegir kitpos_slots.ini antes de mostrar el kit */
 .ksgate{display:flex;gap:16px;align-items:flex-start;padding:22px;border-radius:var(--r,10px);border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--sunk))}
 .ksgate h4{margin:0 0 6px;font-family:var(--display);font-size:1.25rem}.ksgate p{margin:0 0 12px;max-width:62ch}

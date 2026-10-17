@@ -4464,7 +4464,9 @@ const I18N_EN = {"⬇ Instalar el archivo":"⬇ Install the file",
 "La textura del nombre de este kit no tiene letras que se puedan leer":"This kit's name texture has no readable letters",
 "Girá el kit con el mouse; el nombre y los números se agarran y se mueven, o con los atajos de abajo a la derecha.":"Turn the kit with the mouse; grab the name and numbers to move them, or use the shortcuts at the bottom right.",
 "Horizontal":"Horizontal",
-"Vertical":"Vertical"
+"Vertical":"Vertical",
+"Girá el kit para ver {x}":"Turn the kit to see the {1}",
+"Arrastrá hacia arriba o abajo para curvar el nombre":"Drag up or down to curve the name"
 };
 // Ficha del jugador · Perfil: nombre y apellido, equipo y selección, nivel
 Object.assign(I18N_EN, {

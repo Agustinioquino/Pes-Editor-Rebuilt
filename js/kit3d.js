@@ -327,7 +327,7 @@ const K3GL = (() => {
     for (const at of [R.pl.p, R.pl.t]) if (at >= 0) gl.disableVertexAttribArray(at);
     return px;
   }
-  return { make, upload, setTex, setTexture, draw, pick, pickAll, uvOf, weld };
+  return { make, upload, setTex, setTexture, draw, pick, pickAll, uvOf, weld, matrices };
 })();
 // estado de luz: escena + ajustes del usuario; se interpola para que los cambios se vean como una transición
 function k3LightTarget() {
@@ -423,7 +423,7 @@ function k3Viewer(canvas, model, cfg, tex, maps, opts = {}) {
     const L = k3LightState(); k3SetEnv(R, L); const sc = scene(); sc.L = L; K3GL.draw(R, sc);
     if (K3TW.anim || anim || auto) req();
   };
-  const req = () => { if (!raf) raf = requestAnimationFrame(t => { if (anim) anim(t); if (auto) { V.yaw += .006 * (K3.autoSpeed || 1); } paint(); }); };
+  const req = () => { if (!raf) raf = requestAnimationFrame(t => { if (anim) anim(t); if (auto) { V.yaw += .006 * (K3.autoSpeed || 1); opts.onCamera && opts.onCamera(); } paint(); }); };
   // cámara: arrastrar = girar, clic derecho o Shift = mover, rueda = acercar, doble clic = frente
   let drag = null; const dist0 = () => V.dist || fit.radius * 2.7;
   canvas.oncontextmenu = e => e.preventDefault();
@@ -464,12 +464,28 @@ function k3Viewer(canvas, model, cfg, tex, maps, opts = {}) {
   // cambio de piezas: la imagen anterior se funde mientras el modelo nuevo "se acomoda"
   function swap(m2, overlay) {
     if (overlay) { const g = overlay.getContext('2d'); overlay.width = canvas.width; overlay.height = canvas.height; g.drawImage(canvas, 0, 0); overlay.style.transition = 'none'; overlay.style.opacity = 1; overlay.getBoundingClientRect(); overlay.style.transition = 'opacity .45s ease'; requestAnimationFrame(() => { overlay.style.opacity = 0; }); }
-    model = m2; K3GL.upload(R, m2.parts); fit = k3Fit(m2.parts); const t0 = performance.now();
+    model = m2; triOf.clear(); K3GL.upload(R, m2.parts); fit = k3Fit(m2.parts); const t0 = performance.now();
     if (!ANIM.reduce.matches) { const cam = anim; anim = t => { if (cam) cam(t); const k = Math.min(1, (t - t0) / 450); grow = .965 + .035 * (1 - (1 - k) ** 3) + Math.sin(k * Math.PI) * .006; if (k >= 1) { grow = 1; anim = null; } }; }
     req();
   }
+  // dónde cae en pantalla (px del lienzo, sin dpr) un punto de la textura del kit; null si no está o queda tapado / de espaldas
+  const triOf = new Map();
+  function project(u, v) {
+    const key = (u * 1024 | 0) + ',' + (v * 1024 | 0); let hit = triOf.get(key);
+    if (hit === undefined) { hit = null;
+      for (const p of model.parts) { if (!/^(shirt|sleeve|shorts|socks)$/.test(p.k)) continue; for (const me of p.m.meshes) { if (!me.hasUV) continue; const T = me.uv, I = me.idx;
+        for (let i = 0; i < I.length && !hit; i += 3) { const a = I[i], b = I[i + 1], c = I[i + 2], x0 = T[a * 2], y0 = T[a * 2 + 1], x1 = T[b * 2] - x0, y1 = T[b * 2 + 1] - y0, x2 = T[c * 2] - x0, y2 = T[c * 2 + 1] - y0, d = x1 * y2 - x2 * y1; if (Math.abs(d) < 1e-12) continue;
+          const px = u - x0, py = v - y0, l1 = (px * y2 - x2 * py) / d, l2 = (x1 * py - px * y1) / d; if (l1 < -1e-4 || l2 < -1e-4 || l1 + l2 > 1 + 1e-4) continue;
+          const P = me.pos, q = k => P[a * 3 + k] + l1 * (P[b * 3 + k] - P[a * 3 + k]) + l2 * (P[c * 3 + k] - P[a * 3 + k]); hit = [q(0), q(1), q(2)]; } if (hit) break; } if (hit) break; }
+      if (triOf.size > 64) triOf.clear(); triOf.set(key, hit); }
+    if (!hit) return null; const sc = scene(), M = K3GL.matrices(R, sc).MVP, g = sc.grow || 1, X = hit[0] * g, Y = hit[1] * g, Z = hit[2] * g;
+    const cx = M[0] * X + M[4] * Y + M[8] * Z + M[12], cy = M[1] * X + M[5] * Y + M[9] * Z + M[13], cw = M[3] * X + M[7] * Y + M[11] * Z + M[15]; if (cw <= 0) return null;
+    const x = (cx / cw + 1) / 2 * canvas.width, y = (1 - cy / cw) / 2 * canvas.height, k = canvas.clientWidth / (canvas.width || 1), seen = K3GL.pick(R, sc, x, y);
+    if (!seen || Math.abs(seen.u - u) > .03 || Math.abs(seen.v - v) > .03) return null; // tapado o de espaldas
+    return { x: x * k, y: y * k };
+  }
   paint();
-  return { redraw: req, go, swap, spin: spin360, fit: () => fit,
+  return { redraw: req, go, swap, spin: spin360, fit: () => fit, project,
     front: () => go({ yaw: 0, pitch: .1 }), back: () => go({ yaw: Math.PI, pitch: .1 }), left: () => go({ yaw: Math.PI / 2, pitch: .1 }), right: () => go({ yaw: -Math.PI / 2, pitch: .1 }), threeq: () => go({ yaw: -.65, pitch: .22 }), top: () => go({ yaw: V.yaw, pitch: 1.05 }),
     close: () => go({ yaw: 0, pitch: .05, dist: fit.radius * 1.05, panX: 0, panY: fit.radius * .5 }), reset: () => go({ yaw: 0, pitch: .1, dist: 0, panX: 0, panY: 0, fov: 48 }),
     auto: on => { auto = on; req(); },

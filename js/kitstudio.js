@@ -611,6 +611,7 @@ function ksModeSeg(n) {
   return `<div class="seg ksmode" id="ksMode" aria-label="Sección de Kit Studio Pro">${b('list', `👕 Uniformes${n != null ? ` <small>${n}</small>` : ''}`)}${n != null ? b('edit', `🎥 Editor · ${esc(KS.sel)}`) : ''}${b('fonts', '🔤 Fuentes')}</div>`;
 }
 // Chrome no deja leer kitpos_slots.ini por su nombre: antes de mostrar el kit se pide elegirlo (si no, el nombre y los números no quedan donde los pone KitPos)
+let ksFloatResize = false;
 const ksGateOn = () => !!(KPS.st && KPS.st.lua && KPS.st.slots === 'hidden' && !KS.gateSkip);
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
@@ -672,19 +673,23 @@ function kitStudioCard(t) {
 const KS_DORS = [['name', [['Name', 'Mostrar'], ['NameY', 'Altura'], ['NameSize', 'Tamaño'], ['NameStretch', 'Ancho'], ['NameShape', 'Curva']]], ['num', [['BackNumberType', 'Dígitos'], ['BackNumberY', 'Altura'], ['BackNumberSize', 'Tamaño'], ['BackNumberSpacing', 'Separación de los dígitos']]],
   ['chest', [['ChestNumberSize', 'Tamaño (0 = sin número)'], ['ChestNumberX', 'Horizontal'], ['ChestNumberY', 'Vertical']]], ['leg', [['ShortsNumberSide', 'Pierna'], ['ShortsNumberX', 'Horizontal'], ['ShortsNumberY', 'Vertical'], ['ShortsNumberSize', 'Tamaño']]]];
 const KS_HUD = () => K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : KS.tool ? `${KPL_EL[KS.tool].n}: flechas para moverlo, + y − tamaño · Esc: soltar` : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda';
-// atajos sobre el 3D: qué mover, una cruz con flechas (se mantienen apretadas) y un círculo para arrastrar con el mouse
+// atajos sobre el 3D: abajo, qué mover; al lado del recuadro del elegido, una cruz con flechas (se mantienen apretadas), un círculo para
+// arrastrar con el mouse, tamaño, ancho y curva; arriba del nombre, una manija para curvarlo. ksFloat los acomoda al girar la cámara.
 function ksToolsHtml() {
   const els = Object.keys(KPL_EL), E = KS.tool && KPL_EL[KS.tool], tb = (a, l, tt, cls = '') => `<button type="button" class="k3tb ${cls}" data-tn="${a}" title="${tt}">${l}</button>`;
-  return `<div class="k3tools ${E ? 'on' : ''}" id="k3Tools" style="${E ? '--dc:' + E.col : ''}" aria-label="Atajos para mover el nombre y los números">
-    <div class="k3tsel">${els.map((el, i) => `<button type="button" data-tool="${el}" aria-pressed="${KS.tool === el}" style="--dc:${KPL_EL[el].col}" ${kplOn(el) ? '' : 'disabled'} title="${KS_DECAL_N[el]} (tecla ${i + 1})"><i></i>${KPL_EL[el].n}</button>`).join('')}</div>
-    ${E ? `<div class="k3tbody">
+  return `<div id="k3Tools" style="${E ? '--dc:' + E.col : ''}">
+    <div class="k3tools ${E ? 'on' : ''}" aria-label="Atajos para mover el nombre y los números">
+      <div class="k3tsel">${els.map((el, i) => `<button type="button" data-tool="${el}" aria-pressed="${KS.tool === el}" style="--dc:${KPL_EL[el].col}" ${kplOn(el) ? '' : 'disabled'} title="${KS_DECAL_N[el]} (tecla ${i + 1})"><i></i>${KPL_EL[el].n}</button>`).join('')}</div>
+      <p class="k3thint" id="k3THint">${E ? '' : 'Elegí qué mover'}</p>
+    </div>
+    ${E ? `<div class="k3float" id="k3Float" hidden>
       <div class="k3tpad">${tb('up', '▲', 'Subir (flecha arriba)', 'u')}${tb('left', '◀', 'A la izquierda (flecha izquierda)', 'l')}<div class="k3pad" id="k3Pad" title="Arrastrá con el mouse para moverlo · rueda: tamaño"><span>✥</span></div>${tb('right', '▶', 'A la derecha (flecha derecha)', 'r')}${tb('down', '▼', 'Bajar (flecha abajo)', 'd')}</div>
-      <div class="k3tcol">
-        <span class="k3tg">${tb('bigger', '＋', 'Más grande (+)')}${tb('smaller', '−', 'Más chico (−)')}</span>
-        ${E.wide ? `<span class="k3tg">${tb('wider', '↔', KS.tool === 'num' ? 'Más separación entre los dígitos (.)' : 'Más ancho (.)')}${tb('narrower', '→←', KS.tool === 'num' ? 'Menos separación entre los dígitos (,)' : 'Más angosto (,)')}</span>` : ''}
-        ${E.arc ? `<span class="k3tg">${tb('arcp', '◠', 'Más curva (])')}${tb('arcm', '▬', 'Menos curva ([)')}</span>` : ''}
-      </div></div>
-      <p class="k3tval" id="k3TVal" aria-live="polite"></p>` : '<p class="k3thint">Elegí qué mover</p>'}
+      <span class="k3tg">${tb('bigger', '＋', 'Más grande (+)')}${tb('smaller', '−', 'Más chico (−)')}</span>
+      ${E.wide ? `<span class="k3tg">${tb('wider', '↔', KS.tool === 'num' ? 'Más separación entre los dígitos (.)' : 'Más ancho (.)')}${tb('narrower', '→←', KS.tool === 'num' ? 'Menos separación entre los dígitos (,)' : 'Más angosto (,)')}</span>` : ''}
+      ${E.arc ? `<span class="k3tg">${tb('arcp', '◠', 'Más curva (])')}${tb('arcm', '▬', 'Menos curva ([)')}</span>` : ''}
+      <p class="k3tval" id="k3TVal" aria-live="polite"></p>
+    </div>
+    ${E.arc ? `<button type="button" class="k3arc" id="k3Arc" hidden title="Arrastrá hacia arriba o abajo para curvar el nombre"><span>◠</span> Curva</button>` : ''}` : ''}
   </div>`;
 }
 function ksEditHtml(t, ctl, slotCard) {
@@ -790,8 +795,10 @@ function bindKitStudio(t, m) {
     if (KS.view === 'mock') kplPaint(sh, KS.kplApi, KPL.drag ? KPL.drag.side : null);
     sh.querySelectorAll('canvas[data-slot]').forEach(c => { const T = ksTexOf(c.dataset.slot); if (!T) return; const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); const k = Math.min(c.width / T.width, c.height / T.height); if (KS_SLOTS.find(s => s.k === c.dataset.slot).font) { g.fillStyle = '#2a3038'; g.fillRect(0, 0, c.width, c.height); } g.drawImage(T, (c.width - T.width * k) / 2, (c.height - T.height * k) / 2, T.width * k, T.height * k); });
     const tx = $('ksTex'), T = KS.see && ksTexOf(KS.see); if (tx && T) { tx.width = T.width; tx.height = T.height; tx.getContext('2d').drawImage(T, 0, 0); }
+    if (KS.float) KS.float(); // los atajos siguen al recuadro
   };
   KS.draw = draw;
+  if (!ksFloatResize) { ksFloatResize = true; addEventListener('resize', () => KS.float && KS.float()); }
   const thumbs = async () => { const P = await k3Pack(), tex = ksDisplayTex(), maps = ksMaps(), M = KS.model; if (!M) return; const a = $('kpCollar'), b = $('kpShorts'), get = k => M.parts.find(p => p.k === k);
     if (a && get('collar')) { const th = k3Thumb([get('shirt'), get('collar')].filter(Boolean), tex, 'collar', 72, maps); a.getContext('2d').clearRect(0, 0, 72, 72); th && a.getContext('2d').drawImage(th, 0, 0); }
     if (b && get('shorts')) { const th = k3Thumb([get('shorts'), get('socks')].filter(Boolean), tex, 'shorts', 72, maps); b.getContext('2d').clearRect(0, 0, 72, 72); th && b.getContext('2d').drawImage(th, 0, 0); }
@@ -806,7 +813,7 @@ function bindKitStudio(t, m) {
       onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; if (KS.tool !== k) KS.tools(k, false); setHot(k); return true; },
       onGrabMove: hit => { if (!grab) return; if (ksKpOn()) { const fv = ksDecalVals0(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy, true); for (const [key, v] of Object.entries(fv)) ksKpSetSteps(key, v); kpChanged(); hud(KS_DECAL_N[grab.k] + ' (KitPos): ' + Object.entries(fv).map(([key, v]) => key + ' ' + (+v.toFixed(2))).join(', ')); return; } const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
       onGrabEnd: () => { grab = null; },
-      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; if (ksKpOn()) { const key = KS_DECAL_SIZE[k][0]; ksKpSetSteps(key, ksP(key) + dir * .5); kpChanged(); setHot(k); hud(KS_DECAL_N[k] + ' (KitPos): ' + key + ' paso ' + (+ksP(key).toFixed(2))); return true; } const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; } });
+      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; if (ksKpOn()) { const key = KS_DECAL_SIZE[k][0]; ksKpSetSteps(key, ksP(key) + dir * .5); kpChanged(); setHot(k); hud(KS_DECAL_N[k] + ' (KitPos): ' + key + ' paso ' + (+ksP(key).toFixed(2))); return true; } const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; }, onCamera: () => KS.float && KS.float() });
     if (!K3.viewer) { const i = $('k3Info'); if (i) i.textContent = 'Este navegador no tiene WebGL activado: no se puede mostrar la vista 3D.'; }
     cv.addEventListener('pointerdown', e => { if (K3.paint && e.button === 0 && !e.shiftKey) ksGlossPush(); }, true); };
   const modelKey = () => ['TightKit', 'ShortsModel', 'Collar', 'ShortSleevesModel'].map(k => cfgGet(KS.cfg, k)).join('|') + '|' + K3.sleeve + K3.socks + K3.tuck + K3.cap + KS.sel;
@@ -868,6 +875,11 @@ function bindKitStudio(t, m) {
       b.onpointerdown = e => { if (e.button) return; e.preventDefault(); const a = b.dataset.tn, f = e.shiftKey; act(a, f); const rep = d => { tm = setTimeout(() => { act(a, f); rep(70); }, d); }; rep(380); };
       b.onpointerup = b.onpointerleave = b.onpointercancel = stop;
       b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(b.dataset.tn, e.shiftKey); } }; });
+    // manija de la curva, arriba del nombre: arrastrar hacia arriba curva más, hacia abajo menos (o al revés)
+    const arc = $('k3Arc'); if (arc) { let D = null;
+      arc.onpointerdown = e => { if (e.button || !KS.tool || !kplCan(KS.tool, KS.kplApi)) return; e.preventDefault(); const k = KPL_EL[KS.tool].arc; if (!k) return; D = { y: e.clientY, k, s: ksP(k) }; arc.setPointerCapture(e.pointerId); arc.classList.add('drag'); };
+      arc.onpointermove = e => { if (!D) return; kplPut(D.k, D.s - (e.clientY - D.y) / 18, KS.kplApi); kpChanged(); tVal(); };
+      arc.onpointerup = arc.onpointercancel = () => { D = null; arc.classList.remove('drag'); }; }
     const pad = $('k3Pad'); if (pad) { let D = null; const lim = v => Math.max(-20, Math.min(20, v)) + 'px';
       pad.onpointerdown = e => { if (e.button || !KS.tool) return; e.preventDefault(); const mv = kplDragStart(KS.tool, KS.kplApi); if (!mv) return; D = { x: e.clientX, y: e.clientY, mv }; pad.setPointerCapture(e.pointerId); pad.classList.add('drag'); };
       pad.onpointermove = e => { if (!D) return; const dx = e.clientX - D.x, dy = e.clientY - D.y; D.mv(dx * .35, dy * .35); kpChanged(); tVal(); pad.style.setProperty('--dx', lim(dx)); pad.style.setProperty('--dy', lim(dy)); };
@@ -875,14 +887,25 @@ function bindKitStudio(t, m) {
       pad.onwheel = e => { if (!KS.tool) return; e.preventDefault(); act(e.deltaY < 0 ? 'bigger' : 'smaller'); }; }
     tVal();
   };
+  // los atajos van pegados al recuadro del elegido: se proyectan sus esquinas a la pantalla (si se ve de este lado)
+  const ksFloat = () => { if (ksFloat.raf) return; ksFloat.raf = requestAnimationFrame(() => { ksFloat.raf = 0;
+    const f = $('k3Float'), arc = $('k3Arc'), hint = $('k3THint'), st = sh.querySelector('.ks3d'), v = V3(), el = KS.tool, b = el && KS.decals && KS.decals[el]; if (!f || !st) return;
+    const pts = v && b && v.project ? [[0, 0], [-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]].map(([a, c]) => v.project((b.x + a * b.w) / 1024, (b.y + c * b.h) / 1024)).filter(Boolean) : [];
+    const show = pts.length >= 2; f.hidden = !show; if (arc) arc.hidden = !show; if (hint) hint.textContent = !el ? tr('Elegí qué mover') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
+    if (!show) return; const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), W = st.clientWidth, H = st.clientHeight, fw = f.offsetWidth, fh = f.offsetHeight;
+    let left = x1 + 16; if (left + fw > W - 8) left = x0 - 16 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
+    f.style.left = left + 'px'; f.style.top = Math.max(8, Math.min(H - fh - 8, (y0 + y1) / 2 - fh / 2)) + 'px';
+    if (arc) { arc.style.left = Math.max(8, Math.min(W - arc.offsetWidth - 8, (x0 + x1) / 2 - arc.offsetWidth / 2)) + 'px'; arc.style.top = Math.max(8, y0 - arc.offsetHeight - 10) + 'px'; }
+  }); };
+  KS.float = ksFloat;
   KS.tools = (k, cam = true) => {
     KS.tool = k && kplOn(k) ? k : null; KS.hot = KS.tool; if (KS.tool) KPL.sel = KS.tool;
     const box = $('k3Tools'); if (box) { box.outerHTML = ksToolsHtml(); bindTools(); }
     if (KS.tool && cam) { look(KS.tool); const cv = $('ks3d'); if (cv) cv.focus({ preventScroll: true }); }
-    draw(); const h = sh.querySelector('.k3hud span'); if (h) h.textContent = KS_HUD();
+    draw(); ksFloat(); const h = sh.querySelector('.k3hud span'); if (h) h.textContent = KS_HUD();
   };
   if (KS.tool && !kplOn(KS.tool)) KS.tool = null;
-  bindTools();
+  bindTools(); ksFloat();
   // teclado con el foco en el visor: 1 a 4 eligen, flechas mueven, + y − tamaño, [ ] curva, , . ancho; Esc suelta (las flechas vuelven a girar la cámara)
   const wrap = $('ks3dWrap');
   if (wrap) wrap.addEventListener('keydown', e => {

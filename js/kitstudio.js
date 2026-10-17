@@ -1015,9 +1015,12 @@ function bindKitStudio(t, m) {
   const ksFloat = () => { if (ksFloat.raf) return; ksFloat.raf = requestAnimationFrame(() => { ksFloat.raf = 0;
     const f = $('k3Float'), arc = $('k3Arc'), hint = $('k3THint'), st = sh.querySelector('.ks3d'), v = V3(), el = KS.tool, b = el && KS.decals && KS.decals[el]; if (!f || !st) return;
     const pts = v && b && v.project ? [[0, 0], [-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]].map(([a, c]) => v.project((b.x + a * b.w) / 1024, (b.y + c * b.h) / 1024)).filter(Boolean) : [];
-    const show = pts.length >= 2; f.hidden = !show; if (arc) arc.hidden = !show; if (hint) hint.textContent = !el ? tr('Click en el nombre o un número para ver sus opciones') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
+    const show = pts.length >= 2, was = !f.hidden; f.hidden = !show; if (arc) arc.hidden = !show;
+    // la entrada arranca dos cuadros después: así no se la come el trabajo de abrir el menú (cámara, texturas)
+    if (show && !was) { [f, arc].forEach(x => x && x.classList.remove('in')); requestAnimationFrame(() => requestAnimationFrame(() => [f, arc].forEach(x => x && x.classList.add('in')))); } if (hint) hint.textContent = !el ? tr('Click en el nombre o un número para ver sus opciones') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
     if (!show) return; const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), W = st.clientWidth, H = st.clientHeight, fw = f.offsetWidth, fh = f.offsetHeight;
-    let left = x1 + 44; if (left + fw > W - 8) left = x0 - 24 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
+    // con el visor a lo ancho (lista de equipos cerrada) el menú se corre más a la derecha, lejos de la camiseta
+    let left = Math.max(x1 + 44, st.closest('.kstall') ? W / 2 + W * .2 : 0); if (left + fw > W - 8) left = Math.max(8, Math.min(W - fw - 8, x1 + 44)); if (left + fw > W - 8) left = x0 - 24 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
     const cap = st.querySelector('.k3cap'), t0 = cap ? cap.offsetTop + cap.offsetHeight + 8 : 8; // sin tapar el nombre del equipo
     f.style.left = left + 'px'; f.style.top = Math.max(t0, Math.min(H - fh - 8, (y0 + y1) / 2 - fh / 2)) + 'px';
     if (arc) { arc.style.left = Math.max(8, Math.min(W - arc.offsetWidth - 8, (x0 + x1) / 2 - arc.offsetWidth / 2)) + 'px'; arc.style.top = Math.max(8, y0 - arc.offsetHeight - 10) + 'px'; }
@@ -1025,7 +1028,7 @@ function bindKitStudio(t, m) {
   KS.float = ksFloat;
   // cerrar el menú con animación (click afuera o Esc): el recuadro se desvanece y recién ahí se suelta lo elegido
   KS.closeTools = () => { if (!KS.tool || KS.closing) return; const f = $('k3Float'), arc = $('k3Arc'), done = () => { KS.closing = false; KS.tools(null, false); };
-    if (!f || f.hidden) { done(); return; } KS.closing = true; f.classList.add('out'); if (arc) arc.classList.add('out'); setTimeout(done, 200); };
+    if (!f || f.hidden) { done(); return; } KS.closing = true; f.classList.add('out'); if (arc) arc.classList.add('out'); setTimeout(done, 240); };
   ksToolsOutside();
   KS.tools = (k, cam = true) => {
     KS.tool = k && kplOn(k) ? k : null; KS.hot = KS.tool; if (KS.tool) KPL.sel = KS.tool;

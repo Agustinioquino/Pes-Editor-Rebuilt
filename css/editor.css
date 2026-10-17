@@ -900,11 +900,13 @@ html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 .k3tsel button.add{border-style:dashed;background:#0000;color:#fff;opacity:.85}.k3tsel button.add:hover{opacity:1;background:var(--dc);color:#111}
 .k3float[hidden],.k3arc[hidden]{display:none}
 /* el menú aparece y se va con un desvanecido de vidrio (click afuera o Esc) */
-.k3float,.k3arc{animation:k3in .22s cubic-bezier(.2,.8,.3,1)}
-.k3float.out,.k3arc.out{animation:k3out .2s ease-in forwards;pointer-events:none}
-@keyframes k3in{from{opacity:0;translate:0 8px;filter:blur(6px)}}
-@keyframes k3out{to{opacity:0;translate:0 8px;filter:blur(6px)}}
-@media (prefers-reduced-motion:reduce){.k3float,.k3arc,.k3float.out,.k3arc.out{animation-duration:1ms}}
+.k3float:not(.in),.k3arc:not(.in){opacity:0}
+.k3float.in,.k3arc.in{animation:k3in .3s cubic-bezier(.2,.8,.3,1)!important}
+.k3float.out,.k3arc.out{animation:k3out .24s ease-in forwards!important;pointer-events:none}
+@keyframes k3in{from{opacity:0;translate:0 10px;scale:.94;filter:blur(6px)}}
+@keyframes k3out{to{opacity:0;translate:0 10px;scale:.94;filter:blur(6px)}}
+/* sin movimiento (Windows con animaciones apagadas): solo se desvanece */
+@media (prefers-reduced-motion:reduce){@keyframes k3in{from{opacity:0}}@keyframes k3out{to{opacity:0}}}
 .k3float .k3tval{max-width:120px;font-size:.62rem;line-height:1.25}
 .k3fh{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:0 2px}.k3fh b{font-size:.78rem;letter-spacing:.02em;color:var(--dc,#fff)}
 .k3x{width:22px;height:22px;display:grid;place-items:center;border-radius:99px;border:1px solid #ffffff40;background:#ffffff14;color:#fff;font:inherit;font-size:.7rem;cursor:pointer}.k3x:hover{background:#ffffff33}

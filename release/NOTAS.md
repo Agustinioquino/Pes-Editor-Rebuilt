@@ -2,47 +2,57 @@
 
 <div align="center">
 
-# 🔤 Fonts move into Kit Studio, with their requirements
+# 👕 Kits in 3D, placed just like in the game
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.059-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.059-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-A small one, but it puts things where they belong. The shirt font creator now lives **inside Kit Studio Pro**, next to the kits it's made for. And before you start, it tells you **exactly what the game needs** to show it, and fixes it for you. 👕
+The 3D kit stops being a preview and becomes the place where you edit. **Click the name, move it, and it lands where the game will draw it.** No more guessing steps in config.txt and opening the game to check. 🎯
 
-## 🔤 Fonts, now a Kit Studio Pro section
+## 🎥 Editor and 3D viewer, together
 
-**Teams → pick the club → Kit Studio Pro** now has three sections: **👕 Uniforms · 🛠 Editor · 🔤 Fonts**.
+**Teams → pick the club → Kit Studio Pro → Editor** now puts the kit big in the middle, with the **🔢 Numbers, 💡 Light, 🎨 Image and ✨ Fabric** tabs on the side.
 
-- Fonts works on the team you're looking at, so there's no team list to pick from anymore.
-- **👁 View in the Editor** jumps to the 3D kit with the new font on, without saving it.
-- Teams without a kit folder can use it too: the font downloads as a .zip to copy by hand.
-- The separate Fonts tab at the top is gone.
+- A button on the left **hides the team list**, so the kit takes the whole width.
+- The help at the corner of the viewer is a row of see-through chips that fit the window: all of them on a wide screen, just one on a small one.
 
-<img alt="Kit Studio Pro with its three sections, Uniforms, Editor and Fonts, and the font creator open with its requirements box" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/fuentes-en.png" width="100%">
+<img alt="The 3D kit at full width with the name menu open on the right" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.059/visor-en.png" width="100%">
 
-## ✅ Requirements to see it in the game
+## 🎚 Click, slide, done
 
-At the top of Fonts there's a box with the four things the game needs. If your Sider folder is connected, each one says whether it's **Done** or **Missing**, and brings a button to fix it:
+Click the **name** or any **number** on the kit and a glass menu opens next to it:
 
-1. **Sider with kserv**: kserv.lua and the content\kit-server folder, where the kits live.
-2. **Download KitPos 6.4 or newer**: the Sider module that draws the name with your font, in Sider\modules\kitpos.lua. **Install KitPos** copies it for you, and **Download kitpos.lua** gives you the file to copy by hand.
-3. **Set it up in sider.ini**: it shows the exact lines (kitpos.lua below kserv.lua, with luajit.ext.enabled = 1), with **Copy lines** and **Fix sider.ini** (a backup is kept).
-4. **Lowercase enabled**: minusculas_juego = 1 in content\kitpos\kitpos_slots.ini, with an **Enable lowercase** button.
+- Bars for **height, size, width and curve**. You can also drag the element on the kit, or use the mouse wheel for size.
+- It **closes with a click outside** (or Esc) with a little animation, and a drag to turn the kit doesn't close it.
+- The **chest and shorts numbers** can be added or removed, and the shirt number switches between **7 and 07**.
 
-<img alt="The requirements box with the four steps marked Done" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/requisitos-en.png" width="70%">
+<img alt="The name menu with its four bars next to the kit" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.059/menu-en.png" width="70%">
 
-## 🧩 Sider modules come back by themselves
+## 📏 Where the game puts them
 
-- If sider.ini loads **edit21_db.lua** but the file isn't in modules (or it's an old one), the editor **puts it back when it opens**.
-- In the **Sider** tab, a module marked "File missing in modules" now has an **⬇ Install the file** button for the ones the editor comes with (edit21_db.lua and kitpos.lua).
-- If the file disappears right after being saved, the editor tells you: it's almost always the **antivirus**, and it explains how to restore it.
+The name, shirt number, chest number and shorts number are now drawn **in the same place and at the same size as in the game**. They were measured one by one from in-game screenshots with the KitPos panel open, including the name curve.
+
+- A label under the kit's name says where the positions come from: **config.txt** (kserv steps) or **📐 KitPos** (free position). If you play with KitPos and it says config.txt, pick kitpos_slots.ini in the 📐 Free position panel.
+- The name uses **the kit's own font** by default. KitPos fonts work too, from the kit's kitpos_letras.txt or from the general table in content\kitpos\minusculas.txt.
+
+## 🎨 The same in every graphics mode
+
+The new menu looks right in **Modern, Classic, Retro and PES 6**: square corners in Retro and PES 6, and white text on the glass so it reads over any kit.
+
+<img alt="The name menu in the four graphics modes: Modern, Classic, Retro and PES 6" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.059/modos.png" width="100%">
+
+## 👥 Players from the game database, complete
+
+- Players you bring into your EDIT from the game database (with dynamic rating or **Add to my EDIT**) now arrive **complete**: positions, strong foot, physique, skills, COM playing styles and style. The ones that had arrived incomplete **fix themselves**.
+- **Move the whole database to the EDIT** and **Back to the game database**, with a warning if the game database changes (an update or a mod).
+- In the **📂 Find EDIT** window, **Switch game** reloads the EDIT and the database, or jumps between Football Life and PES 2021. The editor remembers each game's Sider folder.
 
 ## ⬇️ Do I need to download anything?
 
 **No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it.
 
-> This is an alpha version and the fonts are still being tested in the game. If a letter shows up shifted or cut off, tell us in 💡 Ideas → Something's not working. ⚽
+> This is an alpha version and there are still bugs to iron out in Kit Studio. If something shows up shifted or doesn't match the game, tell us in 💡 Ideas → Something's not working. ⚽
 
 <br>
 
@@ -57,44 +67,54 @@ At the top of Fonts there's a box with the four things the game needs. If your S
 
 <div align="center">
 
-# 🔤 Las fuentes pasan a Kit Studio, con sus requisitos
+# 👕 Los kits en 3D, acomodados como en el juego
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.058-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.059-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.059-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-Una versión chica, pero que pone las cosas en su lugar. El creador de fuentes de la camiseta ahora vive **dentro de Kit Studio Pro**, al lado de los kits para los que se hace. Y antes de empezar te dice **exactamente qué necesita el juego** para mostrarla, y te lo arregla. 👕
+El kit en 3D deja de ser una vista previa y pasa a ser el lugar donde se edita. **Hacés click en el nombre, lo movés, y queda donde lo va a dibujar el juego.** Se terminó adivinar pasos en el config.txt y abrir el juego para ver cómo quedó. 🎯
 
-## 🔤 Fuentes, ahora una sección de Kit Studio Pro
+## 🎥 Editor y visor 3D, juntos
 
-**Equipos → elegí el club → Kit Studio Pro** ahora tiene tres secciones: **👕 Uniformes · 🛠 Editor · 🔤 Fuentes**.
+**Equipos → elegí el club → Kit Studio Pro → Editor** ahora muestra el kit en grande al medio, con las pestañas **🔢 Dorsales, 💡 Luz, 🎨 Imagen y ✨ Tela** al costado.
 
-- Fuentes trabaja con el equipo que estás viendo, así que ya no hay que elegirlo de una lista.
-- **👁 Ver en el Editor** salta al kit en 3D con la fuente nueva puesta, sin guardarla.
-- Los equipos sin carpeta de kits también pueden usarla: la fuente se baja en un .zip para copiarla a mano.
-- La pestaña Fuentes de arriba ya no está.
+- Un botón a la izquierda **esconde la lista de equipos** y el kit ocupa todo el ancho.
+- La ayuda en la esquina del visor son pastillas semitransparentes que se acomodan a la ventana: todas en una pantalla ancha, una sola en una chica.
 
-<img alt="Kit Studio Pro con sus tres secciones, Uniformes, Editor y Fuentes, y el creador de fuentes abierto con su cuadro de requisitos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/fuentes-es.png" width="100%">
+<img alt="El kit en 3D a lo ancho con el menú del nombre abierto a la derecha" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.059/visor-es.png" width="100%">
 
-## ✅ Requisitos para verla en el juego
+## 🎚 Click, deslizás y listo
 
-Arriba de Fuentes hay un cuadro con las cuatro cosas que necesita el juego. Si tu carpeta Sider está conectada, cada una dice si está **Listo** o **Falta**, y trae un botón para arreglarlo:
+Hacé click en el **nombre** o en cualquier **número** del kit y al lado se abre un menú de vidrio:
 
-1. **Sider con kserv**: kserv.lua y la carpeta content\kit-server, donde viven los kits.
-2. **Descargar KitPos 6.4 o más nuevo**: el módulo de Sider que dibuja el nombre con tu fuente, en Sider\modules\kitpos.lua. **Instalar KitPos** lo copia solo, y **Descargar kitpos.lua** te da el archivo para copiarlo a mano.
-3. **Configurarlo en sider.ini**: muestra las líneas exactas (kitpos.lua debajo de kserv.lua, con luajit.ext.enabled = 1), con **Copiar líneas** y **Arreglar sider.ini** (se guarda una copia).
-4. **Minúsculas activadas**: minusculas_juego = 1 en content\kitpos\kitpos_slots.ini, con un botón **Activar minúsculas**.
+- Barras para **altura, tamaño, ancho y curva**. También podés arrastrar el elemento sobre el kit, o usar la rueda del mouse para el tamaño.
+- **Se cierra con un click afuera** (o con Esc) con una pequeña animación, y arrastrar para girar el kit no lo cierra.
+- El **número del pecho y el del short** se agregan o se quitan, y el dorsal cambia entre **7 y 07**.
 
-<img alt="El cuadro de requisitos con los cuatro pasos en Listo" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.058/requisitos-es.png" width="70%">
+<img alt="El menú del nombre con sus cuatro barras al lado del kit" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.059/menu-es.png" width="70%">
 
-## 🧩 Los módulos de Sider vuelven solos
+## 📏 Donde los pone el juego
 
-- Si sider.ini carga **edit21_db.lua** pero el archivo no está en modules (o es uno viejo), el editor **lo vuelve a poner al abrirse**.
-- En la pestaña **Sider**, un módulo con "Falta el archivo en modules" ahora trae el botón **⬇ Instalar el archivo** para los que trae el editor (edit21_db.lua y kitpos.lua).
-- Si el archivo desaparece justo después de guardarlo, el editor te avisa: casi siempre es el **antivirus**, y te explica cómo recuperarlo.
+El nombre, el dorsal, el número del pecho y el del short ahora se dibujan **en el mismo lugar y del mismo tamaño que en el juego**. Se midieron uno por uno con capturas del juego con el panel de KitPos abierto, la curva del nombre incluida.
+
+- Una etiqueta debajo del nombre del kit dice de dónde salen las posiciones: **config.txt** (los pasos de kserv) o **📐 KitPos** (posición libre). Si jugás con KitPos y dice config.txt, elegí kitpos_slots.ini en el panel 📐 Posición libre.
+- El nombre usa **la letra del propio kit**. Las fuentes de KitPos también andan, con el kitpos_letras.txt del kit o con la tabla general de content\kitpos\minusculas.txt.
+
+## 🎨 Igual en todos los modos gráficos
+
+El menú nuevo se ve bien en **Moderno, Clásico, Retro y PES 6**: esquinas rectas en Retro y PES 6, y texto blanco sobre el vidrio para que se lea sobre cualquier kit.
+
+<img alt="El menú del nombre en los cuatro modos gráficos: Moderno, Clásico, Retro y PES 6" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.059/modos.png" width="100%">
+
+## 👥 Jugadores de la base del juego, completos
+
+- Los jugadores que pasás de la base del juego a tu EDIT (con la media por rendimiento o con **Agregar a mi EDIT**) ahora llegan **completos**: posiciones, pie hábil, físico, habilidades, jugadas COM y estilo. Los que habían pasado incompletos **se arreglan solos**.
+- **Pasar toda la base al EDIT** y **Volver a la base del juego**, con un aviso si la base del juego cambia (una actualización o un mod).
+- En la ventana **📂 Buscar EDIT**, **Cambiar de juego** vuelve a cargar el EDIT y la base, o salta entre Football Life y PES 2021. El editor recuerda la carpeta Sider de cada juego.
 
 ## ⬇️ ¿Tengo que descargar algo?
 
 **No.** Todo esto está en el editor, y la app de Windows lo carga sola desde internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés.
 
-> Es una versión alfa y las fuentes todavía se están probando en el juego. Si una letra sale corrida o cortada, avisanos en 💡 Ideas → Algo no anda. ⚽
+> Es una versión alfa y todavía quedan bugs por pulir en Kit Studio. Si algo sale corrido o no coincide con el juego, avisanos en 💡 Ideas → Algo no anda. ⚽

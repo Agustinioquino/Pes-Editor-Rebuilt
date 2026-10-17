@@ -90,6 +90,8 @@ function sfx(kind) {
     else { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); for (let n; (n = w.nextNode());) texts.push(n); }
     for (const n of texts) {
       const p = n.parentNode; if (!p || p.nodeType !== 1 || p.classList.contains('emo') || SKIP.test(p.nodeName) || p.closest('button,.btn') || !p.closest('.card') || !EMO.test(n.data)) continue;
+      // se traduce antes de partirlo: el diccionario tiene la frase entera, con el emoji
+      if (typeof tr === 'function') { const t = tr(n.data); if (t !== n.data) n.data = t; }
       const parts = n.data.split(EMO), f = document.createDocumentFragment();
       parts.forEach((t, i) => { if (!t) return; if (i % 2) { const s = document.createElement('span'); s.className = 'emo'; s.textContent = t; f.appendChild(s); } else f.appendChild(document.createTextNode(t)); });
       p.replaceChild(f, n);

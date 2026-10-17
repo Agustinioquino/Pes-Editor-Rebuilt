@@ -123,6 +123,13 @@ async function sdbBin(st, name) {
   const b = new Uint8Array(await f.arrayBuffer()); return typeof gdbPlain === 'function' ? gdbPlain(b) : b;
 }
 
+// el físico de los jugadores (PlayerAppearance.bin no está en pesdb): la copia del módulo (v1.6) o los archivos del juego
+async function sdbAppearanceBin(st) {
+  const b = await sdbBin(st, 'PlayerAppearance.bin'); if (b) return b;
+  const scan = typeof GDB !== 'undefined' && GDB.scan, f = scan && scan.files.get('playerappearance.bin');
+  return f ? await f.get() : null;
+}
+
 // ---- lectura de los archivos de la base ----
 async function sdbUnpack(bytes) {
   let b = bytes;

@@ -54,7 +54,8 @@ const FIELD_FLAGS = k => {
 };
 const NO_RIVAL = 262143;
 // Player.bin (game database) ability layout, reverse-engineered: value-40 stored in 6 bits at these bit offsets
-const DB_ABIL = { atk: 370, drib: 352, loftpass: 402, finish: 396, place_kick: 250, swerve: 332, kick_pwr: 358, speed: 306, exp_pwr: 344, stamina: 338, def: 275, ball_win: 312, aggres: 384, jump: 294, header: 288, lowpass: 263, body_ctrl: 376, phys_cont: 390, ball_ctrl: 281, tight_pos: 416, gk: 269, catching: 300, clearing: 320, reflex: 326, cover: 364 };
+// (las cinco de arquero se comprobaron con arqueros que el juego guardó en el EDIT y con 300 arqueros de PES Master)
+const DB_ABIL = { atk: 370, drib: 352, loftpass: 402, finish: 396, place_kick: 250, swerve: 332, kick_pwr: 358, speed: 306, exp_pwr: 344, stamina: 338, def: 275, ball_win: 312, aggres: 384, jump: 294, header: 288, lowpass: 263, body_ctrl: 376, phys_cont: 390, ball_ctrl: 281, tight_pos: 416, gk: 326, catching: 364, clearing: 269, reflex: 320, cover: 300 };
 const T_ = PesTables;
 const COUNTRY = new Map(T_.countries.map(c => [c[0], c[1]]));
 const BOOTS = new Map(T_.boots.map(c => [c[0], c[1]]));
@@ -238,7 +239,7 @@ const RATE_MODEL = [
   ['atk:88 ball_ctrl:88 drib:71 tight_pos:47 lowpass:54 loftpass:68 finish:75 header:26 place_kick:26 swerve:18 speed:63 exp_pwr:91 kick_pwr:47 jump:34 phys_cont:33 body_ctrl:45 stamina:48 def:20 ball_win:29 aggres:30', [51.1, 69.49, 86.14, 99.11, 109]], // SS
   ['atk:131 ball_ctrl:106 drib:60 tight_pos:40 lowpass:24 loftpass:30 finish:153 header:42 place_kick:25 swerve:26 speed:37 exp_pwr:45 kick_pwr:31 jump:37 phys_cont:57 body_ctrl:40 stamina:30 def:27 ball_win:33 aggres:25', [51.54, 69.4, 86.43, 99.8, 109]], // CF
 ].map(([w, c]) => { const ws = w.split(' ').map(x => x.split(':')).map(([k, v]) => [k, +v]), t = ws.reduce((a, x) => a + x[1], 0); return { w: ws.map(([k, v]) => [k, v / t]), c }; });
-const RATE_KN = [60, 70, 80, 90, 99], RATING_V = 3;
+const RATE_KN = [60, 70, 80, 90, 99], RATING_V = 4;
 const rateCap = pos => Math.min((RATE_MODEL[pos] || RATE_MODEL[5]).c[4], rateTop());
 // el tope de la valoración depende del juego: PES 2021 llega a 109 y Football Life muestra como máximo 104 (visto en el
 // juego). Se sabe por la carpeta del EDIT abierto (Football Life guarda en …\2026\save) o, si el EDIT se abrió a mano,
@@ -268,9 +269,10 @@ function posFormula(pos, ab, raw) {
 }
 function rating(p) { return Math.round(posFormula(pget(p, 'reg_pos'), k => pget(p, k))); }
 // media en un puesto que no es el suyo (como la muestra el juego en la alineación): A sin castigo, B −6, C −7 (medido en el juego)
-const DB_POSFLAG = { 1: 468, 3: 474, 4: 414, 5: 456, 6: 466, 7: 460, 8: 464, 9: 472, 10: 476, 11: 478, 12: 470 };
+// puestos que puede jugar en Player.bin (2 bits por puesto: 0 no, 1 B, 2 A), por número de puesto (0 PT … 12 CD)
+const DB_POSFLAG = { 0: 350, 1: 468, 2: 318, 3: 474, 4: 414, 5: 456, 6: 466, 7: 460, 8: 464, 9: 472, 10: 476, 11: 478, 12: 470 };
 function abilOf(pid) { const p = S.ix && S.ix.byId.get(pid); if (p) return k => pget(p, k); if (DBRAW && DBRAW.off.has(pid)) { const o = DBRAW.off.get(pid); return k => dbBits(o, DB_ABIL[k], 6) + 40; } return null; }
-function posFlag(pid, role) { const p = S.ix && S.ix.byId.get(pid); if (p) return pget(p, 'pos' + role); if (DBRAW && DBRAW.off.has(pid) && DB_POSFLAG[role] != null) return dbBits(DBRAW.off.get(pid), DB_POSFLAG[role], 2); return null; }
+function posFlag(pid, role) { const p = S.ix && S.ix.byId.get(pid); if (p) return pget(p, 'pos' + POS_TO_PP[role]); if (DBRAW && DBRAW.off.has(pid) && DB_POSFLAG[role] != null) return dbBits(DBRAW.off.get(pid), DB_POSFLAG[role], 2); return null; }
 function slotRating(pid, role) {
   const b = pInfoBase(pid); if (!b || role == null || role === b.pos) return b ? b.r : null;
   const ab = abilOf(pid); if (!ab) return b.r;
@@ -348,6 +350,7 @@ function openBytes(bytes, name) {
   S.player = S.ix.players.length ? S.ix.players[0].id : null;
   $('bNames').disabled = false; $('gq').disabled = false; $('bReload').disabled = !S.editHandle;
   gameRefresh(); updateTop(); render();
+  if (DBRAW && repairEditPlayers()) render();
 }
 async function openFile(file) {
   try {
@@ -360,13 +363,36 @@ async function openFile(file) {
 // ---- base del juego (Player.bin) → entradas del EDIT ----
 let DBRAW = null;
 // campos de la sección "Habilidad" del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
-const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30] });
+const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30], strong_foot: [514, 1, 0] });
 function dbBits(o, pos, n) { const b = DBRAW.b; let v = 0; for (let i = 0; i < n; i++) { const q = pos + i; if ((b[o + (q >> 3)] >> (q & 7)) & 1) v |= 1 << i; } return v; }
 function dbStr(o, l) { const s = DBRAW.b.subarray(o, o + l), z = s.indexOf(0); return new TextDecoder().decode(z < 0 ? s : s.subarray(0, z)); }
 // peso en la base del juego: 7 bits desde el bit 256, en kg menos 30 (comprobado con la base de Football Life 2026)
 const dbWeight = id => { const o = DBRAW && DBRAW.off.get(id); return o == null ? null : dbBits(o, 256, 7) + 30; };
 const canMakeEditPlayer = id => !!(DBRAW && DBRAW.off.has(id));
-// agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, el resto lo sigue tomando el juego
+// físico y apariencia de la base (common\character0\model\character\appearance\PlayerAppearance.bin): registros de
+// 60 bytes, el id y los mismos 56 bytes que el EDIT guarda desde +0xFC (cuerpo, cabeza, piel, accesorios)
+let DBAPP = null;
+const APP_REC = 60, EDIT_APP = 0xFC;
+async function appearanceFromBin(bytes) {
+  let b = bytes;
+  if (b[3] === 0x57 && b[4] === 0x45 && b[5] === 0x53 && b[6] === 0x59 && b[7] === 0x53) b = new Uint8Array(await new Response(new Blob([b.subarray(16)]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  if (!b.length || b.length % APP_REC) throw new Error('No parece un PlayerAppearance.bin de PES 2021.');
+  const off = new Map(); for (let o = 0; o < b.length; o += APP_REC) off.set((b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0, o);
+  DBAPP = { b, off }; return off.size;
+}
+// la parte de "Apariencia" de un jugador del EDIT: la de la base si está; si no, un cuerpo normal (todo en 0, no en -7)
+function setEditLook(start, id) {
+  const w = (o, v) => { S.d[o] = v & 255; S.d[o + 1] = v >> 8 & 255; S.d[o + 2] = v >> 16 & 255; S.d[o + 3] = v >>> 24 & 255; };
+  w(start + 0xF0, id);
+  const a = DBAPP && DBAPP.off.get(id);
+  if (a != null) { S.d.set(DBAPP.b.subarray(a + 4, a + APP_REC), start + EDIT_APP); return true; }
+  for (const [k] of BODY) PD.player.set(S.d, start, k, 7);
+  return false;
+}
+// posiciones de la base en el EDIT (el EDIT las guarda en otro orden: POS_TO_PP)
+function setEditPositions(start, o) { for (const [role, bit] of Object.entries(DB_POSFLAG)) PD.player.set(S.d, start, 'pos' + POS_TO_PP[role], dbBits(o, bit, 2)); }
+// agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, pero el registro lleva todo lo que el juego
+// lee del EDIT aunque no esté marcado (posiciones, peso, físico); si faltara, el jugador queda sin posiciones y con todo en -7
 function editPlayersRegion(extra) { const n = S.d[96] | S.d[97] << 8; return [[96, 2], [0x7C, (n + extra) * 0x138]]; }
 function insertEditPlayers(ids) {
   const made = [];
@@ -382,11 +408,41 @@ function insertEditPlayers(ids) {
     set('id', id); set('comm_id', id);
     for (const [key, [pos, bits, add]] of Object.entries(DB_TO_EDIT())) set(key, dbBits(o, pos, bits) + add);
     set('name', dbStr(o + 0xFB, 61)); set('shirt', dbStr(o + 0x81, 61)); set('shirt_nt', dbStr(o + 0xBE, 61)); set('height', DBRAW.b[o + 0x1B] + 100);
+    setEditPositions(start, o); setEditLook(start, id);
     set('e_ability', 1);
     made.push(id);
     S.ix = PD.index(S.d, S.f.game);
   }
   return made;
+}
+// jugadores que versiones anteriores agregaron desde la base sin posiciones, peso ni físico (en el juego, sin puestos y
+// con el cuerpo en -7) y con las habilidades de arquero cruzadas. Se reconocen porque no tienen ningún puesto marcado,
+// ni siquiera el suyo, algo que el juego nunca guarda; sus habilidades (y la media que se les cargó) se respetan.
+const GK_FIX = { gk: 'reflex', catching: 'cover', clearing: 'gk', reflex: 'clearing', cover: 'catching' };
+function brokenEditPlayers() {
+  if (!S.d || !S.ix || !DBRAW) return [];
+  return S.ix.players.filter(p => { const o = DBRAW.off.get(p.id); return o != null && POS_TO_PP.every(i => !pget(p, 'pos' + i)) && Object.values(DB_POSFLAG).some(b => dbBits(o, b, 2)); });
+}
+function repairEditPlayers() {
+  const list = brokenEditPlayers(); if (!list.length) return 0;
+  edit('Arreglar ' + list.length + ' jugadores agregados desde la base', 'players', list.map(p => [p.base, 0x138]), () => {
+    for (const p of list) {
+      const o = DBRAW.off.get(p.id), old = Object.fromEntries(Object.keys(GK_FIX).map(k => [k, pget(p, k)]));
+      for (const [k, from] of Object.entries(GK_FIX)) PD.player.set(S.d, p.base, k, old[from]);
+      setEditPositions(p.base, o);
+      PD.player.set(S.d, p.base, 'strong_foot', dbBits(o, 514, 1));
+      if (!pget(p, 'weight')) PD.player.set(S.d, p.base, 'weight', dbBits(o, 256, 7) + 30);
+      if (BODY.every(([k]) => !pget(p, k))) setEditLook(p.base, p.id);
+    }
+  });
+  RATE_GEN++;
+  toast(list.length === 1 ? `Arreglé a ${playerName(list[0].id) || 'un jugador'}: se había agregado desde la base sin posiciones ni físico. Guardá el EDIT para llevarlo al juego.` : `Arreglé ${list.length} jugadores que se habían agregado desde la base sin posiciones ni físico. Guardá el EDIT para llevarlo al juego.`, 9000, ['Deshacer', undo]);
+  return list.length;
+}
+// después de leer la base: el físico (PlayerAppearance.bin) y el arreglo de los jugadores agregados con datos vacíos
+async function dbAfterLoad(st) {
+  try { const a = typeof sdbAppearanceBin === 'function' ? await sdbAppearanceBin(st) : null; if (a) await appearanceFromBin(a); } catch { }
+  if (S.d && repairEditPlayers()) render();
 }
 async function namesFromBin(bytes) {
   let b = bytes;

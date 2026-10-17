@@ -5,7 +5,8 @@
 // cada .cpk (unos pocos KB), saca los .bin de la base y los descomprime (CRILAYLA). Encima van las carpetas de Sider
 // (cpk.root de sider.ini y el resto de livecpk), que es lo que el juego usa primero. No escribe nada.
 const GDB = { game: null, scan: null, at: 0 };
-const GDB_RE = /(^|\/)common\/etc\/pesdb\/([^/]+\.bin)$/i;
+const GDB_RE = /(^|\/)common\/(?:etc\/pesdb|character0\/model\/character\/appearance)\/([^/]+\.bin)$/i;
+const GDB_DIRS = ['common/etc/pesdb', 'common/character0/model/character/appearance'];
 
 // un pedazo de un archivo grande sin leerlo entero (en la app de Windows, con readRange)
 async function gdbRead(h, off, len) {
@@ -115,8 +116,10 @@ async function gdbScan(game, sider) {
     let roots = []; try { roots = await siderCpkRoots(sider); } catch { }
     const seen = new Set();
     for (const r of roots) {
-      let d; try { d = await subDir(r, 'common/etc/pesdb'); } catch { continue; }
-      try { for await (const [n, h] of d.entries()) { const k = n.toLowerCase(); if (h.kind !== 'file' || !/\.bin$/.test(k) || seen.has(k)) continue; seen.add(k); files.set(k, { name: n, from: 'Sider: ' + r.name, when: await gdbWhen(h), get: async () => gdbPlain(new Uint8Array(await (await h.getFile()).arrayBuffer())) }); } } catch { }
+      for (const sub of GDB_DIRS) {
+        let d; try { d = await subDir(r, sub); } catch { continue; }
+        try { for await (const [n, h] of d.entries()) { const k = n.toLowerCase(); if (h.kind !== 'file' || !/\.bin$/.test(k) || seen.has(k)) continue; seen.add(k); files.set(k, { name: n, from: 'Sider: ' + r.name, when: await gdbWhen(h), get: async () => gdbPlain(new Uint8Array(await (await h.getFile()).arrayBuffer())) }); } } catch { }
+      }
     }
   }
   return { files, cpks: cpks.length, exe: await gdbExe(game) };

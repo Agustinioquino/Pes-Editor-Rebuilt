@@ -411,7 +411,7 @@ function ksDrawDecals(g, S, only, D) {
 }
 // nombre genérico (letra común del color de los números) en vez de la fuente del kit: la fuente puede no estar o no
 // leerse bien (una de KitPos sin su kitpos_letras.txt, por ejemplo). Se elige en el panel Dorsales.
-const ksGenName = () => PREFS.ksNameFont !== 'kit' || !ksNameFontOk();
+const ksGenName = () => PREFS.ksNameFont === 'gen' || !ksNameFontOk(); // por defecto, la letra del kit (si se puede leer)
 function ksNameFontOk() { const T = ksTexOf('name'); return !!T && (!!T.__kp || Math.abs(T.width / T.height - 4) < .01); } // la del juego es 4096 × 1024
 function ksNameColor() {
   const T = ksTexOf('back'); if (!T) return inkFor(cfgGet(KS.cfg, 'ShirtColor1') || '#888888');
@@ -693,7 +693,7 @@ function kitStudioCard(t) {
 // cada grupo con sus valores del config.txt y un nombre corto (el grupo ya dice de qué se trata); el primero de cada grupo se ve aunque el elemento esté apagado
 const KS_DORS = [['name', [['Name', 'Mostrar'], ['NameY', 'Altura'], ['NameSize', 'Tamaño'], ['NameStretch', 'Ancho'], ['NameShape', 'Curva']]], ['num', [['BackNumberType', 'Dígitos'], ['BackNumberY', 'Altura'], ['BackNumberSize', 'Tamaño'], ['BackNumberSpacing', 'Separación de los dígitos']]],
   ['chest', [['ChestNumberSize', 'Tamaño'], ['ChestNumberX', 'Horizontal'], ['ChestNumberY', 'Vertical']]], ['leg', [['ShortsNumberSide', 'Pierna'], ['ShortsNumberX', 'Horizontal'], ['ShortsNumberY', 'Vertical'], ['ShortsNumberSize', 'Tamaño']]]];
-const KS_HUD = () => K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : KS.tool ? `${KPL_EL[KS.tool].n}: flechas para moverlo, + y − tamaño · Esc: soltar` : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda';
+const KS_HUD = () => K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : KS.tool ? `${KPL_EL[KS.tool].n}: flechas para moverlo, + y − tamaño · Esc o click afuera: cerrar` : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda';
 // atajos sobre el 3D: abajo, qué mover (y + para agregar el número del pecho o del short); al lado del recuadro del elegido,
 // deslizadores que se arrastran con el mouse (altura, tamaño, ancho, curva); arriba del nombre, una manija para curvarlo.
 // ksFloat los acomoda al girar la cámara.
@@ -713,9 +713,11 @@ function ksToolsHtml() {
     <div class="k3tools ${E ? 'on' : ''}" aria-label="Atajos para mover el nombre y los números">
       <div class="k3tsel">${els.map((el, i) => kplOn(el) ? `<button type="button" data-tool="${el}" aria-pressed="${KS.tool === el}" style="--dc:${KPL_EL[el].col}" title="${KS_DECAL_N[el]} (tecla ${i + 1})"><i></i>${KPL_EL[el].n}</button>`
         : canAdd(el) ? `<button type="button" class="add" data-addel="${el}" style="--dc:${KPL_EL[el].col}" title="Agregar: ${KS_DECAL_N[el]}">＋ ${KPL_EL[el].n}</button>` : `<button type="button" disabled style="--dc:${KPL_EL[el].col}"><i></i>${KPL_EL[el].n}</button>`).join('')}</div>
-      <p class="k3thint" id="k3THint">${E ? '' : 'Elegí qué mover'}</p>
+      <p class="k3thint" id="k3THint">${E ? '' : 'Click en el nombre o un número para ver sus opciones'}</p>
     </div>
     ${E ? `<div class="k3float" id="k3Float" hidden>
+      <div class="k3fh"><b>${E.n}</b><button type="button" class="k3x" id="k3Close" title="Cerrar (Esc o click afuera)" aria-label="Cerrar">✕</button></div>
+      <p class="k3fhelp">Subí o bajá cada barra, o arrastrá ${({ name: 'el nombre', num: 'el número', chest: 'el número', leg: 'el número' })[KS.tool]} en el kit</p>
       <div class="k3sls">${KS_SLIDE[KS.tool].filter(k => !/X$/.test(k)).map(sl).join('')}</div>
       ${KS_SLIDE[KS.tool].filter(k => /X$/.test(k)).map(sl).join('')}
       ${KS.tool === 'num' ? `<div class="k3ty" id="k3Type" title="Tipo de número (BackNumberType del config.txt)">${[['0', '7', 'Normal: una cifra si el número es menor que 10'], ['1', '07', 'Siempre dos cifras']].map(([v, l, tt]) => `<button type="button" data-v="${v}" aria-pressed="${(cfgGet(KS.cfg, 'BackNumberType') || '0') === v}" title="${tt}">${l}</button>`).join('')}</div>` : ''}
@@ -724,6 +726,16 @@ function ksToolsHtml() {
     </div>
     ${E.arc ? `<button type="button" class="k3arc" id="k3Arc" hidden title="Arrastrá hacia arriba o abajo para curvar el nombre"><span>◠</span> Curva</button>` : ''}` : ''}
   </div>`;
+}
+// click afuera del menú del 3D: lo cierra (un click en el visor que no toca el nombre ni un número también; girar la cámara no)
+function ksToolsOutside() {
+  if (ksToolsOutside.on) return; ksToolsOutside.on = true; let down = null;
+  document.addEventListener('pointerdown', e => { down = null; if (!KS.tool || !document.getElementById('k3Float') || e.button) return;
+    if (e.target.closest('#k3Float,#k3Arc,#k3Tools,.k3hud')) return;
+    if (e.target.id === 'ks3d') { down = { x: e.clientX, y: e.clientY, t: performance.now() }; return; }
+    KS.closeTools && KS.closeTools(); }, true);
+  document.addEventListener('pointerup', e => { const d = down; down = null; if (!d || !KS.tool) return;
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5 || (KS.grabT || 0) >= d.t) return; KS.closeTools && KS.closeTools(); }, true);
 }
 // pone o saca el nombre, el número del pecho o el del short: en el config.txt (kserv) y, si está KitPos, también en kitpos_slots.ini
 // (KitPos oculta con tamaño 0; kserv saca el del pecho sin ChestNumbersFile y el del short con 30 en Horizontal)
@@ -812,7 +824,8 @@ function ksEditHtml(t, ctl, slotCard) {
   const side = v3 ? KS.pane || 'dor' : 'dor', pane = (k, html) => `<div class="kspane" data-pane="${k}" ${side === k ? '' : 'hidden'}>${html}</div>`;
   const nameOk = ksNameFontOk();
   const dorsales = `<div class="row ksample ${ksTexOf('name') && ksTexOf('name').__kp && !ksGenName() ? 'kp' : ''}"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba"></div>
-    <div class="f"><span class="lab">Letra del nombre</span>${`<div class="seg k3seg" id="ksNameFont">${[['gen', 'Genérica'], ['kit', 'La del kit']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(ksGenName() ? 'gen' : 'kit') === v}" ${v === 'kit' && !nameOk ? 'disabled title="La textura del nombre de este kit no tiene letras que se puedan leer"' : ''}>${n}</button>`).join('')}</div>`}</div>
+    <div class="f"><span class="lab">Letra del nombre</span>${`<div class="seg k3seg" id="ksNameFont">${[['kit', 'La del kit'], ['gen', 'Genérica']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(ksGenName() ? 'gen' : 'kit') === v}" ${v === 'kit' && !nameOk ? 'disabled title="La textura del nombre de este kit no tiene letras que se puedan leer"' : ''}>${n}</button>`).join('')}</div>`}</div>
+    <p class="note">${!nameOk ? 'Este kit no trae una letra de nombre que el editor pueda leer (si es de KitPos, falta kitpos_letras.txt en la carpeta del kit): se muestra una genérica.' : ksGenName() ? 'Se muestra una letra genérica. Elegí "La del kit" para verla como en el juego.' : 'El nombre se ve con la letra del kit, como en el juego.'}</p>
     ${v3 ? `<label class="chk"><input type="checkbox" id="k3Place" ${K3.place ? 'checked' : ''}> ✥ Mover con el mouse en el 3D</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label>` : ''}
     ${KS_DORS.map(dor).join('')}
     <p class="note">${kp ? 'KitPos está activo: los valores exactos (con decimales) están en 📐 Posición libre, abajo.' : 'Cada control es un paso del config.txt del kit, como en el juego.'} "Guardar kit" lo anota en el kit.</p>
@@ -901,8 +914,8 @@ function bindKitStudio(t, m) {
     const setHot = k => { k = k || KS.tool || null; if (KS.hot === k) return; KS.hot = k; draw(); };
     let grab = null;
     K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { grade: true, onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
-      onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
-      onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; if (KS.tool !== k) KS.tools(k, false); setHot(k); return true; },
+      onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': click para ver las opciones · arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
+      onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; KS.grabT = performance.now(); const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; if (KS.tool !== k) KS.tools(k, false); setHot(k); return true; },
       onGrabMove: hit => { if (!grab) return; if (ksKpOn()) { const fv = ksDecalVals0(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy, true); for (const [key, v] of Object.entries(fv)) ksKpSetSteps(key, v); kpChanged(); hud(KS_DECAL_N[grab.k] + ' (KitPos): ' + Object.entries(fv).map(([key, v]) => key + ' ' + (+v.toFixed(2))).join(', ')); return; } const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
       onGrabEnd: () => { grab = null; },
       onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; if (ksKpOn()) { const key = KS_DECAL_SIZE[k][0]; ksKpSetSteps(key, ksP(key) + dir * .5); kpChanged(); setHot(k); hud(KS_DECAL_N[k] + ' (KitPos): ' + key + ' paso ' + (+ksP(key).toFixed(2))); return true; } const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; }, onCamera: () => KS.float && KS.float() });
@@ -978,6 +991,7 @@ function bindKitStudio(t, m) {
       w.querySelectorAll('.k3si').forEach((ic, i) => ic.onclick = () => put(ksP(k) + kplStep() * ((i === 0) === !h ? 1 : -1) * (flip ? -1 : 1))); });
     // agregar o quitar el número del pecho, el del short o el nombre; tipo de número (7 o 07)
     box.querySelectorAll('[data-addel],[data-delel]').forEach(b => b.onclick = () => { const add = b.dataset.addel, el = add || b.dataset.delel; ksShowEl(el, !!add, setVal); KS.tool = add ? el : null; KS.lookAt = add ? el : null; kpChanged(); later(() => renderTeams(m)); });
+    const cx = $('k3Close'); if (cx) cx.onclick = () => KS.closeTools();
     const ty = $('k3Type'); if (ty) ty.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; setVal('BackNumberType', b.dataset.v); ty.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
     // manija de la curva, arriba del nombre: arrastrar hacia arriba curva más, hacia abajo menos (o al revés)
     const arc = $('k3Arc'); if (arc) { let D = null;
@@ -990,7 +1004,7 @@ function bindKitStudio(t, m) {
   const ksFloat = () => { if (ksFloat.raf) return; ksFloat.raf = requestAnimationFrame(() => { ksFloat.raf = 0;
     const f = $('k3Float'), arc = $('k3Arc'), hint = $('k3THint'), st = sh.querySelector('.ks3d'), v = V3(), el = KS.tool, b = el && KS.decals && KS.decals[el]; if (!f || !st) return;
     const pts = v && b && v.project ? [[0, 0], [-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]].map(([a, c]) => v.project((b.x + a * b.w) / 1024, (b.y + c * b.h) / 1024)).filter(Boolean) : [];
-    const show = pts.length >= 2; f.hidden = !show; if (arc) arc.hidden = !show; if (hint) hint.textContent = !el ? tr('Elegí qué mover') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
+    const show = pts.length >= 2; f.hidden = !show; if (arc) arc.hidden = !show; if (hint) hint.textContent = !el ? tr('Click en el nombre o un número para ver sus opciones') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
     if (!show) return; const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), W = st.clientWidth, H = st.clientHeight, fw = f.offsetWidth, fh = f.offsetHeight;
     let left = x1 + 16; if (left + fw > W - 8) left = x0 - 16 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
     const cap = st.querySelector('.k3cap'), t0 = cap ? cap.offsetTop + cap.offsetHeight + 8 : 8; // sin tapar el nombre del equipo
@@ -998,6 +1012,10 @@ function bindKitStudio(t, m) {
     if (arc) { arc.style.left = Math.max(8, Math.min(W - arc.offsetWidth - 8, (x0 + x1) / 2 - arc.offsetWidth / 2)) + 'px'; arc.style.top = Math.max(8, y0 - arc.offsetHeight - 10) + 'px'; }
   }); };
   KS.float = ksFloat;
+  // cerrar el menú con animación (click afuera o Esc): el recuadro se desvanece y recién ahí se suelta lo elegido
+  KS.closeTools = () => { if (!KS.tool || KS.closing) return; const f = $('k3Float'), arc = $('k3Arc'), done = () => { KS.closing = false; KS.tools(null, false); };
+    if (!f || f.hidden) { done(); return; } KS.closing = true; f.classList.add('out'); if (arc) arc.classList.add('out'); setTimeout(done, 200); };
+  ksToolsOutside();
   KS.tools = (k, cam = true) => {
     KS.tool = k && kplOn(k) ? k : null; KS.hot = KS.tool; if (KS.tool) KPL.sel = KS.tool;
     const box = $('k3Tools'); if (box) { box.outerHTML = ksToolsHtml(); bindTools(); }
@@ -1013,7 +1031,7 @@ function bindKitStudio(t, m) {
     const stop = () => { e.preventDefault(); e.stopPropagation(); };
     if (/^[1-4]$/.test(e.key)) { const el = Object.keys(KPL_EL)[+e.key - 1]; if (kplOn(el)) { stop(); KS.tools(el); } return; }
     if (!KS.tool) return;
-    if (e.key === 'Escape') { if (!document.fullscreenElement) { stop(); KS.tools(null); } return; }
+    if (e.key === 'Escape') { if (!document.fullscreenElement) { stop(); KS.closeTools(); } return; }
     const a = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', '+': 'bigger', '=': 'bigger', '-': 'smaller', '_': 'smaller', ']': 'arcp', '[': 'arcm', '.': 'wider', ',': 'narrower' }[e.key];
     if (a) { stop(); act(a, e.shiftKey); }
   }, true);

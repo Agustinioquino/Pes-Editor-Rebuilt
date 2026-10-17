@@ -4506,7 +4506,13 @@ const I18N_EN = {"⬇ Instalar el archivo":"⬇ Install the file",
 "Esconder la lista de equipos para que el visor ocupe todo el ancho":"Hide the team list so the viewer takes the full width",
 "Ocultar equipos":"Hide teams",
 "Mostrar equipos":"Show teams",
-"Volver a mostrar la lista de equipos":"Show the team list again"
+"Volver a mostrar la lista de equipos":"Show the team list again",
+"Elegir kitpos_slots.ini":"Pick kitpos_slots.ini",
+"kitpos_slots.ini ✓":"kitpos_slots.ini ✓",
+"Elegí content\\kitpos\\kitpos_slots.ini de la carpeta Sider: el editor lo recuerda":"Pick content\\kitpos\\kitpos_slots.ini in the Sider folder: the editor remembers it",
+"Se está usando content\\kitpos\\kitpos_slots.ini de la carpeta Sider. Tocá para elegir el archivo de nuevo.":"Using content\\kitpos\\kitpos_slots.ini from the Sider folder. Click to pick the file again.",
+"No se encontró content\\kitpos\\kitpos_slots.ini. Si ya lo tenés, elegilo (algunos navegadores lo esconden); si no, se crea al guardar.":"content\\kitpos\\kitpos_slots.ini was not found. If you already have it, pick it (some browsers hide it); otherwise it is created when you save.",
+"Bajar hasta el panel de Posición libre (KitPos)":"Scroll down to the Free position panel (KitPos)"
 };
 // Ficha del jugador · Perfil: nombre y apellido, equipo y selección, nivel
 Object.assign(I18N_EN, {

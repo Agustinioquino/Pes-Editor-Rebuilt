@@ -754,6 +754,8 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sans-serif;font-style:italic;text-transform:none;letter-spacing:.01em}
 /* ---- Posición libre (KitPos): Kit Studio Pro y pestaña Fuentes ---- */
 .kpos{display:grid;gap:8px;margin-top:10px;padding:10px 12px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk)}
+.kpos.flash{animation:kposFlash 1.4s ease}@keyframes kposFlash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.kpos{scroll-margin-top:72px}
 .kpos.on{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
 .kposh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.kposh h4{margin:0;font-family:var(--display);font-size:1.02rem}.kposh h4 small{font-weight:400;opacity:.7;margin-left:3px}
 .kposh .chip{font-size:.72rem}.kposh #kposSave{margin-left:auto}

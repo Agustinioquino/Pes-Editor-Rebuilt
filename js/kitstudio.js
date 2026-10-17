@@ -286,6 +286,10 @@ async function kpsInstall() {
   await kpsLoad(true); return r;
 }
 // panel de posición libre (lo usan el Editor y Fuentes de Kit Studio Pro)
+// botón para elegir (o cambiar) content\kitpos\kitpos_slots.ini a mano: algunos navegadores esconden los .ini
+const kpsPickBtn = (cls = '') => { const ok = KPS.st && KPS.st.slots === 'ok';
+  return `<button class="btn small ${cls}" type="button" data-kppick title="${ok ? 'Se está usando content\\kitpos\\kitpos_slots.ini de la carpeta Sider. Tocá para elegir el archivo de nuevo.' : 'Elegí content\\kitpos\\kitpos_slots.ini de la carpeta Sider: el editor lo recuerda'}">📄 ${ok ? 'kitpos_slots.ini ✓' : 'Elegir kitpos_slots.ini'}</button>`; };
+async function kpsPickRun(rerender) { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); rerender(); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } }
 function kposHtml(groups = ['name', 'num', 'chest', 'leg'], o = {}) {
   const st = KPS.st, on = ksKpOn(), gk = KS.cfg && kpsKit().gk;
   if (!st) return '<section class="kpos"><p class="note">Revisando KitPos en la carpeta Sider…</p></section>';
@@ -293,16 +297,17 @@ function kposHtml(groups = ['name', 'num', 'chest', 'leg'], o = {}) {
     ${st.lua && st.slots !== 'hidden' ? `<label class="chk"><input type="checkbox" id="kposOn" ${PREFS.kpFree !== false ? 'checked' : ''}> Sin pasos</label>` : ''}
     ${on && !gk ? `<div class="seg" id="kposScope" aria-label="Dónde se guarda">${[['kit', 'Este kit · ' + esc(KS.sel)], ['team', 'Todo el equipo']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KPS.scope === v}">${n}</button>`).join('')}</div>` : ''}
     ${on ? `<span class="chip mono" title="Sección de content\\kitpos\\kitpos_slots.ini">[${esc(kpsSec())}]</span>` : ''}
+    ${st.lua && st.slots === 'ok' ? kpsPickBtn() : ''}
     ${on && o.save ? `<button class="btn small primary" type="button" id="kposSave" ${kpsDirty() ? '' : 'disabled'} title="Guarda solo la posición en kitpos_slots.ini, sin tocar la textura">💾 Guardar posición</button>` : ''}</div>`;
   let body;
   if (!st.lua) body = `<div class="kposinst"><p>Con <b>KitPos</b> en Sider, el nombre y los números se ubican sin los pasos del juego: altura, tamaño, ancho, separación y arco exactos, también en el pecho y el short.</p><button class="btn primary small" type="button" id="kposInstall">⬇ Instalar KitPos en Sider</button></div>`;
-  else if (st.slots === 'hidden') body = `<div class="kposinst"><p>El navegador no deja leer <span class="mono">content\\kitpos\\kitpos_slots.ini</span> por su nombre. Elegilo una vez con el selector y el editor lo recuerda (en la app de Windows no hace falta).</p><button class="btn small" type="button" id="kposPick">📄 Elegir kitpos_slots.ini</button></div>`;
+  else if (st.slots === 'hidden') body = `<div class="kposinst"><p>El navegador no deja leer <span class="mono">content\\kitpos\\kitpos_slots.ini</span> por su nombre. Elegilo una vez con el selector y el editor lo recuerda (en la app de Windows no hace falta).</p>${kpsPickBtn('primary')}</div>`;
   else if (!on) body = '<p class="note">Apagado: el nombre y los números se mueven con los pasos del config.txt.</p>';
   else {
     const vals = kpsVals(), own = kpsOwn(), inh = KPS.scope === 'kit' && !gk ? kpsOwn('team') : {};
     const row = f => { const F = KPOS.FIELDS[f], [a, b] = KPOS.range(f), s = F.unit ? (vals[f] || 0) : ksP(F.cfg || f), mine = f in own, from = mine ? '' : f in inh ? 'del equipo' : 'del kit';
       return `<div class="kposr ${mine ? 'own' : ''}" data-f="${f}"><label for="kpos_${f}">${F.n}</label><input type="range" class="k3r" id="kpos_${f}" min="${a}" max="${b}" step="${F.unit ? .5 : .05}" value="${s}" style="--p:${((s - a) / (b - a) * 100).toFixed(1)}%"><input type="number" step="${F.unit ? .5 : .05}" value="${+s.toFixed(2)}" aria-label="${F.n}: valor exacto"><small class="kposv">${kposLabel(f, s)}${from ? ' · ' + from : ''}</small><button type="button" class="kposx" data-reset="${f}" title="Volver al valor ${KPS.scope === 'team' ? 'del config.txt' : 'del config.txt (o del equipo)'}" ${mine ? '' : 'disabled'}>↺</button></div>`; };
-    body = `<div class="kposg">${groups.map(g => `<fieldset><legend>${KPOS.GROUPS[g]}</legend>${Object.keys(KPOS.FIELDS).filter(f => KPOS.FIELDS[f].g === g).map(row).join('')}</fieldset>`).join('')}</div>
+    body = `${st.slots === 'none' ? `<div class="kposinst"><p>No se encontró <span class="mono">content\\kitpos\\kitpos_slots.ini</span>. Si ya lo tenés, elegilo (algunos navegadores lo esconden); si no, se crea al guardar.</p>${kpsPickBtn('primary')}</div>` : ''}<div class="kposg">${groups.map(g => `<fieldset><legend>${KPOS.GROUPS[g]}</legend>${Object.keys(KPOS.FIELDS).filter(f => KPOS.FIELDS[f].g === g).map(row).join('')}</fieldset>`).join('')}</div>
       <p class="note">El config.txt solo admite pasos enteros (NameY de 0 a 39, por ejemplo); KitPos los usa con decimales y un poco más allá del rango del juego. ${groups.length > 1 ? 'Arrastrá el nombre o un número en el 3D o en la maqueta y queda exacto. ' : ''}Se guarda en content\\kitpos\\kitpos_slots.ini${KPS.st.slots === 'none' ? ' (se crea al guardar)' : ''}; en el juego, el panel de KitPos en el overlay de Sider lee lo mismo.</p>`;
   }
   return `<section class="kpos ${on ? 'on' : ''}" id="kposBox">${head}${body}</section>`;
@@ -331,7 +336,7 @@ function kposBind(root, changed, rerender) {
   const ins = box.querySelector('#kposInstall'); if (ins) ins.onclick = async () => { ins.disabled = true; try { const r = await kpsInstall();
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : 'instalado') + ' en modules\\kitpos.lua' + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); }
     catch (e) { toast('No se pudo instalar KitPos: ' + e.message, 8000); } rerender(); };
-  const pk = box.querySelector('#kposPick'); if (pk) pk.onclick = async () => { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); rerender(); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } };
+  box.querySelectorAll('[data-kppick]').forEach(b => b.onclick = () => kpsPickRun(rerender));
 }
 // posiciones aproximadas a partir del config (0..1 dentro de cada región)
 const KS_POS = {
@@ -794,7 +799,8 @@ function ksEditHtml(t, ctl, slotCard) {
     <div class="f"><span class="lab">Letra del nombre</span>${`<div class="seg k3seg" id="ksNameFont">${[['gen', 'Genérica'], ['kit', 'La del kit']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(ksGenName() ? 'gen' : 'kit') === v}" ${v === 'kit' && !nameOk ? 'disabled title="La textura del nombre de este kit no tiene letras que se puedan leer"' : ''}>${n}</button>`).join('')}</div>`}</div>
     ${v3 ? `<label class="chk"><input type="checkbox" id="k3Place" ${K3.place ? 'checked' : ''}> ✥ Mover con el mouse en el 3D</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label>` : ''}
     ${KS_DORS.map(dor).join('')}
-    <p class="note">${kp ? 'KitPos está activo: los valores exactos (con decimales) están en 📐 Posición libre, abajo.' : 'Cada control es un paso del config.txt del kit, como en el juego.'} "Guardar kit" lo anota en el kit.</p>`;
+    <p class="note">${kp ? 'KitPos está activo: los valores exactos (con decimales) están en 📐 Posición libre, abajo.' : 'Cada control es un paso del config.txt del kit, como en el juego.'} "Guardar kit" lo anota en el kit.</p>
+    ${KPS.st && KPS.st.lua ? `<div class="row" style="gap:6px">${kpsPickBtn()}<button class="btn small" type="button" id="ksGoKpos" title="Bajar hasta el panel de Posición libre (KitPos)">📐 Posición libre</button></div>` : ''}`;
   const luz = `${slider('k3Fov', 'Lente', K3.view.fov || 48, 18, 80, 1, v => v + '°')}${slider('k3AutoS', 'Velocidad del giro', K3.autoSpeed || 1, .2, 3, .1, v => v.toFixed(1) + '×')}
     <div class="k3envs" id="k3Preset">${Object.entries(K3LIGHTS).filter(([k]) => k !== 'hdri' || K3.envUser).map(([k, p]) => `<button type="button" data-v="${k}" aria-pressed="${L.preset === k}"><canvas width="96" height="48" data-envthumb="${k}"></canvas><span>${k === 'hdri' ? esc(K3.envUser.name) : p.n}</span></button>`).join('')}</div>
     <div class="row" style="gap:4px"><button class="btn small" type="button" id="k3Hdri" title="Panorama 360° en .hdr (Radiance) o una imagen equirectangular .jpg/.png">Cargar HDRI…</button><span class="note">Un .hdr da luz y reflejos reales.</span></div>
@@ -999,6 +1005,8 @@ function bindKitStudio(t, m) {
   sh.querySelectorAll('[data-dorgo]').forEach(b => b.onclick = () => { const k = b.dataset.dorgo; if (KS.view === 'mock') { KPL.sel = k; draw(); kplInfo(sh.querySelector('#kplBox'), KS.kplApi); return; } if (kplOn(k)) KS.tools(k); else look(k); });
   on('ksPresent', 'onclick', () => { const w = $('ks3dWrap'); if (!w || !w.requestFullscreen) return; w.requestFullscreen().then(() => { w.classList.add('present'); const v = V3(); if (!v) return; v.redraw(); v.threeq(); v.auto(true); const a = $('k3Auto'); if (a) a.checked = true; }).catch(e => toast('No se pudo poner en pantalla completa: ' + e.message, 5000)); });
   if (wrap) wrap.onfullscreenchange = () => { if (!document.fullscreenElement) wrap.classList.remove('present'); };
+  sh.querySelectorAll('.ksdors [data-kppick]').forEach(b => b.onclick = () => kpsPickRun(() => renderTeams(m)));
+  on('ksGoKpos', 'onclick', () => { const k = $('kposBox'); if (k) { k.scrollIntoView({ behavior: ANIM.reduce.matches ? 'auto' : 'smooth', block: 'start' }); k.classList.remove('flash'); k.getBoundingClientRect(); k.classList.add('flash'); } });
   sh.querySelectorAll('[data-showel]').forEach(c => c.onchange = () => { ksShowEl(c.dataset.showel, c.checked, setVal); KS.tool = c.checked ? c.dataset.showel : null; KS.lookAt = KS.tool; kpChanged(); later(() => renderTeams(m)); });
   // paneles del costado, letra del nombre y el aviso de kitpos_slots.ini
   on('ksSide', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; KS.pane = b.dataset.v; $('ksSide').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); sh.querySelectorAll('.kspane').forEach(p => p.hidden = p.dataset.pane !== KS.pane); });

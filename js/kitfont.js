@@ -55,10 +55,9 @@ const KFONT = (() => {
     m.set(key, out); return out;
   }
   // ---- curva del nombre como la arma el juego: cada letra sobre un arco de radio 1000 / curva, girada con él ----
-  // El radio está en unidades del juego; medido en capturas (ABCDEFG con forma leve, media y extrema), un alto de
-  // letra son ~168 unidades. Curva positiva: el centro queda arriba y las puntas bajan.
-  // radio de la curva: 1000 / NameCurve en las unidades de KitPos; medido en el juego, la curva leve (672) casi no se nota en un nombre corto
-  const ARC_H = 40;
+  // Radio de la curva: 1000 / NameCurve (KitPos), en unidades del juego. Medido en el juego con el panel de KitPos
+  // (Agustin, 17/10/2026, curva 1.39 y 5.19): un alto de mayúscula son ~130 unidades. Curva positiva: las puntas bajan.
+  const ARC_H = 130;
   // items: [{ w: ancho que ocupa, draw(g) dibuja la letra centrada en (0, 0) }]; gap: espacio extra entre letras
   function arcText(g, items, cx, cy, h, curve, gap) {
     const total = items.reduce((a, q) => a + q.w, 0) + gap * Math.max(0, items.length - 1), R = Math.abs(curve) >= .05 ? 1000 / curve / ARC_H * h : 0;

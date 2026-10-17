@@ -338,16 +338,26 @@ function kposBind(root, changed, rerender) {
     catch (e) { toast('No se pudo instalar KitPos: ' + e.message, 8000); } rerender(); };
   box.querySelectorAll('[data-kppick]').forEach(b => b.onclick = () => kpsPickRun(rerender));
 }
-// posiciones aproximadas a partir del config (0..1 dentro de cada región)
+// valor del juego de un campo (el de KitPos si está activo, si no el del config.txt pasado con las fórmulas de kitpos.lua)
+const ksF = k => KPOS.fromSteps(KS_KP[k] || k, ksP(k), ksSide());
+// Posiciones medidas en el juego con el panel de KitPos abierto (Agustin, 17/10/2026, 46 capturas) y pasadas a la textura con el
+// modelo de la camiseta del juego (el mismo del 3D). En la textura: la espalda va de v .464 (cuello) a .023 (abajo), el frente de
+// .49 a .906 y el short tiene la pierna a lo ancho.
+// - Nombre: el centro de las mayúsculas queda en v = NameY - .008; alto de mayúscula .0166 × NameSize; ancho ∝ NameStretch.
+// - Número de la espalda: centro en v = .3146 - .1416 × BackNumberY; alto .117 × BackNumberSize.
+// - Pecho: centro en (u, v) = (ChestNumberX, ChestNumberY); alto .031 × ChestNumberSize.
+// - Short: centro en (u, v) = (ShortsNumberY, ShortsNumberX); alto .029 × ShortsNumberSize.
+const KS_GAME = { nameDv: -.008, nameH: .0166, numA: .3146, numB: .1416, numH: .117, chestDv: 0, chestH: .031, legH: .029 };
 const KS_POS = {
-  // espalda (y, h: fracción del largo de la espalda desde el cuello; y es el centro). Medido en el juego (Agustin, 17/10/2026: NameY 16,
-  // NameSize 7, BackNumberY 28, BackNumberSize 21): el nombre termina donde dice NameY (valor del juego) y el número va debajo del nombre,
-  // más cerca cuanto más alto BackNumberY. La distancia con BackNumberY bajo todavía es estimada.
-  name: () => { const h = KPOS.fromSteps('NameSize', ksP('NameSize')) * .0533; return { y: KPOS.fromSteps('NameY', ksP('NameY')) - .012 - h / 2, h, stretch: .75 + ksP('NameStretch') * .15, curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 110 : 0 }; },
-  num: () => { const nb = KPOS.fromSteps('NameY', ksP('NameY')) - .012, h = Math.max(.02, KPOS.fromSteps('BackNumberSize', ksP('BackNumberSize')) * .315), gap = .057 + (KPOS.fromSteps('BackNumberY', ksP('BackNumberY')) - .041) * .3;
-    return { y: nb + gap + h / 2, h, spacing: (ksP('BackNumberSpacing') - 7) * .012 }; },
-  chest: () => ({ x: .2 + ksP('ChestNumberX') / 29 * .6, y: .05 + ksP('ChestNumberY') / 29 * .35, h: .04 + ksP('ChestNumberSize') / 28 * .1 }),
-  leg: () => ({ x: ksP('ShortsNumberX') / 31, y: ksP('ShortsNumberY') / 31, h: .25 + ksP('ShortsNumberSize') / 28 * .5 }),
+  // espalda (y, h: fracción del largo de la espalda desde el cuello; y es el centro)
+  name: () => { const [, , v0, v1] = UVR.back, G = KS_GAME, h = G.nameH * ksF('NameSize') / (v1 - v0);
+    return { y: (v1 - ksF('NameY') - G.nameDv) / (v1 - v0), h, stretch: 1.2 * ksF('NameStretch'), curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 72 : 0 }; },
+  num: () => { const [, , v0, v1] = UVR.back, G = KS_GAME;
+    return { y: (v1 - G.numA + G.numB * ksF('BackNumberY')) / (v1 - v0), h: Math.max(.01, G.numH * ksF('BackNumberSize') / (v1 - v0)), spacing: (ksP('BackNumberSpacing') - 7) * .012 }; },
+  // frente (x, y: fracción del ancho y del largo del frente; h: fracción del largo)
+  chest: () => { const [f0, f1, t0, t1] = UVR.front; return { x: (ksF('ChestNumberX') - f0) / (f1 - f0), y: (ksF('ChestNumberY') + KS_GAME.chestDv - t0) / (t1 - t0), h: KS_GAME.chestH * ksF('ChestNumberSize') / (t1 - t0) }; },
+  // short: centro en la textura (u, v) y alto en la textura
+  leg: () => ({ u: ksF('ShortsNumberY'), v: ksF('ShortsNumberX'), h: KS_GAME.legH * ksF('ShortsNumberSize') }),
 };
 // ---- mover nombre y números directo sobre el modelo 3D: la posición tocada se pasa a los valores del config.txt ----
 function ksDecalAt(u, v) {
@@ -361,11 +371,12 @@ function ksDecalVals(k, x, y) { const out = ksDecalVals0(k, x, y); for (const ke
 function ksClampKey(key, v) { const f = KS.cfg && KS.cfg.fields.find(x => x.key === key), ty = f && fieldType(f); return ty && ty.t === 'range' ? Math.max(ty.min, Math.min(ty.max, v)) : v; }
 function ksDecalVals0(k, x, y, fine) {
   const S = 1024, cl = fine ? (v, a, b, f) => { const [lo, hi] = KPOS.range(f); return Math.max(lo, Math.min(hi, v)); } : (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
-  if (k === 'name' || k === 'num') { const [, , v0, v1] = UVR.back, f = (v1 * S - y) / ((v1 - v0) * S);
-    return k === 'name' ? { NameY: cl(39 - (f - .07) / .35 * 39, 0, 39, 'NameY') } : { BackNumberY: cl(29 - (f - .22) / .35 * 29, 0, 29, 'BackNumberY') }; }
-  if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29, 'ChestNumberX'), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29, 'ChestNumberY') }; }
-  if (k === 'leg' && KS.legM) { const [a, b, c, d, e, f] = KS.legM, px = x / S - e, py = y / S - f, det = a * d - b * c, lx = (d * px - c * py) / det, ly = (-b * px + a * py) / det;
-    return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29, 'ShortsNumberX'), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29, 'ShortsNumberY') }; }
+  // inversa de KS_POS: (x, y) es el centro buscado en la textura (escala S)
+  const G = KS_GAME, st = (f, v, a, b) => cl(KPOS.toSteps(f, v, ksSide()), a, b, f), u = x / S, v = y / S;
+  if (k === 'name') return { NameY: st('NameY', v - G.nameDv, 0, 39) };
+  if (k === 'num') return { BackNumberY: st('BackNumberY', (G.numA - v) / G.numB, 0, 29) };
+  if (k === 'chest') return { ChestNumberX: st('ChestNumberX', u, 0, 29), ChestNumberY: st('ChestNumberY', v - G.chestDv, 0, 29) };
+  if (k === 'leg') return { ShortsNumberX: st('ShortsNumberX', v, 0, 29), ShortsNumberY: st('ShortsNumberY', u, 0, 29) };
   return {};
 }
 const KS_DECAL_SIZE = { name: ['NameSize', 20], num: ['BackNumberSize', 28], chest: ['ChestNumberSize', 28], leg: ['ShortsNumberSize', 28] };
@@ -384,15 +395,16 @@ function ksDrawDecals(g, S, only, D) {
   const [u0, u1, v0, v1] = UVR.back, bw = (u1 - u0) * S, bh = (v1 - v0) * S;
   g.save(); g.translate(u1 * S, v1 * S); g.rotate(Math.PI); // espalda: girada 180° en la textura
   // la letra genérica ya es ancha: con el ancho normal del juego (NameStretch 3) se dibuja sin estirar
-  if (on('name') && cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: ksGenName() ? p.stretch / 1.2 : p.stretch, curve: p.curve, spacing: p.spacing, generic: ksGenName(), color: ksNameColor() }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
+  if (on('name') && cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: ksGenName() || (ksTexOf('name') || {}).__kp ? p.stretch / 1.2 : p.stretch, curve: p.curve, spacing: p.spacing, generic: ksGenName(), color: ksNameColor() }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
   if (on('num') && KS.sample.num) { const p = KS_POS.num(), n = cfgGet(KS.cfg, 'BackNumberType') === '1' ? KS.sample.num.padStart(2, '0') : KS.sample.num; KFONT.drawText(g, ksTexOf('back'), 'back', n, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, n.length * p.h * bh * .62, p.h * bh); }
   g.restore();
   if (on('chest') && kplOn('chest')) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
   if (on('leg') && ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && KS.sample.num) {
-    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna); con Horizontal 0 queda en el medio de la pierna (medido en el juego)
+    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho
     const L = cfgGet(KS.cfg, 'ShortsNumberSide') !== '1', M = L ? [.0007, -.0063, .0065, .0007, .944, .865] : [.0008, .0066, -.0066, .001, .053, .862];
     g.save(); g.setTransform(M[0] * S, M[1] * S, M[2] * S, M[3] * S, M[4] * S, M[5] * S);
-    const dx = ksP('ShortsNumberX') / 29 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksP('ShortsNumberY') / 29 * 8, hh = 3 + ksP('ShortsNumberSize') / 28 * 5;
+    // centro medido en el juego (KS_POS.leg, en la textura) pasado a las coordenadas de la pierna
+    const P = KS_POS.leg(), det = M[0] * M[3] - M[2] * M[1], pu = P.u - M[4], pv = P.v - M[5], dx = (M[3] * pu - M[2] * pv) / det, dy = (-M[1] * pu + M[0] * pv) / det, hh = P.h / Math.hypot(M[2], M[3]);
     KFONT.drawText(g, ksTexOf('leg') || ksTexOf('back'), ksTexOf('leg') ? 'leg' : 'back', KS.sample.num, dx, dy, hh); g.restore();
     const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
   }
@@ -680,7 +692,7 @@ function kitStudioCard(t) {
 // ---- Editor: el kit en grande (3D, maqueta o texturas) y al costado los dorsales, la luz y la tela ----
 // cada grupo con sus valores del config.txt y un nombre corto (el grupo ya dice de qué se trata); el primero de cada grupo se ve aunque el elemento esté apagado
 const KS_DORS = [['name', [['Name', 'Mostrar'], ['NameY', 'Altura'], ['NameSize', 'Tamaño'], ['NameStretch', 'Ancho'], ['NameShape', 'Curva']]], ['num', [['BackNumberType', 'Dígitos'], ['BackNumberY', 'Altura'], ['BackNumberSize', 'Tamaño'], ['BackNumberSpacing', 'Separación de los dígitos']]],
-  ['chest', [['ChestNumberSize', 'Tamaño (0 = sin número)'], ['ChestNumberX', 'Horizontal'], ['ChestNumberY', 'Vertical']]], ['leg', [['ShortsNumberSide', 'Pierna'], ['ShortsNumberX', 'Horizontal'], ['ShortsNumberY', 'Vertical'], ['ShortsNumberSize', 'Tamaño']]]];
+  ['chest', [['ChestNumberSize', 'Tamaño'], ['ChestNumberX', 'Horizontal'], ['ChestNumberY', 'Vertical']]], ['leg', [['ShortsNumberSide', 'Pierna'], ['ShortsNumberX', 'Horizontal'], ['ShortsNumberY', 'Vertical'], ['ShortsNumberSize', 'Tamaño']]]];
 const KS_HUD = () => K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : KS.tool ? `${KPL_EL[KS.tool].n}: flechas para moverlo, + y − tamaño · Esc: soltar` : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda';
 // atajos sobre el 3D: abajo, qué mover (y + para agregar el número del pecho o del short); al lado del recuadro del elegido,
 // deslizadores que se arrastran con el mouse (altura, tamaño, ancho, curva); arriba del nombre, una manija para curvarlo.
@@ -719,8 +731,8 @@ function ksShowEl(el, on, setVal) {
   const kp = KPS.cur && KPS.st && KPS.st.lua && KPS.st.slots !== 'hidden', size = { chest: 'ChestNumberSize', leg: 'ShortsNumberSize' }[el], prev = KS.prevEl || (KS.prevEl = {});
   if (el === 'name') { setVal('Name', on ? '0' : '1'); return; }
   if (el === 'chest') {
-    if (on) { const f = prev.chestFile || cfgGet(KS.cfg, 'BackNumbersFile') || ''; if (!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim()) setVal('ChestNumbersFile', f); if (ksN('ChestNumberSize') === 0) setVal('ChestNumberSize', prev.chestSize || 10); }
-    else { prev.chestFile = cfgGet(KS.cfg, 'ChestNumbersFile'); prev.chestSize = ksN('ChestNumberSize'); setVal('ChestNumbersFile', ''); }
+    if (on) { const f = prev.chestFile || cfgGet(KS.cfg, 'BackNumbersFile') || ''; if (!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim()) setVal('ChestNumbersFile', f); }
+    else { prev.chestFile = cfgGet(KS.cfg, 'ChestNumbersFile'); setVal('ChestNumbersFile', ''); }
   }
   if (el === 'leg') {
     if (on) { if (ksN('ShortsNumberX') >= 30) setVal('ShortsNumberX', prev.legX ?? 14); if (ksN('ShortsNumberY') >= 30) setVal('ShortsNumberY', prev.legY ?? 8); }

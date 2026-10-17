@@ -18,9 +18,8 @@ function kplOn(el) {
   if (!KS.cfg) return false;
   if (el === 'name') return cfgGet(KS.cfg, 'Name') !== '1' && !!KS.sample.name;
   const kpHid = f => !!(KPS.cur && KPS.st && KPS.st.lua) && kpsVals()[f] === 0; // KitPos lo oculta con tamaño 0
-  // el juego no pone número en el pecho con ChestNumberSize 0 (salvo que KitPos le dé un tamaño mayor)
-  const chest0 = ksN('ChestNumberSize') === 0 && !(ksKpOn() && kpsVals().ChestNumberSize > KPOS.fromSteps('ChestNumberSize', 0) + 1e-6);
-  if (el === 'chest') return !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && !!KS.sample.num && !kpHid('ChestNumberSize') && !chest0;
+  // ChestNumberSize 0 de kserv igual se ve (el más chico); lo que lo saca es no tener archivo de números o KitPos con tamaño 0
+  if (el === 'chest') return !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && !!KS.sample.num && !kpHid('ChestNumberSize');
   if (el === 'leg') return ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && !!KS.sample.num && !kpHid('ShortsNumberSize');
   return !!KS.sample.num;
 }

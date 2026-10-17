@@ -787,6 +787,35 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 .k3sunv{display:grid;gap:4px}.k3sunt{font-size:.72rem}
 .k3brush{display:grid;gap:4px;padding:8px;border-radius:8px;border:1px dashed var(--line);margin-top:6px}
 .ks3d.clear{background:var(--sunk)}
+/* ---- Visualizador de Kit Studio Pro: el kit en grande y los dorsales al costado ---- */
+.ksshow{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:14px;align-items:start}
+@media (max-width:1000px){.ksshow{grid-template-columns:1fr}}
+.ksstage{display:grid;gap:8px;min-width:0}
+.ksshow3d{grid-template-columns:1fr}
+.ksshow3d #ks3d{height:min(64vh,660px)}
+.ks3dwrap.ksshow3d:fullscreen #ks3d{height:calc(100vh - 24px)}
+.ks3dwrap.ksshow3d:fullscreen{grid-template-columns:1fr}
+.ksshowbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.ksshowbar .k3cam{display:flex;flex-wrap:wrap;gap:4px}.ksshowbar .k3cam .btn{padding:.25rem .55rem}
+.ksshowbar .k3seg{width:auto}.ksshowbar .k3seg button{flex:none;padding:.25rem .6rem}
+.ksgrp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.ksshowbar .lab{font-size:.74rem;color:var(--muted);margin-left:4px}.ksshowbar .chk{margin:0}
+.kssep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
+.k3cap{position:absolute;left:12px;top:12px;z-index:3;display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:99px;background:#000a;color:#fff;pointer-events:none;backdrop-filter:blur(4px)}
+.k3cap span{display:grid;line-height:1.15}.k3cap b{font-family:var(--display);font-size:.95rem}.k3cap small{font-size:.7rem;opacity:.8}
+.k3cap .crest.k3crest{width:30px;height:26px;font-size:.62rem}
+.ksdors{display:grid;gap:8px;padding:10px;border-radius:var(--r,8px);background:var(--sunk);border:1px solid var(--line)}
+.ksdors h4{margin:0;font-family:var(--display);font-size:1.1rem}
+.ksdors .ksample input[type=text]:first-of-type{flex:1;min-width:0}.ksdors .ksample input[type=text]:last-of-type{width:52px}
+.ksdors .chk{margin:0}
+.ksdor{margin:0;padding:4px 10px 8px;border:1px solid var(--line);border-left:4px solid var(--dc);border-radius:var(--r,8px);background:var(--panel);display:grid;gap:4px;min-width:0}
+.ksdor.off{opacity:.65}
+.ksdor legend{padding:0 4px}
+.ksdor legend button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;padding:2px 0}
+.ksdor legend button:hover span{opacity:1}.ksdor legend span{opacity:.55;font-size:.85em}
+.ksdor legend i{width:10px;height:10px;border-radius:50%;background:var(--dc);box-shadow:0 0 0 2px #0003}
+.ksdor .ksf{min-width:0}.ksdor .ksf small.note{display:none}
+html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 /* sliders con relleno hasta el valor y perilla con aro */
 input.k3r{-webkit-appearance:none;appearance:none;height:22px;background:transparent;cursor:pointer;--p:50%}
 input.k3r::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(90deg,var(--accent) 0 var(--p),color-mix(in srgb,var(--line) 85%,var(--ink) 15%) var(--p) 100%)}

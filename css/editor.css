@@ -817,7 +817,7 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 .ksdor .ksf{min-width:0}.ksdor .ksf small.note{display:none}
 html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 .ksdors{max-height:min(84vh,900px);overflow:auto}
-.ksside{display:flex;width:100%}.ksside button{flex:1;padding:.3rem .4rem;font-size:.8rem;white-space:nowrap}
+.ksside{display:flex;width:100%}.ksside button{flex:1;min-width:0;padding:.3rem .4rem;font-size:.8rem;line-height:1.15;overflow-wrap:anywhere}
 .kspane{display:grid;gap:8px;min-width:0}.kspane[hidden]{display:none}
 .kspane .k3pan{background:var(--panel)}
 /* atajos sobre el 3D: qué mover, cruz de flechas con un círculo para arrastrar y tamaño / ancho / curva */

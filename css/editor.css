@@ -798,6 +798,7 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 .ksshowbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
 .ksshowbar .k3cam{display:flex;flex-wrap:wrap;gap:4px}.ksshowbar .k3cam .btn{padding:.25rem .55rem}
 .ksshowbar .k3seg{width:auto}.ksshowbar .k3seg button{flex:none;padding:.25rem .6rem}
+.ksgrp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .ksshowbar .lab{font-size:.74rem;color:var(--muted);margin-left:4px}.ksshowbar .chk{margin:0}
 .kssep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
 .k3cap{position:absolute;left:12px;top:12px;z-index:3;display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:99px;background:#000a;color:#fff;pointer-events:none;backdrop-filter:blur(4px)}

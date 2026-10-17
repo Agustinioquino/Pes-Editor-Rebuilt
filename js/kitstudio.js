@@ -734,9 +734,9 @@ function ksShowHtml(t, chip, ctl) {
       <button class="btn small ghost" type="button" id="k3Shot" title="Descargar la imagen tal como se ve">📷 Foto PNG</button><button class="btn small ghost" type="button" id="k3Full" title="El visor ocupa toda la pantalla (Esc para salir)">⛶</button>
     </div>
     <div class="ksshowbar">
-      <span class="lab">Fondo</span>${seg('k3Bg', [['env', 'Entorno'], ['game', 'Juego'], ['none', 'Liso']], L.bg || 'env')}
-      <span class="lab">Manga</span>${seg('k3Sleeve', [['short', 'Corta'], ['long', 'Larga']], K3.sleeve)}
-      <span class="lab">Medias</span>${seg('k3Socks', [['long', 'Largas'], ['middle', 'Medianas'], ['short', 'Cortas']], K3.socks)}
+      <span class="ksgrp"><span class="lab">Fondo</span>${seg('k3Bg', [['env', 'Entorno'], ['game', 'Juego'], ['none', 'Liso']], L.bg || 'env')}</span>
+      <span class="ksgrp"><span class="lab">Manga</span>${seg('k3Sleeve', [['short', 'Corta'], ['long', 'Larga']], K3.sleeve)}</span>
+      <span class="ksgrp"><span class="lab">Medias</span>${seg('k3Socks', [['long', 'Largas'], ['middle', 'Medianas'], ['short', 'Cortas']], K3.socks)}</span>
       <label class="chk"><input type="checkbox" id="k3Cap" ${K3.cap ? 'checked' : ''}> Cinta de capitán</label>
     </div>`;
   return `<div class="kssel" aria-label="Kit que se muestra">${KS.kits.map((n, i) => chip(n, i, false)).join('')}${KS.gk.map((n, i) => chip(n, i, true)).join('')}</div>
@@ -843,7 +843,7 @@ function bindKitStudio(t, m) {
   on('k3Dec', 'onchange', e => { K3.light.decals = e.target.checked; savePrefs3(); draw(); });
   on('k3Place', 'onchange', e => { K3.place = e.target.checked; if (!K3.place) { KS.hot = null; draw(); } const h = sh.querySelector('.k3hud span'); if (h && !K3.paint) h.textContent = K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'; });
   // Visualizador: 👁 lleva la cámara al nombre o al número y lo marca
-  sh.querySelectorAll('[data-dorgo]').forEach(b => b.onclick = () => { const k = b.dataset.dorgo; if (KS.view === 'mock') { KPL.sel = k; draw(); kplInfo(sh.querySelector('#kplBox'), KS.kplApi); return; } const v = V3(); if (v) { const f = v.fit(); if (k === 'chest') v.close(); else if (k === 'leg') v.go({ yaw: 0, pitch: .05, dist: f.radius * 1.25, panX: 0, panY: -f.radius * .45 }); else v.go({ yaw: Math.PI, pitch: .08, dist: f.radius * 2.1, panX: 0, panY: f.radius * .28 }); } KS.hot = kplOn(k) ? k : null; draw(); });
+  sh.querySelectorAll('[data-dorgo]').forEach(b => b.onclick = () => { const k = b.dataset.dorgo; if (KS.view === 'mock') { KPL.sel = k; draw(); kplInfo(sh.querySelector('#kplBox'), KS.kplApi); return; } const v = V3(); if (v) { const f = v.fit(); v.go(k === 'chest' ? { yaw: 0, pitch: .05, dist: f.radius * 1.05, panX: 0, panY: f.radius * .5, fov: 48 } : k === 'leg' ? { yaw: 0, pitch: .05, dist: f.radius * 1.25, panX: 0, panY: -f.radius * .45, fov: 48 } : { yaw: Math.PI, pitch: .08, dist: f.radius * 2.1, panX: 0, panY: f.radius * .28, fov: 48 }); } KS.hot = kplOn(k) ? k : null; draw(); });
   on('ksPresent', 'onclick', () => { const w = $('ks3dWrap'); if (!w || !w.requestFullscreen) return; w.requestFullscreen().then(() => { const v = V3(); if (!v) return; v.redraw(); v.threeq(); v.auto(true); const a = $('k3Auto'); if (a) a.checked = true; }).catch(e => toast('No se pudo poner en pantalla completa: ' + e.message, 5000)); });
   // sliders con relleno de color hasta el valor
   const fillR = el => { el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%'); };

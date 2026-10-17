@@ -11,14 +11,14 @@ const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const grab = re => { const m = src.match(re); assert.ok(m, 'falta en app.js: ' + re); return m[0]; };
 const code = [
   grab(/const POS_TO_PP = [^\n]*\n/), grab(/const BODY = [^\n]*\n/), grab(/const DB_ABIL = [^\n]*\n/),
-  grab(/const DB_POSFLAG = [^\n]*\n/), grab(/let DBRAW = null;[\s\S]*?\nasync function namesFromBin/).replace(/\nasync function namesFromBin$/, '\n'),
+  grab(/const DB_POSFLAG = [^\n]*\n/), grab(/let DBRAW = null, DBSIG = .*;[\s\S]*?\nasync function namesFromBin/).replace(/\nasync function namesFromBin$/, '\n'),
 ].join('');
 const PD = vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'pesdata.js'), 'utf8') + '\n;PesData', vm.createContext({ TextDecoder, TextEncoder }));
 const toasts = [], hist = [];
 const ctx = vm.createContext({
   TextDecoder, TextEncoder, Blob, Response, DecompressionStream, PD, toasts, hist, RATE_GEN: 0,
   S: null, toast: m => toasts.push(m), undo: () => { }, playerName: () => 'ALMADA',
-  pget: null, rebuildTeamOf: () => { }, edit: (label, key, regions, fn) => { hist.push(label); return fn(); },
+  pget: null, rebuildTeamOf: () => { }, localStorage: (() => { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })(), edit: (label, key, regions, fn) => { hist.push(label); return fn(); },
 });
 vm.runInContext(code + `
 pget = (p, k) => PD.player.get(S.d, p.base, k);
@@ -98,4 +98,45 @@ test('"Volver a la base del juego" saca al jugador del EDIT sin tocar a los dem�
   assert.equal(PD.player.get(d, other, 'name'), 'PROPIO');
   assert.ok([...d.subarray(other + R, other + 2 * R)].every(v => v === 0));
   assert.match(toasts.at(-1), /volvió a la base del juego/);
+});
+
+test('las habilidades especiales, la IA y el estilo de juego se copian de la base (sin marcarlos)', () => {
+  const keep = db.slice();
+  put(485, 1, 1); put(447, 1, 1); put(155, 5, 13); // Elástica (sk1), Centro temprano (com5), estilo 13 de la base = Hombre objetivo
+  freshEdit(); run('DBAPP = null'); run(`insertEditPlayers([${ID}])`);
+  const p = run(`S.ix.byId.get(${ID})`), g = k => PD.player.get(ctx.S.d, p.base, k);
+  assert.equal(g('sk1'), 1); assert.equal(g('com5'), 1); assert.equal(g('play_style'), 4);
+  assert.equal(Object.keys(run('DB_SKILL')).filter(k => g('sk' + k)).length, 1);
+  assert.equal([0, 1, 2, 3, 4, 5, 6].filter(i => g('com' + i)).join(), '5');
+  assert.equal(g('e_skill') + g('e_style') + g('e_com'), 0);
+  db.set(keep);
+});
+
+test('"Pasar toda la base": pasa a todos, avisa si la base cambió, la vuelve a pasar y los devuelve', () => {
+  const R = 0x138, ids = [7001, 7002, 7003], b = new Uint8Array(R * 3);
+  ids.forEach((id, i) => { b.set(db, i * R); b.set([id & 255, id >> 8, 0, 0], i * R + 8); b.set(new TextEncoder().encode('JUGADOR ' + i + '\0\0'), i * R + 0xFB); });
+  const d = new Uint8Array(0x7C + 6 * R);
+  ctx.S = { d, f: { game: '2021' }, ix: null, hist: [], hp: 0 };
+  d[96] = 1; d.set([5, 0, 0, 0], 0x7C); PD.player.set(d, 0x7C, 'name', 'PROPIO');
+  ctx.DB3 = b;
+  run(`S.ix = PD.index(S.d, S.f.game); DBAPP = null; DBRAW = { b: DB3, off: new Map(${JSON.stringify(ids.map((id, i) => [id, i * R]))}) }; DBSIG = 'base-1'; allDbForget();`);
+  assert.equal(run('dbToEditAll()'), 3);
+  assert.equal(d[96], 4);
+  assert.deepEqual([...run('S.ix.players.map(p => p.id)')], [5, ...ids]);
+  assert.equal(run('allDbIds().length'), 3);
+  assert.equal(run('checkDbChanged(true)'), false);
+  // cambiás a uno y la base del juego se actualiza
+  run(`PD.player.set(S.d, S.ix.byId.get(7002).base, 'name', 'MIO')`);
+  run(`DBSIG = 'base-2'`);
+  assert.equal(run('checkDbChanged(true)'), true);
+  assert.equal(run('dbResync()'), 2);
+  assert.equal(run(`PD.player.get(S.d, S.ix.byId.get(7002).base, 'name')`), 'MIO');
+  assert.equal(run('S.ix.players.length'), 4);
+  assert.equal(run('checkDbChanged(true)'), false);
+  assert.match(toasts.at(-1), /1 que cambiaste vos|Los 1 que cambiaste/);
+  // volver todos a la base: queda solo el propio
+  assert.equal(run('allBackToDb()'), 3);
+  assert.deepEqual([...run('S.ix.players.map(p => p.id)')], [5]);
+  assert.equal(PD.player.get(d, 0x7C, 'name'), 'PROPIO');
+  assert.equal(run('allDbIds().length'), 0);
 });

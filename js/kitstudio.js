@@ -719,6 +719,9 @@ function ksShowEl(el, on, setVal) {
   }
   if (kp && size) { if (!on) kpsSet({ [size]: 0 }); else if (kpsVals()[size] === 0) kpsSet({ [size]: null }); }
 }
+// Kit Studio a lo ancho: la lista de equipos se esconde (PREFS.ksWide) y un botón la vuelve a mostrar
+function ksWideOn() { return !!PREFS.ksWide && S.ttab === 'kits' && KS.mode === 'edit'; }
+function ksWideApply(m) { const sp = m && m.querySelector(':scope > .split'); if (sp) sp.classList.toggle('kswide', ksWideOn()); }
 function ksEditHtml(t, ctl, slotCard) {
   const L = K3.light, gk = KS.gk.includes(KS.sel), role = KS_ROLE(KS.sel, (gk ? KS.gk : KS.kits).indexOf(KS.sel), gk), kp = ksKpOn(), v3 = KS.view === '3d', tex = KS.view === 'tex';
   if (ksGateOn() && !tex) return `<div class="ksgate" id="ksGate"><span class="ksgateic" aria-hidden="true">📐</span><div>
@@ -734,7 +737,8 @@ function ksEditHtml(t, ctl, slotCard) {
   const view = `<div class="seg" id="ksView" aria-label="Cómo se muestra el kit">${[['3d', '🎥 3D'], ['mock', '✥ Maqueta plana'], ['tex', '🖼 Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>`;
   if (tex) return `<section class="ksstage"><div class="row">${view}</div>
     <div class="ksslots">${KS_SLOTS.map(slotCard).join('')}</div>${KS.see ? `<div class="kstex"><canvas id="ksTex"></canvas></div>` : ''}<p class="note">Todo lo que subís o generás se convierte a .ftex (DXT5) con todos sus tamaños internos y se guarda en content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}. Si ya había un archivo con ese nombre, la primera vez se guarda una copia .bak-edit21.</p></section>`;
-  const stage = !v3 ? kplHtml() : `<div class="ks3dwrap ksshow3d" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar; arrastrá el nombre o un número para moverlo"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
+  const G = k3Grade();
+  const stage = !v3 ? kplHtml() : `<div class="ks3dwrap ksshow3d" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''} ${L.bgGrad !== false ? 'grad' : ''} ${L.floor === false ? 'nofloor' : ''}" style="--k3bg:${esc(L.bgCol || '#1d2633')};--vig:${G.vig}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar; arrastrá el nombre o un número para moverlo"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
       <div class="k3cap">${crest(t, 'k3crest')}<span><b>${esc(tget(t, 'name'))}</b><small>${esc(role)} · ${esc(KS.sel)}</small></span></div>
       ${ksToolsHtml()}
       <div class="k3hud"><span>${KS_HUD()}</span></div></div></div>
@@ -766,6 +770,14 @@ function ksEditHtml(t, ctl, slotCard) {
     <div class="k3sun"><canvas id="k3Sphere" width="132" height="132" aria-label="Dirección de la luz principal: arrastrá el punto de luz"></canvas><div class="k3sunv">${slider('k3Int', 'Intensidad', L.int ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Amb', 'Luz ambiente', L.amb ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Exp', 'Exposición', L.exp ?? 1, .4, 2, .05, v => Math.round(v * 100) + '%')}</div></div>
     <p class="note k3sunt" id="k3SunT">Luz principal: ${Math.round(L.az || 0)}° de giro, ${Math.round(L.el || 0) > 0 ? '+' : ''}${Math.round(L.el || 0)}° de altura. Arrastrá el punto en la esfera.</p>
     ${slider('k3EnvI', 'Reflejos del entorno', L.envInt ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3EnvY', 'Girar el entorno', L.envYaw || 0, -180, 180, 5, v => v + '°')}${slider('k3Blur', 'Desenfoque del fondo', L.bgBlur ?? 2, 0, 6, .25, v => v.toFixed(1))}`;
+  const pct = v => Math.round(v * 100) + '%';
+  const imagen = `<div class="f"><span class="lab">Estilo de la imagen</span><div class="k3looks" id="k3Look">${Object.entries(K3LOOKS).map(([k, p]) => `<button type="button" data-v="${k}" aria-pressed="${(L.look || 'natural') === k}"><span class="k3lk k3lk-${k}" aria-hidden="true"></span><span>${p.n}</span></button>`).join('')}</div></div>
+    ${slider('k3GSat', 'Saturación', G.sat, 0, 2, .05, pct)}${slider('k3GCon', 'Contraste', G.con, .5, 1.6, .02, pct)}${slider('k3GWarm', 'Temperatura (frío · cálido)', G.warm, -1, 1, .05, v => (v > 0 ? '+' : '') + Math.round(v * 100))}
+    ${slider('k3GVig', 'Viñeta (bordes oscuros)', G.vig, 0, 1, .05, pct)}${slider('k3GGrain', 'Grano de película', G.grain, 0, 1, .05, pct)}${slider('k3GRim', 'Contorno de luz', G.rim, 0, 3, .05, pct)}
+    <div class="f"><span class="lab">Resolución</span>${seg('k3GRes', [['0.35', 'PS2'], ['0.6', 'Baja'], ['1', 'Normal'], ['1.5', 'Alta']], String(G.res))}</div>
+    <div class="f"><span class="lab">Fondo liso</span><div class="row" style="gap:8px"><input type="color" id="k3BgCol" value="${esc(L.bgCol || '#1d2633')}" aria-label="Color del fondo liso"><label class="chk"><input type="checkbox" id="k3BgGrad" ${L.bgGrad !== false ? 'checked' : ''}> Degradado</label><label class="chk"><input type="checkbox" id="k3Floor" ${L.floor !== false ? 'checked' : ''}> Sombra en el piso</label></div></div>
+    <button class="btn small" type="button" id="k3LookReset">↺ Volver a Natural</button>
+    <p class="note">El estilo también sale en "📷 Foto PNG" (con fondo liso o de Juego, la foto sale con fondo transparente).</p>`;
   const tela = `<details class="k3pan" ${KS.T.kit && KS.T.kit.c ? 'open' : ''}><summary>Brillo (alfa del kit)</summary>
       ${KS.T.kit && KS.T.kit.c ? `<p class="note">En la textura del kit el alfa marca cuánto brilla cada parte en el juego: blanco brilla más, negro es mate. ${KS.T.kit.g ? 'Este kit trae su propio alfa.' : 'Este kit no trae alfa: se usa un brillo medio parejo.'}</p>
       ${slider('k3Gloss', 'Efecto en pantalla', L.gloss ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}
@@ -790,13 +802,13 @@ function ksEditHtml(t, ctl, slotCard) {
   const info = `<p class="note" id="k3Info">${esc(KS.model ? `Modelo: camiseta${cfgGet(KS.cfg, 'TightKit') === '1' ? ' ajustada' : ''}, ${KS.model.collarName ? 'cuello ' + KS.model.collarName.split('_')[1] + (KS.model.collarExact ? '' : ' (el más parecido al ' + cfgGet(KS.cfg, 'Collar') + ')') : 'sin cuello'}, short ${ksN('ShortsModel')}.` : 'Cargando los modelos…')} ${ksTexOf('kit') ? '' : 'Sin textura del kit (está dentro de los .cpk): se pinta con los colores del config. Subí la textura en "Texturas" para verla.'}</p>`;
   return `<div class="ksshow">
       <section class="ksstage">
-        <div class="row" style="justify-content:space-between">${view}
+        <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px">${view}<button class="btn small ${PREFS.ksWide ? 'primary' : 'ghost'}" type="button" id="ksWide" aria-pressed="${!!PREFS.ksWide}" title="${PREFS.ksWide ? 'Volver a mostrar la lista de equipos a la izquierda' : 'Esconder la lista de equipos para que el visor ocupe todo el ancho'}">${PREFS.ksWide ? '☰ Mostrar equipos' : '⇤ Más ancho'}</button></span>
           <span class="note">${v3 ? 'Girá el kit con el mouse; el nombre y los números se agarran y se mueven, o con los atajos de abajo a la derecha.' : 'Espalda, frente y short a la vez: agarrá cada cosa y movela.'}</span></div>
         ${stage}
       </section>
       <aside class="ksdors">
-        ${v3 ? `<div class="seg ksside" id="ksSide" role="tablist" aria-label="Panel">${[['dor', '🔢 Dorsales'], ['luz', '💡 Luz'], ['tela', '✨ Tela']].map(([v, n]) => `<button type="button" role="tab" data-v="${v}" aria-pressed="${side === v}">${n}</button>`).join('')}</div>` : '<h4>🔢 Dorsales</h4>'}
-        ${pane('dor', dorsales)}${v3 ? pane('luz', luz) + pane('tela', tela) : ''}
+        ${v3 ? `<div class="seg ksside" id="ksSide" role="tablist" aria-label="Panel">${[['dor', '🔢', 'Dorsales'], ['luz', '💡', 'Luz'], ['img', '🎨', 'Imagen'], ['tela', '✨', 'Tela']].map(([v, i, n]) => `<button type="button" role="tab" data-v="${v}" aria-pressed="${side === v}"><span aria-hidden="true">${i}</span><span>${n}</span></button>`).join('')}</div>` : '<h4>🔢 Dorsales</h4>'}
+        ${pane('dor', dorsales)}${v3 ? pane('luz', luz) + pane('img', imagen) + pane('tela', tela) : ''}
         ${v3 ? info : ''}
       </aside>
     </div>
@@ -835,7 +847,7 @@ function bindKitStudio(t, m) {
     const hudIdle = () => hud(KS_HUD());
     const setHot = k => { k = k || KS.tool || null; if (KS.hot === k) return; KS.hot = k; draw(); };
     let grab = null;
-    K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
+    K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { grade: true, onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
       onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
       onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; if (KS.tool !== k) KS.tools(k, false); setHot(k); return true; },
       onGrabMove: hit => { if (!grab) return; if (ksKpOn()) { const fv = ksDecalVals0(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy, true); for (const [key, v] of Object.entries(fv)) ksKpSetSteps(key, v); kpChanged(); hud(KS_DECAL_N[grab.k] + ' (KitPos): ' + Object.entries(fv).map(([key, v]) => key + ' ' + (+v.toFixed(2))).join(', ')); return; } const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
@@ -959,6 +971,7 @@ function bindKitStudio(t, m) {
   sh.querySelectorAll('[data-showel]').forEach(c => c.onchange = () => { ksShowEl(c.dataset.showel, c.checked, setVal); KS.tool = c.checked ? c.dataset.showel : null; KS.lookAt = KS.tool; kpChanged(); later(() => renderTeams(m)); });
   // paneles del costado, letra del nombre y el aviso de kitpos_slots.ini
   on('ksSide', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; KS.pane = b.dataset.v; $('ksSide').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); sh.querySelectorAll('.kspane').forEach(p => p.hidden = p.dataset.pane !== KS.pane); });
+  on('ksWide', 'onclick', () => { PREFS.ksWide = !PREFS.ksWide; savePrefs(); renderTeams(m); const w = $('ks3dWrap') || sh; w.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
   on('ksNameFont', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || b.disabled) return; PREFS.ksNameFont = b.dataset.v; savePrefs(); renderTeams(m); });
   on('ksGatePick', 'onclick', async () => { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); renderTeams(m); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } });
   on('ksGateSkip', 'onclick', () => { KS.gateSkip = true; renderTeams(m); });
@@ -980,6 +993,23 @@ function bindKitStudio(t, m) {
   sl('k3EnvY', v => { K3.light.envYaw = v; savePrefs3(); relight(60); }, v => v + '°');
   sl('k3Blur', v => { K3.light.bgBlur = v; savePrefs3(); V3() && V3().redraw(); }, v => v.toFixed(1));
   on('k3Bg', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; K3.light.bg = b.dataset.v; savePrefs3(); $('k3Bg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); const d3 = sh.querySelector('.ks3d'); d3.classList.toggle('clear', b.dataset.v === 'none'); d3.classList.toggle('game', b.dataset.v === 'game'); V3() && V3().redraw(); });
+  // imagen del visor: un estilo carga todos los ajustes; mover uno a mano deja el estilo sin marcar
+  const gPct = v => Math.round(v * 100) + '%', GSL = [['k3GSat', 'sat', gPct], ['k3GCon', 'con', gPct], ['k3GWarm', 'warm', v => (v > 0 ? '+' : '') + Math.round(v * 100)], ['k3GVig', 'vig', gPct], ['k3GGrain', 'grain', gPct], ['k3GRim', 'rim', gPct]];
+  const gShow = () => { const G = k3Grade(), d3 = sh.querySelector('.ks3d'); if (d3) d3.style.setProperty('--vig', G.vig);
+    GSL.forEach(([id, k, f]) => { const el = $(id); if (!el) return; el.value = G[k]; fillR(el); const o = el.parentElement.querySelector('output'); if (o) o.textContent = f(G[k]); });
+    const r = $('k3GRes'); if (r) r.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.v === G.res));
+    const lk = $('k3Look'); if (lk) lk.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === (K3.light.look || ''))); V3() && V3().redraw(); };
+  const gLook = k => { const P = K3LOOKS[k]; if (!P) return; K3.light.look = k; for (const q of K3LOOK_KEYS) K3.light['g_' + q] = P[q]; savePrefs3(); gShow(); };
+  on('k3Look', 'onclick', e => { const b = e.target.closest('[data-v]'); if (b) gLook(b.dataset.v); });
+  on('k3LookReset', 'onclick', () => gLook('natural'));
+  GSL.forEach(([id, k, f]) => sl(id, v => { K3.light['g_' + k] = v; K3.light.look = ''; savePrefs3(); gShow(); }, f));
+  on('k3GRes', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; K3.light.g_res = +b.dataset.v; K3.light.look = ''; savePrefs3(); gShow(); });
+  // fondo liso: el color elegido pasa el fondo a "Liso"
+  const bgSet = () => { const d3 = sh.querySelector('.ks3d'), L = K3.light; if (!d3) return; d3.style.setProperty('--k3bg', L.bgCol || '#1d2633'); d3.classList.toggle('grad', L.bgGrad !== false); d3.classList.toggle('nofloor', L.floor === false); d3.classList.toggle('clear', L.bg === 'none'); d3.classList.toggle('game', L.bg === 'game');
+    const bg = $('k3Bg'); if (bg) bg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === (L.bg || 'env'))); V3() && V3().redraw(); };
+  on('k3BgCol', 'oninput', e => { K3.light.bgCol = e.target.value; K3.light.bg = 'none'; savePrefs3(); bgSet(); });
+  on('k3BgGrad', 'onchange', e => { K3.light.bgGrad = e.target.checked; savePrefs3(); bgSet(); });
+  on('k3Floor', 'onchange', e => { K3.light.floor = e.target.checked; savePrefs3(); bgSet(); });
   sl('k3Bump', v => { K3.light.bump = v; savePrefs3(); V3() && V3().redraw(); }, v => Math.round(v * 100) + '%');
   sl('k3Spec', v => { K3.light.spec = v; savePrefs3(); relight(); }, v => Math.round(v * 100) + '%');
   // esfera de luz: arrastrar el punto mueve la luz principal

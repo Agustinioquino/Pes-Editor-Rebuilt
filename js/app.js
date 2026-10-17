@@ -54,7 +54,8 @@ const FIELD_FLAGS = k => {
 };
 const NO_RIVAL = 262143;
 // Player.bin (game database) ability layout, reverse-engineered: value-40 stored in 6 bits at these bit offsets
-const DB_ABIL = { atk: 370, drib: 352, loftpass: 402, finish: 396, place_kick: 250, swerve: 332, kick_pwr: 358, speed: 306, exp_pwr: 344, stamina: 338, def: 275, ball_win: 312, aggres: 384, jump: 294, header: 288, lowpass: 263, body_ctrl: 376, phys_cont: 390, ball_ctrl: 281, tight_pos: 416, gk: 269, catching: 300, clearing: 320, reflex: 326, cover: 364 };
+// (las cinco de arquero se comprobaron con arqueros que el juego guardó en el EDIT y con 300 arqueros de PES Master)
+const DB_ABIL = { atk: 370, drib: 352, loftpass: 402, finish: 396, place_kick: 250, swerve: 332, kick_pwr: 358, speed: 306, exp_pwr: 344, stamina: 338, def: 275, ball_win: 312, aggres: 384, jump: 294, header: 288, lowpass: 263, body_ctrl: 376, phys_cont: 390, ball_ctrl: 281, tight_pos: 416, gk: 326, catching: 364, clearing: 269, reflex: 320, cover: 300 };
 const T_ = PesTables;
 const COUNTRY = new Map(T_.countries.map(c => [c[0], c[1]]));
 const BOOTS = new Map(T_.boots.map(c => [c[0], c[1]]));
@@ -238,7 +239,7 @@ const RATE_MODEL = [
   ['atk:88 ball_ctrl:88 drib:71 tight_pos:47 lowpass:54 loftpass:68 finish:75 header:26 place_kick:26 swerve:18 speed:63 exp_pwr:91 kick_pwr:47 jump:34 phys_cont:33 body_ctrl:45 stamina:48 def:20 ball_win:29 aggres:30', [51.1, 69.49, 86.14, 99.11, 109]], // SS
   ['atk:131 ball_ctrl:106 drib:60 tight_pos:40 lowpass:24 loftpass:30 finish:153 header:42 place_kick:25 swerve:26 speed:37 exp_pwr:45 kick_pwr:31 jump:37 phys_cont:57 body_ctrl:40 stamina:30 def:27 ball_win:33 aggres:25', [51.54, 69.4, 86.43, 99.8, 109]], // CF
 ].map(([w, c]) => { const ws = w.split(' ').map(x => x.split(':')).map(([k, v]) => [k, +v]), t = ws.reduce((a, x) => a + x[1], 0); return { w: ws.map(([k, v]) => [k, v / t]), c }; });
-const RATE_KN = [60, 70, 80, 90, 99], RATING_V = 3;
+const RATE_KN = [60, 70, 80, 90, 99], RATING_V = 4;
 const rateCap = pos => Math.min((RATE_MODEL[pos] || RATE_MODEL[5]).c[4], rateTop());
 // el tope de la valoración depende del juego: PES 2021 llega a 109 y Football Life muestra como máximo 104 (visto en el
 // juego). Se sabe por la carpeta del EDIT abierto (Football Life guarda en …\2026\save) o, si el EDIT se abrió a mano,
@@ -268,9 +269,10 @@ function posFormula(pos, ab, raw) {
 }
 function rating(p) { return Math.round(posFormula(pget(p, 'reg_pos'), k => pget(p, k))); }
 // media en un puesto que no es el suyo (como la muestra el juego en la alineación): A sin castigo, B −6, C −7 (medido en el juego)
-const DB_POSFLAG = { 1: 468, 3: 474, 4: 414, 5: 456, 6: 466, 7: 460, 8: 464, 9: 472, 10: 476, 11: 478, 12: 470 };
+// puestos que puede jugar en Player.bin (2 bits por puesto: 0 no, 1 B, 2 A), por número de puesto (0 PT … 12 CD)
+const DB_POSFLAG = { 0: 350, 1: 468, 2: 318, 3: 474, 4: 414, 5: 456, 6: 466, 7: 460, 8: 464, 9: 472, 10: 476, 11: 478, 12: 470 };
 function abilOf(pid) { const p = S.ix && S.ix.byId.get(pid); if (p) return k => pget(p, k); if (DBRAW && DBRAW.off.has(pid)) { const o = DBRAW.off.get(pid); return k => dbBits(o, DB_ABIL[k], 6) + 40; } return null; }
-function posFlag(pid, role) { const p = S.ix && S.ix.byId.get(pid); if (p) return pget(p, 'pos' + role); if (DBRAW && DBRAW.off.has(pid) && DB_POSFLAG[role] != null) return dbBits(DBRAW.off.get(pid), DB_POSFLAG[role], 2); return null; }
+function posFlag(pid, role) { const p = S.ix && S.ix.byId.get(pid); if (p) return pget(p, 'pos' + POS_TO_PP[role]); if (DBRAW && DBRAW.off.has(pid) && DB_POSFLAG[role] != null) return dbBits(DBRAW.off.get(pid), DB_POSFLAG[role], 2); return null; }
 function slotRating(pid, role) {
   const b = pInfoBase(pid); if (!b || role == null || role === b.pos) return b ? b.r : null;
   const ab = abilOf(pid); if (!ab) return b.r;
@@ -348,6 +350,7 @@ function openBytes(bytes, name) {
   S.player = S.ix.players.length ? S.ix.players[0].id : null;
   $('bNames').disabled = false; $('gq').disabled = false; $('bReload').disabled = !S.editHandle;
   gameRefresh(); updateTop(); render();
+  if (DBRAW) { const fixed = repairEditPlayers(); if (checkDbChanged(fixed) || fixed) render(); }
 }
 async function openFile(file) {
   try {
@@ -358,35 +361,190 @@ async function openFile(file) {
   } catch (e) { toast(e.message, 6000); }
 }
 // ---- base del juego (Player.bin) → entradas del EDIT ----
-let DBRAW = null;
-// campos de la sección "Habilidad" del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
-const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30] });
+let DBRAW = null, DBSIG = '';
+// campos del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
+// (los movimientos, además, con los 25.000 jugadores exportados por el editor de PES 2020)
+const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30], strong_foot: [514, 1, 0], gc1: [242, 8, 0], mo_ck: [422, 4, 0], mo_armd: [426, 4, 0], mo_armr: [430, 4, 0], mo_hunchd: [441, 3, 0], mo_pk: [444, 3, 0], mo_hunchr: [448, 3, 0], mo_fk: [123, 5, 0] });
 function dbBits(o, pos, n) { const b = DBRAW.b; let v = 0; for (let i = 0; i < n; i++) { const q = pos + i; if ((b[o + (q >> 3)] >> (q & 7)) & 1) v |= 1 << i; } return v; }
 function dbStr(o, l) { const s = DBRAW.b.subarray(o, o + l), z = s.indexOf(0); return new TextDecoder().decode(z < 0 ? s : s.subarray(0, z)); }
 // peso en la base del juego: 7 bits desde el bit 256, en kg menos 30 (comprobado con la base de Football Life 2026)
 const dbWeight = id => { const o = DBRAW && DBRAW.off.get(id); return o == null ? null : dbBits(o, 256, 7) + 30; };
 const canMakeEditPlayer = id => !!(DBRAW && DBRAW.off.has(id));
-// agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, el resto lo sigue tomando el juego
+// físico y apariencia de la base (common\character0\model\character\appearance\PlayerAppearance.bin): registros de
+// 60 bytes, el id y los mismos 56 bytes que el EDIT guarda desde +0xFC (cuerpo, cabeza, piel, accesorios)
+let DBAPP = null;
+const APP_REC = 60, EDIT_APP = 0xFC;
+async function appearanceFromBin(bytes) {
+  let b = bytes;
+  if (b[3] === 0x57 && b[4] === 0x45 && b[5] === 0x53 && b[6] === 0x59 && b[7] === 0x53) b = new Uint8Array(await new Response(new Blob([b.subarray(16)]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  if (!b.length || b.length % APP_REC) throw new Error('No parece un PlayerAppearance.bin de PES 2021.');
+  const off = new Map(); for (let o = 0; o < b.length; o += APP_REC) off.set((b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0, o);
+  DBAPP = { b, off }; return off.size;
+}
+// la parte de "Apariencia" de un jugador del EDIT: la de la base si está; si no, un cuerpo normal (todo en 0, no en -7)
+function setEditLook(start, id) {
+  const w = (o, v) => { S.d[o] = v & 255; S.d[o + 1] = v >> 8 & 255; S.d[o + 2] = v >> 16 & 255; S.d[o + 3] = v >>> 24 & 255; };
+  w(start + 0xF0, id);
+  const a = DBAPP && DBAPP.off.get(id);
+  if (a != null) { S.d.set(DBAPP.b.subarray(a + 4, a + APP_REC), start + EDIT_APP); return true; }
+  for (const [k] of BODY) PD.player.set(S.d, start, k, 7);
+  return false;
+}
+// posiciones de la base en el EDIT (el EDIT las guarda en otro orden: POS_TO_PP)
+function setEditPositions(start, o) { for (const [role, bit] of Object.entries(DB_POSFLAG)) PD.player.set(S.d, start, 'pos' + POS_TO_PP[role], dbBits(o, bit, 2)); }
+// habilidades especiales, IA y estilo de juego en Player.bin (un bit cada una), por número de habilidad del EDIT (sk0…sk40)
+// y de IA (com0…com6); ubicados con un jugador que el juego guardó en el EDIT y con los datos de pesdb.net
+const DB_SKILL = { 0: 519, 28: 523, 1: 485, 2: 497, 3: 482, 29: 481, 4: 528, 5: 525, 30: 500, 10: 505, 6: 495, 7: 527, 31: 506, 39: 518, 8: 513, 32: 494, 33: 499, 9: 524, 11: 511, 12: 507, 40: 487, 13: 484, 14: 483, 15: 493, 16: 515, 34: 512, 17: 488, 19: 521, 18: 490, 35: 496, 20: 522, 37: 502, 36: 501, 21: 491, 22: 504, 23: 517, 38: 503, 24: 530, 25: 492, 26: 516, 27: 486 };
+const DB_COM = [489, 531, 526, 510, 529, 447, 520];
+// el estilo de juego está en 5 bits desde el 155, con la numeración vieja de PES (2019); acá pasa a la del EDIT (STYLES)
+const DB_STYLE = [0, 1, 2, 3, 6, 9, 10, 11, 14, 12, 19, 15, 17, 4, 5, 18, 20, 21, 7, 8, 13, 16];
+const dbStyle = o => DB_STYLE[dbBits(o, 155, 5)] || 0;
+// se copian sin marcar Especiales, Estilo ni IA: el juego sigue usando los de su base hasta que los cambies en el editor
+function setEditSkills(start, o) {
+  for (const [k, bit] of Object.entries(DB_SKILL)) PD.player.set(S.d, start, 'sk' + k, dbBits(o, bit, 1));
+  DB_COM.forEach((bit, i) => PD.player.set(S.d, start, 'com' + i, dbBits(o, bit, 1)));
+  PD.player.set(S.d, start, 'play_style', dbStyle(o));
+}
+// agrega al EDIT a jugadores de la base: solo se marca la sección Habilidad, pero el registro lleva todo lo que el juego
+// lee del EDIT aunque no esté marcado (posiciones, peso, físico); si faltara, el jugador queda sin posiciones y con todo en -7
 function editPlayersRegion(extra) { const n = S.d[96] | S.d[97] << 8; return [[96, 2], [0x7C, (n + extra) * 0x138]]; }
+const EDIT_CAP = (0x8ED2FC - 0x7C) / 0x138; // 30.000 jugadores
 function insertEditPlayers(ids) {
-  const made = [];
-  for (const id of [...new Set(ids)].sort((a, b) => a - b)) {
-    if (S.ix.byId.has(id) || !canMakeEditPlayer(id)) continue;
-    const n = S.d[96] | S.d[97] << 8, u32 = o => (S.d[o] | S.d[o + 1] << 8 | S.d[o + 2] << 16 | S.d[o + 3] << 24) >>> 0;
-    if (0x7C + (n + 1) * 0x138 > 0x8ED2FC) break;
-    let k = 0; while (k < n && u32(0x7C + k * 0x138) < id) k++;
-    const start = 0x7C + k * 0x138, end = 0x7C + n * 0x138;
-    S.d.copyWithin(start + 0x138, start, end); S.d.fill(0, start, start + 0x138);
-    S.d[96] = (n + 1) & 255; S.d[97] = (n + 1) >> 8;
+  const R = 0x138, n = S.d[96] | S.d[97] << 8;
+  const add = [...new Set(ids)].filter(id => !S.ix.byId.has(id) && canMakeEditPlayer(id)).sort((a, b) => a - b).slice(0, Math.max(0, EDIT_CAP - n));
+  if (!add.length) return [];
+  // una sola pasada: los del EDIT y los nuevos, ordenados por ID como los guarda el juego
+  const old = S.d.slice(0x7C, 0x7C + n * R), oid = i => (old[i * R] | old[i * R + 1] << 8 | old[i * R + 2] << 16 | old[i * R + 3] << 24) >>> 0;
+  const fresh = []; let i = 0, j = 0, w = 0x7C;
+  while (i < n || j < add.length) {
+    if (j >= add.length || (i < n && oid(i) < add[j])) { S.d.set(old.subarray(i * R, i * R + R), w); i++; } else { S.d.fill(0, w, w + R); fresh.push([w, add[j++]]); }
+    w += R;
+  }
+  S.d[96] = (n + add.length) & 255; S.d[97] = (n + add.length) >> 8;
+  for (const [start, id] of fresh) {
     const o = DBRAW.off.get(id), set = (key, v) => PD.player.set(S.d, start, key, v);
     set('id', id); set('comm_id', id);
     for (const [key, [pos, bits, add]] of Object.entries(DB_TO_EDIT())) set(key, dbBits(o, pos, bits) + add);
     set('name', dbStr(o + 0xFB, 61)); set('shirt', dbStr(o + 0x81, 61)); set('shirt_nt', dbStr(o + 0xBE, 61)); set('height', DBRAW.b[o + 0x1B] + 100);
+    setEditPositions(start, o); setEditSkills(start, o); setEditLook(start, id);
     set('e_ability', 1);
-    made.push(id);
-    S.ix = PD.index(S.d, S.f.game);
   }
-  return made;
+  S.ix = PD.index(S.d, S.f.game);
+  return add;
+}
+// jugadores que versiones anteriores agregaron desde la base sin posiciones, peso ni físico (en el juego, sin puestos y
+// con el cuerpo en -7) y con las habilidades de arquero cruzadas. Se reconocen porque no tienen ningún puesto marcado,
+// ni siquiera el suyo, algo que el juego nunca guarda; sus habilidades (y la media que se les cargó) se respetan.
+const GK_FIX = { gk: 'reflex', catching: 'cover', clearing: 'gk', reflex: 'clearing', cover: 'catching' };
+const noSkills = p => !pget(p, 'e_skill') && !pget(p, 'e_style') && !pget(p, 'e_com') && !pget(p, 'play_style') && Object.keys(DB_SKILL).every(k => !pget(p, 'sk' + k)) && DB_COM.every((_, i) => !pget(p, 'com' + i));
+function brokenEditPlayers() {
+  if (!S.d || !S.ix || !DBRAW) return [];
+  return S.ix.players.filter(p => { const o = DBRAW.off.get(p.id); return o != null && POS_TO_PP.every(i => !pget(p, 'pos' + i)) && Object.values(DB_POSFLAG).some(b => dbBits(o, b, 2)); });
+}
+function repairEditPlayers() {
+  const list = brokenEditPlayers(); if (!list.length) return 0;
+  edit('Arreglar ' + list.length + ' jugadores agregados desde la base', 'players', list.map(p => [p.base, 0x138]), () => {
+    for (const p of list) {
+      const o = DBRAW.off.get(p.id), old = Object.fromEntries(Object.keys(GK_FIX).map(k => [k, pget(p, k)]));
+      for (const [k, from] of Object.entries(GK_FIX)) PD.player.set(S.d, p.base, k, old[from]);
+      setEditPositions(p.base, o);
+      PD.player.set(S.d, p.base, 'strong_foot', dbBits(o, 514, 1));
+      if (!pget(p, 'weight')) PD.player.set(S.d, p.base, 'weight', dbBits(o, 256, 7) + 30);
+      if (BODY.every(([k]) => !pget(p, k))) setEditLook(p.base, p.id);
+      if (noSkills(p)) setEditSkills(p.base, o);
+    }
+  });
+  RATE_GEN++;
+  toast(list.length === 1 ? `Arreglé a ${playerName(list[0].id) || 'un jugador'}: se había agregado desde la base sin posiciones ni físico. Guardá el EDIT para llevarlo al juego.` : `Arreglé ${list.length} jugadores que se habían agregado desde la base sin posiciones ni físico. Guardá el EDIT para llevarlo al juego.`, 9000, ['Deshacer', undo]);
+  return list.length;
+}
+// "Volver a la base del juego": saca jugadores del EDIT y el juego vuelve a usar los de su base. Solo para jugadores que
+// están en la base (uno creado en el EDIT se perdería). Se puede deshacer.
+function removeEditPlayers(ids) {
+  const out = new Set(ids), n = S.d[96] | S.d[97] << 8, R = 0x138; let w = 0;
+  for (let k = 0; k < n; k++) {
+    const o = 0x7C + k * R, id = (S.d[o] | S.d[o + 1] << 8 | S.d[o + 2] << 16 | S.d[o + 3] << 24) >>> 0;
+    if (out.has(id)) continue;
+    if (w !== k) S.d.copyWithin(0x7C + w * R, o, o + R);
+    w++;
+  }
+  S.d.fill(0, 0x7C + w * R, 0x7C + n * R); S.d[96] = w & 255; S.d[97] = w >> 8;
+  return n - w;
+}
+const canBackToDb = id => !!(S.ix && S.ix.byId.has(id) && DBRAW && DBRAW.off.has(id));
+// los que cambió la media por rendimiento y siguen en el EDIT
+const formEditIds = () => typeof APPLIED === 'undefined' ? [] : [...APPLIED.keys()].filter(canBackToDb);
+function backToDb(ids) {
+  ids = ids.filter(canBackToDb); if (!ids.length) return 0;
+  const one = ids.length === 1, nm = one ? playerName(ids[0]) || 'ID ' + ids[0] : '';
+  edit(one ? 'Volver a la base del juego: ' + nm : 'Volver a la base del juego (' + ids.length + ' jugadores)', 'players', editPlayersRegion(0), () => removeEditPlayers(ids));
+  S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); S.ix = PD.index(S.d, S.f.game); rebuildTeamOf();
+  if (typeof APPLIED !== 'undefined') { ids.forEach(id => APPLIED.delete(id)); saveApplied(); }
+  if (ids.includes(S.player)) S.player = S.ix.players.length ? S.ix.players[0].id : null;
+  RATE_GEN++;
+  toast(one ? `${nm} volvió a la base del juego: el juego lo usa como venía. Guardá el EDIT para llevarlo al juego.` : `${ids.length} jugadores volvieron a la base del juego. Guardá el EDIT para llevarlo al juego.`, 7000, ['Deshacer', undo]);
+  return ids.length;
+}
+// "Pasar toda la base al EDIT": todos los jugadores de la base, con todos sus datos, para que el juego los cargue desde el
+// EDIT. Se recuerda qué jugadores se pasaron, cómo quedaron (una huella de cada registro) y qué base se usó: si la base
+// del juego cambia (una actualización o un mod), el editor avisa que hay que volver a pasarla.
+const ALLDB_LS = 'edit21-alldb';
+const fnv = (b, o, l) => { let h = 0x811c9dc5; for (let i = o; i < o + l; i++) h = Math.imul(h ^ b[i], 0x01000193); return h >>> 0; };
+const recHash = id => { const p = S.ix.byId.get(id); return p ? fnv(S.d, p.base, 0x138) : 0; };
+let ALLDB_C;
+function allDbLoad() { if (ALLDB_C !== undefined) return ALLDB_C; return ALLDB_C = allDbRead(); }
+function allDbRead() { try { const j = JSON.parse(localStorage.getItem(ALLDB_LS) || 'null'); if (!j || !j.list) return null; const m = new Map(); for (const x of j.list.split(',')) { const [a, b] = x.split(':'); m.set(parseInt(a, 36), parseInt(b, 36)); } return { sig: j.sig, at: j.at, m }; } catch { return null; } }
+function allDbSave(sig, ids, keep = new Map()) { ALLDB_C = undefined; try { const l = ids.filter(id => !keep.has(id)).map(id => [id, recHash(id)]).concat([...keep]); localStorage.setItem(ALLDB_LS, JSON.stringify({ sig, at: Date.now(), list: l.map(([id, h]) => id.toString(36) + ':' + h.toString(36)).join(',') })); } catch { } }
+function allDbForget() { ALLDB_C = undefined; try { localStorage.removeItem(ALLDB_LS); } catch { } }
+// los que se pasaron con "Pasar toda la base" y siguen en este EDIT
+function allDbIds() { const r = allDbLoad(); return r && S.ix ? [...r.m.keys()].filter(id => S.ix.byId.has(id)) : []; }
+const dbAllCandidates = () => DBRAW ? [...DBRAW.off.keys()].filter(id => id && !S.ix.byId.has(id) && dbStr(DBRAW.off.get(id) + 0xFB, 61)) : [];
+function dbToEditAll() {
+  const ids = dbAllCandidates(), n = S.d[96] | S.d[97] << 8, room = EDIT_CAP - n;
+  if (!ids.length) { toast('Todos los jugadores de la base ya están en tu EDIT.'); return 0; }
+  const prev = allDbIds(), take = Math.min(ids.length, room);
+  edit('Pasar toda la base al EDIT (' + take.toLocaleString('es-AR') + ' jugadores)', 'players', editPlayersRegion(take), () => insertEditPlayers(ids));
+  S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); rebuildTeamOf();
+  const made = ids.slice().sort((a, b) => a - b).slice(0, take).filter(id => S.ix.byId.has(id));
+  allDbSave(DBSIG, [...new Set([...prev, ...made])]); S.dbChanged = false;
+  RATE_GEN++;
+  toast(`${made.length.toLocaleString('es-AR')} jugadores de la base pasaron a tu EDIT con todos sus datos.${ids.length > take ? ` No entraron ${(ids.length - take).toLocaleString('es-AR')}: el EDIT admite ${EDIT_CAP.toLocaleString('es-AR')} jugadores.` : ''} Guardá el EDIT para llevarlo al juego.`, 9000, ['Deshacer', undo]);
+  return made.length;
+}
+function allBackToDb() {
+  const ids = allDbIds(); if (!ids.length) return 0;
+  const n = backToDb(ids); if (n) allDbForget(); return n;
+}
+// la base del juego cambió desde que se pasó: se vuelven a pasar los que no tocaste; los que cambiaste quedan como están
+function allDbChangedIds() {
+  const r = allDbLoad(); if (!r || !S.ix) return { same: [], mine: [] };
+  const same = [], mine = [];
+  for (const [id, h] of r.m) { if (!S.ix.byId.has(id)) continue; (recHash(id) === h ? same : mine).push(id); }
+  return { same, mine };
+}
+function checkDbChanged(quiet) {
+  const r = allDbLoad(); S.dbChanged = false;
+  if (!r || !DBSIG || r.sig === DBSIG || !S.ix) return false;
+  const here = allDbIds().length; if (here < r.m.size / 2) return false; // es otro EDIT
+  S.dbChanged = true;
+  if (!quiet) toast('⚠ La base del juego cambió (una actualización o un mod) desde que pasaste todos los jugadores al EDIT. Volvé a pasarla para que el juego use los datos nuevos: Jugadores → "Volver a pasar la base".', 12000);
+  return true;
+}
+function dbResync() {
+  const r = allDbLoad(), { same, mine } = allDbChangedIds(); let made = [];
+  edit('Volver a pasar la base al EDIT', 'players', [[96, 2], [0x7C, EDIT_CAP * 0x138]], () => { removeEditPlayers(same); S.ix = PD.index(S.d, S.f.game); made = insertEditPlayers(dbAllCandidates()); });
+  S.hist[S.hp - 1] && (S.hist[S.hp - 1].reindex = true); rebuildTeamOf();
+  allDbSave(DBSIG, made, new Map(mine.map(id => [id, r.m.get(id)]))); S.dbChanged = false;
+  RATE_GEN++;
+  toast(`Listo: ${made.length.toLocaleString('es-AR')} jugadores con los datos nuevos de la base.${mine.length ? ` Los ${mine.length.toLocaleString('es-AR')} que cambiaste vos quedaron como estaban.` : ''} Guardá el EDIT para llevarlo al juego.`, 9000, ['Deshacer', undo]);
+  return made.length;
+}
+// después de leer la base: el físico (PlayerAppearance.bin) y el arreglo de los jugadores agregados con datos vacíos
+async function dbAfterLoad(st) {
+  try { const a = typeof sdbAppearanceBin === 'function' ? await sdbAppearanceBin(st) : null; if (a) await appearanceFromBin(a); } catch { }
+  if (!S.d) return;
+  const fixed = repairEditPlayers();
+  if (checkDbChanged(fixed) || fixed) render();
 }
 async function namesFromBin(bytes) {
   let b = bytes;
@@ -407,6 +565,7 @@ async function namesFromBin(bytes) {
     const r = pos <= 12 ? Math.round(posFormula(pos, ab, true)) : 0;
     out.set(id, { name, pos: pos <= 12 ? pos : null, r, h: b[o + 0x1B] + 100, a: bitsAt(o, 408, 6) + 15, n: bitsAt(o, 233, 9) });
   }
+  DBSIG = fnv(b, 0, b.length).toString(36) + '-' + (b.length / 0x138);
   DBRAW = { b, off: new Map([...Array(b.length / 0x138).keys()].map(i => [(b[i * 0x138 + 8] | b[i * 0x138 + 9] << 8 | b[i * 0x138 + 10] << 16 | b[i * 0x138 + 11] << 24) >>> 0, i * 0x138])) };
   return out;
 }
@@ -464,9 +623,9 @@ async function reloadFromGame(force) {
   } catch (e) { toast('No se pudo recargar: ' + e.message, 6000); }
 }
 // botón "Buscar EDIT": los EDIT encontrados, buscar de nuevo, elegir la carpeta o abrir el archivo a mano
-function editFinder() {
+async function editFinder() {
   const list = PESLOC.edits || [];
-  ksModal('Buscar el EDIT', `${list.length ? `<p class="note">EDIT encontrados (el juego usa el que guardó por última vez):</p>
+  ksModal('Buscar EDIT o cambiar de juego', `<h4 class="efh">🔁 Juego</h4>${await gameSwitchHtml()}<h4 class="efh">📂 EDIT</h4>${list.length ? `<p class="note">EDIT encontrados (el juego usa el que guardó por última vez):</p>
     <div class="pesedits">${list.map((e, i) => `<div class="pesedit ${PESLOC.chosen === e ? 'on' : ''}"><b>${esc(e.kind)}</b><span class="mono">${esc(e.path)}\\EDIT00000000</span><small>${new Date(e.mtime).toLocaleString('es-AR')} · ${(e.size / 1048576).toFixed(1).replace('.', ',')} MB</small>${PESLOC.chosen === e ? '<span class="chip ok">Abierto</span>' : `<button class="btn small" type="button" data-fe="${i}">Abrir este</button>`}</div>`).join('')}</div>` : '<p class="note">Todavía no hay una carpeta del juego conectada.</p>'}
     <div class="col" style="display:grid;gap:8px;margin-top:10px">
       <button class="btn" type="button" data-fa="again">🔎 Buscar de nuevo${PESLOC.root ? ' en ' + esc(PESLOC.root.name) : ''}</button>
@@ -475,6 +634,7 @@ function editFinder() {
     </div>
     <p class="note">PES 2021 de Steam: Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\&lt;número&gt;\\drmp. Football Life: la misma carpeta, en <b>2026\\save</b>. Podés elegir Documentos o directo la carpeta donde está el EDIT00000000.</p>`,
     (box, close) => {
+      bindGameSwitch(box, close);
       box.querySelectorAll('[data-fe]').forEach(b => b.onclick = () => { close(); pesSwitch(+b.dataset.fe); });
       box.querySelector('[data-fa="again"]').onclick = async () => {
         close(); if (pending() && !await confirmBox('Tenés cambios sin guardar. ¿Buscar el EDIT de nuevo y perderlos?')) return;
@@ -485,6 +645,50 @@ function editFinder() {
       box.querySelector('[data-fa="folder"]').onclick = async () => { close(); if (pending() && !await confirmBox('Tenés cambios sin guardar. ¿Abrir otro EDIT y perderlos?')) return; if (!window.showDirectoryPicker) { $('fFile').click(); return; } pesPick(); };
       box.querySelector('[data-fa="file"]').onclick = () => { close(); $('fFile').click(); };
     });
+}
+// "Cambiar de juego" (en la ventana de Buscar EDIT): vuelve a leer el EDIT y la base del juego, o pasa a otro juego (por ejemplo de Football Life
+// a PES 2021) con su EDIT y su carpeta Sider. La carpeta Sider de cada juego se recuerda al conectarla (sider-fl / sider-pes).
+const GAME_NAME = { fl: 'Football Life', pes: 'PES 2021' };
+const editGame = e => /\\2026\\/.test(e.path + '\\') ? 'fl' : 'pes';
+const exeGame = x => /^FL_\d+\.exe$|football.?life/i.test(x || '') ? 'fl' : 'pes';
+function baseGame() { let x = ''; try { x = localStorage.getItem('edit21-gameexe') || ''; } catch { } return x ? exeGame(x) : null; }
+async function siderOk(h) { try { return !h.queryPermission || (await h.queryPermission({ mode: 'readwrite' })) === 'granted' || (await h.requestPermission({ mode: 'readwrite' })) === 'granted'; } catch { return false; } }
+async function openEditEntry(e) { const file = await e.handle.getFile(); PESLOC.chosen = e; S.dir = e.dir; S.editHandle = e.handle; S.mtime = file.lastModified; openBytes(new Uint8Array(await file.arrayBuffer()), e.path + '\\EDIT00000000'); }
+// el permiso o el selector de carpeta van primero, mientras dura el clic del usuario
+async function gameReload(kind) {
+  if (pending() && !await confirmBox('Tenés cambios sin guardar. ¿Recargar el EDIT y la base igual? Se pierden.')) return;
+  const cur = PESLOC.chosen && S.editHandle === PESLOC.chosen.handle ? PESLOC.chosen : null;
+  const target = kind ? PESLOC.edits.find(e => editGame(e) === kind) : cur;
+  let dir = kind ? await idbGet('sider-' + kind).catch(() => null) : (FACES.dir || await idbGet('sider').catch(() => null));
+  if (dir && !await siderOk(dir)) dir = null;
+  if (!dir && window.showDirectoryPicker) {
+    if (kind) toast(`Elegí la carpeta Sider de ${GAME_NAME[kind]} (o la carpeta del juego).`, 6000);
+    try { dir = await window.showDirectoryPicker({ id: 'edit21kits', mode: 'readwrite' }); } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  try {
+    if (target) await openEditEntry(target); else if (S.editHandle) await reloadFromGame(true);
+  } catch (e) { toast('No se pudo leer el EDIT: ' + e.message, 6000); return; }
+  if (dir) await connectKits(dir);
+  else toast('EDIT recargado. Para la base, conectá la carpeta Sider del juego.', 6000);
+  render();
+}
+async function gameSwitchHtml() {
+  const cur = PESLOC.chosen && S.editHandle === PESLOC.chosen.handle ? PESLOC.chosen : null;
+  const eg = cur ? editGame(cur) : null, bg = baseGame(), sider = FACES.dir;
+  const kinds = [...new Set((PESLOC.edits || []).map(editGame))].filter(k => k !== eg);
+  const saved = Object.fromEntries(await Promise.all(kinds.map(async k => [k, await idbGet('sider-' + k).catch(() => null)])));
+  return `<p class="note"><b>EDIT abierto:</b> ${cur ? `${GAME_NAME[eg]} · <span class="mono">${esc(cur.path)}</span>` : S.d ? '<span>un EDIT abierto como copia</span>' : '<span>ninguno</span>'}<br><b>Base del juego:</b> ${S.names.size ? `${bg ? GAME_NAME[bg] : ''}${sider ? ` · <span class="mono">${esc(sider.name)}</span>` : ''} · <span>${S.names.size.toLocaleString('es-AR')} jugadores</span>` : '<span>sin cargar</span>'}</p>
+    ${eg && bg && eg !== bg ? `<div class="warnbox">El EDIT es de ${GAME_NAME[eg]} pero la base es de ${GAME_NAME[bg]}. Pasá los dos al mismo juego para que coincidan los jugadores.</div>` : ''}
+    <div class="col" style="display:grid;gap:8px;margin-top:10px">
+      <button class="btn primary" type="button" data-gs="">🔄 Recargar el EDIT y la base</button>
+      ${kinds.map(k => `<button class="btn" type="button" data-gs="${k}">⇄ Pasar a ${GAME_NAME[k]}<small style="display:block;font-weight:normal;opacity:.8">${esc(PESLOC.edits.find(e => editGame(e) === k).path)} · ${saved[k] ? 'base de la carpeta ' + esc(saved[k].name) : 'te pide elegir su carpeta Sider'}</small></button>`).join('')}
+      <button class="btn ghost" type="button" data-gs-other>📁 Usar otra carpeta Sider…</button>
+    </div>
+    <p class="note">Recargar vuelve a leer el EDIT y la base del juego desde sus carpetas (kits, caras y nombres incluidos), por ejemplo después de actualizar el juego o cambiar de mods. Para dejar de usar un juego, pasá al otro: se abre su EDIT y se lee su base.</p>`;
+}
+function bindGameSwitch(box, close) {
+  box.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { close(); gameReload(b.dataset.gs || null); });
+  box.querySelector('[data-gs-other]').onclick = () => { close(); connectKits(); };
 }
 // al volver a la ventana: si el juego guardó el EDIT, avisar o recargar solo
 window.addEventListener('focus', async () => {
@@ -1223,13 +1427,16 @@ function renderPlayers(m) {
   m.innerHTML = `<div class="split">
     <aside class="list">
       <div class="list-head">
-        <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="${S.pSrc === 'edit'}">Mi EDIT <b>${S.ix.players.length}</b></button><button type="button" data-psrc="db" aria-pressed="${S.pSrc === 'db'}" ${dbN ? '' : 'disabled title="Conectá la carpeta Sider para ver la base del juego"'}>Del juego <b>${dbN ? dbN.toLocaleString('es-AR') : '–'}</b></button></div>
+        <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="${S.pSrc === 'edit'}">Mi EDIT <b>${S.ix.players.length.toLocaleString('es-AR')}</b></button><button type="button" data-psrc="db" aria-pressed="${S.pSrc === 'db'}" ${dbN ? '' : 'disabled title="Conectá la carpeta Sider para ver la base del juego"'}>Del juego <b>${dbN ? dbN.toLocaleString('es-AR') : '–'}</b></button></div>
         <input type="search" id="qPlayer" placeholder="Filtrar por nombre, ID o equipo…" value="${esc(S.qPlayer)}" aria-label="Filtrar jugadores">
         <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Sin proteger']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="autoLock" ${S.autoLock ? 'checked' : ''}> Proteger al editar</label>
         <button class="btn small" id="lockAll" type="button" ${locked === S.ix.players.length ? 'disabled' : ''}>Proteger todos (${locked}/${S.ix.players.length})</button></div>
+        ${formEditIds().length ? `<button class="btn small wrapbtn" id="formToDb" type="button" title="Saca de tu EDIT a los jugadores que cambió la media por rendimiento: el juego vuelve a usarlos como venían">↩ Volver a la base los de la media (${formEditIds().length})</button>` : ''}
+        ${allDbHead()}
+        <p class="note" style="margin:0">${list.length > DB_LIM ? `<span>Se ven ${DB_LIM} de ${list.length.toLocaleString('es-AR')}: buscá para encontrar el resto</span>` : ''}</p>
       </div>
-      <div class="list-body" id="plItems">${list.map(x => { const c = clubOf(x.id), rp = pget(x, 'reg_pos'); return `<button class="item ${p && x.id === p.id ? 'on' : ''}" data-p="${x.id}" type="button">
+      <div class="list-body" id="plItems">${list.slice(0, DB_LIM).map(x => { const c = clubOf(x.id), rp = pget(x, 'reg_pos'); return `<button class="item ${p && x.id === p.id ? 'on' : ''}" data-p="${x.id}" type="button">
         ${posBadge(rp)}<span style="min-width:0"><span class="nm">${c ? shirtSvg(kitFor(c, rp === 0), '1.05em', tget(c, 'name')) + ' ' : ''}${esc(pget(x, 'name') || 'ID ' + x.id)}${dk.has('p' + x.id) ? '<span class="dot" title="Con cambios sin guardar"></span>' : ''}</span>
         <span class="sub2">${c ? esc(tget(c, 'name')) : 'Sin equipo'}${lockWord(x)}</span></span><span class="meta"><b class="${vcls(rating(x))}">${rating(x)}</b></span></button>`; }).join('') || '<div class="empty">Sin resultados.</div>'}</div>
     </aside>
@@ -1240,8 +1447,32 @@ function renderPlayers(m) {
   $('plItems').onclick = e => { const b = e.target.closest('[data-p]'); if (b && +b.dataset.p !== S.player) { S.player = +b.dataset.p; m.querySelectorAll('.item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); const sh = m.querySelector('.sheet'); leave(sh, () => renderPlayers(m)); } };
   $('autoLock').onchange = e => { S.autoLock = e.target.checked; };
   bindPSrc(m);
+  bindAllDb(m);
+  const fdb = $('formToDb'); if (fdb) fdb.onclick = async () => { const ids = formEditIds(); if (await confirmBox(`¿Volver a la base del juego a los ${ids.length} jugadores que cambió la media por rendimiento? Salen de tu EDIT y el juego los usa como venían. Se puede deshacer con Ctrl+Z.`)) { backToDb(ids); renderPlayers(m); } };
   $('lockAll').onclick = () => { const ps = S.ix.players.filter(x => !isLocked(x)); edit('Proteger todos los jugadores', 'all', ps.flatMap(regP), () => { for (const x of ps) for (const k of LOCK_FLAGS) PD.player.set(S.d, x.base, k, 1); }); toast(ps.length + ' jugadores protegidos.'); later(() => renderPlayers(m)); };
   if (p) bindPlayer(p, m);
+}
+// botones de "Pasar toda la base": pasar, volver y el aviso cuando la base del juego cambió
+function allDbHead() {
+  if (!S.ix || !DBRAW) return '';
+  const done = allDbIds().length, left = dbAllCandidates().length;
+  return (S.dbChanged ? `<div class="warnbox dbwarn"><b>⚠ La base del juego cambió</b> (una actualización o un mod) desde que pasaste todos los jugadores a tu EDIT, y el juego sigue usando los datos viejos del EDIT. Volvé a pasarla: los jugadores que cambiaste vos se quedan como están.<button class="btn small primary wrapbtn" id="dbResync" type="button">🔄 Volver a pasar la base</button></div>` : '')
+    + (left ? `<button class="btn small wrapbtn" id="dbAll" type="button" title="Copia a tu EDIT a todos los jugadores de la base con todos sus datos, para que el juego los cargue desde el EDIT">⇪ Pasar toda la base a mi EDIT (${left.toLocaleString('es-AR')})</button>` : '')
+    + (done ? `<button class="btn small wrapbtn" id="allToDb" type="button" title="Saca de tu EDIT a los jugadores que pasaste desde la base: el juego vuelve a usarlos como venían">↩ Volver a la base los que pasaste (${done.toLocaleString('es-AR')})</button>` : '');
+}
+function bindAllDb(m) {
+  const go = (id, fn) => { const b = $(id); if (b) b.onclick = fn; };
+  go('dbAll', async () => {
+    const n = dbAllCandidates().length;
+    if (!await confirmBox(`¿Pasar los ${n.toLocaleString('es-AR')} jugadores de la base a tu EDIT, con todos sus datos? El juego los va a cargar desde el EDIT. Si después la base del juego cambia (una actualización o un mod), hay que volver a pasarla: el editor te avisa. Se puede deshacer con Ctrl+Z.`)) return;
+    dbToEditAll(); S.pSrc = 'edit'; renderPlayers(m);
+  });
+  go('allToDb', async () => {
+    const ids = allDbIds(), { mine } = allDbChangedIds();
+    if (!await confirmBox(`¿Volver a la base los ${ids.length.toLocaleString('es-AR')} jugadores que pasaste? Salen de tu EDIT y el juego los usa como venían.${mine.length ? ` ${mine.length.toLocaleString('es-AR')} tienen cambios tuyos y también se pierden.` : ''} Se puede deshacer con Ctrl+Z.`)) return;
+    allBackToDb(); renderPlayers(m);
+  });
+  go('dbResync', () => { dbResync(); renderPlayers(m); });
 }
 function bindPSrc(m) { m.querySelectorAll('[data-psrc]').forEach(b => b.onclick = () => { if (S.pSrc === b.dataset.psrc) return; S.pSrc = b.dataset.psrc; later(() => renderPlayers(m)); }); }
 // una fila de la lista de jugadores del juego
@@ -1283,16 +1514,17 @@ function renderDbPlayers(m, dbN) {
   m.innerHTML = `<div class="split">
     <aside class="list">
       <div class="list-head">
-        <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="false" ${S.ix.players.length ? '' : 'disabled title="Todavía no hay jugadores en tu EDIT"'}>Mi EDIT <b>${S.ix.players.length}</b></button><button type="button" data-psrc="db" aria-pressed="true">Del juego <b>${dbN.toLocaleString('es-AR')}</b></button></div>
+        <div class="seg psrc" role="tablist" aria-label="Qué jugadores ver"><button type="button" data-psrc="edit" aria-pressed="false" ${S.ix.players.length ? '' : 'disabled title="Todavía no hay jugadores en tu EDIT"'}>Mi EDIT <b>${S.ix.players.length.toLocaleString('es-AR')}</b></button><button type="button" data-psrc="db" aria-pressed="true">Del juego <b>${dbN.toLocaleString('es-AR')}</b></button></div>
         <input type="search" id="qPlayer" placeholder="Buscar en la base: nombre, ID o equipo…" value="${esc(S.qPlayer)}" aria-label="Buscar jugadores de la base">
         <select id="pFilter" aria-label="Filtro">${[['all', 'Todos'], ['gk', 'Porteros'], ['df', 'Defensores'], ['mf', 'Mediocampistas'], ['fw', 'Delanteros'], ['unlocked', 'Solo los que no están en mi EDIT']].map(([k, n]) => `<option value="${k}" ${S.pFilter === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <p class="note" id="dbCount" style="margin:0">${dbCountNote(all)}</p>
+        ${allDbHead()}
       </div>
       <div class="list-body" id="plItems">${list.map(id => dbItemHtml(id, sel)).join('') || '<div class="empty">Sin resultados.</div>'}</div>
     </aside>
     <section class="sheet" id="plSheet">${sel != null ? dbPlayerSheet(sel) : ''}</section>
   </div>`;
-  bindPSrc(m);
+  bindPSrc(m); bindAllDb(m);
   $('qPlayer').oninput = e => { S.qPlayer = e.target.value; clearTimeout(S.dbQT); S.dbQT = setTimeout(() => dbRefreshList(m, false), 180); };
   $('pFilter').onchange = e => { S.pFilter = e.target.value; dbRefreshList(m, true); };
   $('plItems').onclick = e => { const b = e.target.closest('[data-dbsel]'); if (!b || +b.dataset.dbsel === S.dbPlayer) return; S.dbPlayer = +b.dataset.dbsel; m.querySelectorAll('#plItems .item.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); dbShowSheet(m, S.dbPlayer); };
@@ -1333,7 +1565,7 @@ function playerSheet(p) {
       <div class="rating" title="Calculada como en el juego: igual en 2 de cada 3 jugadores y en el resto a 1 punto"><b class="${vcls(rating(p))}">${rating(p)}</b><span>Valoración</span></div></div>
     <label class="lock ${isLocked(p) ? '' : 'off'}"><input type="checkbox" id="pLock" ${isLocked(p) ? 'checked' : ''}>
       <div><b>Proteger mis cambios</b><span>Marca al jugador como editado. El juego usa estos valores aunque el juego cargue otra base de datos.</span><div class="flags">${flagChips(p)}</div></div></label>
-    <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}
+    <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}${canBackToDb(p.id) ? '<button class="btn small" id="pToDb" type="button" title="Lo saca de tu EDIT: el juego vuelve a usar el jugador de su base, con todo como venía">↩ Volver a la base del juego</button>' : ''}
       <select id="pCopy" style="width:auto;max-width:260px" aria-label="Copiar de otro jugador"><option value="">Copiar de otro jugador…</option>${S.ix.players.filter(x => x.id !== p.id).map(x => `<option value="${x.id}">${esc(pget(x, 'name') || x.id)}</option>`).join('')}</select>
       <select id="pCopyWhat" style="width:auto" aria-label="Qué copiar"><option value="abil">habilidades</option><option value="skills">especiales y estilos</option><option value="pos">posiciones</option><option value="look">apariencia</option><option value="motion">movimientos</option></select>
       <button class="btn small" id="pCopyBtn" type="button">Copiar</button></div>
@@ -1906,6 +2138,7 @@ function bindPlayer(p, m) {
   sh.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => { S.ptab = b.dataset.ptab; renderPlayers(m); });
   $('pLock').onchange = e => { setLock(p, e.target.checked); rer(); };
   const rv = $('pRevert'); if (rv) rv.onclick = () => { edit('Volver al original: ' + nm(), 'p' + p.id, regP(p), () => S.d.set(S.origData.subarray(p.base, p.base + 0x138), p.base)); toast('Jugador restaurado como estaba al abrir el archivo.', 4000, ['Deshacer', undo]); rer(); };
+  const tdb = $('pToDb'); if (tdb) tdb.onclick = async () => { if (await confirmBox(`¿Volver a ${nm()} a la base del juego? Sale de tu EDIT y el juego usa el jugador como venía: se pierde lo que le cambiaste (media, habilidades, físico…). Se puede deshacer con Ctrl+Z.`)) { backToDb([p.id]); renderPlayers(m); } };
   $('pCopyBtn').onclick = () => {
     const src = S.ix.byId.get(+$('pCopy').value); if (!src) { toast('Elegí de qué jugador copiar.'); return; }
     const what = $('pCopyWhat').value;

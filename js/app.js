@@ -362,8 +362,9 @@ async function openFile(file) {
 }
 // ---- base del juego (Player.bin) → entradas del EDIT ----
 let DBRAW = null, DBSIG = '';
-// campos de la sección "Habilidad" del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
-const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30], strong_foot: [514, 1, 0], gc1: [242, 8, 0] });
+// campos del EDIT y dónde están en Player.bin [bit, bits, suma]; verificado con jugadores que el juego guardó en tu EDIT
+// (los movimientos, además, con los 25.000 jugadores exportados por el editor de PES 2020)
+const DB_TO_EDIT = () => Object.assign(Object.fromEntries(Object.entries(DB_ABIL).map(([k, p]) => [k, [p, 6, 40]])), { nation: [233, 9, 0], age: [408, 6, 15], reg_pos: [434, 4, 0], form: [438, 3, 0], weak_use: [454, 2, 0], weak_acc: [462, 2, 0], injury: [458, 2, 0], star: [451, 3, 0], weight: [256, 7, 30], strong_foot: [514, 1, 0], gc1: [242, 8, 0], mo_ck: [422, 4, 0], mo_armd: [426, 4, 0], mo_armr: [430, 4, 0], mo_hunchd: [441, 3, 0], mo_pk: [444, 3, 0], mo_hunchr: [448, 3, 0], mo_fk: [123, 5, 0] });
 function dbBits(o, pos, n) { const b = DBRAW.b; let v = 0; for (let i = 0; i < n; i++) { const q = pos + i; if ((b[o + (q >> 3)] >> (q & 7)) & 1) v |= 1 << i; } return v; }
 function dbStr(o, l) { const s = DBRAW.b.subarray(o, o + l), z = s.indexOf(0); return new TextDecoder().decode(z < 0 ? s : s.subarray(0, z)); }
 // peso en la base del juego: 7 bits desde el bit 256, en kg menos 30 (comprobado con la base de Football Life 2026)

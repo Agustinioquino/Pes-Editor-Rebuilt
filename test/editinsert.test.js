@@ -100,15 +100,16 @@ test('"Volver a la base del juego" saca al jugador del EDIT sin tocar a los dem�
   assert.match(toasts.at(-1), /volvió a la base del juego/);
 });
 
-test('las habilidades especiales, la IA y el estilo de juego se copian de la base (sin marcarlos)', () => {
+test('las habilidades especiales, la IA, el estilo de juego y los movimientos se copian de la base (sin marcarlos)', () => {
   const keep = db.slice();
-  put(485, 1, 1); put(447, 1, 1); put(155, 5, 13); // Elástica (sk1), Centro temprano (com5), estilo 13 de la base = Hombre objetivo
+  put(485, 1, 1); put(447, 1, 1); put(155, 5, 13); put(441, 3, 2); put(123, 5, 15); put(422, 4, 5); // Elástica (sk1), Centro temprano (com5), estilo 13 de la base = Hombre objetivo
   freshEdit(); run('DBAPP = null'); run(`insertEditPlayers([${ID}])`);
   const p = run(`S.ix.byId.get(${ID})`), g = k => PD.player.get(ctx.S.d, p.base, k);
   assert.equal(g('sk1'), 1); assert.equal(g('com5'), 1); assert.equal(g('play_style'), 4);
   assert.equal(Object.keys(run('DB_SKILL')).filter(k => g('sk' + k)).length, 1);
   assert.equal([0, 1, 2, 3, 4, 5, 6].filter(i => g('com' + i)).join(), '5');
   assert.equal(g('e_skill') + g('e_style') + g('e_com'), 0);
+  assert.equal(g('mo_hunchd'), 2); assert.equal(g('mo_fk'), 15); assert.equal(g('mo_ck'), 5);
   db.set(keep);
 });
 

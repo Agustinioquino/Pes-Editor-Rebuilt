@@ -57,7 +57,8 @@ const KFONT = (() => {
   // ---- curva del nombre como la arma el juego: cada letra sobre un arco de radio 1000 / curva, girada con él ----
   // El radio está en unidades del juego; medido en capturas (ABCDEFG con forma leve, media y extrema), un alto de
   // letra son ~168 unidades. Curva positiva: el centro queda arriba y las puntas bajan.
-  const ARC_H = 168;
+  // radio de la curva: 1000 / NameCurve en las unidades de KitPos; medido en el juego, la curva leve (672) casi no se nota en un nombre corto
+  const ARC_H = 40;
   // items: [{ w: ancho que ocupa, draw(g) dibuja la letra centrada en (0, 0) }]; gap: espacio extra entre letras
   function arcText(g, items, cx, cy, h, curve, gap) {
     const total = items.reduce((a, q) => a + q.w, 0) + gap * Math.max(0, items.length - 1), R = Math.abs(curve) >= .05 ? 1000 / curve / ARC_H * h : 0;

@@ -340,8 +340,12 @@ function kposBind(root, changed, rerender) {
 }
 // posiciones aproximadas a partir del config (0..1 dentro de cada región)
 const KS_POS = {
-  name: () => ({ y: .07 + (39 - ksP('NameY')) / 39 * .35, h: .05 + ksP('NameSize') * .006, stretch: .75 + ksP('NameStretch') * .15, curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 110 : 0 }),
-  num: () => ({ y: .22 + (29 - ksP('BackNumberY')) / 29 * .35, h: .12 + ksP('BackNumberSize') / 28 * .22, spacing: (ksP('BackNumberSpacing') - 7) * .012 }),
+  // espalda (y, h: fracción del largo de la espalda desde el cuello; y es el centro). Medido en el juego (Agustin, 17/10/2026: NameY 16,
+  // NameSize 7, BackNumberY 28, BackNumberSize 21): el nombre termina donde dice NameY (valor del juego) y el número va debajo del nombre,
+  // más cerca cuanto más alto BackNumberY. La distancia con BackNumberY bajo todavía es estimada.
+  name: () => { const h = KPOS.fromSteps('NameSize', ksP('NameSize')) * .0533; return { y: KPOS.fromSteps('NameY', ksP('NameY')) - .012 - h / 2, h, stretch: .75 + ksP('NameStretch') * .15, curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 110 : 0 }; },
+  num: () => { const nb = KPOS.fromSteps('NameY', ksP('NameY')) - .012, h = Math.max(.02, KPOS.fromSteps('BackNumberSize', ksP('BackNumberSize')) * .315), gap = .057 + (KPOS.fromSteps('BackNumberY', ksP('BackNumberY')) - .041) * .3;
+    return { y: nb + gap + h / 2, h, spacing: (ksP('BackNumberSpacing') - 7) * .012 }; },
   chest: () => ({ x: .2 + ksP('ChestNumberX') / 29 * .6, y: .05 + ksP('ChestNumberY') / 29 * .35, h: .04 + ksP('ChestNumberSize') / 28 * .1 }),
   leg: () => ({ x: ksP('ShortsNumberX') / 31, y: ksP('ShortsNumberY') / 31, h: .25 + ksP('ShortsNumberSize') / 28 * .5 }),
 };
@@ -383,12 +387,12 @@ function ksDrawDecals(g, S, only, D) {
   if (on('name') && cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: ksGenName() ? p.stretch / 1.2 : p.stretch, curve: p.curve, spacing: p.spacing, generic: ksGenName(), color: ksNameColor() }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
   if (on('num') && KS.sample.num) { const p = KS_POS.num(), n = cfgGet(KS.cfg, 'BackNumberType') === '1' ? KS.sample.num.padStart(2, '0') : KS.sample.num; KFONT.drawText(g, ksTexOf('back'), 'back', n, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, n.length * p.h * bh * .62, p.h * bh); }
   g.restore();
-  if (on('chest') && (cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && KS.sample.num) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
+  if (on('chest') && kplOn('chest')) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
   if (on('leg') && ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && KS.sample.num) {
-    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna)
+    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna); con Horizontal 0 queda en el medio de la pierna (medido en el juego)
     const L = cfgGet(KS.cfg, 'ShortsNumberSide') !== '1', M = L ? [.0007, -.0063, .0065, .0007, .944, .865] : [.0008, .0066, -.0066, .001, .053, .862];
     g.save(); g.setTransform(M[0] * S, M[1] * S, M[2] * S, M[3] * S, M[4] * S, M[5] * S);
-    const dx = (ksP('ShortsNumberX') - 15) / 15 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksP('ShortsNumberY') / 29 * 8, hh = 3 + ksP('ShortsNumberSize') / 28 * 5;
+    const dx = ksP('ShortsNumberX') / 29 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksP('ShortsNumberY') / 29 * 8, hh = 3 + ksP('ShortsNumberSize') / 28 * 5;
     KFONT.drawText(g, ksTexOf('leg') || ksTexOf('back'), ksTexOf('leg') ? 'leg' : 'back', KS.sample.num, dx, dy, hh); g.restore();
     const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
   }
@@ -715,7 +719,7 @@ function ksShowEl(el, on, setVal) {
   const kp = KPS.cur && KPS.st && KPS.st.lua && KPS.st.slots !== 'hidden', size = { chest: 'ChestNumberSize', leg: 'ShortsNumberSize' }[el], prev = KS.prevEl || (KS.prevEl = {});
   if (el === 'name') { setVal('Name', on ? '0' : '1'); return; }
   if (el === 'chest') {
-    if (on) { const f = prev.chestFile || cfgGet(KS.cfg, 'BackNumbersFile') || ''; if (!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim()) setVal('ChestNumbersFile', f); if (ksN('ChestNumberSize') === 0 && prev.chestSize) setVal('ChestNumberSize', prev.chestSize); }
+    if (on) { const f = prev.chestFile || cfgGet(KS.cfg, 'BackNumbersFile') || ''; if (!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim()) setVal('ChestNumbersFile', f); if (ksN('ChestNumberSize') === 0) setVal('ChestNumberSize', prev.chestSize || 10); }
     else { prev.chestFile = cfgGet(KS.cfg, 'ChestNumbersFile'); prev.chestSize = ksN('ChestNumberSize'); setVal('ChestNumbersFile', ''); }
   }
   if (el === 'leg') {

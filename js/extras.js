@@ -163,6 +163,7 @@ async function connectKits(dirIn) {
     if (bytes) {
       const m = await namesFromBin(bytes);
       S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++;
+      if (typeof dbAfterLoad === 'function') await dbAfterLoad(st);
       namesMsg = `${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = 'Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = 'Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }

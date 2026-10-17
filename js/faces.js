@@ -525,5 +525,5 @@ async function faceFromLink(pid, text) {
 
 // carga la base del juego (copia hecha por el módulo edit21_db de Sider, o los archivos del juego) sin mostrar nada
 async function loadDbQuiet(sider, force) {
-  try { const st = typeof sdbCheck === 'function' ? await sdbCheck(sider, force) : null, b = st && await sdbBin(st, 'Player.bin'); if (!b) return; const m = await namesFromBin(b); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++; } } catch { }
+  try { const st = typeof sdbCheck === 'function' ? await sdbCheck(sider, force) : null, b = st && await sdbBin(st, 'Player.bin'); if (!b) return; const m = await namesFromBin(b); if (!S.names.size || force || S.namesStale) { S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++; } if (typeof dbAfterLoad === 'function') await dbAfterLoad(st); } catch { }
 }

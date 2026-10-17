@@ -1,5 +1,5 @@
 --[[
-    edit21_db.lua  v1.5  -- modulo de SOLO LECTURA para PES Editor
+    edit21_db.lua  v1.6  -- modulo de SOLO LECTURA para PES Editor
     -------------------------------------------------------------------
     No modifica el juego. Cuando PES carga su base de datos (common\etc\pesdb\*.bin)
     guarda una copia de cada archivo tal como el juego lo usa (con todo lo que
@@ -7,7 +7,13 @@
 
         <carpeta de sider>\content\edit21-db\
 
-    Novedades de la v1.5:
+    Novedades de la v1.6:
+      - tambien copia el fisico de los jugadores
+        (common\character0\model\character\appearance\PlayerAppearance.bin):
+        PES Editor lo usa al agregar jugadores de la base a tu EDIT, para que
+        no queden con el cuerpo en -7
+
+    v1.5:
       - el io de Sider no deja escribir archivos en algunas instalaciones
         (io.open devuelve nil sin error, tambien a otros modulos). Si pasa eso,
         el modulo escribe con las funciones de Windows por medio de ffi
@@ -29,7 +35,7 @@
     resto de la base) y cerra el juego. PES Editor avisa si falta algo.
 ]]
 
-local m = { version = "1.5" }
+local m = { version = "1.6" }
 local OUT, INDEX, CANDS, failed
 local done, count, partial = {}, 0, {}
 local METHOD -- "io" o "ffi"
@@ -115,6 +121,7 @@ end
 
 local function basename(fn)
     local l = string.lower(fn)
+    if string.find(l, "playerappearance%.bin$") then return string.match(fn, "([^\\/]+)$") end
     if not string.find(l, "pesdb", 1, true) then return nil end
     if not string.find(l, "%.bin$") then return nil end
     return string.match(fn, "([^\\/]+)$")

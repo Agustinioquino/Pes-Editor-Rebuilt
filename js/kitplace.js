@@ -17,8 +17,9 @@ const KPL_MASK = 512;
 function kplOn(el) {
   if (!KS.cfg) return false;
   if (el === 'name') return cfgGet(KS.cfg, 'Name') !== '1' && !!KS.sample.name;
-  if (el === 'chest') return !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && !!KS.sample.num;
-  if (el === 'leg') return ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && !!KS.sample.num;
+  const kpHid = f => !!(KPS.cur && KPS.st && KPS.st.lua) && kpsVals()[f] === 0; // KitPos lo oculta con tamaño 0
+  if (el === 'chest') return !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && !!KS.sample.num && !kpHid('ChestNumberSize');
+  if (el === 'leg') return ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && !!KS.sample.num && !kpHid('ShortsNumberSize');
   return !!KS.sample.num;
 }
 const kplF = k => KS_KP[k] || k; // campo de KitPos (NameShape -> NameCurve)

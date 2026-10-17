@@ -840,14 +840,31 @@ html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 .k3tval,.k3thint{margin:0;font-size:.68rem;opacity:.85;text-align:center;max-width:250px}
 .ks3d:has(.k3tools) .k3hud{max-width:calc(100% - 340px);border-radius:10px}
 @media (max-width:700px){.ks3d:has(.k3tools) .k3hud{display:none}}
-.k3float{position:absolute;z-index:5;display:grid;gap:4px;justify-items:center;padding:6px;border-radius:12px;background:#0b0f16d9;color:#fff;border:1px solid color-mix(in srgb,var(--dc) 60%,transparent);box-shadow:0 6px 22px #0007;backdrop-filter:blur(6px);transition:left .12s ease-out,top .12s ease-out}
+.k3float{position:absolute;z-index:5;display:grid;gap:6px;justify-items:center;padding:10px 8px 8px;border-radius:18px;background:radial-gradient(ellipse at 50% 40%,#ffffff24,#0b0f1666 75%);color:#fff;border:1px solid #ffffff38;box-shadow:0 8px 26px #0005;backdrop-filter:blur(8px);transition:left .12s ease-out,top .12s ease-out}
+.k3sls{display:flex;gap:6px}
+.k3sl{display:grid;justify-items:center;gap:3px;width:38px;--kp:.5}
+.k3sl small{font-size:.58rem;opacity:.85;white-space:nowrap}
+.k3si{font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;opacity:.85;user-select:none;padding:2px}.k3si:hover{opacity:1;color:var(--dc)}
+.k3tr{position:relative;width:24px;height:118px;cursor:pointer;touch-action:none}
+.k3tr::before{content:"";position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;border-radius:4px;background:#ffffff4d;box-shadow:inset 0 1px 2px #0004}
+.k3kn{position:absolute;left:50%;bottom:calc(6px + (100% - 12px) * var(--kp));width:20px;height:20px;margin:0 0 -10px -10px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#e6eaf0 60%,#c9d0da);box-shadow:0 2px 6px #0006,0 0 0 2px #ffffff55;transition:transform .1s}
+.k3sl:hover .k3kn,.k3sl.drag .k3kn{transform:scale(1.18);box-shadow:0 2px 8px #0007,0 0 0 3px var(--dc)}
+.k3sl.h{display:flex;align-items:center;width:auto;gap:4px}.k3sl.h small{order:9;margin-left:2px}
+.k3sl.h .k3tr{width:110px;height:24px}
+.k3sl.h .k3tr::before{left:6px;right:6px;top:50%;bottom:auto;width:auto;height:4px;margin:-2px 0 0}
+.k3sl.h .k3kn{left:calc(6px + (100% - 12px) * var(--kp));bottom:auto;top:50%;margin:-10px 0 0 -10px}
+.k3ty{display:flex;border-radius:99px;overflow:hidden;border:1px solid #ffffff40}
+.k3ty button{border:0;background:#ffffff14;color:#fff;font:inherit;font-weight:800;font-size:.75rem;padding:3px 12px;cursor:pointer}.k3ty button[aria-pressed="true"]{background:var(--dc);color:#111}
+.k3del{border:1px solid #ffffff38;background:#0000;color:#fff;border-radius:99px;font:inherit;font-size:.68rem;padding:2px 10px;cursor:pointer;opacity:.8}.k3del:hover{opacity:1;background:#e5484d;border-color:#e5484d}
+.k3tsel button.add{border-style:dashed;background:#0000;color:#fff;opacity:.85}.k3tsel button.add:hover{opacity:1;background:var(--dc);color:#111}
 .k3float[hidden],.k3arc[hidden]{display:none}
 .k3float .k3tval{max-width:120px;font-size:.62rem;line-height:1.25}
 .k3arc{position:absolute;z-index:5;display:inline-flex;align-items:center;gap:4px;padding:3px 10px 3px 7px;border-radius:99px;border:2px solid var(--dc);background:#0b0f16d9;color:#fff;font:inherit;font-size:.72rem;font-weight:700;cursor:ns-resize;touch-action:none;user-select:none;transition:left .12s ease-out,top .12s ease-out}
 .k3arc span{color:var(--dc);font-size:1rem;line-height:1}.k3arc.drag,.k3arc:hover{background:var(--dc);color:#111}.k3arc.drag span,.k3arc:hover span{color:#111}
 .k3tools .k3thint:empty{display:none}
 .ks3dwrap.present .k3tools,.ks3dwrap.present .k3float,.ks3dwrap.present .k3arc,.ks3dwrap.present .k3hud{display:none}
-html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button,.k3float,.k3arc){border-radius:0!important}
+html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button,.k3arc,.k3ty,.k3del){border-radius:0!important}
+html[data-gfx="pes6"] .k3sl small{font-size:.5rem;letter-spacing:0}html[data-gfx="pes6"] .k3sls{gap:12px}
 :is(.k3tools,.k3float) :is(.k3tval,.k3thint){color:#fff!important}
 /* aviso: elegir kitpos_slots.ini antes de mostrar el kit */
 .ksgate{display:flex;gap:16px;align-items:flex-start;padding:22px;border-radius:var(--r,10px);border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--sunk))}

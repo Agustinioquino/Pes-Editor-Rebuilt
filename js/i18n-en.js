@@ -4466,7 +4466,19 @@ const I18N_EN = {"⬇ Instalar el archivo":"⬇ Install the file",
 "Horizontal":"Horizontal",
 "Vertical":"Vertical",
 "Girá el kit para ver {x}":"Turn the kit to see the {1}",
-"Arrastrá hacia arriba o abajo para curvar el nombre":"Drag up or down to curve the name"
+"Arrastrá hacia arriba o abajo para curvar el nombre":"Drag up or down to curve the name",
+"Costado":"Side",
+"Mostrar en el kit":"Show on the kit",
+"Sacarlo del kit (en el config.txt y en KitPos)":"Remove it from the kit (in config.txt and in KitPos)",
+"Agregar: {x}":"Add: {x}",
+"＋ Nombre":"＋ Name",
+"＋ Pecho":"＋ Chest",
+"＋ Short":"＋ Shorts",
+"Tipo de número (BackNumberType del config.txt)":"Number type (BackNumberType in config.txt)",
+"Normal: una cifra si el número es menor que 10":"Normal: one digit if the number is below 10",
+"Siempre dos cifras":"Always two digits",
+"{x}: arrastrá con el mouse · rueda: de a un paso":"{x}: drag with the mouse · wheel: one step at a time",
+"Este kit no lleva número en el short.":"This kit has no shorts number."
 };
 // Ficha del jugador · Perfil: nombre y apellido, equipo y selección, nivel
 Object.assign(I18N_EN, {

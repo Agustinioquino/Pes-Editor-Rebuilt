@@ -151,8 +151,14 @@ async function ksLoadSlots(dir) {
   KS.dispKey = '';
 }
 const ksTexOf = k => KS.T && KS.T[k] && KS.T[k].c || null;
-// fuente de KitPos: si la carpeta del kit tiene kitpos_letras.txt, la textura del nombre se lee con esa tabla (con minúsculas)
-async function ksKitPosFont(dir, kit, c) { try { const t = await readText(await dir.getDirectoryHandle(kit), 'kitpos_letras.txt'), list = t ? KPF.parseLetras(t) : []; if (list.length) c.__kp = KPF.glyphMap(list, c.width, c.height); } catch { } }
+// fuente de KitPos: si la carpeta del kit tiene kitpos_letras.txt, la textura del nombre se lee con esa tabla (con minúsculas).
+// Si no, KitPos usa la tabla general content\kitpos\minusculas.txt (NameLower = 1): se usa si la textura no es la del juego (4:1)
+async function ksKitPosFont(dir, kit, c) {
+  const use = (t, src) => { const list = t ? KPF.parseLetras(t) : []; if (!list.length) return false; c.__kp = KPF.glyphMap(list, c.width, c.height); c.__kpSrc = src; return true; };
+  try { if (use(await readText(await dir.getDirectoryHandle(kit), 'kitpos_letras.txt'), 'kit')) return; } catch { }
+  if (Math.abs(c.width / c.height - 4) < .01) return;
+  try { use(await readText(await subDir((await ksRoot(false)).sider, 'content/kitpos'), 'minusculas.txt'), 'minusculas'); } catch { }
+}
 // escribe una textura en la carpeta del kit (la primera vez guarda copia de la anterior) y actualiza el config si hacía falta
 async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), kd = await dir.getDirectoryHandle(KS.sel);
@@ -663,7 +669,7 @@ function kitStudioCard(t) {
   const slotCard = S => { const T = KS.T[S.k] || {}, file = ksSlotFile(S);
     const st = T.c ? (T.where === 'kit' ? 'En la carpeta del kit' : T.where === 'live' ? 'Suelta en livecpk' : 'Generada, sin guardar') : T.none ? (S.font ? 'No usa (campo vacío)' : 'Sin textura') : T.missing ? 'Dentro de los .cpk del juego' : T.err ? 'No se pudo leer' : 'Buscando…';
     return `<div class="ksslot ${T.c ? 'has' : ''}"><div class="kst">${T.c ? `<canvas data-slot="${S.k}" width="160" height="${S.font ? 50 : 160}"></canvas>` : `<span>${S.k === 'nrm' || S.k === 'srm' ? '◌' : '?'}</span>`}</div>
-      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small>${S.k === 'name' && T.c && T.c.__kp ? `<small class="ok">Fuente de KitPos: ${T.c.__kp.size} letras, con minúsculas</small>` : ''}<span class="note">${S.d}</span>
+      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small>${S.k === 'name' && T.c && T.c.__kp ? `<small class="ok">Fuente de KitPos: ${T.c.__kp.size} letras, con minúsculas${T.c.__kpSrc === 'minusculas' ? ' (tabla de content\\kitpos\\minusculas.txt)' : ''}</small>` : ''}<span class="note">${S.d}</span>
         <div class="row" style="gap:4px"><button class="btn small" type="button" data-upl="${S.k}" title="Elegí una imagen (.png, .jpg, .dds o .ftex): se convierte a .ftex y se guarda en la carpeta del kit">Subir…</button>
         ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'name' ? `<button class="btn small" type="button" data-kpfgo title="Fuente con minúsculas, acentos, cirílico y griego para KitPos">🔤 Con minúsculas…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
@@ -830,7 +836,7 @@ function ksEditHtml(t, ctl, slotCard) {
   const nameOk = ksNameFontOk();
   const dorsales = `<div class="row ksample ${ksTexOf('name') && ksTexOf('name').__kp && !ksGenName() ? 'kp' : ''}"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba"></div>
     <div class="f"><span class="lab">Letra del nombre</span>${`<div class="seg k3seg" id="ksNameFont">${[['kit', 'La del kit'], ['gen', 'Genérica']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(ksGenName() ? 'gen' : 'kit') === v}" ${v === 'kit' && !nameOk ? 'disabled title="La textura del nombre de este kit no tiene letras que se puedan leer"' : ''}>${n}</button>`).join('')}</div>`}</div>
-    <p class="note">${!nameOk ? 'Este kit no trae una letra de nombre que el editor pueda leer (si es de KitPos, falta kitpos_letras.txt en la carpeta del kit): se muestra una genérica.' : ksGenName() ? 'Se muestra una letra genérica. Elegí "La del kit" para verla como en el juego.' : 'El nombre se ve con la letra del kit, como en el juego.'}</p>
+    <p class="note">${!nameOk ? 'Este kit no trae una letra de nombre que el editor pueda leer (si es de KitPos, falta kitpos_letras.txt en la carpeta del kit o minusculas.txt en content\\kitpos): se muestra una genérica.' : ksGenName() ? 'Se muestra una letra genérica. Elegí "La del kit" para verla como en el juego.' : 'El nombre se ve con la letra del kit, como en el juego.'}</p>
     ${v3 ? `<label class="chk"><input type="checkbox" id="k3Place" ${K3.place ? 'checked' : ''}> ✥ Mover con el mouse en el 3D</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label>` : ''}
     ${KS_DORS.map(dor).join('')}
     <p class="note">${kp ? 'KitPos está activo: los valores exactos (con decimales) están en 📐 Posición libre, abajo.' : 'Cada control es un paso del config.txt del kit, como en el juego.'} "Guardar kit" lo anota en el kit.</p>
@@ -1011,7 +1017,7 @@ function bindKitStudio(t, m) {
     const pts = v && b && v.project ? [[0, 0], [-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]].map(([a, c]) => v.project((b.x + a * b.w) / 1024, (b.y + c * b.h) / 1024)).filter(Boolean) : [];
     const show = pts.length >= 2; f.hidden = !show; if (arc) arc.hidden = !show; if (hint) hint.textContent = !el ? tr('Click en el nombre o un número para ver sus opciones') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
     if (!show) return; const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), W = st.clientWidth, H = st.clientHeight, fw = f.offsetWidth, fh = f.offsetHeight;
-    let left = x1 + 16; if (left + fw > W - 8) left = x0 - 16 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
+    let left = x1 + 44; if (left + fw > W - 8) left = x0 - 24 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
     const cap = st.querySelector('.k3cap'), t0 = cap ? cap.offsetTop + cap.offsetHeight + 8 : 8; // sin tapar el nombre del equipo
     f.style.left = left + 'px'; f.style.top = Math.max(t0, Math.min(H - fh - 8, (y0 + y1) / 2 - fh / 2)) + 'px';
     if (arc) { arc.style.left = Math.max(8, Math.min(W - arc.offsetWidth - 8, (x0 + x1) / 2 - arc.offsetWidth / 2)) + 'px'; arc.style.top = Math.max(8, y0 - arc.offsetHeight - 10) + 'px'; }

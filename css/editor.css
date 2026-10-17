@@ -917,6 +917,8 @@ html[data-gfx="pes6"] .k3x{border-radius:0}
 html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button,.k3arc,.k3ty,.k3del){border-radius:0!important}
 html[data-gfx="pes6"] .k3sl small{font-size:.5rem;letter-spacing:0}html[data-gfx="pes6"] .k3sls{gap:12px}
 :is(.k3tools,.k3float) :is(.k3tval,.k3thint){color:#fff!important}
+/* PES 6 pinta los textos de las tarjetas con acero oscuro: en el visor 3D van en blanco para leerse sobre el vidrio */
+html[data-gfx="pes6"] :is(.k3float,.k3tools,.k3hud,.k3arc) :is(p,.note,label,.lab,small,.emo,.k3si){color:#fff!important;-webkit-text-fill-color:#fff!important;background:none!important;filter:none!important;text-shadow:0 1px 2px #000c}
 /* aviso: elegir kitpos_slots.ini antes de mostrar el kit */
 .ksgate{display:flex;gap:16px;align-items:flex-start;padding:22px;border-radius:var(--r,10px);border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--sunk))}
 .ksgate h4{margin:0 0 6px;font-family:var(--display);font-size:1.25rem}.ksgate p{margin:0 0 12px;max-width:62ch}

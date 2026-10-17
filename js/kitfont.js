@@ -54,20 +54,40 @@ const KFONT = (() => {
     const out = x1 < 0 ? null : { c: tex, sx: x + x0, sy: y + y0, sw: x1 - x0 + 1, sh: y1 - y0 + 1, cellH: h };
     m.set(key, out); return out;
   }
-  // dibuja un texto con los caracteres de la textura; centrado en (cx, cy), alto h, curva opcional
-  function drawText(g, tex, kind, text, cx, cy, h, { stretch = 1, spacing = 0, curve = 0, fallback } = {}) {
-    if (tex && tex.__kp && typeof KPF !== 'undefined') return KPF.drawText(g, tex, text, cx, cy, h, { stretch, spacing, curve }); // fuente de KitPos (con minúsculas)
-    const gl = [...String(text).toUpperCase()].map(ch => ch === ' ' ? { sp: true } : glyph(tex, kind, ch));
-    if (!tex || gl.some(x => x === null)) { // sin textura de fuente: texto común
-      g.save(); g.font = `800 ${h}px ${fallback || '"Saira Condensed", sans-serif'}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#ffffff'; g.strokeStyle = '#000000aa'; g.lineWidth = h * .06; g.translate(cx, cy); g.scale(stretch, 1); g.strokeText(text, 0, 0); g.fillText(text, 0, 0); g.restore(); return;
+  // ---- curva del nombre como la arma el juego: cada letra sobre un arco de radio 1000 / curva, girada con él ----
+  // Radio de la curva: 1000 / NameCurve (KitPos), en unidades del juego. Medido en el juego con el panel de KitPos
+  // (Agustin, 17/10/2026, curva 1.39 y 5.19): un alto de mayúscula son ~130 unidades. Curva positiva: las puntas bajan.
+  const ARC_H = 130;
+  // items: [{ w: ancho que ocupa, draw(g) dibuja la letra centrada en (0, 0) }]; gap: espacio extra entre letras
+  function arcText(g, items, cx, cy, h, curve, gap) {
+    const total = items.reduce((a, q) => a + q.w, 0) + gap * Math.max(0, items.length - 1), R = Math.abs(curve) >= .05 ? 1000 / curve / ARC_H * h : 0;
+    let x = -total / 2;
+    for (const q of items) {
+      const s = x + q.w / 2; x += q.w + gap; if (!q.draw) continue;
+      g.save();
+      if (R) { const t = s / R; g.translate(cx + R * Math.sin(t), cy + R * (1 - Math.cos(t))); g.rotate(t); } else g.translate(cx + s, cy);
+      q.draw(g); g.restore();
     }
-    const ref = gl.find(x => x && !x.sp); if (!ref) return;
-    const k = h / (kind === 'name' ? ref.cellH * .84 : ref.cellH * .74), ws = gl.map(x => x.sp ? h * .35 : x.sw * k * stretch), gap = spacing * h;
-    const total = ws.reduce((a, b) => a + b, 0) + gap * (ws.length - 1); let x = cx - total / 2;
-    gl.forEach((q, i) => {
-      if (!q.sp) { const w = ws[i], hh = q.sh * k, off = curve ? curve * h * ((x + w / 2 - cx) / (total / 2 || 1)) ** 2 : 0; g.drawImage(q.c, q.sx, q.sy, q.sw, q.sh, x, cy - hh / 2 + off, w, hh); }
-      x += ws[i] + gap;
-    });
   }
-  return { cell, generate, glyph, drawText, SIZE };
+  // texto común (sin la textura del kit): nombre genérico, o cuando la fuente no se puede leer
+  function drawPlain(g, text, cx, cy, h, { stretch = 1, spacing = 0, curve = 0, font, color = '#ffffff', edge = '#000000aa' } = {}) {
+    g.save(); g.font = `800 ${h * 1.36}px ${font || '"Saira Condensed", "Arial Narrow", sans-serif'}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    const items = [...String(text)].map(ch => ({ w: g.measureText(ch).width * stretch, draw: ch === ' ' ? null : gg => { gg.scale(stretch, 1); gg.lineWidth = h * .08; gg.strokeStyle = edge; gg.strokeText(ch, 0, 0); gg.fillStyle = color; gg.fillText(ch, 0, 0); } }));
+    arcText(g, items, cx, cy, h, curve, spacing * h); g.restore();
+  }
+  // dibuja un texto con los caracteres de la textura; centrado en (cx, cy), alto h. Cada carácter avanza el ancho de
+  // su casilla (como en el juego), no el de la letra recortada; curve: la del juego (1000 / radio)
+  function drawText(g, tex, kind, text, cx, cy, h, { stretch = 1, spacing = 0, curve = 0, fallback, generic, color } = {}) {
+    if (!generic && tex && tex.__kp && typeof KPF !== 'undefined') return KPF.drawText(g, tex, text, cx, cy, h, { stretch, spacing, curve }); // fuente de KitPos (con minúsculas)
+    const up = String(text).toUpperCase(), gl = generic || !tex ? null : [...up].map(ch => ch === ' ' ? { sp: true } : glyph(tex, kind, ch));
+    if (!gl || gl.some(x => x === null)) return drawPlain(g, kind === 'name' ? up : text, cx, cy, h, { stretch, spacing, curve, font: fallback, color });
+    const ref = gl.find(x => x && !x.sp); if (!ref) return;
+    const k = h / (kind === 'name' ? ref.cellH * .84 : ref.cellH * .74);
+    const items = [...up].map((ch, i) => { const q = gl[i]; if (q.sp) return { w: h * .35 }; const [cx0, cy0, cw] = cell(kind, ch, tex.width, tex.height), w = cw * k * stretch, hh = q.sh * k;
+      // la letra queda donde estaba dentro de su casilla
+      const ox = (q.sx - cx0 - cw / 2) * k * stretch, oy = (q.sy - cy0 - q.cellH / 2) * k;
+      return { w, draw: gg => gg.drawImage(q.c, q.sx, q.sy, q.sw, q.sh, ox, oy, q.sw * k * stretch, hh) }; });
+    arcText(g, items, cx, cy, h, curve, spacing * h);
+  }
+  return { cell, generate, glyph, drawText, drawPlain, arcText, SIZE };
 })();

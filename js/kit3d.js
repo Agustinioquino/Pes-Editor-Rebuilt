@@ -188,6 +188,10 @@ const K3ENV = (() => {
 })();
 
 const K3GL = (() => {
+  // imagen del visor (K3LOOKS): saturación, contraste, temperatura, viñeta y grano, sobre el color final (ya en sRGB)
+  const GRADE = `uniform float gSat;uniform float gCon;uniform float gWarm;uniform float gVig;uniform float gGrain;uniform vec2 gRes;
+    vec3 grade(vec3 c){float l=dot(c,vec3(.2126,.7152,.0722));c=mix(vec3(l),c,gSat);c=(c-.5)*gCon+.5;c*=vec3(1.+gWarm*.14,1.+gWarm*.02,1.-gWarm*.16);
+      vec2 q=gl_FragCoord.xy/gRes-.5;c*=1.-gVig*dot(q,q)*1.9;c+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)*gGrain*.16;return clamp(c,0.,1.);}`;
   const VS = `attribute vec3 p;attribute vec3 n;attribute vec2 t;uniform mat4 mvp;uniform mat4 mv;uniform float grow;varying vec3 vn;varying vec2 vt;varying vec3 vp;
     void main(){vec3 q=p*grow;vn=mat3(mv)*n;vt=t;vp=(mv*vec4(q,1.)).xyz;gl_Position=mvp*vec4(q,1.);}`;
   const FS = `#extension GL_OES_standard_derivatives : enable
@@ -195,7 +199,7 @@ const K3GL = (() => {
     uniform sampler2D tex;uniform sampler2D nrm;uniform sampler2D srm;uniform sampler2D gls;uniform sampler2D env;uniform sampler2D env2;
     uniform float useTex;uniform float useN;uniform float useS;uniform float useG;uniform float bump;uniform vec3 col;uniform float glossK;uniform float debug;
     uniform vec3 L1;uniform vec3 C1;uniform vec3 L2;uniform vec3 C2;uniform vec3 L3;uniform vec3 C3;uniform float amb;uniform float specK;uniform float expo;uniform float defSpec;uniform float defRough;
-    uniform vec3 sh[9];uniform float envInt;uniform float envYaw;uniform float envMix;uniform float useEnv;
+    uniform vec3 sh[9];uniform float envInt;uniform float envYaw;uniform float envMix;uniform float useEnv;uniform float gRim;${GRADE}
     const float PI=3.14159265;
     vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
     vec3 rotY(vec3 d,float a){float c=cos(a),s=sin(a);return vec3(c*d.x+s*d.z,d.y,-s*d.x+c*d.z);}
@@ -214,15 +218,15 @@ const K3GL = (() => {
       float gm=mix(1.,.15+g*1.85,glossK);float sp=sr.x*.55*specK*gm;float rough=clamp(sr.y-(g-.5)*.5*glossK,.04,1.);float sh_=mix(48.,5.,rough);
       vec3 c=alb*amb*(useEnv>.5?irr(N)*envInt:vec3(.35))+light(N,V,L1,C1,alb,sp,sh_)+light(N,V,L2,C2,alb,sp*.5,sh_)+light(N,V,L3,C3,alb,sp*.8,sh_);
       if(useEnv>.5){vec3 R=reflect(-V,N);float fr=.04+.96*pow(1.-max(dot(N,V),0.),5.);c+=envS(R,rough*7.)*fr*sp*1.4*envInt;}
-      c+=pow(1.-max(dot(N,V),0.),3.)*C3*.15;
-      gl_FragColor=vec4(pow(aces(c*expo),vec3(1./2.2)),1.);}`;
+      c+=pow(1.-max(dot(N,V),0.),3.)*C3*.15*gRim;
+      gl_FragColor=vec4(grade(pow(aces(c*expo),vec3(1./2.2))),1.);}`;
   // fondo: el entorno visto por la cámara
   const BVS = `attribute vec2 q;varying vec2 vq;void main(){vq=q;gl_Position=vec4(q,.999,1.);}`;
-  const BFS = `precision highp float;varying vec2 vq;uniform sampler2D env;uniform sampler2D env2;uniform float envYaw;uniform float envMix;uniform vec2 tanH;uniform float blur;uniform float expo;uniform float pitch;
+  const BFS = `precision highp float;varying vec2 vq;uniform sampler2D env;uniform sampler2D env2;uniform float envYaw;uniform float envMix;uniform vec2 tanH;uniform float blur;uniform float expo;uniform float pitch;${GRADE}
     const float PI=3.14159265;vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
     void main(){vec3 d=normalize(vec3(vq.x*tanH.x,vq.y*tanH.y,-1.));float c=cos(pitch),s=sin(pitch);d=vec3(d.x,c*d.y-s*d.z,s*d.y+c*d.z);
       float cy=cos(envYaw),sy=sin(envYaw);d=vec3(cy*d.x+sy*d.z,d.y,-sy*d.x+cy*d.z);vec2 u=vec2(.5+atan(d.x,-d.z)/(2.*PI),acos(clamp(d.y,-1.,1.))/PI);
-      vec3 a=pow(texture2D(env,u,blur).rgb,vec3(2.2)),b=pow(texture2D(env2,u,blur).rgb,vec3(2.2));gl_FragColor=vec4(pow(aces(mix(b,a,envMix)*expo),vec3(1./2.2)),1.);}`;
+      vec3 a=pow(texture2D(env,u,blur).rgb,vec3(2.2)),b=pow(texture2D(env2,u,blur).rgb,vec3(2.2));gl_FragColor=vec4(grade(pow(aces(mix(b,a,envMix)*expo),vec3(1./2.2))),1.);}`;
   // selección: guarda la coordenada de textura (12 bits por eje) para pintar sobre el modelo
   const PFS = `precision highp float;varying vec2 vt;void main(){vec2 u=clamp(vt,0.,1.)*4095.;float uh=floor(u.x/16.),ul=mod(floor(u.x),16.),vh=floor(u.y/256.),vl=mod(floor(u.y),256.);gl_FragColor=vec4(uh/255.,(ul*16.+vh)/255.,vl/255.,1.);}`;
   const PVS = `attribute vec3 p;attribute vec2 t;uniform mat4 mvp;uniform float grow;varying vec2 vt;void main(){vt=t;gl_Position=mvp*vec4(p*grow,1.);}`;
@@ -233,10 +237,10 @@ const K3GL = (() => {
     const prog = (v, f) => { const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, v)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, f)); gl.linkProgram(pr); return pr; };
     const pr = prog(VS, FS), bp = prog(BVS, BFS), pp = prog(PVS, PFS); gl.useProgram(pr);
     const U = (p, n) => gl.getUniformLocation(p, n), loc = { p: gl.getAttribLocation(pr, 'p'), n: gl.getAttribLocation(pr, 'n'), t: gl.getAttribLocation(pr, 't') };
-    for (const n of ['mvp', 'mv', 'grow', 'tex', 'nrm', 'srm', 'gls', 'env', 'env2', 'useTex', 'useN', 'useS', 'useG', 'bump', 'col', 'glossK', 'debug', 'L1', 'C1', 'L2', 'C2', 'L3', 'C3', 'amb', 'specK', 'expo', 'defSpec', 'defRough', 'envInt', 'envYaw', 'envMix', 'useEnv']) loc[n] = U(pr, n);
+    for (const n of ['mvp', 'mv', 'grow', 'tex', 'nrm', 'srm', 'gls', 'env', 'env2', 'useTex', 'useN', 'useS', 'useG', 'bump', 'col', 'glossK', 'debug', 'L1', 'C1', 'L2', 'C2', 'L3', 'C3', 'amb', 'specK', 'expo', 'defSpec', 'defRough', 'envInt', 'envYaw', 'envMix', 'useEnv', 'gRim', 'gSat', 'gCon', 'gWarm', 'gVig', 'gGrain', 'gRes']) loc[n] = U(pr, n);
     loc.sh = U(pr, 'sh');
     [['tex', 0], ['nrm', 1], ['srm', 2], ['gls', 3], ['env', 4], ['env2', 5]].forEach(([n, i]) => gl.uniform1i(loc[n], i));
-    const bl = { q: gl.getAttribLocation(bp, 'q') }; for (const n of ['env', 'env2', 'envYaw', 'envMix', 'tanH', 'blur', 'expo', 'pitch']) bl[n] = U(bp, n);
+    const bl = { q: gl.getAttribLocation(bp, 'q') }; for (const n of ['env', 'env2', 'envYaw', 'envMix', 'tanH', 'blur', 'expo', 'pitch', 'gSat', 'gCon', 'gWarm', 'gVig', 'gGrain', 'gRes']) bl[n] = U(bp, n);
     gl.useProgram(bp); gl.uniform1i(bl.env, 4); gl.uniform1i(bl.env2, 5); gl.useProgram(pr);
     const pl = { p: gl.getAttribLocation(pp, 'p'), t: gl.getAttribLocation(pp, 't'), mvp: U(pp, 'mvp'), grow: U(pp, 'grow') };
     const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -283,18 +287,19 @@ const K3GL = (() => {
   const bindMesh = (gl, attrs, b) => { for (const [at, bf, n] of attrs) { if (at < 0) continue; gl.bindBuffer(gl.ARRAY_BUFFER, bf); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, n, gl.FLOAT, false, 0, 0); } gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.i); };
   function draw(R, sc) {
     const { gl, loc } = R, c = gl.canvas, W = c.width, H = c.height; gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const M = matrices(R, sc), Lt = sc.L || k3LightState(), hasEnv = !!R.tx[4];
+    const M = matrices(R, sc), Lt = sc.L || k3LightState(), hasEnv = !!R.tx[4], G = sc.grade || K3LOOKS.natural;
+    const grade = u => { gl.uniform1f(u.gSat, G.sat); gl.uniform1f(u.gCon, G.con); gl.uniform1f(u.gWarm, G.warm); gl.uniform1f(u.gVig, G.vig); gl.uniform1f(u.gGrain, G.grain); gl.uniform2f(u.gRes, W, H); };
     // fondo
     if (hasEnv && sc.bg && !sc.ortho) {
       gl.useProgram(R.bp); gl.disable(gl.DEPTH_TEST); gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, R.tx[4]); gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, R.tx[5] || R.tx[4]);
-      gl.uniform1f(R.bl.envYaw, Lt.envYaw); gl.uniform1f(R.bl.envMix, R.tx[5] ? Lt.envMix : 1); gl.uniform2f(R.bl.tanH, M.tanH[0], M.tanH[1]); gl.uniform1f(R.bl.blur, sc.bgBlur ?? 2); gl.uniform1f(R.bl.expo, Lt.exp * (sc.bgExp ?? 1)); gl.uniform1f(R.bl.pitch, 0);
+      gl.uniform1f(R.bl.envYaw, Lt.envYaw); gl.uniform1f(R.bl.envMix, R.tx[5] ? Lt.envMix : 1); gl.uniform2f(R.bl.tanH, M.tanH[0], M.tanH[1]); gl.uniform1f(R.bl.blur, sc.bgBlur ?? 2); gl.uniform1f(R.bl.expo, Lt.exp * (sc.bgExp ?? 1)); gl.uniform1f(R.bl.pitch, 0); grade(R.bl);
       gl.bindBuffer(gl.ARRAY_BUFFER, R.quad); gl.enableVertexAttribArray(R.bl.q); gl.vertexAttribPointer(R.bl.q, 2, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.disableVertexAttribArray(R.bl.q); gl.enable(gl.DEPTH_TEST);
     }
     gl.useProgram(R.pr);
     gl.uniformMatrix4fv(loc.mvp, false, M.MVP); gl.uniformMatrix4fv(loc.mv, false, M.MV); gl.uniform1f(loc.grow, sc.grow || 1);
     const setL = (u, cu, l) => { const v = dir(l[0], Math.max(-10, Math.min(89, l[1]))), cc = rgb(l[3]).map(x => x * l[2]); gl.uniform3f(loc[u], v[0], v[1], v[2]); gl.uniform3f(loc[cu], cc[0], cc[1], cc[2]); };
     setL('L1', 'C1', Lt.key); setL('L2', 'C2', Lt.fill); setL('L3', 'C3', Lt.rim);
-    gl.uniform1f(loc.amb, Lt.amb); gl.uniform1f(loc.specK, Lt.spec); gl.uniform1f(loc.expo, Lt.exp); gl.uniform1f(loc.envInt, Lt.envInt); gl.uniform1f(loc.envYaw, Lt.envYaw); gl.uniform1f(loc.envMix, R.tx[5] ? Lt.envMix : 1); gl.uniform1f(loc.useEnv, hasEnv ? 1 : 0);
+    gl.uniform1f(loc.amb, Lt.amb); gl.uniform1f(loc.specK, Lt.spec); gl.uniform1f(loc.expo, Lt.exp); gl.uniform1f(loc.envInt, Lt.envInt); gl.uniform1f(loc.envYaw, Lt.envYaw); gl.uniform1f(loc.envMix, R.tx[5] ? Lt.envMix : 1); gl.uniform1f(loc.useEnv, hasEnv ? 1 : 0); gl.uniform1f(loc.gRim, G.rim ?? 1); grade(loc);
     if (Lt.sh) gl.uniform3fv(loc.sh, new Float32Array(Lt.sh.flat()));
     gl.uniform1f(loc.defSpec, sc.defSpec == null ? .3 : sc.defSpec); gl.uniform1f(loc.defRough, sc.defRough == null ? .6 : sc.defRough); gl.uniform1f(loc.glossK, sc.glossK ?? 1); gl.uniform1f(loc.debug, sc.debug || 0);
     gl.disable(gl.CULL_FACE);
@@ -327,7 +332,7 @@ const K3GL = (() => {
     for (const at of [R.pl.p, R.pl.t]) if (at >= 0) gl.disableVertexAttribArray(at);
     return px;
   }
-  return { make, upload, setTex, setTexture, draw, pick, pickAll, uvOf, weld };
+  return { make, upload, setTex, setTexture, draw, pick, pickAll, uvOf, weld, matrices };
 })();
 // estado de luz: escena + ajustes del usuario; se interpola para que los cambios se vean como una transición
 function k3LightTarget() {
@@ -378,7 +383,8 @@ function k3Scene(cfg, fit, extra = {}) {
 }
 const k3SetEnv = (R, L) => { if (!L.env) { K3GL.setTex(R, 4, null); return; } K3GL.setTex(R, 4, L.env.canvas); K3GL.setTex(R, 5, K3TW.envPrev ? K3TW.envPrev.canvas : null); };
 // renderizador fuera de pantalla reutilizable (maqueta y miniaturas)
-function k3Off() { if (K3.off) return K3.off; const c = document.createElement('canvas'); c.width = 480; c.height = 560; const R = K3GL.make(c); return (K3.off = R ? { c, R, model: null } : null); }
+// lienzo fuera de pantalla; el mapa de coordenadas (k3UvMap) usa uno propio: después de las miniaturas el compartido devolvía el mapa vacío
+function k3Off(key = 'off') { if (K3[key]) return K3[key]; const c = document.createElement('canvas'); c.width = 480; c.height = 560; const R = K3GL.make(c); return (K3[key] = R ? { c, R, model: null } : null); }
 const K3STUDIO = () => { const e = K3ENV.scene('estudio'), P = K3LIGHTS.estudio; return { key: P.key, fill: P.fill, rim: P.rim, amb: P.amb, exp: P.exp, spec: K3.light.spec ?? 1, envInt: .8, envYaw: 0, sh: e.sh, env: e, envMix: 1 }; };
 function k3Snapshot(model, cfg, tex, side, w = 240, h = 280, maps) {
   const O = k3Off(); if (!O || !model || !model.parts.length) return null;
@@ -393,7 +399,7 @@ function k3Snapshot(model, cfg, tex, side, w = 240, h = 280, maps) {
 // coordenada de textura de cada píxel de la maqueta (misma cámara que k3Snapshot): sirve para saber dónde quedó el
 // nombre o un número sobre la imagen y para arrastrarlos. Devuelve { w, h, uv } con uv[i*2] = u, uv[i*2+1] = v (-1 = vacío)
 function k3UvMap(model, cfg, side, w = 240, h = 280) {
-  const O = k3Off(); if (!O || !model || !model.parts.length) return null;
+  const O = k3Off('offUv'); if (!O || !model || !model.parts.length) return null;
   const shirt = model.raw ? model.parts : model.parts.filter(p => p.k === 'shirt' || p.k === 'sleeve' || p.k === 'collar'); if (!shirt.length) return null;
   if (O.c.width !== w * 2 || O.c.height !== h * 2) { O.c.width = w * 2; O.c.height = h * 2; }
   if (O.model !== model) { K3GL.upload(O.R, shirt); O.fit = k3Fit(shirt); O.model = model; }
@@ -412,17 +418,28 @@ function k3Thumb(parts, tex, kind, size = 112, maps) {
   K3GL.draw(O.R, k3Scene(KS.cfg, f2, { yaw: fit.yaw0 + (kind === 'collar' ? .4 : .3), pitch: kind === 'collar' ? .38 : .12, ortho: false, dist: f2.radius * 3, panX: 0, panY: 0, fov: 40, L, bg: false, debug: 0 }));
   const out = document.createElement('canvas'); out.width = size; out.height = size; out.getContext('2d').drawImage(O.c, 0, 0, size, size); return out;
 }
+// ---- imagen del visor: estilos de color y resolución (PS2 dibuja a baja resolución, con píxeles a la vista) ----
+const K3LOOKS = {
+  natural: { n: 'Natural', sat: 1, con: 1, warm: 0, vig: 0, grain: 0, rim: 1, res: 1 },
+  tv: { n: 'Transmisión de TV', sat: 1.15, con: 1.12, warm: .1, vig: .15, grain: 0, rim: 1.4, res: 1 },
+  cine: { n: 'Cine', sat: .88, con: 1.18, warm: .5, vig: .6, grain: .3, rim: 1.8, res: 1 },
+  vivo: { n: 'Colores vivos', sat: 1.5, con: 1.08, warm: 0, vig: .1, grain: 0, rim: 1.2, res: 1 },
+  byn: { n: 'Blanco y negro', sat: 0, con: 1.3, warm: 0, vig: .45, grain: .35, rim: 1.6, res: 1 },
+  ps2: { n: 'Retro PS2', sat: 1.2, con: 1.05, warm: .15, vig: .2, grain: 0, rim: .6, res: .35 },
+};
+const K3LOOK_KEYS = ['sat', 'con', 'warm', 'vig', 'grain', 'rim', 'res'];
+function k3Grade() { const L = K3.light, d = K3LOOKS.natural, o = {}; for (const k of K3LOOK_KEYS) o[k] = L['g_' + k] ?? d[k]; return o; }
 // ---- visor interactivo ----
 function k3Viewer(canvas, model, cfg, tex, maps, opts = {}) {
   const R = K3GL.make(canvas); if (!R) return null; K3GL.upload(R, model.parts); K3GL.setTex(R, 0, tex); K3GL.setTex(R, 1, maps && maps.nrm); K3GL.setTex(R, 2, maps && maps.srm); K3GL.setTex(R, 3, maps && maps.gloss);
   let fit = k3Fit(model.parts); const V = opts.view || K3.view; let raf = 0, anim = null, grow = 1, lastL = null, auto = false;
-  const scene = () => k3Scene(cfg, fit, Object.assign({ grow, yaw: fit.yaw0 + V.yaw, pitch: V.pitch, dist: V.dist, panX: V.panX || 0, panY: V.panY || 0, fov: V.fov || 48 }, opts.scene || {}));
+  const scene = () => k3Scene(cfg, fit, Object.assign({ grade: opts.grade ? k3Grade() : null, grow, yaw: fit.yaw0 + V.yaw, pitch: V.pitch, dist: V.dist, panX: V.panX || 0, panY: V.panY || 0, fov: V.fov || 48 }, opts.scene || {}));
   const paint = () => {
-    raf = 0; const dpr = typeof gfxDpr === 'function' ? gfxDpr() : Math.min(2, devicePixelRatio || 1), W = Math.round(canvas.clientWidth * dpr), H = Math.round(canvas.clientHeight * dpr); if (W && (canvas.width !== W || canvas.height !== H)) { canvas.width = W; canvas.height = H; }
+    raf = 0; const res = opts.grade ? k3Grade().res : 1, dpr = Math.min(3, (typeof gfxDpr === 'function' ? gfxDpr() : Math.min(2, devicePixelRatio || 1)) * res), W = Math.round(canvas.clientWidth * dpr), H = Math.round(canvas.clientHeight * dpr); if (W && (canvas.width !== W || canvas.height !== H)) { canvas.width = W; canvas.height = H; } canvas.classList.toggle('pix', res < .9);
     const L = k3LightState(); k3SetEnv(R, L); const sc = scene(); sc.L = L; K3GL.draw(R, sc);
     if (K3TW.anim || anim || auto) req();
   };
-  const req = () => { if (!raf) raf = requestAnimationFrame(t => { if (anim) anim(t); if (auto) { V.yaw += .006 * (K3.autoSpeed || 1); } paint(); }); };
+  const req = () => { if (!raf) raf = requestAnimationFrame(t => { if (anim) anim(t); if (auto) { V.yaw += .006 * (K3.autoSpeed || 1); opts.onCamera && opts.onCamera(); } paint(); }); };
   // cámara: arrastrar = girar, clic derecho o Shift = mover, rueda = acercar, doble clic = frente
   let drag = null; const dist0 = () => V.dist || fit.radius * 2.7;
   canvas.oncontextmenu = e => e.preventDefault();
@@ -463,12 +480,28 @@ function k3Viewer(canvas, model, cfg, tex, maps, opts = {}) {
   // cambio de piezas: la imagen anterior se funde mientras el modelo nuevo "se acomoda"
   function swap(m2, overlay) {
     if (overlay) { const g = overlay.getContext('2d'); overlay.width = canvas.width; overlay.height = canvas.height; g.drawImage(canvas, 0, 0); overlay.style.transition = 'none'; overlay.style.opacity = 1; overlay.getBoundingClientRect(); overlay.style.transition = 'opacity .45s ease'; requestAnimationFrame(() => { overlay.style.opacity = 0; }); }
-    model = m2; K3GL.upload(R, m2.parts); fit = k3Fit(m2.parts); const t0 = performance.now();
+    model = m2; triOf.clear(); K3GL.upload(R, m2.parts); fit = k3Fit(m2.parts); const t0 = performance.now();
     if (!ANIM.reduce.matches) { const cam = anim; anim = t => { if (cam) cam(t); const k = Math.min(1, (t - t0) / 450); grow = .965 + .035 * (1 - (1 - k) ** 3) + Math.sin(k * Math.PI) * .006; if (k >= 1) { grow = 1; anim = null; } }; }
     req();
   }
+  // dónde cae en pantalla (px del lienzo, sin dpr) un punto de la textura del kit; null si no está o queda tapado / de espaldas
+  const triOf = new Map();
+  function project(u, v) {
+    const key = (u * 1024 | 0) + ',' + (v * 1024 | 0); let hit = triOf.get(key);
+    if (hit === undefined) { hit = null;
+      for (const p of model.parts) { if (!/^(shirt|sleeve|shorts|socks)$/.test(p.k)) continue; for (const me of p.m.meshes) { if (!me.hasUV) continue; const T = me.uv, I = me.idx;
+        for (let i = 0; i < I.length && !hit; i += 3) { const a = I[i], b = I[i + 1], c = I[i + 2], x0 = T[a * 2], y0 = T[a * 2 + 1], x1 = T[b * 2] - x0, y1 = T[b * 2 + 1] - y0, x2 = T[c * 2] - x0, y2 = T[c * 2 + 1] - y0, d = x1 * y2 - x2 * y1; if (Math.abs(d) < 1e-12) continue;
+          const px = u - x0, py = v - y0, l1 = (px * y2 - x2 * py) / d, l2 = (x1 * py - px * y1) / d; if (l1 < -1e-4 || l2 < -1e-4 || l1 + l2 > 1 + 1e-4) continue;
+          const P = me.pos, q = k => P[a * 3 + k] + l1 * (P[b * 3 + k] - P[a * 3 + k]) + l2 * (P[c * 3 + k] - P[a * 3 + k]); hit = [q(0), q(1), q(2)]; } if (hit) break; } if (hit) break; }
+      if (triOf.size > 64) triOf.clear(); triOf.set(key, hit); }
+    if (!hit) return null; const sc = scene(), M = K3GL.matrices(R, sc).MVP, g = sc.grow || 1, X = hit[0] * g, Y = hit[1] * g, Z = hit[2] * g;
+    const cx = M[0] * X + M[4] * Y + M[8] * Z + M[12], cy = M[1] * X + M[5] * Y + M[9] * Z + M[13], cw = M[3] * X + M[7] * Y + M[11] * Z + M[15]; if (cw <= 0) return null;
+    const x = (cx / cw + 1) / 2 * canvas.width, y = (1 - cy / cw) / 2 * canvas.height, k = canvas.clientWidth / (canvas.width || 1), seen = K3GL.pick(R, sc, x, y);
+    if (!seen || Math.abs(seen.u - u) > .03 || Math.abs(seen.v - v) > .03) return null; // tapado o de espaldas
+    return { x: x * k, y: y * k };
+  }
   paint();
-  return { redraw: req, go, swap, spin: spin360, fit: () => fit,
+  return { redraw: req, go, swap, spin: spin360, fit: () => fit, project,
     front: () => go({ yaw: 0, pitch: .1 }), back: () => go({ yaw: Math.PI, pitch: .1 }), left: () => go({ yaw: Math.PI / 2, pitch: .1 }), right: () => go({ yaw: -Math.PI / 2, pitch: .1 }), threeq: () => go({ yaw: -.65, pitch: .22 }), top: () => go({ yaw: V.yaw, pitch: 1.05 }),
     close: () => go({ yaw: 0, pitch: .05, dist: fit.radius * 1.05, panX: 0, panY: fit.radius * .5 }), reset: () => go({ yaw: 0, pitch: .1, dist: 0, panX: 0, panY: 0, fov: 48 }),
     auto: on => { auto = on; req(); },

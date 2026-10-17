@@ -151,8 +151,14 @@ async function ksLoadSlots(dir) {
   KS.dispKey = '';
 }
 const ksTexOf = k => KS.T && KS.T[k] && KS.T[k].c || null;
-// fuente de KitPos: si la carpeta del kit tiene kitpos_letras.txt, la textura del nombre se lee con esa tabla (con minúsculas)
-async function ksKitPosFont(dir, kit, c) { try { const t = await readText(await dir.getDirectoryHandle(kit), 'kitpos_letras.txt'), list = t ? KPF.parseLetras(t) : []; if (list.length) c.__kp = KPF.glyphMap(list, c.width, c.height); } catch { } }
+// fuente de KitPos: si la carpeta del kit tiene kitpos_letras.txt, la textura del nombre se lee con esa tabla (con minúsculas).
+// Si no, KitPos usa la tabla general content\kitpos\minusculas.txt (NameLower = 1): se usa si la textura no es la del juego (4:1)
+async function ksKitPosFont(dir, kit, c) {
+  const use = (t, src) => { const list = t ? KPF.parseLetras(t) : []; if (!list.length) return false; c.__kp = KPF.glyphMap(list, c.width, c.height); c.__kpSrc = src; return true; };
+  try { if (use(await readText(await dir.getDirectoryHandle(kit), 'kitpos_letras.txt'), 'kit')) return; } catch { }
+  if (Math.abs(c.width / c.height - 4) < .01) return;
+  try { use(await readText(await subDir((await ksRoot(false)).sider, 'content/kitpos'), 'minusculas.txt'), 'minusculas'); } catch { }
+}
 // escribe una textura en la carpeta del kit (la primera vez guarda copia de la anterior) y actualiza el config si hacía falta
 async function ksWriteTex(S, canvas, { bytes, ext = '.ftex', progress } = {}) {
   const { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), kd = await dir.getDirectoryHandle(KS.sel);
@@ -240,8 +246,8 @@ function ksP(k) {
   const n = ksN(k); return k === 'NameStretch' && n === 0 ? 3 : n; // el juego toma NameStretch 0 como 3 (ancho normal)
 }
 const ksKpSetSteps = (k, s) => { const f = KS_KP[k] || k; kpsSet({ [f]: KPOS.fromSteps(f, s, ksSide()) }); };
-// curva de la vista previa para un paso de NameShape con decimales (negativo = al revés)
-const ksCurve = s => { const C = [0, .12, .25, .45]; if (s <= 0) return s * .12; if (s >= 3) return .45 + (s - 3) * .2; const i = Math.floor(s); return C[i] + (s - i) * (C[i + 1] - C[i]); };
+// curva del nombre como la usa el juego (1000 / radio) para un paso de NameShape con decimales (negativo = al revés)
+const ksCurve = s => KPOS.fromSteps('NameCurve', s);
 async function kpsLoad(force) {
   const key = KITS.from + '|' + (KITS.when || 0); if (!force && KPS.st && KPS.for === key) return KPS.st;
   const st = { lua: false, ver: '', old: false, slots: null };
@@ -286,6 +292,10 @@ async function kpsInstall() {
   await kpsLoad(true); return r;
 }
 // panel de posición libre (lo usan el Editor y Fuentes de Kit Studio Pro)
+// botón para elegir (o cambiar) content\kitpos\kitpos_slots.ini a mano: algunos navegadores esconden los .ini
+const kpsPickBtn = (cls = '') => { const ok = KPS.st && KPS.st.slots === 'ok';
+  return `<button class="btn small ${cls}" type="button" data-kppick title="${ok ? 'Se está usando content\\kitpos\\kitpos_slots.ini de la carpeta Sider. Tocá para elegir el archivo de nuevo.' : 'Elegí content\\kitpos\\kitpos_slots.ini de la carpeta Sider: el editor lo recuerda'}">📄 ${ok ? 'kitpos_slots.ini ✓' : 'Elegir kitpos_slots.ini'}</button>`; };
+async function kpsPickRun(rerender) { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); rerender(); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } }
 function kposHtml(groups = ['name', 'num', 'chest', 'leg'], o = {}) {
   const st = KPS.st, on = ksKpOn(), gk = KS.cfg && kpsKit().gk;
   if (!st) return '<section class="kpos"><p class="note">Revisando KitPos en la carpeta Sider…</p></section>';
@@ -293,16 +303,17 @@ function kposHtml(groups = ['name', 'num', 'chest', 'leg'], o = {}) {
     ${st.lua && st.slots !== 'hidden' ? `<label class="chk"><input type="checkbox" id="kposOn" ${PREFS.kpFree !== false ? 'checked' : ''}> Sin pasos</label>` : ''}
     ${on && !gk ? `<div class="seg" id="kposScope" aria-label="Dónde se guarda">${[['kit', 'Este kit · ' + esc(KS.sel)], ['team', 'Todo el equipo']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KPS.scope === v}">${n}</button>`).join('')}</div>` : ''}
     ${on ? `<span class="chip mono" title="Sección de content\\kitpos\\kitpos_slots.ini">[${esc(kpsSec())}]</span>` : ''}
+    ${st.lua && st.slots === 'ok' ? kpsPickBtn() : ''}
     ${on && o.save ? `<button class="btn small primary" type="button" id="kposSave" ${kpsDirty() ? '' : 'disabled'} title="Guarda solo la posición en kitpos_slots.ini, sin tocar la textura">💾 Guardar posición</button>` : ''}</div>`;
   let body;
   if (!st.lua) body = `<div class="kposinst"><p>Con <b>KitPos</b> en Sider, el nombre y los números se ubican sin los pasos del juego: altura, tamaño, ancho, separación y arco exactos, también en el pecho y el short.</p><button class="btn primary small" type="button" id="kposInstall">⬇ Instalar KitPos en Sider</button></div>`;
-  else if (st.slots === 'hidden') body = `<div class="kposinst"><p>El navegador no deja leer <span class="mono">content\\kitpos\\kitpos_slots.ini</span> por su nombre. Elegilo una vez con el selector y el editor lo recuerda (en la app de Windows no hace falta).</p><button class="btn small" type="button" id="kposPick">📄 Elegir kitpos_slots.ini</button></div>`;
+  else if (st.slots === 'hidden') body = `<div class="kposinst"><p>El navegador no deja leer <span class="mono">content\\kitpos\\kitpos_slots.ini</span> por su nombre. Elegilo una vez con el selector y el editor lo recuerda (en la app de Windows no hace falta).</p>${kpsPickBtn('primary')}</div>`;
   else if (!on) body = '<p class="note">Apagado: el nombre y los números se mueven con los pasos del config.txt.</p>';
   else {
     const vals = kpsVals(), own = kpsOwn(), inh = KPS.scope === 'kit' && !gk ? kpsOwn('team') : {};
     const row = f => { const F = KPOS.FIELDS[f], [a, b] = KPOS.range(f), s = F.unit ? (vals[f] || 0) : ksP(F.cfg || f), mine = f in own, from = mine ? '' : f in inh ? 'del equipo' : 'del kit';
       return `<div class="kposr ${mine ? 'own' : ''}" data-f="${f}"><label for="kpos_${f}">${F.n}</label><input type="range" class="k3r" id="kpos_${f}" min="${a}" max="${b}" step="${F.unit ? .5 : .05}" value="${s}" style="--p:${((s - a) / (b - a) * 100).toFixed(1)}%"><input type="number" step="${F.unit ? .5 : .05}" value="${+s.toFixed(2)}" aria-label="${F.n}: valor exacto"><small class="kposv">${kposLabel(f, s)}${from ? ' · ' + from : ''}</small><button type="button" class="kposx" data-reset="${f}" title="Volver al valor ${KPS.scope === 'team' ? 'del config.txt' : 'del config.txt (o del equipo)'}" ${mine ? '' : 'disabled'}>↺</button></div>`; };
-    body = `<div class="kposg">${groups.map(g => `<fieldset><legend>${KPOS.GROUPS[g]}</legend>${Object.keys(KPOS.FIELDS).filter(f => KPOS.FIELDS[f].g === g).map(row).join('')}</fieldset>`).join('')}</div>
+    body = `${st.slots === 'none' ? `<div class="kposinst"><p>No se encontró <span class="mono">content\\kitpos\\kitpos_slots.ini</span>. Si ya lo tenés, elegilo (algunos navegadores lo esconden); si no, se crea al guardar.</p>${kpsPickBtn('primary')}</div>` : ''}<div class="kposg">${groups.map(g => `<fieldset><legend>${KPOS.GROUPS[g]}</legend>${Object.keys(KPOS.FIELDS).filter(f => KPOS.FIELDS[f].g === g).map(row).join('')}</fieldset>`).join('')}</div>
       <p class="note">El config.txt solo admite pasos enteros (NameY de 0 a 39, por ejemplo); KitPos los usa con decimales y un poco más allá del rango del juego. ${groups.length > 1 ? 'Arrastrá el nombre o un número en el 3D o en la maqueta y queda exacto. ' : ''}Se guarda en content\\kitpos\\kitpos_slots.ini${KPS.st.slots === 'none' ? ' (se crea al guardar)' : ''}; en el juego, el panel de KitPos en el overlay de Sider lee lo mismo.</p>`;
   }
   return `<section class="kpos ${on ? 'on' : ''}" id="kposBox">${head}${body}</section>`;
@@ -331,14 +342,28 @@ function kposBind(root, changed, rerender) {
   const ins = box.querySelector('#kposInstall'); if (ins) ins.onclick = async () => { ins.disabled = true; try { const r = await kpsInstall();
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : 'instalado') + ' en modules\\kitpos.lua' + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); }
     catch (e) { toast('No se pudo instalar KitPos: ' + e.message, 8000); } rerender(); };
-  const pk = box.querySelector('#kposPick'); if (pk) pk.onclick = async () => { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); rerender(); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } };
+  box.querySelectorAll('[data-kppick]').forEach(b => b.onclick = () => kpsPickRun(rerender));
 }
-// posiciones aproximadas a partir del config (0..1 dentro de cada región)
+// valor del juego de un campo (el de KitPos si está activo, si no el del config.txt pasado con las fórmulas de kitpos.lua)
+const ksF = k => KPOS.fromSteps(KS_KP[k] || k, ksP(k), ksSide());
+// Posiciones medidas en el juego con el panel de KitPos abierto (Agustin, 17/10/2026, 46 capturas) y pasadas a la textura con el
+// modelo de la camiseta del juego (el mismo del 3D). En la textura: la espalda va de v .464 (cuello) a .023 (abajo), el frente de
+// .49 a .906 y el short tiene la pierna a lo ancho.
+// - Nombre: el centro de las mayúsculas queda en v = NameY - .008; alto de mayúscula .0166 × NameSize; ancho ∝ NameStretch.
+// - Número de la espalda: centro en v = .3146 - .1416 × BackNumberY; alto .117 × BackNumberSize.
+// - Pecho: centro en (u, v) = (ChestNumberX, ChestNumberY); alto .031 × ChestNumberSize.
+// - Short: centro en (u, v) = (ShortsNumberY, ShortsNumberX); alto .029 × ShortsNumberSize.
+const KS_GAME = { nameDv: -.008, nameH: .0166, numA: .3146, numB: .1416, numH: .117, chestDv: 0, chestH: .031, legH: .029 };
 const KS_POS = {
-  name: () => ({ y: .07 + (39 - ksP('NameY')) / 39 * .35, h: .05 + ksP('NameSize') * .006, stretch: .75 + ksP('NameStretch') * .15, curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 110 : 0 }),
-  num: () => ({ y: .22 + (29 - ksP('BackNumberY')) / 29 * .35, h: .12 + ksP('BackNumberSize') / 28 * .22, spacing: (ksP('BackNumberSpacing') - 7) * .012 }),
-  chest: () => ({ x: .2 + ksP('ChestNumberX') / 29 * .6, y: .05 + ksP('ChestNumberY') / 29 * .35, h: .04 + ksP('ChestNumberSize') / 28 * .1 }),
-  leg: () => ({ x: ksP('ShortsNumberX') / 31, y: ksP('ShortsNumberY') / 31, h: .25 + ksP('ShortsNumberSize') / 28 * .5 }),
+  // espalda (y, h: fracción del largo de la espalda desde el cuello; y es el centro)
+  name: () => { const [, , v0, v1] = UVR.back, G = KS_GAME, h = G.nameH * ksF('NameSize') / (v1 - v0);
+    return { y: (v1 - ksF('NameY') - G.nameDv) / (v1 - v0), h, stretch: 1.2 * ksF('NameStretch'), curve: ksCurve(ksP('NameShape')), spacing: ksKpOn() ? (kpsVals().NameSpacing || 0) / 72 : 0 }; },
+  num: () => { const [, , v0, v1] = UVR.back, G = KS_GAME;
+    return { y: (v1 - G.numA + G.numB * ksF('BackNumberY')) / (v1 - v0), h: Math.max(.01, G.numH * ksF('BackNumberSize') / (v1 - v0)), spacing: (ksP('BackNumberSpacing') - 7) * .012 }; },
+  // frente (x, y: fracción del ancho y del largo del frente; h: fracción del largo)
+  chest: () => { const [f0, f1, t0, t1] = UVR.front; return { x: (ksF('ChestNumberX') - f0) / (f1 - f0), y: (ksF('ChestNumberY') + KS_GAME.chestDv - t0) / (t1 - t0), h: KS_GAME.chestH * ksF('ChestNumberSize') / (t1 - t0) }; },
+  // short: centro en la textura (u, v) y alto en la textura
+  leg: () => ({ u: ksF('ShortsNumberY'), v: ksF('ShortsNumberX'), h: KS_GAME.legH * ksF('ShortsNumberSize') }),
 };
 // ---- mover nombre y números directo sobre el modelo 3D: la posición tocada se pasa a los valores del config.txt ----
 function ksDecalAt(u, v) {
@@ -352,11 +377,12 @@ function ksDecalVals(k, x, y) { const out = ksDecalVals0(k, x, y); for (const ke
 function ksClampKey(key, v) { const f = KS.cfg && KS.cfg.fields.find(x => x.key === key), ty = f && fieldType(f); return ty && ty.t === 'range' ? Math.max(ty.min, Math.min(ty.max, v)) : v; }
 function ksDecalVals0(k, x, y, fine) {
   const S = 1024, cl = fine ? (v, a, b, f) => { const [lo, hi] = KPOS.range(f); return Math.max(lo, Math.min(hi, v)); } : (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
-  if (k === 'name' || k === 'num') { const [, , v0, v1] = UVR.back, f = (v1 * S - y) / ((v1 - v0) * S);
-    return k === 'name' ? { NameY: cl(39 - (f - .07) / .35 * 39, 0, 39, 'NameY') } : { BackNumberY: cl(29 - (f - .22) / .35 * 29, 0, 29, 'BackNumberY') }; }
-  if (k === 'chest') { const [f0, f1, t0, t1] = UVR.front, fx = (x / S - f0) / (f1 - f0), fy = (y / S - t0) / (t1 - t0); return { ChestNumberX: cl((fx - .2) / .6 * 29, 0, 29, 'ChestNumberX'), ChestNumberY: cl((fy - .05) / .35 * 29, 0, 29, 'ChestNumberY') }; }
-  if (k === 'leg' && KS.legM) { const [a, b, c, d, e, f] = KS.legM, px = x / S - e, py = y / S - f, det = a * d - b * c, lx = (d * px - c * py) / det, ly = (-b * px + a * py) / det;
-    return { ShortsNumberX: cl(15 + lx * (KS.legL ? 1 : -1) / 4.5 * 15, 0, 29, 'ShortsNumberX'), ShortsNumberY: cl((ly + 3.5) / 8 * 29, 0, 29, 'ShortsNumberY') }; }
+  // inversa de KS_POS: (x, y) es el centro buscado en la textura (escala S)
+  const G = KS_GAME, st = (f, v, a, b) => cl(KPOS.toSteps(f, v, ksSide()), a, b, f), u = x / S, v = y / S;
+  if (k === 'name') return { NameY: st('NameY', v - G.nameDv, 0, 39) };
+  if (k === 'num') return { BackNumberY: st('BackNumberY', (G.numA - v) / G.numB, 0, 29) };
+  if (k === 'chest') return { ChestNumberX: st('ChestNumberX', u, 0, 29), ChestNumberY: st('ChestNumberY', v - G.chestDv, 0, 29) };
+  if (k === 'leg') return { ShortsNumberX: st('ShortsNumberX', v, 0, 29), ShortsNumberY: st('ShortsNumberY', u, 0, 29) };
   return {};
 }
 const KS_DECAL_SIZE = { name: ['NameSize', 20], num: ['BackNumberSize', 28], chest: ['ChestNumberSize', 28], leg: ['ShortsNumberSize', 28] };
@@ -374,21 +400,33 @@ function ksDrawDecals(g, S, only, D) {
   const kk = 1024 / S, on = k => !only || only === k, box = (k, x, y, w, h) => { if (D) D[k] = { x: x * kk, y: y * kk, w: Math.max(w * kk, 24), h: Math.max(h * kk, 24) }; };
   const [u0, u1, v0, v1] = UVR.back, bw = (u1 - u0) * S, bh = (v1 - v0) * S;
   g.save(); g.translate(u1 * S, v1 * S); g.rotate(Math.PI); // espalda: girada 180° en la textura
-  if (on('name') && cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: p.stretch, curve: p.curve, spacing: p.spacing }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
-  if (on('num') && KS.sample.num) { const p = KS_POS.num(); KFONT.drawText(g, ksTexOf('back'), 'back', KS.sample.num, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.num.length * p.h * bh * .62, p.h * bh); }
+  // la letra genérica ya es ancha: con el ancho normal del juego (NameStretch 3) se dibuja sin estirar
+  if (on('name') && cfgGet(KS.cfg, 'Name') !== '1' && KS.sample.name) { const p = KS_POS.name(); KFONT.drawText(g, ksTexOf('name'), 'name', KS.sample.name, bw / 2, p.y * bh, p.h * bh, { stretch: ksGenName() || (ksTexOf('name') || {}).__kp ? p.stretch / 1.2 : p.stretch, curve: p.curve, spacing: p.spacing, generic: ksGenName(), color: ksNameColor() }); box('name', u1 * S - bw / 2, v1 * S - p.y * bh, KS.sample.name.length * p.h * bh * .62 * p.stretch, p.h * bh * 1.2); }
+  if (on('num') && KS.sample.num) { const p = KS_POS.num(), n = cfgGet(KS.cfg, 'BackNumberType') === '1' ? KS.sample.num.padStart(2, '0') : KS.sample.num; KFONT.drawText(g, ksTexOf('back'), 'back', n, bw / 2, p.y * bh, p.h * bh, { spacing: p.spacing }); box('num', u1 * S - bw / 2, v1 * S - p.y * bh, n.length * p.h * bh * .62, p.h * bh); }
   g.restore();
-  if (on('chest') && (cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && KS.sample.num) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
+  if (on('chest') && kplOn('chest')) { const [f0, f1, t0, t1] = UVR.front, p = KS_POS.chest(); KFONT.drawText(g, ksTexOf('chest') || ksTexOf('back'), ksTexOf('chest') ? 'chest' : 'back', KS.sample.num, (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, p.h * (t1 - t0) * S); box('chest', (f0 + p.x * (f1 - f0)) * S, (t0 + p.y * (t1 - t0)) * S, KS.sample.num.length * p.h * (t1 - t0) * S * .62, p.h * (t1 - t0) * S); }
   if (on('leg') && ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && KS.sample.num) {
-    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho. Medido en los modelos (por cm de pierna)
+    // el short está girado 90° en la textura: lo largo de la pierna va a lo ancho
     const L = cfgGet(KS.cfg, 'ShortsNumberSide') !== '1', M = L ? [.0007, -.0063, .0065, .0007, .944, .865] : [.0008, .0066, -.0066, .001, .053, .862];
     g.save(); g.setTransform(M[0] * S, M[1] * S, M[2] * S, M[3] * S, M[4] * S, M[5] * S);
-    const dx = (ksP('ShortsNumberX') - 15) / 15 * 4.5 * (L ? 1 : -1), dy = -3.5 + ksP('ShortsNumberY') / 29 * 8, hh = 3 + ksP('ShortsNumberSize') / 28 * 5;
+    // centro medido en el juego (KS_POS.leg, en la textura) pasado a las coordenadas de la pierna
+    const P = KS_POS.leg(), det = M[0] * M[3] - M[2] * M[1], pu = P.u - M[4], pv = P.v - M[5], dx = (M[3] * pu - M[2] * pv) / det, dy = (-M[1] * pu + M[0] * pv) / det, hh = P.h / Math.hypot(M[2], M[3]);
     KFONT.drawText(g, ksTexOf('leg') || ksTexOf('back'), ksTexOf('leg') ? 'leg' : 'back', KS.sample.num, dx, dy, hh); g.restore();
     const sc = Math.hypot(M[0], M[1]) * S, side = hh * sc * 1.3; box('leg', (M[0] * dx + M[2] * dy + M[4]) * S, (M[1] * dx + M[3] * dy + M[5]) * S, side, side); KS.legM = M; KS.legL = L;
   }
 }
+// nombre genérico (letra común del color de los números) en vez de la fuente del kit: la fuente puede no estar o no
+// leerse bien (una de KitPos sin su kitpos_letras.txt, por ejemplo). Se elige en el panel Dorsales.
+const ksGenName = () => PREFS.ksNameFont === 'gen' || !ksNameFontOk(); // por defecto, la letra del kit (si se puede leer)
+function ksNameFontOk() { const T = ksTexOf('name'); return !!T && (!!T.__kp || Math.abs(T.width / T.height - 4) < .01); } // la del juego es 4096 × 1024
+function ksNameColor() {
+  const T = ksTexOf('back'); if (!T) return inkFor(cfgGet(KS.cfg, 'ShirtColor1') || '#888888');
+  if (T.__ink) return T.__ink; const q = KFONT.glyph(T, 'back', '0'); let r = 0, gg = 0, b = 0, n = 0;
+  if (q) { const d = T.getContext('2d', { willReadFrequently: true }).getImageData(q.sx, q.sy, q.sw, q.sh).data; for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 200) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; } }
+  return (T.__ink = n ? '#' + [r, gg, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('') : '#ffffff');
+}
 function ksDisplayTex() {
-  const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0, KS.hot || '', ksKpOn() ? kpsVals() : 0]);
+  const base = ksTexOf('kit'), key = JSON.stringify([KS.sel, ksGenName(), !!base, base && base.width, K3.light.decals, KS.sample, ['NameY', 'NameSize', 'NameStretch', 'NameShape', 'Name', 'BackNumberY', 'BackNumberSize', 'BackNumberSpacing', 'ChestNumberX', 'ChestNumberY', 'ChestNumberSize', 'ShortsNumberSide', 'ShortsNumberX', 'ShortsNumberY', 'ShortsNumberSize', 'BackNumberType', 'ShirtColor1', 'ShirtColor2', 'ShortsColor', 'SocksColor', 'ChestNumbersFile'].map(k => cfgGet(KS.cfg, k)), ['back', 'chest', 'leg', 'name'].map(k => !!ksTexOf(k)), KS.texRev || 0, KS.hot || '', ksKpOn() ? kpsVals() : 0]);
   if (KS.dispKey === key && KS.disp) return KS.disp;
   // la textura se muestra a su resolución completa (hasta 4096); las cajas de nombre y números se guardan en escala 1024
   const S = base ? Math.min(4096, base.width) : 1024, D = KS.decals = {};
@@ -594,11 +632,14 @@ function ksOverview(t) {
     <p class="note">El orden es el de order.ini y gk_order.ini: el primero es el titular. ⧉ crea una copia (p5, g4…), 🧤 copia un kit de jugador como kit de arquero y 🗑 borra el kit (su carpeta queda guardada en _borrados). Verde: la textura está en la carpeta del kit; azul: suelta en livecpk; gris: dentro de los .cpk del juego o sin usar.</p>`;
 }
 // ---- tarjeta ----
-// Uniformes, Editor y Fuentes (el creador de fuentes de KitPos, kitposfont.js); sin carpeta de kits solo hay Uniformes y Fuentes
+// Uniformes, Editor (el kit en 3D con sus dorsales, luz y texturas) y Fuentes (el creador de fuentes de KitPos, kitposfont.js); sin carpeta de kits solo hay Uniformes y Fuentes
 function ksModeSeg(n) {
   const b = (v, l) => `<button type="button" data-v="${v}" aria-pressed="${KS.mode === v || (v === 'list' && n == null && KS.mode !== 'fonts')}">${l}</button>`;
-  return `<div class="seg ksmode" id="ksMode" aria-label="Sección de Kit Studio Pro">${b('list', `👕 Uniformes${n != null ? ` <small>${n}</small>` : ''}`)}${n != null ? b('edit', `🛠 Editor · ${esc(KS.sel)}`) : ''}${b('fonts', '🔤 Fuentes')}</div>`;
+  return `<div class="seg ksmode" id="ksMode" aria-label="Sección de Kit Studio Pro">${b('list', `👕 Uniformes${n != null ? ` <small>${n}</small>` : ''}`)}${n != null ? b('edit', `🎥 Editor · ${esc(KS.sel)}`) : ''}${b('fonts', '🔤 Fuentes')}</div>`;
 }
+// Chrome no deja leer kitpos_slots.ini por su nombre: antes de mostrar el kit se pide elegirlo (si no, el nombre y los números no quedan donde los pone KitPos)
+let ksFloatResize = false;
+const ksGateOn = () => !!(KPS.st && KPS.st.lua && KPS.st.slots === 'hidden' && !KS.gateSkip);
 function kitStudioCard(t) {
   const k = KITS.map.get(t.id);
   if (!k || !k.path) {
@@ -615,89 +656,34 @@ function kitStudioCard(t) {
   if (KS.team !== t.id && !KS.busy) { KS.team = t.id; KS.cfg = null; KS.sel = null; ksLoad(t).then(() => ksRerender()); }
   if (KS.busy || (!KS.cfg && !KS.err)) return '<div class="card"><div class="lmload"><span class="spin"></span> Leyendo los kits del juego…</div></div>';
   if (!KS.cfg) return `<div class="card"><h3>Kit Studio Pro</h3><div class="warnbox">${esc(KS.err)}</div></div>`;
-  const roleName = (n, i, gk) => gk ? (i ? 'Arquero alternativo ' + (i + 1) : 'Arquero') : ['Titular', 'Suplente', 'Alternativa', 'Cuarto kit'][i] || 'Kit ' + (i + 1);
-  const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}" title="Editar ${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.1em')}<span><b>${esc(n)}</b><small>${roleName(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button></div>`; };
+  const chip = (n, i, gk) => { const m = KS.meta[n]; return `<div class="kschip ${KS.sel === n ? 'on' : ''}"><button type="button" class="ksk" data-kit="${esc(n)}" title="Editar ${esc(n)}">${shirtSvg(m || kitFor(t, gk), '2.1em')}<span><b>${esc(n)}</b><small>${KS_ROLE(n, i, gk)}${m && m.t ? ' · ajustada' : ''}</small></span></button></div>`; };
   const groups = []; for (const f of KS.cfg.fields) { let g = groups.find(x => x.s === f.section); if (!g) groups.push(g = { s: f.section, f: [] }); g.f.push(f); }
-  const ctl = f => {
-    const ty = fieldType(f), id = 'ks_' + f.key, v = f.value.trim(), lab = `<label for="${id}">${esc(KEY_ES[f.key] || f.key)}</label>`;
+  const ctl = (f, name) => {
+    const ty = fieldType(f), id = 'ks_' + f.key, v = f.value.trim(), lab = `<label for="${id}">${esc(name || KEY_ES[f.key] || f.key)}</label>`;
     if (ty.t === 'color') return `<div class="f ksf">${lab}<div class="swatch"><input type="color" id="${id}" data-ks="${f.key}" value="${esc(v.toLowerCase())}"><input type="text" data-ks="${f.key}" value="${esc(v)}" maxlength="7" style="width:90px;font-family:var(--mono)" aria-label="${esc(f.key)} en hexadecimal"></div></div>`;
     if (ty.t === 'enum') return `<div class="f ksf">${lab}<select id="${id}" data-ks="${f.key}">${ty.opts.some(o => o[0] === v) ? '' : `<option value="${esc(v)}" selected>${esc(v)}</option>`}${ty.opts.map(([val, l]) => `<option value="${val}" ${val === v ? 'selected' : ''}>${esc(l)}${l !== val ? ' (' + val + ')' : ''}</option>`).join('')}</select></div>`;
     if (ty.t === 'range') return `<div class="f ksf">${lab}<div class="srange"><input type="range" id="${id}" min="${ty.min}" max="${ty.max}" value="${esc(v)}" data-ks="${f.key}"><output>${esc(v)}</output></div>${ty.hint ? `<small class="note">${esc(ty.hint)}</small>` : ''}</div>`;
     if (ty.t === 'num') return `<div class="f ksf">${lab}<input type="number" id="${id}" data-ks="${f.key}" value="${esc(v)}"></div>`;
     return `<div class="f ksf">${lab}<input type="text" id="${id}" data-ks="${f.key}" value="${esc(v)}" style="font-family:var(--mono)"></div>`;
   };
-  const L = K3.light, slider = (id, lab, v, min, max, step, fmt) => `<div class="f k3s"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" class="k3r" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}" style="--p:${((v - min) / (max - min) * 100).toFixed(1)}%"></div>`;
   const slotCard = S => { const T = KS.T[S.k] || {}, file = ksSlotFile(S);
     const st = T.c ? (T.where === 'kit' ? 'En la carpeta del kit' : T.where === 'live' ? 'Suelta en livecpk' : 'Generada, sin guardar') : T.none ? (S.font ? 'No usa (campo vacío)' : 'Sin textura') : T.missing ? 'Dentro de los .cpk del juego' : T.err ? 'No se pudo leer' : 'Buscando…';
     return `<div class="ksslot ${T.c ? 'has' : ''}"><div class="kst">${T.c ? `<canvas data-slot="${S.k}" width="160" height="${S.font ? 50 : 160}"></canvas>` : `<span>${S.k === 'nrm' || S.k === 'srm' ? '◌' : '?'}</span>`}</div>
-      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small>${S.k === 'name' && T.c && T.c.__kp ? `<small class="ok">Fuente de KitPos: ${T.c.__kp.size} letras, con minúsculas</small>` : ''}<span class="note">${S.d}</span>
+      <div class="ksi"><b>${S.n}</b><small class="mono">${esc(T.file || file || ksSlotDefault(S) + ' (nuevo)')}</small><small class="${T.c ? 'ok' : 'muted'}">${st}</small>${S.k === 'name' && T.c && T.c.__kp ? `<small class="ok">Fuente de KitPos: ${T.c.__kp.size} letras, con minúsculas${T.c.__kpSrc === 'minusculas' ? ' (tabla de content\\kitpos\\minusculas.txt)' : ''}</small>` : ''}<span class="note">${S.d}</span>
         <div class="row" style="gap:4px"><button class="btn small" type="button" data-upl="${S.k}" title="Elegí una imagen (.png, .jpg, .dds o .ftex): se convierte a .ftex y se guarda en la carpeta del kit">Subir…</button>
         ${S.font ? `<button class="btn small" type="button" data-fontgen title="Crear las letras y números con cualquier fuente de tu compu">Generar…</button>` : ''}${S.k === 'name' ? `<button class="btn small" type="button" data-kpfgo title="Fuente con minúsculas, acentos, cirílico y griego para KitPos">🔤 Con minúsculas…</button>` : ''}${S.k === 'nrm' ? `<button class="btn small" type="button" data-nrmsave title="Guardar el normal map de la tela elegida en el panel Tela">Guardar el de la tela</button>` : ''}${S.k === 'srm' ? `<button class="btn small" type="button" data-srmsave title="Guardar el brillo según la tela elegida">Guardar según la tela</button>` : ''}
         ${T.c ? `<button class="btn small ghost" type="button" data-see="${S.k}">Ver</button>` : ''}</div></div></div>`; };
   const cfgN = k => esc(cfgGet(KS.cfg, k) || '—');
-  return `<div class="card kscard ${KS.big ? 'ksbig' : ''}">
+  const dirty = KS.dirty || kpsDirty();
+  return `<div class="card kscard">
     <div class="row" style="justify-content:space-between"><div class="row"><h3>Kit Studio Pro · ${esc(KS.path)}</h3>
       ${ksModeSeg(KS.kits.length + KS.gk.length)}</div>
-      ${KS.mode !== 'edit' ? '' : `<div class="row">${KS.dirty || kpsDirty() ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
-      <button class="btn" type="button" id="ksUndo" ${KS.dirty || kpsDirty() ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${KS.dirty || kpsDirty() ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
+      ${KS.mode !== 'edit' ? '' : `<div class="row">${dirty ? '<span class="chip warn">Cambios sin guardar en el kit</span>' : '<span class="chip">Guardado</span>'}
+      <button class="btn" type="button" id="ksUndo" ${dirty ? '' : 'disabled'}>Descartar</button><button class="btn primary" type="button" id="ksSave" ${dirty ? '' : 'disabled'}>Guardar kit</button></div>`}</div>
     ${KS.err ? `<div class="warnbox">${esc(KS.err)}</div>` : ''}
     ${KS.mode === 'list' ? ksOverview(t) : KS.mode === 'fonts' ? kpfCard(t, true) : `
     <div class="kssel" aria-label="Kit que se edita">${KS.kits.map((n, i) => chip(n, i, false)).join('')}${KS.gk.map((n, i) => chip(n, i, true)).join('')}</div>
-    <div class="kslayout">
-      <section class="ksprev">
-        <div class="row" style="justify-content:space-between"><div class="seg" id="ksView">${[['3d', '3D'], ['mock', '✥ Ubicar'], ['tex', 'Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>
-          <div class="row ksample ${ksTexOf('name') && ksTexOf('name').__kp ? 'kp' : ''}"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba" style="width:120px"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba" style="width:52px"></div></div>
-        ${KS.view === '3d' ? `<div class="ks3dwrap" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar, flechas del teclado"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
-              <div class="k3hud"><span>${K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'}</span></div></div>
-            <aside class="k3side">
-              <details class="k3pan" open><summary>Cámara</summary>
-                <div class="k3cam">${[['front', 'Frente'], ['back', 'Espalda'], ['left', 'Izq.'], ['right', 'Der.'], ['threeq', '3/4'], ['top', 'Arriba'], ['close', 'Pecho'], ['reset', '↺ Inicio']].map(([k, n]) => `<button class="btn small" type="button" data-cam="${k}">${n}</button>`).join('')}</div>
-                ${slider('k3Fov', 'Lente', K3.view.fov || 48, 18, 80, 1, v => v + '°')}
-                <div class="row" style="justify-content:space-between"><label class="chk"><input type="checkbox" id="k3Auto"> Giro automático</label><button class="btn small" type="button" id="k3Spin">Vuelta 360°</button></div>
-                ${slider('k3AutoS', 'Velocidad del giro', K3.autoSpeed || 1, .2, 3, .1, v => v.toFixed(1) + '×')}
-                <div class="row" style="gap:4px"><button class="btn small ghost" type="button" id="k3Shot" title="Descargar la imagen tal como se ve">📷 Foto PNG</button></div>
-                <div class="row" style="gap:4px"><button class="btn small primary" type="button" id="k3Game" title="Fondo azul, luz de estudio y la cámara de espalda como en la pantalla de Uniforme del juego">🎮 Vista del juego</button><button class="btn small" type="button" id="k3Big" aria-pressed="${!!KS.big}" title="Esconde la lista de kits y agranda el visor">${KS.big ? '↙ Achicar' : '↗ Ampliar'}</button><button class="btn small" type="button" id="k3Full" title="El visor ocupa toda la pantalla (Esc para salir)">⛶ Pantalla completa</button></div></details>
-              <details class="k3pan" open><summary>Prendas</summary>
-                <div class="seg k3seg" id="k3Sleeve">${[['short', 'Manga corta'], ['long', 'Manga larga']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.sleeve === v}">${n}</button>`).join('')}</div>
-                <div class="seg k3seg" id="k3Socks">${[['long', 'Medias largas'], ['middle', 'Medianas'], ['short', 'Cortas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.socks === v}">${n}</button>`).join('')}</div>
-                <div class="seg k3seg" id="k3Tuck">${[['out', 'Camiseta afuera'], ['in', 'Adentro']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${K3.tuck === v}">${n}</button>`).join('')}</div>
-                <label class="chk"><input type="checkbox" id="k3Cap" ${K3.cap ? 'checked' : ''}> Cinta de capitán</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label><label class="chk" title="Arrastrá el nombre o un número sobre el modelo para moverlo y usá la rueda encima para cambiar su tamaño: se anota en el config.txt del kit"><input type="checkbox" id="k3Place" ${K3.place ? 'checked' : ''}> ✥ Mover nombre y números en el 3D</label></details>
-              <details class="k3pan" open><summary>Iluminación</summary>
-                <div class="k3envs" id="k3Preset">${Object.entries(K3LIGHTS).filter(([k]) => k !== 'hdri' || K3.envUser).map(([k, p]) => `<button type="button" data-v="${k}" aria-pressed="${L.preset === k}"><canvas width="96" height="48" data-envthumb="${k}"></canvas><span>${k === 'hdri' ? esc(K3.envUser.name) : p.n}</span></button>`).join('')}</div>
-                <div class="row" style="gap:4px"><button class="btn small" type="button" id="k3Hdri" title="Panorama 360° en .hdr (Radiance) o una imagen equirectangular .jpg/.png">Cargar HDRI…</button><span class="note">Un .hdr da luz y reflejos reales.</span></div>
-                <div class="k3sun"><canvas id="k3Sphere" width="132" height="132" aria-label="Dirección de la luz principal: arrastrá el punto de luz"></canvas><div class="k3sunv">${slider('k3Int', 'Intensidad', L.int ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Amb', 'Luz ambiente', L.amb ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Exp', 'Exposición', L.exp ?? 1, .4, 2, .05, v => Math.round(v * 100) + '%')}</div></div>
-                <p class="note k3sunt" id="k3SunT">Luz principal: ${Math.round(L.az || 0)}° de giro, ${Math.round(L.el || 0) > 0 ? '+' : ''}${Math.round(L.el || 0)}° de altura. Arrastrá el punto en la esfera.</p>
-                ${slider('k3EnvI', 'Reflejos del entorno', L.envInt ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3EnvY', 'Girar el entorno', L.envYaw || 0, -180, 180, 5, v => v + '°')}
-                <div class="f"><span class="lab">Fondo</span><div class="seg k3seg" id="k3Bg">${[['env', 'Entorno'], ['game', 'Juego'], ['none', 'Liso']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(L.bg || 'env') === v}">${n}</button>`).join('')}</div></div>
-                ${slider('k3Blur', 'Desenfoque del fondo', L.bgBlur ?? 2, 0, 6, .25, v => v.toFixed(1))}</details>
-              <details class="k3pan" ${KS.T.kit && KS.T.kit.c ? 'open' : ''}><summary>Brillo (alfa del kit)</summary>
-                ${KS.T.kit && KS.T.kit.c ? `<p class="note">En la textura del kit el alfa marca cuánto brilla cada parte en el juego: blanco brilla más, negro es mate. ${KS.T.kit.g ? 'Este kit trae su propio alfa.' : 'Este kit no trae alfa: se usa un brillo medio parejo.'}</p>
-                ${slider('k3Gloss', 'Efecto en pantalla', L.gloss ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}
-                <div class="seg k3seg" id="k3Dbg">${[[0, 'Kit'], [1, 'Ver brillo'], [2, 'Ver relieve']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(K3.debug || 0) === v}">${n}</button>`).join('')}</div>
-                ${slider('k3GLv', 'Nivel', ksGlossState().level, -.5, .5, .02, v => (v > 0 ? '+' : '') + Math.round(v * 100))}${slider('k3GCt', 'Contraste', ksGlossState().contrast, 0, 3, .05, v => Math.round(v * 100) + '%')}
-                <label class="chk"><input type="checkbox" id="k3GInv" ${ksGlossState().invert ? 'checked' : ''}> Invertir (lo brillante pasa a mate)</label>
-                <div class="row" style="gap:4px">${[['mate', 'Todo mate'], ['brillo', 'Todo brillante'], ['colores', 'Desde los colores'], ['original', 'Original']].map(([k, n]) => `<button class="btn small" type="button" data-gfill="${k}">${n}</button>`).join('')}</div>
-                <div class="k3brush"><label class="chk"><input type="checkbox" id="k3Paint" ${K3.paint ? 'checked' : ''}> 🖌 Pintar brillo sobre el modelo</label>
-                  ${slider('k3BSz', 'Tamaño del pincel', (KS.brush || {}).size || 40, 4, 160, 2, v => v + ' px')}${slider('k3BVal', 'Valor (0 mate · 100 brillo)', (KS.brush || {}).value ?? 85, 0, 100, 1, v => v)}${slider('k3BSoft', 'Borde suave', (KS.brush || {}).soft ?? .6, 0, 1, .05, v => Math.round(v * 100) + '%')}
-                  <div class="row" style="gap:4px"><button class="btn small" type="button" id="k3GUndo">↶ Deshacer pincel</button></div></div>
-                <button class="btn small primary" type="button" id="k3GSave" title="Escribe el brillo en el canal alfa de ${esc(ksSlotFile('kit') || '')}.ftex (con copia la primera vez)">Guardar brillo en la textura del kit</button>`
-                : '<p class="note">Este kit no tiene la textura suelta (está dentro de los .cpk). Subila en "Texturas" para ver y editar su brillo.</p>'}</details>
-              <details class="k3pan"><summary>Tela y relieve</summary>
-                <div class="f"><label for="k3Fab">Tela</label><select id="k3Fab">${KMAT.LIST.map(x => `<option value="${x.k}" ${KS.mat.fabric === x.k ? 'selected' : ''} title="${esc(x.d)}">${x.n}</option>`).join('')}</select></div>
-                ${slider('k3Rep', 'Tamaño de la trama', KS.mat.repeat, 16, 128, 4, v => v + '×')}${slider('k3Fs', 'Fuerza de la trama', KS.mat.fabricStrength, 0, 1.5, .05, v => Math.round(v * 100) + '%')}${slider('k3Emb', 'Relieve de los dibujos', KS.mat.emboss, 0, 1.5, .05, v => Math.round(v * 100) + '%')}
-                <div class="f"><span class="lab">Relieve de los dibujos sacado de</span><div class="seg k3seg" id="k3ESrc">${[['color', 'Los colores'], ['gloss', 'El brillo (alfa)']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(KS.mat.src || 'color') === v}">${n}</button>`).join('')}</div></div>
-                ${slider('k3Bump', 'Relieve en pantalla', L.bump ?? 1, 0, 2.5, .05, v => Math.round(v * 100) + '%')}${slider('k3Spec', 'Brillo de la tela', L.spec ?? 1, 0, 2.5, .05, v => Math.round(v * 100) + '%')}
-                <label class="chk"><input type="checkbox" id="k3Nrm" ${L.nrm !== false ? 'checked' : ''}> Usar normal map</label>
-                <div class="seg k3seg" id="k3NSrc">${[['gen', 'De la tela elegida'], ['kit', 'El del kit']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(KS.nsrc || (ksTexOf('nrm') ? 'kit' : 'gen')) === v}" ${v === 'kit' && !ksTexOf('nrm') ? 'disabled title="Este kit no tiene normal map suelto"' : ''}>${n}</button>`).join('')}</div>
-                <button class="btn small" type="button" id="k3NrmSave" title="Escribe ${esc(ksBase())}_nrm.ftex y _srm.ftex en la carpeta del kit">Guardar este relieve en el kit</button>
-                <p class="note">El juego usa el normal map del kit (_nrm) para el relieve de la tela y de los dibujos que tengan relieve en él.</p></details>
-              <p class="note" id="k3Info">${esc(KS.model ? `Modelo: camiseta${cfgGet(KS.cfg, 'TightKit') === '1' ? ' ajustada' : ''}, ${KS.model.collarName ? 'cuello ' + KS.model.collarName.split('_')[1] + (KS.model.collarExact ? '' : ' (el más parecido al ' + cfgGet(KS.cfg, 'Collar') + ')') : 'sin cuello'}, short ${ksN('ShortsModel')}.` : 'Cargando los modelos…')} ${ksTexOf('kit') ? '' : 'Sin textura del kit (está dentro de los .cpk): se pinta con los colores del config. Subí la textura en "Texturas" para verla.'}</p>
-            </aside></div>`
-        : KS.view === 'mock' ? kplHtml()
-        : `<div class="ksslots">${KS_SLOTS.map(slotCard).join('')}</div>${KS.see ? `<div class="kstex"><canvas id="ksTex"></canvas></div>` : ''}<p class="note">Todo lo que subís o generás se convierte a .ftex (DXT5) con todos sus tamaños internos y se guarda en content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}. Si ya había un archivo con ese nombre, la primera vez se guarda una copia .bak-edit21.</p>`}
-        ${KS.view === 'tex' ? '' : kposHtml()}
-      </section>
-    </div>
+    ${ksEditHtml(t, ctl, slotCard)}
     <div class="ksmodel"><h4>Modelo</h4>
       <button type="button" class="kspick" data-pick="collar"><canvas id="kpCollar" width="72" height="72"></canvas><span><b>Cuello ${cfgN('Collar')}</b><small>Tocá para ver todos</small></span></button>
       <button type="button" class="kspick" data-pick="shorts"><canvas id="kpShorts" width="72" height="72"></canvas><span><b>Short ${cfgN('ShortsModel')}</b><small>Tocá para ver todos</small></span></button>
@@ -705,9 +691,205 @@ function kitStudioCard(t) {
       <div class="f"><label for="ksKappa">Manga</label><select id="ksKappa" data-ks="ShortSleevesModel"><option value="1" ${cfgGet(KS.cfg, 'ShortSleevesModel') !== '2' ? 'selected' : ''}>Normal</option><option value="2" ${cfgGet(KS.cfg, 'ShortSleevesModel') === '2' ? 'selected' : ''}>Kappa (ajustada)</option></select></div>
       <label class="chk"><input type="checkbox" id="ksSync" ${KS.sync ? 'checked' : ''}> Usar los colores principal y secundario también en el menú (UniColor)</label>
     </div>
-    ${groups.map(g => `<details class="ksgroup" ${['kit colors', 'shirt - back side'].includes(g.s) ? 'open' : ''}><summary>${esc(SEC_ES[g.s] || g.s)}</summary><div class="grid wide">${g.f.map(ctl).join('')}</div></details>`).join('')}
+    ${groups.map(g => `<details class="ksgroup" ${['kit colors', 'shirt - back side'].includes(g.s) ? 'open' : ''}><summary>${esc(SEC_ES[g.s] || g.s)}</summary><div class="grid wide">${g.f.map(f => ctl(f)).join('')}</div></details>`).join('')}
     <p class="note">"Guardar kit" escribe content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}\\config.txt (la primera vez guarda una copia config.txt.bak-edit21). Los comentarios y el orden del archivo se respetan. Abrí el juego de nuevo para ver los cambios.</p>`}
   </div>`;
+}
+// ---- Editor: el kit en grande (3D, maqueta o texturas) y al costado los dorsales, la luz y la tela ----
+// cada grupo con sus valores del config.txt y un nombre corto (el grupo ya dice de qué se trata); el primero de cada grupo se ve aunque el elemento esté apagado
+const KS_DORS = [['name', [['Name', 'Mostrar'], ['NameY', 'Altura'], ['NameSize', 'Tamaño'], ['NameStretch', 'Ancho'], ['NameShape', 'Curva']]], ['num', [['BackNumberType', 'Dígitos'], ['BackNumberY', 'Altura'], ['BackNumberSize', 'Tamaño'], ['BackNumberSpacing', 'Separación de los dígitos']]],
+  ['chest', [['ChestNumberSize', 'Tamaño'], ['ChestNumberX', 'Horizontal'], ['ChestNumberY', 'Vertical']]], ['leg', [['ShortsNumberSide', 'Pierna'], ['ShortsNumberX', 'Horizontal'], ['ShortsNumberY', 'Vertical'], ['ShortsNumberSize', 'Tamaño']]]];
+// de dónde salen las posiciones del 3D: KitPos (kitpos_slots.ini) o el config.txt del kit
+function ksSrcChip() { const kp = ksKpOn() && Object.keys(kpsVals()).some(f => KPOS.FIELDS[f]), k = kp && kpsKit();
+  return `<em class="k3src ${kp ? 'kp' : ''}" title="${kp ? 'Las posiciones del 3D salen de kitpos_slots.ini, como en el juego con KitPos' : 'Las posiciones del 3D salen del config.txt del kit. Si en el juego usás KitPos, elegí kitpos_slots.ini para que coincidan'}">${kp ? '📐 KitPos' + (k && k.n ? ' · p' + k.n : '') : 'config.txt'}</em>`; }
+// ayuda del visor: cada parte (separadas por " · ") es una pastilla; si el visor es angosto quedan solo las primeras (CSS)
+const ksHudHtml = t => tr(t).split(' · ').map(p => `<span class="hp">${esc(p)}</span>`).join('');
+const KS_HUD = () => K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : KS.tool ? `${KPL_EL[KS.tool].n}: flechas para moverlo, + y − tamaño · Esc o click afuera: cerrar` : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda';
+// atajos sobre el 3D: abajo, qué mover (y + para agregar el número del pecho o del short); al lado del recuadro del elegido,
+// deslizadores que se arrastran con el mouse (altura, tamaño, ancho, curva); arriba del nombre, una manija para curvarlo.
+// ksFloat los acomoda al girar la cámara.
+const KS_SLIDE = { name: ['NameY', 'NameSize', 'NameStretch', 'NameShape'], num: ['BackNumberY', 'BackNumberSize', 'BackNumberSpacing'], chest: ['ChestNumberY', 'ChestNumberSize', 'ChestNumberX'], leg: ['ShortsNumberY', 'ShortsNumberSize', 'ShortsNumberX'] };
+const KS_SLIDE_I = { NameY: ['▲', '▼', 'Altura'], BackNumberY: ['▲', '▼', 'Altura'], ChestNumberY: ['▲', '▼', 'Altura'], ShortsNumberY: ['▲', '▼', 'Altura'], NameSize: ['A', 'a', 'Tamaño'], BackNumberSize: ['A', 'a', 'Tamaño'], ChestNumberSize: ['A', 'a', 'Tamaño'], ShortsNumberSize: ['A', 'a', 'Tamaño'],
+  NameStretch: ['↔', '→←', 'Ancho'], BackNumberSpacing: ['↔', '→←', 'Separación'], NameShape: ['◠', '▬', 'Curva'], ChestNumberX: ['◀', '▶', 'Costado'], ShortsNumberX: ['◀', '▶', 'Costado'] };
+// rango del deslizador: el que acepta el juego (con KitPos, con decimales y la curva también hacia el otro lado);
+// lo que va más allá queda en 📐 Posición libre
+function ksSlideRange(k) {
+  if (ksKpOn()) return kplF(k) === 'NameCurve' ? KPOS.range('NameCurve') : [0, KPOS.FIELDS[kplF(k)].max];
+  const f = KS.cfg && KS.cfg.fields.find(x => x.key === k), ty = f && fieldType(f); return [ty && ty.t === 'range' ? ty.min : 0, Math.min(kplMax(k), ty && ty.t === 'range' ? ty.max : 99)];
+}
+function ksToolsHtml() {
+  const els = Object.keys(KPL_EL), E = KS.tool && KPL_EL[KS.tool], canAdd = el => el === 'chest' || el === 'leg' || (el === 'name' && KS.sample.name);
+  const sl = k => { const [t, b, n] = KS_SLIDE_I[k], h = /X$/.test(k); return `<div class="k3sl ${h ? 'h' : ''}" data-k="${k}" title="${n}: arrastrá con el mouse · rueda: de a un paso"><span class="k3si">${t}</span><div class="k3tr"><i class="k3kn"></i></div><span class="k3si">${b}</span><small>${n}</small></div>`; };
+  return `<div id="k3Tools" style="${E ? '--dc:' + E.col : ''}">
+    <div class="k3tools ${E ? 'on' : ''}" aria-label="Atajos para mover el nombre y los números">
+      <div class="k3tsel">${els.map((el, i) => kplOn(el) ? `<button type="button" data-tool="${el}" aria-pressed="${KS.tool === el}" style="--dc:${KPL_EL[el].col}" title="${KS_DECAL_N[el]} (tecla ${i + 1})"><i></i>${KPL_EL[el].n}</button>`
+        : canAdd(el) ? `<button type="button" class="add" data-addel="${el}" style="--dc:${KPL_EL[el].col}" title="Agregar: ${KS_DECAL_N[el]}">＋ ${KPL_EL[el].n}</button>` : `<button type="button" disabled style="--dc:${KPL_EL[el].col}"><i></i>${KPL_EL[el].n}</button>`).join('')}</div>
+      <p class="k3thint" id="k3THint">${E ? '' : 'Click en el nombre o un número para ver sus opciones'}</p>
+    </div>
+    ${E ? `<div class="k3float" id="k3Float" hidden>
+      <div class="k3fh"><b>${E.n}</b><button type="button" class="k3x" id="k3Close" title="Cerrar (Esc o click afuera)" aria-label="Cerrar">✕</button></div>
+      <p class="k3fhelp">Subí o bajá cada barra, o arrastrá ${({ name: 'el nombre', num: 'el número', chest: 'el número', leg: 'el número' })[KS.tool]} en el kit</p>
+      <div class="k3sls">${KS_SLIDE[KS.tool].filter(k => !/X$/.test(k)).map(sl).join('')}</div>
+      ${KS_SLIDE[KS.tool].filter(k => /X$/.test(k)).map(sl).join('')}
+      ${KS.tool === 'num' ? `<div class="k3ty" id="k3Type" title="Tipo de número (BackNumberType del config.txt)">${[['0', '7', 'Normal: una cifra si el número es menor que 10'], ['1', '07', 'Siempre dos cifras']].map(([v, l, tt]) => `<button type="button" data-v="${v}" aria-pressed="${(cfgGet(KS.cfg, 'BackNumberType') || '0') === v}" title="${tt}">${l}</button>`).join('')}</div>` : ''}
+      <p class="k3tval" id="k3TVal" aria-live="polite"></p>
+      ${KS.tool !== 'num' ? `<button type="button" class="k3del" data-delel="${KS.tool}" title="Sacarlo del kit (en el config.txt y en KitPos)">✕ Quitar</button>` : ''}
+    </div>
+    ${E.arc ? `<button type="button" class="k3arc" id="k3Arc" hidden title="Arrastrá hacia arriba o abajo para curvar el nombre"><span>◠</span> Curva</button>` : ''}` : ''}
+  </div>`;
+}
+// click afuera del menú del 3D: lo cierra (un click en el visor que no toca el nombre ni un número también; girar la cámara no)
+function ksToolsOutside() {
+  if (ksToolsOutside.on) return; ksToolsOutside.on = true; let down = null;
+  document.addEventListener('pointerdown', e => { down = null; if (!KS.tool || !document.getElementById('k3Float') || e.button) return;
+    if (e.target.closest('#k3Float,#k3Arc,#k3Tools,.k3hud')) return;
+    if (e.target.id === 'ks3d') { down = { x: e.clientX, y: e.clientY, t: performance.now() }; return; }
+    KS.closeTools && KS.closeTools(); }, true);
+  document.addEventListener('pointerup', e => { const d = down; down = null; if (!d || !KS.tool) return;
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5 || (KS.grabT || 0) >= d.t) return; KS.closeTools && KS.closeTools(); }, true);
+}
+// pone o saca el nombre, el número del pecho o el del short: en el config.txt (kserv) y, si está KitPos, también en kitpos_slots.ini
+// (KitPos oculta con tamaño 0; kserv saca el del pecho sin ChestNumbersFile y el del short con 30 en Horizontal)
+function ksShowEl(el, on, setVal) {
+  const kp = KPS.cur && KPS.st && KPS.st.lua && KPS.st.slots !== 'hidden', size = { chest: 'ChestNumberSize', leg: 'ShortsNumberSize' }[el], prev = KS.prevEl || (KS.prevEl = {});
+  if (el === 'name') { setVal('Name', on ? '0' : '1'); return; }
+  if (el === 'chest') {
+    if (on) { const f = prev.chestFile || cfgGet(KS.cfg, 'BackNumbersFile') || ''; if (!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim()) setVal('ChestNumbersFile', f); }
+    else { prev.chestFile = cfgGet(KS.cfg, 'ChestNumbersFile'); setVal('ChestNumbersFile', ''); }
+  }
+  if (el === 'leg') {
+    if (on) { if (ksN('ShortsNumberX') >= 30) setVal('ShortsNumberX', prev.legX ?? 14); if (ksN('ShortsNumberY') >= 30) setVal('ShortsNumberY', prev.legY ?? 8); }
+    else { prev.legX = ksN('ShortsNumberX'); prev.legY = ksN('ShortsNumberY'); setVal('ShortsNumberX', 30); }
+  }
+  if (kp && size) { if (!on) kpsSet({ [size]: 0 }); else if (kpsVals()[size] === 0) kpsSet({ [size]: null }); }
+}
+// Kit Studio a lo ancho: la lista de equipos se esconde (PREFS.ksWide) con un botón flotante a la izquierda, como el de la música
+function ksEditShown() { return (S.tab === 'teams' || S.tab === 'nats') && S.ttab === 'kits' && KS.mode === 'edit'; }
+function ksWideOn() { return !!PREFS.ksWide && ksEditShown(); }
+function ksWideApply(m) { const sp = m && m.querySelector(':scope > .split'); if (sp && !sp.classList.contains('ksanim')) { sp.classList.toggle('kswide', ksWideOn()); sp.classList.toggle('kstall', ksWideOn()); } ksFab(m); }
+function ksFab(m) {
+  let b = $('ksTeamsFab'); if (!ksEditShown() || !S.f) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'ksTeamsFab'; b.className = 'ksfab'; document.body.appendChild(b); }
+  const w = !!PREFS.ksWide; b.onclick = () => ksWideToggle(m || $('main')); b.classList.toggle('on', w); b.setAttribute('aria-pressed', w);
+  b.title = tr(w ? 'Volver a mostrar la lista de equipos' : 'Esconder la lista de equipos para que el visor ocupe todo el ancho');
+  b.innerHTML = `<span class="ksfabi" aria-hidden="true">${w ? '☰' : '⇤'}</span><span class="ksfabt">${tr(w ? 'Mostrar equipos' : 'Ocultar equipos')}</span>`;
+}
+// la lista se desliza hacia la izquierda y el visor se agranda (o al revés); el 3D se redibuja en cada cuadro
+function ksWideToggle(m) {
+  const sp = m && m.querySelector(':scope > .split'), aside = sp && sp.querySelector(':scope > aside.list'), to = !PREFS.ksWide, ms = 420, ease = 'cubic-bezier(.2,.8,.2,1)';
+  PREFS.ksWide = to; savePrefs(); ksFab(m);
+  const done = () => { if (!sp) return; sp.classList.remove('ksanim'); sp.style.gridTemplateColumns = sp.style.columnGap = sp.style.transition = ''; if (aside) aside.style.cssText = ''; sp.classList.toggle('kswide', to); sp.classList.toggle('kstall', to); K3.viewer && K3.viewer.redraw(); KS.float && KS.float(); };
+  if (!sp || !aside || ANIM.reduce.matches) { done(); return; }
+  const t0 = performance.now(), tick = () => { K3.viewer && K3.viewer.redraw(); KS.float && KS.float(); if (performance.now() - t0 < ms + 120) requestAnimationFrame(tick); };
+  sp.classList.add('ksanim'); sp.classList.toggle('kstall', to); requestAnimationFrame(tick);
+  if (matchMedia('(max-width:860px)').matches) { // una columna: la lista sale o entra por la izquierda
+    const out = [{ transform: 'none', opacity: 1 }, { transform: 'translateX(-105%)', opacity: 0 }];
+    if (to) aside.animate(out, { duration: ms * .8, easing: ease }).finished.then(done, done); else { done(); aside.animate(out.slice().reverse(), { duration: ms, easing: ease }); }
+    return;
+  }
+  const w = to ? aside.getBoundingClientRect().width : Math.min(410, sp.clientWidth - 16), cols = x => `${x}px minmax(0,1fr)`;
+  if (!to) sp.classList.remove('kswide');
+  sp.style.gridTemplateColumns = cols(to ? w : 0); sp.style.columnGap = to ? '16px' : '0px';
+  Object.assign(aside.style, { overflow: 'hidden', minWidth: '0', transform: to ? 'none' : 'translateX(-40px)', opacity: to ? 1 : 0 });
+  sp.getBoundingClientRect();
+  sp.style.transition = `grid-template-columns ${ms}ms ${ease}, column-gap ${ms}ms ${ease}`; aside.style.transition = `transform ${ms}ms ${ease}, opacity ${ms * .7}ms`;
+  sp.style.gridTemplateColumns = cols(to ? 0 : w); sp.style.columnGap = to ? '0px' : '16px';
+  Object.assign(aside.style, { transform: to ? 'translateX(-40px)' : 'none', opacity: to ? 0 : 1 });
+  setTimeout(done, ms + 30);
+}
+function ksEditHtml(t, ctl, slotCard) {
+  const L = K3.light, gk = KS.gk.includes(KS.sel), role = KS_ROLE(KS.sel, (gk ? KS.gk : KS.kits).indexOf(KS.sel), gk), kp = ksKpOn(), v3 = KS.view === '3d', tex = KS.view === 'tex';
+  if (ksGateOn() && !tex) return `<div class="ksgate" id="ksGate"><span class="ksgateic" aria-hidden="true">📐</span><div>
+      <h4>Antes de ver el kit, elegí kitpos_slots.ini</h4>
+      <p>KitPos guarda en <span class="mono">content\\kitpos\\kitpos_slots.ini</span> dónde va el nombre y cada número de este kit. El navegador no deja abrir ese archivo solo por su nombre: elegilo una vez y el editor lo recuerda. Así el kit se ve como en el juego.</p>
+      <div class="row"><button class="btn primary" type="button" id="ksGatePick">📄 Elegir kitpos_slots.ini</button><button class="btn ghost" type="button" id="ksGateSkip" title="El nombre y los números se muestran con los pasos del config.txt">Ver sin KitPos</button></div></div></div>`;
+  const seg = (id, opts, cur) => `<div class="seg k3seg" id="${id}">${opts.map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${cur === v}">${n}</button>`).join('')}</div>`;
+  const slider = (id, lab, v, min, max, step, fmt) => `<div class="f k3s"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" class="k3r" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}" style="--p:${((v - min) / (max - min) * 100).toFixed(1)}%"></div>`;
+  const dor = ([el, keys]) => { const E = KPL_EL[el], on = kplOn(el), fs = keys.map(([k, n]) => [KS.cfg.fields.find(f => f.key === k), n]).filter(([f]) => f), first = fs[0] && /^(Name|ChestNumberSize)$/.test(fs[0][0].key) ? fs[0] : null;
+    const rest = on && !kp ? fs.filter(x => x !== first || el === 'chest') : []; // el pecho y el short se prenden y apagan con "Mostrar en el kit"
+    return `<fieldset class="ksdor ${on ? '' : 'off'}" style="--dc:${E.col}"><legend><button type="button" data-dorgo="${el}" title="Llevar la cámara hasta acá y moverlo con los atajos"><i></i>${KS_DECAL_N[el]} <span aria-hidden="true">👁</span></button></legend>
+      ${el === 'chest' || el === 'leg' ? `<label class="chk"><input type="checkbox" data-showel="${el}" ${on ? 'checked' : ''}> Mostrar en el kit</label>` : ''}${first && el !== 'chest' ? ctl(...first) : ''}${!on ? `<p class="note">${el === 'chest' ? 'Este kit no lleva número en el pecho.' : el === 'leg' ? 'Este kit no lleva número en el short.' : el === 'name' ? 'El nombre está apagado en este kit.' : 'Escribí un número de prueba arriba.'}</p>` : ''}${rest.map(([f, n]) => ctl(f, n)).join('')}</fieldset>`; };
+  const view = `<div class="seg" id="ksView" aria-label="Cómo se muestra el kit">${[['3d', '🎥 3D'], ['mock', '✥ Maqueta plana'], ['tex', '🖼 Texturas']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${KS.view === v}">${n}</button>`).join('')}</div>`;
+  if (tex) return `<section class="ksstage"><div class="row">${view}</div>
+    <div class="ksslots">${KS_SLOTS.map(slotCard).join('')}</div>${KS.see ? `<div class="kstex"><canvas id="ksTex"></canvas></div>` : ''}<p class="note">Todo lo que subís o generás se convierte a .ftex (DXT5) con todos sus tamaños internos y se guarda en content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}. Si ya había un archivo con ese nombre, la primera vez se guarda una copia .bak-edit21.</p></section>`;
+  const G = k3Grade();
+  const stage = !v3 ? kplHtml() : `<div class="ks3dwrap ksshow3d" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''} ${L.bgGrad !== false ? 'grad' : ''} ${L.floor === false ? 'nofloor' : ''}" style="--k3bg:${esc(L.bgCol || '#1d2633')};--vig:${G.vig}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar; arrastrá el nombre o un número para moverlo"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
+      <div class="k3cap">${crest(t, 'k3crest')}<span><b>${esc(tget(t, 'name'))}</b><small>${esc(role)} · ${esc(KS.sel)}</small>${ksSrcChip()}</span></div>
+      ${ksToolsHtml()}
+      <div class="k3hud">${ksHudHtml(KS_HUD())}</div></div></div>
+    <div class="ksshowbar">
+      <div class="k3cam">${[['front', 'Frente'], ['back', 'Espalda'], ['left', 'Izq.'], ['right', 'Der.'], ['threeq', '3/4'], ['close', 'Pecho'], ['reset', '↺ Inicio']].map(([k, n]) => `<button class="btn small" type="button" data-cam="${k}">${n}</button>`).join('')}</div>
+      <span class="kssep"></span>
+      <button class="btn small primary" type="button" id="k3Game" title="Fondo azul, luz de estudio y la cámara de espalda como en la pantalla de Uniforme del juego">🎮 Vista del juego</button>
+      <button class="btn small" type="button" id="ksPresent" title="Pantalla completa con giro automático para mostrar el kit (Esc para salir)">▶ Presentar</button>
+      <label class="chk"><input type="checkbox" id="k3Auto"> Giro automático</label><button class="btn small" type="button" id="k3Spin">Vuelta 360°</button>
+      <button class="btn small ghost" type="button" id="k3Shot" title="Descargar la imagen tal como se ve">📷 Foto PNG</button><button class="btn small ghost" type="button" id="k3Full" title="El visor ocupa toda la pantalla (Esc para salir)">⛶</button>
+    </div>
+    <div class="ksshowbar">
+      <span class="ksgrp"><span class="lab">Fondo</span>${seg('k3Bg', [['env', 'Entorno'], ['game', 'Juego'], ['none', 'Liso']], L.bg || 'env')}</span>
+      <span class="ksgrp"><span class="lab">Manga</span>${seg('k3Sleeve', [['short', 'Corta'], ['long', 'Larga']], K3.sleeve)}</span>
+      <span class="ksgrp"><span class="lab">Medias</span>${seg('k3Socks', [['long', 'Largas'], ['middle', 'Medianas'], ['short', 'Cortas']], K3.socks)}</span>
+      <span class="ksgrp"><span class="lab">Camiseta</span>${seg('k3Tuck', [['out', 'Afuera'], ['in', 'Adentro']], K3.tuck)}</span>
+      <label class="chk"><input type="checkbox" id="k3Cap" ${K3.cap ? 'checked' : ''}> Cinta de capitán</label>
+    </div>`;
+  const side = v3 ? KS.pane || 'dor' : 'dor', pane = (k, html) => `<div class="kspane" data-pane="${k}" ${side === k ? '' : 'hidden'}>${html}</div>`;
+  const nameOk = ksNameFontOk();
+  const dorsales = `<div class="row ksample ${ksTexOf('name') && ksTexOf('name').__kp && !ksGenName() ? 'kp' : ''}"><label class="lab" for="ksName">Prueba</label><input type="text" id="ksName" value="${esc(KS.sample.name)}" maxlength="14" aria-label="Nombre de prueba"><input type="text" id="ksNum" value="${esc(KS.sample.num)}" maxlength="2" inputmode="numeric" aria-label="Número de prueba"></div>
+    <div class="f"><span class="lab">Letra del nombre</span>${`<div class="seg k3seg" id="ksNameFont">${[['kit', 'La del kit'], ['gen', 'Genérica']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(ksGenName() ? 'gen' : 'kit') === v}" ${v === 'kit' && !nameOk ? 'disabled title="La textura del nombre de este kit no tiene letras que se puedan leer"' : ''}>${n}</button>`).join('')}</div>`}</div>
+    <p class="note">${!nameOk ? 'Este kit no trae una letra de nombre que el editor pueda leer (si es de KitPos, falta kitpos_letras.txt en la carpeta del kit o minusculas.txt en content\\kitpos): se muestra una genérica.' : ksGenName() ? 'Se muestra una letra genérica. Elegí "La del kit" para verla como en el juego.' : 'El nombre se ve con la letra del kit, como en el juego.'}</p>
+    ${v3 ? `<label class="chk"><input type="checkbox" id="k3Place" ${K3.place ? 'checked' : ''}> ✥ Mover con el mouse en el 3D</label><label class="chk"><input type="checkbox" id="k3Dec" ${L.decals !== false ? 'checked' : ''}> Mostrar nombre y números</label>` : ''}
+    ${KS_DORS.map(dor).join('')}
+    <p class="note">${kp ? 'KitPos está activo: los valores exactos (con decimales) están en 📐 Posición libre, abajo.' : 'Cada control es un paso del config.txt del kit, como en el juego.'} "Guardar kit" lo anota en el kit.</p>
+    ${KPS.st && KPS.st.lua ? `<div class="row" style="gap:6px">${kpsPickBtn()}<button class="btn small" type="button" id="ksGoKpos" title="Bajar hasta el panel de Posición libre (KitPos)">📐 Posición libre</button></div>` : ''}`;
+  const luz = `${slider('k3Fov', 'Lente', K3.view.fov || 48, 18, 80, 1, v => v + '°')}${slider('k3AutoS', 'Velocidad del giro', K3.autoSpeed || 1, .2, 3, .1, v => v.toFixed(1) + '×')}
+    <div class="k3envs" id="k3Preset">${Object.entries(K3LIGHTS).filter(([k]) => k !== 'hdri' || K3.envUser).map(([k, p]) => `<button type="button" data-v="${k}" aria-pressed="${L.preset === k}"><canvas width="96" height="48" data-envthumb="${k}"></canvas><span>${k === 'hdri' ? esc(K3.envUser.name) : p.n}</span></button>`).join('')}</div>
+    <div class="row" style="gap:4px"><button class="btn small" type="button" id="k3Hdri" title="Panorama 360° en .hdr (Radiance) o una imagen equirectangular .jpg/.png">Cargar HDRI…</button><span class="note">Un .hdr da luz y reflejos reales.</span></div>
+    <div class="k3sun"><canvas id="k3Sphere" width="132" height="132" aria-label="Dirección de la luz principal: arrastrá el punto de luz"></canvas><div class="k3sunv">${slider('k3Int', 'Intensidad', L.int ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Amb', 'Luz ambiente', L.amb ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3Exp', 'Exposición', L.exp ?? 1, .4, 2, .05, v => Math.round(v * 100) + '%')}</div></div>
+    <p class="note k3sunt" id="k3SunT">Luz principal: ${Math.round(L.az || 0)}° de giro, ${Math.round(L.el || 0) > 0 ? '+' : ''}${Math.round(L.el || 0)}° de altura. Arrastrá el punto en la esfera.</p>
+    ${slider('k3EnvI', 'Reflejos del entorno', L.envInt ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}${slider('k3EnvY', 'Girar el entorno', L.envYaw || 0, -180, 180, 5, v => v + '°')}${slider('k3Blur', 'Desenfoque del fondo', L.bgBlur ?? 2, 0, 6, .25, v => v.toFixed(1))}`;
+  const pct = v => Math.round(v * 100) + '%';
+  const imagen = `<div class="f"><span class="lab">Estilo de la imagen</span><div class="k3looks" id="k3Look">${Object.entries(K3LOOKS).map(([k, p]) => `<button type="button" data-v="${k}" aria-pressed="${(L.look || 'natural') === k}"><span class="k3lk k3lk-${k}" aria-hidden="true"></span><span>${p.n}</span></button>`).join('')}</div></div>
+    ${slider('k3GSat', 'Saturación', G.sat, 0, 2, .05, pct)}${slider('k3GCon', 'Contraste', G.con, .5, 1.6, .02, pct)}${slider('k3GWarm', 'Temperatura (frío · cálido)', G.warm, -1, 1, .05, v => (v > 0 ? '+' : '') + Math.round(v * 100))}
+    ${slider('k3GVig', 'Viñeta (bordes oscuros)', G.vig, 0, 1, .05, pct)}${slider('k3GGrain', 'Grano de película', G.grain, 0, 1, .05, pct)}${slider('k3GRim', 'Contorno de luz', G.rim, 0, 3, .05, pct)}
+    <div class="f"><span class="lab">Resolución</span>${seg('k3GRes', [['0.35', 'PS2'], ['0.6', 'Baja'], ['1', 'Normal'], ['1.5', 'Alta']], String(G.res))}</div>
+    <div class="f"><span class="lab">Fondo liso</span><div class="row" style="gap:8px"><input type="color" id="k3BgCol" value="${esc(L.bgCol || '#1d2633')}" aria-label="Color del fondo liso"><label class="chk"><input type="checkbox" id="k3BgGrad" ${L.bgGrad !== false ? 'checked' : ''}> Degradado</label><label class="chk"><input type="checkbox" id="k3Floor" ${L.floor !== false ? 'checked' : ''}> Sombra en el piso</label></div></div>
+    <button class="btn small" type="button" id="k3LookReset">↺ Volver a Natural</button>
+    <p class="note">El estilo también sale en "📷 Foto PNG" (con fondo liso o de Juego, la foto sale con fondo transparente).</p>`;
+  const tela = `<details class="k3pan" ${KS.T.kit && KS.T.kit.c ? 'open' : ''}><summary>Brillo (alfa del kit)</summary>
+      ${KS.T.kit && KS.T.kit.c ? `<p class="note">En la textura del kit el alfa marca cuánto brilla cada parte en el juego: blanco brilla más, negro es mate. ${KS.T.kit.g ? 'Este kit trae su propio alfa.' : 'Este kit no trae alfa: se usa un brillo medio parejo.'}</p>
+      ${slider('k3Gloss', 'Efecto en pantalla', L.gloss ?? 1, 0, 2, .05, v => Math.round(v * 100) + '%')}
+      <div class="seg k3seg" id="k3Dbg">${[[0, 'Kit'], [1, 'Ver brillo'], [2, 'Ver relieve']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(K3.debug || 0) === v}">${n}</button>`).join('')}</div>
+      ${slider('k3GLv', 'Nivel', ksGlossState().level, -.5, .5, .02, v => (v > 0 ? '+' : '') + Math.round(v * 100))}${slider('k3GCt', 'Contraste', ksGlossState().contrast, 0, 3, .05, v => Math.round(v * 100) + '%')}
+      <label class="chk"><input type="checkbox" id="k3GInv" ${ksGlossState().invert ? 'checked' : ''}> Invertir (lo brillante pasa a mate)</label>
+      <div class="row" style="gap:4px">${[['mate', 'Todo mate'], ['brillo', 'Todo brillante'], ['colores', 'Desde los colores'], ['original', 'Original']].map(([k, n]) => `<button class="btn small" type="button" data-gfill="${k}">${n}</button>`).join('')}</div>
+      <div class="k3brush"><label class="chk"><input type="checkbox" id="k3Paint" ${K3.paint ? 'checked' : ''}> 🖌 Pintar brillo sobre el modelo</label>
+        ${slider('k3BSz', 'Tamaño del pincel', (KS.brush || {}).size || 40, 4, 160, 2, v => v + ' px')}${slider('k3BVal', 'Valor (0 mate · 100 brillo)', (KS.brush || {}).value ?? 85, 0, 100, 1, v => v)}${slider('k3BSoft', 'Borde suave', (KS.brush || {}).soft ?? .6, 0, 1, .05, v => Math.round(v * 100) + '%')}
+        <div class="row" style="gap:4px"><button class="btn small" type="button" id="k3GUndo">↶ Deshacer pincel</button></div></div>
+      <button class="btn small primary" type="button" id="k3GSave" title="Escribe el brillo en el canal alfa de ${esc(ksSlotFile('kit') || '')}.ftex (con copia la primera vez)">Guardar brillo en la textura del kit</button>`
+      : '<p class="note">Este kit no tiene la textura suelta (está dentro de los .cpk). Subila en "Texturas" para ver y editar su brillo.</p>'}</details>
+    <details class="k3pan"><summary>Tela y relieve</summary>
+      <div class="f"><label for="k3Fab">Tela</label><select id="k3Fab">${KMAT.LIST.map(x => `<option value="${x.k}" ${KS.mat.fabric === x.k ? 'selected' : ''} title="${esc(x.d)}">${x.n}</option>`).join('')}</select></div>
+      ${slider('k3Rep', 'Tamaño de la trama', KS.mat.repeat, 16, 128, 4, v => v + '×')}${slider('k3Fs', 'Fuerza de la trama', KS.mat.fabricStrength, 0, 1.5, .05, v => Math.round(v * 100) + '%')}${slider('k3Emb', 'Relieve de los dibujos', KS.mat.emboss, 0, 1.5, .05, v => Math.round(v * 100) + '%')}
+      <div class="f"><span class="lab">Relieve de los dibujos sacado de</span>${seg('k3ESrc', [['color', 'Los colores'], ['gloss', 'El brillo (alfa)']], KS.mat.src || 'color')}</div>
+      ${slider('k3Bump', 'Relieve en pantalla', L.bump ?? 1, 0, 2.5, .05, v => Math.round(v * 100) + '%')}${slider('k3Spec', 'Brillo de la tela', L.spec ?? 1, 0, 2.5, .05, v => Math.round(v * 100) + '%')}
+      <label class="chk"><input type="checkbox" id="k3Nrm" ${L.nrm !== false ? 'checked' : ''}> Usar normal map</label>
+      <div class="seg k3seg" id="k3NSrc">${[['gen', 'De la tela elegida'], ['kit', 'El del kit']].map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${(KS.nsrc || (ksTexOf('nrm') ? 'kit' : 'gen')) === v}" ${v === 'kit' && !ksTexOf('nrm') ? 'disabled title="Este kit no tiene normal map suelto"' : ''}>${n}</button>`).join('')}</div>
+      <button class="btn small" type="button" id="k3NrmSave" title="Escribe ${esc(ksBase())}_nrm.ftex y _srm.ftex en la carpeta del kit">Guardar este relieve en el kit</button>
+      <p class="note">El juego usa el normal map del kit (_nrm) para el relieve de la tela y de los dibujos que tengan relieve en él.</p></details>`;
+  const info = `<p class="note" id="k3Info">${esc(KS.model ? `Modelo: camiseta${cfgGet(KS.cfg, 'TightKit') === '1' ? ' ajustada' : ''}, ${KS.model.collarName ? 'cuello ' + KS.model.collarName.split('_')[1] + (KS.model.collarExact ? '' : ' (el más parecido al ' + cfgGet(KS.cfg, 'Collar') + ')') : 'sin cuello'}, short ${ksN('ShortsModel')}.` : 'Cargando los modelos…')} ${ksTexOf('kit') ? '' : 'Sin textura del kit (está dentro de los .cpk): se pinta con los colores del config. Subí la textura en "Texturas" para verla.'}</p>`;
+  return `<div class="ksshow">
+      <section class="ksstage">
+        <div class="row" style="justify-content:space-between">${view}
+          <span class="note">${v3 ? 'Girá el kit con el mouse; el nombre y los números se agarran y se mueven, o con los atajos de abajo a la derecha.' : 'Espalda, frente y short a la vez: agarrá cada cosa y movela.'}</span></div>
+        ${stage}
+      </section>
+      <aside class="ksdors">
+        ${v3 ? `<div class="seg ksside" id="ksSide" role="tablist" aria-label="Panel">${[['dor', '🔢', 'Dorsales'], ['luz', '💡', 'Luz'], ['img', '🎨', 'Imagen'], ['tela', '✨', 'Tela']].map(([v, i, n]) => `<button type="button" role="tab" data-v="${v}" aria-pressed="${side === v}"><span aria-hidden="true">${i}</span><span>${n}</span></button>`).join('')}</div>` : '<h4>🔢 Dorsales</h4>'}
+        ${pane('dor', dorsales)}${v3 ? pane('luz', luz) + pane('img', imagen) + pane('tela', tela) : ''}
+        ${v3 ? info : ''}
+      </aside>
+    </div>
+    ${kposHtml()}`;
 }
 function bindKitStudio(t, m) {
   ksRerender = () => later(() => { if (S.ttab === 'kits' && (S.tab === 'teams' || S.tab === 'nats')) renderTeams(m); });
@@ -729,23 +911,25 @@ function bindKitStudio(t, m) {
     if (KS.view === 'mock') kplPaint(sh, KS.kplApi, KPL.drag ? KPL.drag.side : null);
     sh.querySelectorAll('canvas[data-slot]').forEach(c => { const T = ksTexOf(c.dataset.slot); if (!T) return; const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); const k = Math.min(c.width / T.width, c.height / T.height); if (KS_SLOTS.find(s => s.k === c.dataset.slot).font) { g.fillStyle = '#2a3038'; g.fillRect(0, 0, c.width, c.height); } g.drawImage(T, (c.width - T.width * k) / 2, (c.height - T.height * k) / 2, T.width * k, T.height * k); });
     const tx = $('ksTex'), T = KS.see && ksTexOf(KS.see); if (tx && T) { tx.width = T.width; tx.height = T.height; tx.getContext('2d').drawImage(T, 0, 0); }
+    if (KS.float) KS.float(); // los atajos siguen al recuadro
   };
   KS.draw = draw;
+  if (!ksFloatResize) { ksFloatResize = true; addEventListener('resize', () => KS.float && KS.float()); }
   const thumbs = async () => { const P = await k3Pack(), tex = ksDisplayTex(), maps = ksMaps(), M = KS.model; if (!M) return; const a = $('kpCollar'), b = $('kpShorts'), get = k => M.parts.find(p => p.k === k);
     if (a && get('collar')) { const th = k3Thumb([get('shirt'), get('collar')].filter(Boolean), tex, 'collar', 72, maps); a.getContext('2d').clearRect(0, 0, 72, 72); th && a.getContext('2d').drawImage(th, 0, 0); }
     if (b && get('shorts')) { const th = k3Thumb([get('shorts'), get('socks')].filter(Boolean), tex, 'shorts', 72, maps); b.getContext('2d').clearRect(0, 0, 72, 72); th && b.getContext('2d').drawImage(th, 0, 0); }
     if (K3.off) K3.off.model = null; };
   const startViewer = () => { const cv = $('ks3d'); if (!cv || !KS.model || K3.viewer) return; const place = () => K3.place && !K3.paint && K3.light.decals !== false;
-    const hud = t => { const h = sh.querySelector('.k3hud span'); if (h) h.textContent = t; };
-    const hudIdle = () => hud(K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda');
-    const setHot = k => { if (KS.hot === (k || null)) return; KS.hot = k || null; draw(); };
+    const hud = t => { const h = sh.querySelector('.k3hud'); if (h) h.innerHTML = ksHudHtml(t); };
+    const hudIdle = () => hud(KS_HUD());
+    const setHot = k => { k = k || KS.tool || null; if (KS.hot === k) return; KS.hot = k; draw(); };
     let grab = null;
-    K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
-      onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
-      onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; setHot(k); return true; },
+    K3.viewer = k3Viewer(cv, KS.model, KS.cfg, ksDisplayTex(), ksMaps(), { grade: true, onPaint: hit => { ksGlossPaint(hit.u, hit.v); K3.viewer.setMaps(ksMaps()); }, onPaintEnd: () => { },
+      onHoverHit: hit => { if (!place()) { setHot(null); return false; } const k = hit && ksDecalAt(hit.u, hit.v); setHot(k); if (k) hud(KS_DECAL_N[k] + ': click para ver las opciones · arrastrá para moverlo · rueda para el tamaño'); else hudIdle(); return !!k; },
+      onGrab: hit => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; KS.grabT = performance.now(); const b = KS.decals[k]; grab = { k, ox: hit.u * 1024 - b.x, oy: hit.v * 1024 - b.y }; if (KS.tool !== k) KS.tools(k, false); setHot(k); return true; },
       onGrabMove: hit => { if (!grab) return; if (ksKpOn()) { const fv = ksDecalVals0(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy, true); for (const [key, v] of Object.entries(fv)) ksKpSetSteps(key, v); kpChanged(); hud(KS_DECAL_N[grab.k] + ' (KitPos): ' + Object.entries(fv).map(([key, v]) => key + ' ' + (+v.toFixed(2))).join(', ')); return; } const vals = ksDecalVals(grab.k, hit.u * 1024 - grab.ox, hit.v * 1024 - grab.oy); for (const [key, v] of Object.entries(vals)) if (String(v) !== cfgGet(KS.cfg, key)) setVal(key, v); hud(KS_DECAL_N[grab.k] + ': ' + Object.entries(vals).map(([key, v]) => key + ' = ' + v).join(', ')); },
       onGrabEnd: () => { grab = null; },
-      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; if (ksKpOn()) { const key = KS_DECAL_SIZE[k][0]; ksKpSetSteps(key, ksP(key) + dir * .5); kpChanged(); setHot(k); hud(KS_DECAL_N[k] + ' (KitPos): ' + key + ' paso ' + (+ksP(key).toFixed(2))); return true; } const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; } });
+      onWheelHit: (hit, dir) => { if (!place()) return false; const k = ksDecalAt(hit.u, hit.v); if (!k) return false; if (ksKpOn()) { const key = KS_DECAL_SIZE[k][0]; ksKpSetSteps(key, ksP(key) + dir * .5); kpChanged(); setHot(k); hud(KS_DECAL_N[k] + ' (KitPos): ' + key + ' paso ' + (+ksP(key).toFixed(2))); return true; } const [key, max] = KS_DECAL_SIZE[k], v = ksClampKey(key, Math.max(0, Math.min(max, ksN(key) + dir))); setVal(key, v); setHot(k); hud(KS_DECAL_N[k] + ': ' + key + ' = ' + v); return true; }, onAuto: on => { const a = $('k3Auto'); if (a) a.checked = on; }, onCamera: () => KS.float && KS.float() });
     if (!K3.viewer) { const i = $('k3Info'); if (i) i.textContent = 'Este navegador no tiene WebGL activado: no se puede mostrar la vista 3D.'; }
     cv.addEventListener('pointerdown', e => { if (K3.paint && e.button === 0 && !e.shiftKey) ksGlossPush(); }, true); };
   const modelKey = () => ['TightKit', 'ShortsModel', 'Collar', 'ShortSleevesModel'].map(k => cfgGet(KS.cfg, k)).join('|') + '|' + K3.sleeve + K3.socks + K3.tuck + K3.cap + KS.sel;
@@ -767,6 +951,7 @@ function bindKitStudio(t, m) {
     if (KS.sync) for (const [a, b] of [['ShirtColor1', 'UniColor_Color1'], ['ShirtColor2', 'UniColor_Color2']]) if (k === a) sh.querySelectorAll(`[data-ks="${b}"]`).forEach(el => el.value = v);
     if (k === 'Collar' || k === 'ShortsModel') { const b = sh.querySelector(`[data-pick="${k === 'Collar' ? 'collar' : 'shorts'}"] b`); if (b) b.textContent = (k === 'Collar' ? 'Cuello ' : 'Short ') + v; }
     if (['TightKit', 'ShortsModel', 'Collar', 'ShortSleevesModel'].includes(k)) ensureModel();
+    if (k === 'Name') later(() => renderTeams(m)); // se muestran u ocultan los controles del nombre
     if (!setVal.raf) setVal.raf = requestAnimationFrame(() => { setVal.raf = 0; draw(); }); status();
   };
   KS.setVal = setVal;
@@ -787,13 +972,95 @@ function bindKitStudio(t, m) {
   on('k3Auto', 'onchange', e => V3() && V3().auto(e.target.checked));
   // como la pantalla de Uniforme del juego: fondo azul, luz de estudio y el jugador de espalda, de la cintura para arriba
   on('k3Game', 'onclick', () => { Object.assign(K3.light, { bg: 'game', preset: 'estudio' }); K3.view.fov = 30; savePrefs3(); renderTeams(m); requestAnimationFrame(() => { const v = V3(); if (v) { const f = v.fit(); v.go({ yaw: Math.PI, pitch: .04, dist: f.radius * 3.3, panX: 0, panY: f.radius * .28, fov: 30 }); } }); });
-  on('k3Big', 'onclick', () => { KS.big = !KS.big; renderTeams(m); });
   on('k3Full', 'onclick', () => { const w = $('ks3dWrap'); if (!w) return; if (document.fullscreenElement) document.exitFullscreen(); else w.requestFullscreen && w.requestFullscreen().then(() => V3() && V3().redraw()).catch(e => toast('No se pudo poner en pantalla completa: ' + e.message, 5000)); });
   on('k3Shot', 'onclick', () => { if (!V3()) return; const a = document.createElement('a'); a.href = V3().shot(); a.download = (tget(t, 'name') + ' ' + KS.sel).replace(/[\\/:*?"<>|]/g, '') + '.png'; a.click(); });
   for (const [id, key] of [['k3Sleeve', 'sleeve'], ['k3Socks', 'socks'], ['k3Tuck', 'tuck']]) on(id, 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || K3[key] === b.dataset.v) return; K3[key] = b.dataset.v; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); ensureModel(); });
   on('k3Cap', 'onchange', e => { K3.cap = e.target.checked; ensureModel(); });
   on('k3Dec', 'onchange', e => { K3.light.decals = e.target.checked; savePrefs3(); draw(); });
-  on('k3Place', 'onchange', e => { K3.place = e.target.checked; if (!K3.place) { KS.hot = null; draw(); } const h = sh.querySelector('.k3hud span'); if (h && !K3.paint) h.textContent = K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda'; });
+  on('k3Place', 'onchange', e => { K3.place = e.target.checked; if (!K3.place) { KS.hot = KS.tool || null; draw(); } const h = sh.querySelector('.k3hud'); if (h) h.innerHTML = ksHudHtml(KS_HUD()); });
+  // atajos del 3D (ksToolsHtml): elegir qué mover lleva la cámara hasta ahí; deslizadores al lado del recuadro y el teclado
+  const look = k => { const v = V3(); if (!v) return; const f = v.fit(); v.go(k === 'chest' ? { yaw: 0, pitch: .05, dist: f.radius * 1.05, panX: 0, panY: f.radius * .5, fov: 48 } : k === 'leg' ? { yaw: 0, pitch: .05, dist: f.radius * 1.25, panX: 0, panY: -f.radius * .45, fov: 48 } : { yaw: Math.PI, pitch: .08, dist: f.radius * 2.1, panX: 0, panY: f.radius * .28, fov: 48 }); };
+  const tVal = () => { const o = $('k3TVal'), E = KS.tool && KPL_EL[KS.tool]; if (o && E) o.textContent = [...E.move, E.size].map(kplVal).join(' · ');
+    sh.querySelectorAll('.k3sl').forEach(w => { const [lo, hi] = ksSlideRange(w.dataset.k); let p = Math.max(0, Math.min(1, (ksP(w.dataset.k) - lo) / (hi - lo))); if (w.dataset.flip === '1') p = 1 - p; w.style.setProperty('--kp', p.toFixed(3)); }); }; // (--p ya está registrada en el CSS como porcentaje)
+  const act = (a, fast) => { const el = KS.tool; if (!el) return; const n = fast ? 4 : 1, A = KS.kplApi;
+    const r = { bigger: ['size', n], smaller: ['size', -n], wider: ['wide', n], narrower: ['wide', -n], arcp: ['arc', n], arcm: ['arc', -n] }[a], k = r ? kplNudge(el, r[0], r[1], A) : kplNudge(el, a, n, A);
+    if (k) { kpChanged(); tVal(); } };
+  const bindTools = () => {
+    const box = $('k3Tools'); if (!box) return;
+    box.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => KS.tools(KS.tool === b.dataset.tool ? null : b.dataset.tool));
+    // deslizadores: la altura y el costado van hacia donde se mueve en pantalla; tamaño, ancho y curva, más arriba = más
+    const E = KS.tool && KPL_EL[KS.tool];
+    box.querySelectorAll('.k3sl').forEach(w => { const k = w.dataset.k, tk = w.querySelector('.k3tr'), h = w.classList.contains('h');
+      if (E && E.move.includes(k) && kplCan(KS.tool, KS.kplApi)) { const g = kplGrad(KS.tool, k, kplMap(E.side), KS.kplApi); if (g) w.dataset.flip = h ? +(g.x < 0) : +(g.y > 0); }
+      const flip = w.dataset.flip === '1', [lo, hi] = ksSlideRange(k), from = e => { const r = tk.getBoundingClientRect(), p = Math.max(0, Math.min(1, h ? (e.clientX - r.left) / r.width : (r.bottom - e.clientY) / r.height)); return flip ? hi - p * (hi - lo) : lo + p * (hi - lo); };
+      const put = v => { if (!kplCan(KS.tool, KS.kplApi)) return; kplPut(k, v, KS.kplApi); kpChanged(); tVal(); };
+      let on = false;
+      tk.onpointerdown = e => { if (e.button) return; e.preventDefault(); on = true; tk.setPointerCapture(e.pointerId); w.classList.add('drag'); put(from(e)); };
+      tk.onpointermove = e => { if (on) put(from(e)); };
+      tk.onpointerup = tk.onpointercancel = () => { on = false; w.classList.remove('drag'); };
+      w.onwheel = e => { e.preventDefault(); put(ksP(k) + kplStep() * (e.deltaY < 0 ? 1 : -1) * (flip ? -1 : 1)); };
+      w.querySelectorAll('.k3si').forEach((ic, i) => ic.onclick = () => put(ksP(k) + kplStep() * ((i === 0) === !h ? 1 : -1) * (flip ? -1 : 1))); });
+    // agregar o quitar el número del pecho, el del short o el nombre; tipo de número (7 o 07)
+    box.querySelectorAll('[data-addel],[data-delel]').forEach(b => b.onclick = () => { const add = b.dataset.addel, el = add || b.dataset.delel; ksShowEl(el, !!add, setVal); KS.tool = add ? el : null; KS.lookAt = add ? el : null; kpChanged(); later(() => renderTeams(m)); });
+    const cx = $('k3Close'); if (cx) cx.onclick = () => KS.closeTools();
+    const ty = $('k3Type'); if (ty) ty.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; setVal('BackNumberType', b.dataset.v); ty.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+    // manija de la curva, arriba del nombre: arrastrar hacia arriba curva más, hacia abajo menos (o al revés)
+    const arc = $('k3Arc'); if (arc) { let D = null;
+      arc.onpointerdown = e => { if (e.button || !KS.tool || !kplCan(KS.tool, KS.kplApi)) return; e.preventDefault(); const k = KPL_EL[KS.tool].arc; if (!k) return; D = { y: e.clientY, k, s: ksP(k) }; arc.setPointerCapture(e.pointerId); arc.classList.add('drag'); };
+      arc.onpointermove = e => { if (!D) return; kplPut(D.k, D.s - (e.clientY - D.y) / 18, KS.kplApi); kpChanged(); tVal(); };
+      arc.onpointerup = arc.onpointercancel = () => { D = null; arc.classList.remove('drag'); }; }
+    tVal();
+  };
+  // los atajos van pegados al recuadro del elegido: se proyectan sus esquinas a la pantalla (si se ve de este lado)
+  const ksFloat = () => { if (ksFloat.raf) return; ksFloat.raf = requestAnimationFrame(() => { ksFloat.raf = 0;
+    const f = $('k3Float'), arc = $('k3Arc'), hint = $('k3THint'), st = sh.querySelector('.ks3d'), v = V3(), el = KS.tool, b = el && KS.decals && KS.decals[el]; if (!f || !st) return;
+    const pts = v && b && v.project ? [[0, 0], [-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]].map(([a, c]) => v.project((b.x + a * b.w) / 1024, (b.y + c * b.h) / 1024)).filter(Boolean) : [];
+    const show = pts.length >= 2, was = !f.hidden; f.hidden = !show; if (arc) arc.hidden = !show;
+    // la entrada arranca dos cuadros después: así no se la come el trabajo de abrir el menú (cámara, texturas)
+    if (show && !was) { [f, arc].forEach(x => x && x.classList.remove('in')); requestAnimationFrame(() => requestAnimationFrame(() => [f, arc].forEach(x => x && x.classList.add('in')))); } if (hint) hint.textContent = !el ? tr('Click en el nombre o un número para ver sus opciones') : show ? '' : tr('Girá el kit para ver {x}').replace('{x}', tr(KPL_EL[el].n).toLowerCase());
+    if (!show) return; const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), W = st.clientWidth, H = st.clientHeight, fw = f.offsetWidth, fh = f.offsetHeight;
+    // con el visor a lo ancho (lista de equipos cerrada) el menú se corre más a la derecha, lejos de la camiseta
+    let left = Math.max(x1 + 44, st.closest('.kstall') ? W / 2 + W * .2 : 0); if (left + fw > W - 8) left = Math.max(8, Math.min(W - fw - 8, x1 + 44)); if (left + fw > W - 8) left = x0 - 24 - fw; left = Math.max(8, Math.min(W - fw - 8, left));
+    const cap = st.querySelector('.k3cap'), t0 = cap ? cap.offsetTop + cap.offsetHeight + 8 : 8; // sin tapar el nombre del equipo
+    f.style.left = left + 'px'; f.style.top = Math.max(t0, Math.min(H - fh - 8, (y0 + y1) / 2 - fh / 2)) + 'px';
+    if (arc) { arc.style.left = Math.max(8, Math.min(W - arc.offsetWidth - 8, (x0 + x1) / 2 - arc.offsetWidth / 2)) + 'px'; arc.style.top = Math.max(8, y0 - arc.offsetHeight - 10) + 'px'; }
+  }); };
+  KS.float = ksFloat;
+  // cerrar el menú con animación (click afuera o Esc): el recuadro se desvanece y recién ahí se suelta lo elegido
+  KS.closeTools = () => { if (!KS.tool || KS.closing) return; const f = $('k3Float'), arc = $('k3Arc'), done = () => { KS.closing = false; KS.tools(null, false); };
+    if (!f || f.hidden) { done(); return; } KS.closing = true; f.classList.add('out'); if (arc) arc.classList.add('out'); setTimeout(done, 240); };
+  ksToolsOutside();
+  KS.tools = (k, cam = true) => {
+    KS.tool = k && kplOn(k) ? k : null; KS.hot = KS.tool; if (KS.tool) KPL.sel = KS.tool;
+    const box = $('k3Tools'); if (box) { box.outerHTML = ksToolsHtml(); bindTools(); }
+    if (KS.tool && cam) { look(KS.tool); const cv = $('ks3d'); if (cv) cv.focus({ preventScroll: true }); }
+    draw(); ksFloat(); const h = sh.querySelector('.k3hud'); if (h) h.innerHTML = ksHudHtml(KS_HUD());
+  };
+  if (KS.tool && !kplOn(KS.tool)) KS.tool = null;
+  bindTools(); ksFloat(); if (KS.lookAt && V3()) look(KS.lookAt); KS.lookAt = null;
+  // teclado con el foco en el visor: 1 a 4 eligen, flechas mueven, + y − tamaño, [ ] curva, , . ancho; Esc suelta (las flechas vuelven a girar la cámara)
+  const wrap = $('ks3dWrap');
+  if (wrap) wrap.addEventListener('keydown', e => {
+    if (e.target.matches('input,select,textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+    const stop = () => { e.preventDefault(); e.stopPropagation(); };
+    if (/^[1-4]$/.test(e.key)) { const el = Object.keys(KPL_EL)[+e.key - 1]; if (kplOn(el)) { stop(); KS.tools(el); } return; }
+    if (!KS.tool) return;
+    if (e.key === 'Escape') { if (!document.fullscreenElement) { stop(); KS.closeTools(); } return; }
+    const a = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', '+': 'bigger', '=': 'bigger', '-': 'smaller', '_': 'smaller', ']': 'arcp', '[': 'arcm', '.': 'wider', ',': 'narrower' }[e.key];
+    if (a) { stop(); act(a, e.shiftKey); }
+  }, true);
+  // 👁 en cada grupo de dorsales: lleva la cámara y lo deja listo para los atajos (en la maqueta, lo elige)
+  sh.querySelectorAll('[data-dorgo]').forEach(b => b.onclick = () => { const k = b.dataset.dorgo; if (KS.view === 'mock') { KPL.sel = k; draw(); kplInfo(sh.querySelector('#kplBox'), KS.kplApi); return; } if (kplOn(k)) KS.tools(k); else look(k); });
+  on('ksPresent', 'onclick', () => { const w = $('ks3dWrap'); if (!w || !w.requestFullscreen) return; w.requestFullscreen().then(() => { w.classList.add('present'); const v = V3(); if (!v) return; v.redraw(); v.threeq(); v.auto(true); const a = $('k3Auto'); if (a) a.checked = true; }).catch(e => toast('No se pudo poner en pantalla completa: ' + e.message, 5000)); });
+  if (wrap) wrap.onfullscreenchange = () => { if (!document.fullscreenElement) wrap.classList.remove('present'); };
+  sh.querySelectorAll('.ksdors [data-kppick]').forEach(b => b.onclick = () => kpsPickRun(() => renderTeams(m)));
+  on('ksGoKpos', 'onclick', () => { const k = $('kposBox'); if (k) { k.scrollIntoView({ behavior: ANIM.reduce.matches ? 'auto' : 'smooth', block: 'start' }); k.classList.remove('flash'); k.getBoundingClientRect(); k.classList.add('flash'); } });
+  sh.querySelectorAll('[data-showel]').forEach(c => c.onchange = () => { ksShowEl(c.dataset.showel, c.checked, setVal); KS.tool = c.checked ? c.dataset.showel : null; KS.lookAt = KS.tool; kpChanged(); later(() => renderTeams(m)); });
+  // paneles del costado, letra del nombre y el aviso de kitpos_slots.ini
+  on('ksSide', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; KS.pane = b.dataset.v; $('ksSide').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); sh.querySelectorAll('.kspane').forEach(p => p.hidden = p.dataset.pane !== KS.pane); });
+  on('ksNameFont', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || b.disabled) return; PREFS.ksNameFont = b.dataset.v; savePrefs(); renderTeams(m); });
+  on('ksGatePick', 'onclick', async () => { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); renderTeams(m); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } });
+  on('ksGateSkip', 'onclick', () => { KS.gateSkip = true; renderTeams(m); });
   // sliders con relleno de color hasta el valor
   const fillR = el => { el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%'); };
   sh.querySelectorAll('input.k3r').forEach(el => el.addEventListener('input', () => fillR(el)));
@@ -812,6 +1079,23 @@ function bindKitStudio(t, m) {
   sl('k3EnvY', v => { K3.light.envYaw = v; savePrefs3(); relight(60); }, v => v + '°');
   sl('k3Blur', v => { K3.light.bgBlur = v; savePrefs3(); V3() && V3().redraw(); }, v => v.toFixed(1));
   on('k3Bg', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; K3.light.bg = b.dataset.v; savePrefs3(); $('k3Bg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); const d3 = sh.querySelector('.ks3d'); d3.classList.toggle('clear', b.dataset.v === 'none'); d3.classList.toggle('game', b.dataset.v === 'game'); V3() && V3().redraw(); });
+  // imagen del visor: un estilo carga todos los ajustes; mover uno a mano deja el estilo sin marcar
+  const gPct = v => Math.round(v * 100) + '%', GSL = [['k3GSat', 'sat', gPct], ['k3GCon', 'con', gPct], ['k3GWarm', 'warm', v => (v > 0 ? '+' : '') + Math.round(v * 100)], ['k3GVig', 'vig', gPct], ['k3GGrain', 'grain', gPct], ['k3GRim', 'rim', gPct]];
+  const gShow = () => { const G = k3Grade(), d3 = sh.querySelector('.ks3d'); if (d3) d3.style.setProperty('--vig', G.vig);
+    GSL.forEach(([id, k, f]) => { const el = $(id); if (!el) return; el.value = G[k]; fillR(el); const o = el.parentElement.querySelector('output'); if (o) o.textContent = f(G[k]); });
+    const r = $('k3GRes'); if (r) r.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.v === G.res));
+    const lk = $('k3Look'); if (lk) lk.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === (K3.light.look || ''))); V3() && V3().redraw(); };
+  const gLook = k => { const P = K3LOOKS[k]; if (!P) return; K3.light.look = k; for (const q of K3LOOK_KEYS) K3.light['g_' + q] = P[q]; savePrefs3(); gShow(); };
+  on('k3Look', 'onclick', e => { const b = e.target.closest('[data-v]'); if (b) gLook(b.dataset.v); });
+  on('k3LookReset', 'onclick', () => gLook('natural'));
+  GSL.forEach(([id, k, f]) => sl(id, v => { K3.light['g_' + k] = v; K3.light.look = ''; savePrefs3(); gShow(); }, f));
+  on('k3GRes', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; K3.light.g_res = +b.dataset.v; K3.light.look = ''; savePrefs3(); gShow(); });
+  // fondo liso: el color elegido pasa el fondo a "Liso"
+  const bgSet = () => { const d3 = sh.querySelector('.ks3d'), L = K3.light; if (!d3) return; d3.style.setProperty('--k3bg', L.bgCol || '#1d2633'); d3.classList.toggle('grad', L.bgGrad !== false); d3.classList.toggle('nofloor', L.floor === false); d3.classList.toggle('clear', L.bg === 'none'); d3.classList.toggle('game', L.bg === 'game');
+    const bg = $('k3Bg'); if (bg) bg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === (L.bg || 'env'))); V3() && V3().redraw(); };
+  on('k3BgCol', 'oninput', e => { K3.light.bgCol = e.target.value; K3.light.bg = 'none'; savePrefs3(); bgSet(); });
+  on('k3BgGrad', 'onchange', e => { K3.light.bgGrad = e.target.checked; savePrefs3(); bgSet(); });
+  on('k3Floor', 'onchange', e => { K3.light.floor = e.target.checked; savePrefs3(); bgSet(); });
   sl('k3Bump', v => { K3.light.bump = v; savePrefs3(); V3() && V3().redraw(); }, v => Math.round(v * 100) + '%');
   sl('k3Spec', v => { K3.light.spec = v; savePrefs3(); relight(); }, v => Math.round(v * 100) + '%');
   // esfera de luz: arrastrar el punto mueve la luz principal

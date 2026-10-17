@@ -17,8 +17,10 @@ const KPL_MASK = 512;
 function kplOn(el) {
   if (!KS.cfg) return false;
   if (el === 'name') return cfgGet(KS.cfg, 'Name') !== '1' && !!KS.sample.name;
-  if (el === 'chest') return !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && !!KS.sample.num;
-  if (el === 'leg') return ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && !!KS.sample.num;
+  const kpHid = f => !!(KPS.cur && KPS.st && KPS.st.lua) && kpsVals()[f] === 0; // KitPos lo oculta con tamaño 0
+  // ChestNumberSize 0 de kserv igual se ve (el más chico); lo que lo saca es no tener archivo de números o KitPos con tamaño 0
+  if (el === 'chest') return !!(cfgGet(KS.cfg, 'ChestNumbersFile') || '').trim() && !!KS.sample.num && !kpHid('ChestNumberSize');
+  if (el === 'leg') return ksN('ShortsNumberX') < 30 && ksN('ShortsNumberY') < 30 && !!KS.sample.num && !kpHid('ShortsNumberSize');
   return !!KS.sample.num;
 }
 const kplF = k => KS_KP[k] || k; // campo de KitPos (NameShape -> NameCurve)
@@ -61,6 +63,29 @@ function kplPut(k, s, api) {
   const v = ksClampKey(k, Math.max(0, Math.min(kplMax(k), Math.round(s)))); if (String(v) !== String(cfgGet(KS.cfg, k))) api.set(k, v); return true;
 }
 const kplStep = () => ksKpOn() ? .25 : 1;
+// lleva el elemento a donde marca el arrastre (dx, dy en píxeles de la maqueta) desde los pasos s0, con lo que mide kplGrad
+function kplSolve(G, s0, dx, dy, api) {
+  if (G.length === 1) { const [k, g] = G[0], n2 = g.x * g.x + g.y * g.y; if (n2 > .01) kplPut(k, s0[k] + (dx * g.x + dy * g.y) / n2, api); return; }
+  if (G.length !== 2) return; const [[k1, a], [k2, b]] = G, det = a.x * b.y - b.x * a.y;
+  if (Math.abs(det) > .01) { kplPut(k1, s0[k1] + (dx * b.y - dy * b.x) / det, api); kplPut(k2, s0[k2] + (a.x * dy - a.y * dx) / det, api); }
+  else for (const [k, g] of G) { const n2 = g.x * g.x + g.y * g.y; if (n2 > .01) kplPut(k, s0[k] + (dx * g.x + dy * g.y) / n2, api); }
+}
+const kplCan = (el, api) => !!(KPL_EL[el] && kplOn(el) && api && (ksKpOn() || api.cfg)) && (api.wrap = api.wrap || (fn => fn()), true);
+const kplMap = side => { const [w, h] = KPL_SIZE[side]; return kplUv(side, w, h); };
+// empuja un elemento (la maqueta y los atajos del 3D): up/down/left/right se mueve en pantalla, size/wide/arc cambia en pasos; n: cuántos pasos
+function kplNudge(el, what, n = 1, api = KPL.api) {
+  if (!kplCan(el, api)) return null; const E = KPL_EL[el];
+  if (what === 'size' || what === 'arc' || what === 'wide') { const k = E[what]; if (!k) return null; kplPut(k, ksP(k) + kplStep() * n, api); return k; }
+  const want = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[what], m = kplMap(E.side); if (!want) return null; let bestK = null, bestG = 0;
+  for (const k of E.move) { const g = kplGrad(el, k, m, api); if (!g) continue; const d = g.x * want[0] + g.y * want[1]; if (Math.abs(d) > Math.abs(bestG)) { bestG = d; bestK = k; } }
+  if (!bestK || Math.abs(bestG) < .05) return null; kplPut(bestK, ksP(bestK) + Math.sign(bestG) * kplStep() * Math.abs(n), api); return bestK;
+}
+// arrastre desde otro lado (el círculo de los atajos del 3D): devuelve (dx, dy) => mueve el elemento esos píxeles de la maqueta
+function kplDragStart(el, api = KPL.api) {
+  if (!kplCan(el, api)) return null; const E = KPL_EL[el], m = kplMap(E.side), s0 = {}; for (const k of E.move) s0[k] = ksP(k);
+  const G = E.move.map(k => [k, kplGrad(el, k, m, api)]).filter(([, g]) => g); if (!G.length) return null;
+  return (dx, dy) => kplSolve(G, s0, dx, dy, api);
+}
 function kplVal(k) { const s = ksP(k), F = KPOS.FIELDS[kplF(k)]; return tr(F ? F.n : k) + ' ' + (+s.toFixed(ksKpOn() ? 2 : 0)) + (s < -.01 || s > kplMax(k) + .01 ? ' (' + tr('fuera del rango del juego') + ')' : ''); }
 function kplHtml(sides = ['back', 'front', 'shorts'], o = {}) {
   const fig = side => { const [w, h] = o.size || KPL_SIZE[side]; return `<figure class="kplfig kpl-${side}"><div class="kplw"><canvas class="kplbase" data-kpl="${side}" width="${w}" height="${h}"></canvas><canvas class="kplov" data-kplov="${side}" width="${w * 2}" height="${h * 2}" tabindex="0" aria-label="${tr((side === 'back' ? 'Espalda' : side === 'front' ? 'Frente' : 'Short') + ': arrastrá el nombre o un número para moverlo, las esquinas para el tamaño' + (side === 'back' ? ', los costados para el ancho y la manija de arriba para el arco' : '') + '. Flechas: mover; + y −: tamaño')}"></canvas></div><figcaption>${side === 'back' ? 'Espalda' : side === 'front' ? 'Frente' : 'Short y medias'}</figcaption></figure>`; };
@@ -153,15 +178,8 @@ function kplBind(root, api) {
   const map = side => { const cv = box.querySelector(`canvas[data-kpl="${side}"]`); return cv ? kplUv(side, cv.width, cv.height) : null; };
   const done = (side, tip) => { if (KPL.drag) KPL.drag.tip = tip; api.changed(side); };
   const select = el => { if (!el || KPL.sel === el) return; KPL.sel = el; for (const s of Object.keys(KPL_SIDES)) kplOverlay(box, s); kplInfo(box, api); };
-  // empuja el elemento elegido: dir = { x, y } en píxeles de pantalla (signo), o tamaño / arco en pasos
-  const nudge = (what, fast) => {
-    const el = KPL.sel, E = KPL_EL[el]; if (!kplOn(el) || !can()) return;
-    if (what === 'size' || what === 'arc' || what === 'wide') { const k = E[what]; if (!k) return; kplPut(k, ksP(k) + kplStep() * fast, api); done(E.side); return; }
-    const st = kplStep() * (fast ? 4 : 1), m = map(E.side);
-    const want = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[what]; let bestK = null, bestG = 0, gv = null;
-    for (const k of E.move) { const g = kplGrad(el, k, m, api); if (!g) continue; const d = g.x * want[0] + g.y * want[1]; if (Math.abs(d) > Math.abs(bestG)) { bestG = d; bestK = k; gv = g; } }
-    if (!bestK || Math.abs(bestG) < .05) return; kplPut(bestK, ksP(bestK) + Math.sign(bestG) * st, api); done(E.side);
-  };
+  // empuja el elemento elegido: flechas en pantalla (fast: de a 4), o tamaño / arco / ancho en pasos (fast: cuántos)
+  const nudge = (what, fast) => { const el = KPL.sel, n = typeof fast === 'number' ? fast : fast ? 4 : 1; if (kplNudge(el, what, n, api)) done(KPL_EL[el].side); };
   box.querySelectorAll('[data-kplsel]').forEach(b => b.onclick = () => select(b.dataset.kplsel));
   box.querySelectorAll('[data-kpla]').forEach(b => b.onclick = () => { const a = b.dataset.kpla; if (a === 'bigger' || a === 'smaller') { kplPut(KPL_EL[KPL.sel].size, ksP(KPL_EL[KPL.sel].size) + kplStep() * (a === 'bigger' ? 1 : -1), api); done(KPL_EL[KPL.sel].side); } else if (a === 'arcp' || a === 'arcm') { const k = KPL_EL[KPL.sel].arc; if (k) { kplPut(k, ksP(k) + kplStep() * (a === 'arcp' ? 1 : -1), api); done('back'); } } else nudge(a); });
   box.querySelectorAll('canvas[data-kplov]').forEach(ov => {
@@ -171,11 +189,7 @@ function kplBind(root, api) {
       if (!D) { const h = kplHit(side, x, y); const was = KPL.hover && KPL.hover.el; KPL.hover = h; ov.style.cursor = h ? (h.mode === 'move' ? 'grab' : h.cur) : ''; if ((h && h.el) !== was) kplOverlay(box, side); return; }
       D.px = x; D.py = y; const dx = x - D.x, dy = y - D.y, E = KPL_EL[D.el];
       if (D.mode === 'move') {
-        const G = D.g;
-        if (G.length === 1) { const [k, g] = G[0], n2 = g.x * g.x + g.y * g.y; if (n2 > .01) kplPut(k, D.s[k] + (dx * g.x + dy * g.y) / n2, api); }
-        else if (G.length === 2) { const [[k1, a], [k2, b]] = G, det = a.x * b.y - b.x * a.y;
-          if (Math.abs(det) > .01) { kplPut(k1, D.s[k1] + (dx * b.y - dy * b.x) / det, api); kplPut(k2, D.s[k2] + (a.x * dy - a.y * dx) / det, api); }
-          else for (const [k, g] of G) { const n2 = g.x * g.x + g.y * g.y; if (n2 > .01) kplPut(k, D.s[k] + (dx * g.x + dy * g.y) / n2, api); } }
+        kplSolve(D.g, D.s, dx, dy, api);
         done(side, E.move.map(kplVal).join(' · '));
       } else if (D.mode === 'size') {
         const r0 = Math.hypot(D.x - D.b.cx, D.y - D.b.cy) || 1, r = Math.hypot(x - D.b.cx, y - D.b.cy), want = D.b.h * r / r0, per = D.g && Math.abs(D.g.h) > .3 ? D.g.h : D.b.h / Math.max(1, D.s[E.size] || 10);

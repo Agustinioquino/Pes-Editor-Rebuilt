@@ -783,6 +783,7 @@ function setTab(t) {
 }
 function render() {
   const m = $('main');
+  if (typeof ksFab === 'function') ksFab(m); // el botón flotante de Kit Studio solo con el editor de kits a la vista
   if (!S.f && S.tab === 'wepes') { renderWepes(m); return; }
   if (S.tab === 'news') { renderNews(m); return; }
   if (S.tab === 'ideas') { renderIdeas(m); return; }
@@ -859,14 +860,14 @@ function renderTeams(m) {
   const sheetHtml = t ? teamSheet(t) : '<div class="card empty">Elegí un equipo.</div>';
   const keep = m._lh === lh && m.querySelector(':scope > .split > aside.list #teamItems') && $('teamSheet');
   if (keep) {
-    const ns = document.createElement('section'); ns.className = 'sheet'; ns.id = 'teamSheet'; ns.innerHTML = sheetHtml; $('teamSheet').replaceWith(ns);
+    const ns = document.createElement('section'); ns.className = 'sheet'; ns.id = 'teamSheet'; ns.innerHTML = sheetHtml; $('teamSheet').replaceWith(ns); ksWideApply(m);
     m.querySelectorAll('#teamItems .item.on').forEach(x => x.classList.remove('on'));
     const on = t && m.querySelector(`#teamItems [data-t="${t.id}"]`); if (on) on.classList.add('on');
     if (t) bindTeam(t, m);
     return;
   }
   m._lh = lh;
-  m.innerHTML = `<div class="split wide"><aside class="list">${lh}</aside><section class="sheet" id="teamSheet">${sheetHtml}</section></div>`;
+  m.innerHTML = `<div class="split wide"><aside class="list">${lh}</aside><section class="sheet" id="teamSheet">${sheetHtml}</section></div>`; ksWideApply(m);
   { const on = t && m.querySelector(`#teamItems [data-t="${t.id}"]`); if (on) on.classList.add('on'); }
   $('qTeam').oninput = e => { S.qTeam = e.target.value; const pos = e.target.selectionStart; flipRender(m, () => renderTeams(m)); const el = $('qTeam'); el.focus(); el.setSelectionRange(pos, pos); el.classList.add('kick'); };
   $('showEmpty').onchange = e => { S.showEmpty = e.target.checked; later(() => renderTeams(m)); };

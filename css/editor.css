@@ -758,6 +758,8 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sans-serif;font-style:italic;text-transform:none;letter-spacing:.01em}
 /* ---- Posición libre (KitPos): Kit Studio Pro y pestaña Fuentes ---- */
 .kpos{display:grid;gap:8px;margin-top:10px;padding:10px 12px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk)}
+.kpos.flash{animation:kposFlash 1.4s ease}@keyframes kposFlash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.kpos{scroll-margin-top:72px}
 .kpos.on{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
 .kposh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.kposh h4{margin:0;font-family:var(--display);font-size:1.02rem}.kposh h4 small{font-weight:400;opacity:.7;margin-left:3px}
 .kposh .chip{font-size:.72rem}.kposh #kposSave{margin-left:auto}
@@ -778,7 +780,15 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 
 /* ---- visor 3D: capas, cámara, luz ---- */
 .k3fade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;z-index:2}
-.k3hud{position:absolute;left:10px;bottom:10px;z-index:3;font-size:.72rem;color:#fff;background:#0008;padding:3px 9px;border-radius:99px;pointer-events:none;backdrop-filter:blur(4px)}
+.ks3d{container:ks3d/inline-size}
+/* ayuda del visor: pastillas de vidrio que se acomodan al ancho (en un visor angosto quedan solo las primeras) */
+.k3cap .k3src{display:inline-block;justify-self:start;width:auto;margin-top:3px;padding:1px 7px;border-radius:99px;font-style:normal;font-size:.62rem;font-weight:700;color:#fff;background:#ffffff1f;border:1px solid #ffffff38;backdrop-filter:blur(6px)}.k3cap .k3src.kp{background:#56d6ff33;border-color:#56d6ff88}
+html[data-gfx="pes6"] .k3cap .k3src{border-radius:0}
+.k3hud{position:absolute;left:10px;bottom:10px;z-index:3;display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px;max-width:min(44%,440px);pointer-events:none}
+.k3hud .hp{font-size:clamp(.6rem,1.5cqi,.74rem);line-height:1.25;color:#fff;padding:3px 9px;border-radius:99px;background:radial-gradient(ellipse at 50% 30%,#ffffff1c,#0b0f1661 80%);border:1px solid #ffffff2e;backdrop-filter:blur(8px);box-shadow:0 4px 14px #0003;text-shadow:0 1px 2px #0009}
+@container ks3d (max-width:760px){.k3hud .hp:nth-child(n+3){display:none}}
+@container ks3d (max-width:700px){.k3hud{top:10px;right:10px;bottom:auto;left:auto;max-width:48%;justify-content:flex-end}.k3hud .hp:nth-child(n+2){display:none}}
+@container ks3d (max-width:380px){.k3hud{display:none}}
 .k3cam{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.k3cam .btn{padding:.25rem .2rem;font-size:.74rem}
 .k3envs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .k3envs button{display:grid;gap:3px;padding:3px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit;font-size:.68rem;font-weight:600;text-align:center;transition:border-color .15s,translate .15s}
@@ -790,7 +800,135 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 #k3Sphere{width:112px;height:112px;cursor:crosshair;touch-action:none;border-radius:50%;background:radial-gradient(circle,#0000 60%,#0003 72%)}
 .k3sunv{display:grid;gap:4px}.k3sunt{font-size:.72rem}
 .k3brush{display:grid;gap:4px;padding:8px;border-radius:8px;border:1px dashed var(--line);margin-top:6px}
-.ks3d.clear{background:var(--sunk)}
+.ks3d.clear{background:radial-gradient(ellipse at 50% 45%,#0000 42%,rgb(0 0 0/calc(var(--vig,0) * .85)) 118%),var(--k3bg,var(--sunk))}
+.ks3d.clear.grad{background:radial-gradient(ellipse at 50% 45%,#0000 42%,rgb(0 0 0/calc(var(--vig,0) * .85)) 118%),radial-gradient(ellipse at 50% 32%,color-mix(in srgb,var(--k3bg) 72%,#fff) 0%,var(--k3bg) 52%,color-mix(in srgb,var(--k3bg) 62%,#000) 100%)}
+.ks3d.game::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,#0000 42%,rgb(0 0 0/calc(var(--vig,0) * .85)) 118%);pointer-events:none}
+.ks3d.nofloor .k3floor{display:none}
+#ks3d.pix{image-rendering:pixelated}
+/* imagen: estilos con una muestra de color */
+.k3looks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.k3looks button{display:grid;gap:4px;justify-items:center;padding:6px 4px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--panel);color:inherit;font-size:.72rem;cursor:pointer;line-height:1.15}
+.k3looks button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.k3lk{width:100%;height:30px;border-radius:5px;background:radial-gradient(circle at 30% 35%,#ffe08a 0 14%,#0000 15%),linear-gradient(135deg,#1f9d55 0 45%,#2f80ed 45% 70%,#e85d4a 70%)}
+.k3lk-tv{filter:saturate(1.2) contrast(1.15)}.k3lk-cine{filter:sepia(.35) contrast(1.2) saturate(.85);box-shadow:inset 0 0 12px #000c}.k3lk-vivo{filter:saturate(1.8)}
+.k3lk-byn{filter:grayscale(1) contrast(1.3);box-shadow:inset 0 0 10px #000a}.k3lk-ps2{filter:saturate(1.25);background:repeating-conic-gradient(#0000 0 25%,#0001 0 50%) 0 0/6px 6px,linear-gradient(135deg,#1f9d55 0 45%,#2f80ed 45% 70%,#e85d4a 70%)}
+html[data-gfx="pes6"] :is(.k3looks button,.k3lk){border-radius:0}html[data-gfx="pes6"] :is(.k3looks button,.ksside button){font-family:var(--display);font-style:italic;text-transform:uppercase;letter-spacing:0}html[data-gfx="pes6"] .k3looks button{font-size:.6rem}html[data-gfx="pes6"] .ksside button{font-size:.62rem}
+/* Kit Studio a lo ancho: sin la lista de equipos */
+.split.wide.kswide{grid-template-columns:minmax(0,1fr)}.split.kswide>aside.list{display:none}
+.kstall .ksshow{grid-template-columns:minmax(0,1fr) minmax(270px,340px)}
+.ksshow3d #ks3d{transition:height .42s cubic-bezier(.2,.8,.2,1)}.kstall .ksshow3d #ks3d{height:min(76vh,860px)}
+@media (max-width:1000px){.kstall .ksshow{grid-template-columns:1fr}}
+/* botón flotante para la lista de equipos: arriba del de la música */
+.ksfab{position:fixed;left:16px;bottom:92px;z-index:46;display:flex;align-items:center;gap:0;height:50px;min-width:50px;padding:0 13px;border-radius:25px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));background:color-mix(in srgb,var(--panel) 86%,var(--accent) 14%);color:var(--ink);box-shadow:0 18px 44px -16px #000b;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);cursor:pointer;font:inherit;font-weight:600;animation:ksfabIn .4s cubic-bezier(.2,.8,.2,1);transition:background .2s,scale .15s}
+.ksfab:active{scale:.94}.ksfab.on{background:var(--accent);color:var(--accent-ink,#fff);border-color:transparent}
+.ksfabi{font-size:1.25rem;line-height:1;width:22px;text-align:center}
+.ksfabt{max-width:0;overflow:hidden;white-space:nowrap;font-size:.85rem;transition:max-width .35s cubic-bezier(.2,.8,.2,1),margin .35s}
+.ksfab:hover .ksfabt,.ksfab:focus-visible .ksfabt{max-width:160px;margin-left:8px}
+@keyframes ksfabIn{from{opacity:0;translate:-24px 0}}
+html[data-gfx="pes6"] .ksfab{border-radius:0;background:linear-gradient(180deg,#f6f5f1f5,#e2e1dbf5);border:1px solid #8f8c84;color:#1c1c1a}
+html[data-gfx="pes6"] .ksfab.on{background:linear-gradient(180deg,#ffe36b,#e8b400);border-color:#8a6a00}
+html[data-gfx="pes6"] .ksfabt{font-family:var(--display);font-style:italic;text-transform:uppercase}
+html.tking .ksfab{bottom:142px}
+@media (max-width:640px){.ksfab{left:8px;bottom:84px}html.tking .ksfab{bottom:138px}}
+@media (prefers-reduced-motion:reduce){.ksfab,.ksshow3d #ks3d{animation:none;transition:none}}
+/* celular: visor más bajo, paneles y deslizadores más chicos */
+@media (max-width:640px){.ksshow3d #ks3d,.kstall .ksshow3d #ks3d{height:min(58vh,480px)}.k3float{scale:.82;transform-origin:top left}.k3tools .k3tsel button{padding:.2rem .4rem;font-size:.7rem}.k3looks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* ---- Visualizador de Kit Studio Pro: el kit en grande y los dorsales al costado ---- */
+.ksshow{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:14px;align-items:start}
+@media (max-width:1000px){.ksshow{grid-template-columns:1fr}}
+.ksstage{display:grid;gap:8px;min-width:0}
+.ksshow3d{grid-template-columns:1fr}
+.ksshow3d #ks3d{height:min(64vh,660px)}
+.ks3dwrap.ksshow3d:fullscreen #ks3d{height:calc(100vh - 24px)}
+.ks3dwrap.ksshow3d:fullscreen{grid-template-columns:1fr}
+.ksshowbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.ksshowbar .k3cam{display:flex;flex-wrap:wrap;gap:4px}.ksshowbar .k3cam .btn{padding:.25rem .55rem}
+.ksshowbar .k3seg{width:auto}.ksshowbar .k3seg button{flex:none;padding:.25rem .6rem}
+.ksgrp{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.ksshowbar .lab{font-size:.74rem;color:var(--muted);margin-left:4px}.ksshowbar .chk{margin:0}
+.kssep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
+.k3cap{position:absolute;left:12px;top:12px;z-index:3;display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:99px;background:#000a;color:#fff;pointer-events:none;backdrop-filter:blur(4px)}
+.k3cap span{display:grid;line-height:1.15}.k3cap b{font-family:var(--display);font-size:.95rem}.k3cap small{font-size:.7rem;opacity:.8}
+.k3cap .crest.k3crest{width:30px;height:26px;font-size:.62rem}
+.ksdors{display:grid;gap:8px;padding:10px;border-radius:var(--r,8px);background:var(--sunk);border:1px solid var(--line)}
+.ksdors h4{margin:0;font-family:var(--display);font-size:1.1rem}
+.ksdors .ksample input[type=text]:first-of-type{flex:1;min-width:0}.ksdors .ksample input[type=text]:last-of-type{width:52px}
+.ksdors .chk{margin:0}
+.ksdor{margin:0;padding:4px 10px 8px;border:1px solid var(--line);border-left:4px solid var(--dc);border-radius:var(--r,8px);background:var(--panel);display:grid;gap:4px;min-width:0}
+.ksdor.off{opacity:.65}
+.ksdor legend{padding:0 4px}
+.ksdor legend button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;padding:2px 0}
+.ksdor legend button:hover span{opacity:1}.ksdor legend span{opacity:.55;font-size:.85em}
+.ksdor legend i{width:10px;height:10px;border-radius:50%;background:var(--dc);box-shadow:0 0 0 2px #0003}
+.ksdor .ksf{min-width:0}.ksdor .ksf small.note{display:none}
+html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
+.ksdors{max-height:min(84vh,900px);overflow:auto}
+.ksside{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}.ksside button{display:grid;justify-items:center;gap:1px;min-width:0;padding:.3rem .2rem;font-size:.72rem;line-height:1.1;white-space:nowrap}.ksside button span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis}.ksside button span:first-child{font-size:1rem}
+.kspane{display:grid;gap:8px;min-width:0}.kspane[hidden]{display:none}
+.kspane .k3pan{background:var(--panel)}
+/* atajos sobre el 3D: qué mover, cruz de flechas con un círculo para arrastrar y tamaño / ancho / curva */
+.k3tools{position:absolute;right:10px;bottom:10px;z-index:4;display:grid;gap:6px;padding:7px;border-radius:14px;background:radial-gradient(ellipse at 50% 30%,#ffffff1f,#0b0f1680 75%);color:#fff;border:1px solid #ffffff38;box-shadow:0 8px 26px #0005;backdrop-filter:blur(8px);max-width:calc(100% - 20px)}
+.k3tools.on{border-color:color-mix(in srgb,var(--dc) 60%,transparent)}
+.k3tsel{display:flex;gap:4px;flex-wrap:wrap}
+.k3tsel button{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:99px;border:1px solid #ffffff2a;background:#ffffff10;color:#fff;font:inherit;font-size:.74rem;font-weight:700;cursor:pointer}
+.k3tsel button i{width:9px;height:9px;border-radius:50%;background:var(--dc)}
+.k3tsel button[aria-pressed="true"]{background:var(--dc);color:#111;border-color:var(--dc)}.k3tsel button[aria-pressed="true"] i{background:#111}
+.k3tsel button:disabled{opacity:.35;cursor:not-allowed}
+.k3tbody{display:flex;gap:8px;align-items:center;justify-content:center}
+.k3tpad{display:grid;grid-template:repeat(3,30px)/repeat(3,30px);gap:2px}
+.k3tpad .u{grid-area:1/2}.k3tpad .l{grid-area:2/1}.k3tpad .r{grid-area:2/3}.k3tpad .d{grid-area:3/2}
+.k3tb{border:1px solid #ffffff30;background:#ffffff14;color:#fff;border-radius:8px;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;min-width:30px;height:30px;padding:0 6px;touch-action:none;user-select:none}
+.k3tb:hover{background:#ffffff2a}.k3tb:active{background:var(--dc);color:#111}
+.k3pad{grid-area:2/2;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--dc) 70%,#fff) 0 30%,color-mix(in srgb,var(--dc) 35%,transparent) 31% 100%);border:2px solid var(--dc);display:grid;place-items:center;cursor:grab;touch-action:none;user-select:none}
+.k3pad span{color:#111;font-size:.95rem;font-weight:900;transform:translate(calc(var(--dx,0px) * .35),calc(var(--dy,0px) * .35))}
+.k3pad.drag{cursor:grabbing;box-shadow:0 0 0 4px color-mix(in srgb,var(--dc) 35%,transparent)}
+.k3tcol{display:grid;gap:4px}.k3tg{display:flex;gap:2px}
+.k3tval,.k3thint{margin:0;font-size:.68rem;opacity:.85;text-align:center;max-width:250px}
+.k3tools:not(.on) .k3thint{opacity:1;font-weight:600}.k3tools:not(.on) .k3thint::before{content:'👆 '}
+.k3float{position:absolute;z-index:5;display:grid;gap:6px;justify-items:center;padding:10px 8px 8px;border-radius:18px;background:radial-gradient(ellipse at 50% 40%,#ffffff24,#0b0f1666 75%);color:#fff;border:1px solid #ffffff38;box-shadow:0 8px 26px #0005;backdrop-filter:blur(8px);transition:left .12s ease-out,top .12s ease-out}
+.k3sls{display:flex;gap:6px}
+.k3sl{display:grid;justify-items:center;gap:3px;width:38px;--kp:.5}
+.k3sl small{font-size:.58rem;opacity:.85;white-space:nowrap}
+.k3si{font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;opacity:.85;user-select:none;padding:2px}.k3si:hover{opacity:1;color:var(--dc)}
+.k3tr{position:relative;width:24px;height:118px;cursor:pointer;touch-action:none}
+.k3tr::before{content:"";position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;border-radius:4px;background:#ffffff4d;box-shadow:inset 0 1px 2px #0004}
+.k3kn{position:absolute;left:50%;bottom:calc(6px + (100% - 12px) * var(--kp));width:20px;height:20px;margin:0 0 -10px -10px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#e6eaf0 60%,#c9d0da);box-shadow:0 2px 6px #0006,0 0 0 2px #ffffff55;transition:transform .1s}
+.k3sl:hover .k3kn,.k3sl.drag .k3kn{transform:scale(1.18);box-shadow:0 2px 8px #0007,0 0 0 3px var(--dc)}
+.k3sl.h{display:flex;align-items:center;width:auto;gap:4px}.k3sl.h small{order:9;margin-left:2px}
+.k3sl.h .k3tr{width:110px;height:24px}
+.k3sl.h .k3tr::before{left:6px;right:6px;top:50%;bottom:auto;width:auto;height:4px;margin:-2px 0 0}
+.k3sl.h .k3kn{left:calc(6px + (100% - 12px) * var(--kp));bottom:auto;top:50%;margin:-10px 0 0 -10px}
+.k3ty{display:flex;border-radius:99px;overflow:hidden;border:1px solid #ffffff40}
+.k3ty button{border:0;background:#ffffff14;color:#fff;font:inherit;font-weight:800;font-size:.75rem;padding:3px 12px;cursor:pointer}.k3ty button[aria-pressed="true"]{background:var(--dc);color:#111}
+.k3del{border:1px solid #ffffff38;background:#0000;color:#fff;border-radius:99px;font:inherit;font-size:.68rem;padding:2px 10px;cursor:pointer;opacity:.8}.k3del:hover{opacity:1;background:#e5484d;border-color:#e5484d}
+.k3tsel button.add{border-style:dashed;background:#0000;color:#fff;opacity:.85}.k3tsel button.add:hover{opacity:1;background:var(--dc);color:#111}
+.k3float[hidden],.k3arc[hidden]{display:none}
+/* el menú aparece y se va con un desvanecido de vidrio (click afuera o Esc) */
+.k3float:not(.in),.k3arc:not(.in){opacity:0}
+.k3float.in,.k3arc.in{animation:k3in .3s cubic-bezier(.2,.8,.3,1)!important}
+.k3float.out,.k3arc.out{animation:k3out .24s ease-in forwards!important;pointer-events:none}
+@keyframes k3in{from{opacity:0;translate:0 10px;scale:.94;filter:blur(6px)}}
+@keyframes k3out{to{opacity:0;translate:0 10px;scale:.94;filter:blur(6px)}}
+/* sin movimiento (Windows con animaciones apagadas): solo se desvanece */
+@media (prefers-reduced-motion:reduce){@keyframes k3in{from{opacity:0}}@keyframes k3out{to{opacity:0}}}
+.k3float .k3tval{max-width:120px;font-size:.62rem;line-height:1.25}
+.k3fh{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:0 2px}.k3fh b{font-size:.78rem;letter-spacing:.02em;color:var(--dc,#fff)}
+.k3x{width:22px;height:22px;display:grid;place-items:center;border-radius:99px;border:1px solid #ffffff40;background:#ffffff14;color:#fff;font:inherit;font-size:.7rem;cursor:pointer}.k3x:hover{background:#ffffff33}
+.k3fhelp{margin:0;max-width:160px;font-size:.62rem;line-height:1.3;text-align:center;color:#fff;opacity:.92}
+html[data-gfx="pes6"] .k3x{border-radius:0}
+.k3arc{position:absolute;z-index:5;display:inline-flex;align-items:center;gap:4px;padding:3px 10px 3px 7px;border-radius:99px;border:2px solid var(--dc);background:#0b0f1680;backdrop-filter:blur(8px);color:#fff;font:inherit;font-size:.72rem;font-weight:700;cursor:ns-resize;touch-action:none;user-select:none;transition:left .12s ease-out,top .12s ease-out}
+.k3arc span{color:var(--dc);font-size:1rem;line-height:1}.k3arc.drag,.k3arc:hover{background:var(--dc);color:#111}.k3arc.drag span,.k3arc:hover span{color:#111}
+.k3tools .k3thint:empty{display:none}
+.ks3dwrap.present .k3tools,.ks3dwrap.present .k3float,.ks3dwrap.present .k3arc,.ks3dwrap.present .k3hud{display:none}
+html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button,.k3arc,.k3ty,.k3del){border-radius:0!important}
+html[data-gfx="pes6"] .k3sl small{font-size:.5rem;letter-spacing:0}html[data-gfx="pes6"] .k3sls{gap:12px}
+:is(.k3tools,.k3float) :is(.k3tval,.k3thint){color:#fff!important}
+/* PES 6 pinta los textos de las tarjetas con acero oscuro: en el visor 3D van en blanco para leerse sobre el vidrio */
+html[data-gfx="pes6"] :is(.k3float,.k3tools,.k3hud,.k3arc) :is(p,.note,label,.lab,small,.emo,.k3si){color:#fff!important;-webkit-text-fill-color:#fff!important;background:none!important;filter:none!important;text-shadow:0 1px 2px #000c}
+/* aviso: elegir kitpos_slots.ini antes de mostrar el kit */
+.ksgate{display:flex;gap:16px;align-items:flex-start;padding:22px;border-radius:var(--r,10px);border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--sunk))}
+.ksgate h4{margin:0 0 6px;font-family:var(--display);font-size:1.25rem}.ksgate p{margin:0 0 12px;max-width:62ch}
+.ksgateic{font-size:2.4rem;line-height:1}
 /* sliders con relleno hasta el valor y perilla con aro */
 input.k3r{-webkit-appearance:none;appearance:none;height:22px;background:transparent;cursor:pointer;--p:50%}
 input.k3r::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(90deg,var(--accent) 0 var(--p),color-mix(in srgb,var(--line) 85%,var(--ink) 15%) var(--p) 100%)}

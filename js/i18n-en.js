@@ -4667,4 +4667,8 @@ Object.assign(I18N_EN, {
 "Elegí la carpeta Sider de {x} (o la carpeta del juego).":"Choose the Sider folder of {x} (or the game folder).",
 "No se pudo leer el EDIT: {x}":"Could not read the EDIT: {x}",
 "EDIT recargado. Para la base, conectá la carpeta Sider del juego.":"EDIT reloaded. For the database, connect the game's Sider folder.",
+"Buscar EDIT o cambiar de juego":"Find EDIT or switch game",
+"🔁 Juego":"🔁 Game",
+"📂 EDIT":"📂 EDIT",
+"Buscar el EDIT de nuevo, elegir su carpeta o abrirlo a mano, recargar el EDIT y la base o cambiar de juego (por ejemplo de Football Life a PES 2021)":"Find the EDIT again, choose its folder or open it by hand, reload the EDIT and the database or switch game (for example from Football Life to PES 2021)",
 });

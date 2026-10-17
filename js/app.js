@@ -623,9 +623,9 @@ async function reloadFromGame(force) {
   } catch (e) { toast('No se pudo recargar: ' + e.message, 6000); }
 }
 // botón "Buscar EDIT": los EDIT encontrados, buscar de nuevo, elegir la carpeta o abrir el archivo a mano
-function editFinder() {
+async function editFinder() {
   const list = PESLOC.edits || [];
-  ksModal('Buscar el EDIT', `${list.length ? `<p class="note">EDIT encontrados (el juego usa el que guardó por última vez):</p>
+  ksModal('Buscar EDIT o cambiar de juego', `<h4 class="efh">🔁 Juego</h4>${await gameSwitchHtml()}<h4 class="efh">📂 EDIT</h4>${list.length ? `<p class="note">EDIT encontrados (el juego usa el que guardó por última vez):</p>
     <div class="pesedits">${list.map((e, i) => `<div class="pesedit ${PESLOC.chosen === e ? 'on' : ''}"><b>${esc(e.kind)}</b><span class="mono">${esc(e.path)}\\EDIT00000000</span><small>${new Date(e.mtime).toLocaleString('es-AR')} · ${(e.size / 1048576).toFixed(1).replace('.', ',')} MB</small>${PESLOC.chosen === e ? '<span class="chip ok">Abierto</span>' : `<button class="btn small" type="button" data-fe="${i}">Abrir este</button>`}</div>`).join('')}</div>` : '<p class="note">Todavía no hay una carpeta del juego conectada.</p>'}
     <div class="col" style="display:grid;gap:8px;margin-top:10px">
       <button class="btn" type="button" data-fa="again">🔎 Buscar de nuevo${PESLOC.root ? ' en ' + esc(PESLOC.root.name) : ''}</button>
@@ -634,6 +634,7 @@ function editFinder() {
     </div>
     <p class="note">PES 2021 de Steam: Documentos\\KONAMI\\eFootball PES 2021 SEASON UPDATE\\&lt;número&gt;\\drmp. Football Life: la misma carpeta, en <b>2026\\save</b>. Podés elegir Documentos o directo la carpeta donde está el EDIT00000000.</p>`,
     (box, close) => {
+      bindGameSwitch(box, close);
       box.querySelectorAll('[data-fe]').forEach(b => b.onclick = () => { close(); pesSwitch(+b.dataset.fe); });
       box.querySelector('[data-fa="again"]').onclick = async () => {
         close(); if (pending() && !await confirmBox('Tenés cambios sin guardar. ¿Buscar el EDIT de nuevo y perderlos?')) return;
@@ -645,7 +646,7 @@ function editFinder() {
       box.querySelector('[data-fa="file"]').onclick = () => { close(); $('fFile').click(); };
     });
 }
-// botón "Cambiar de juego": vuelve a leer el EDIT y la base del juego, o pasa a otro juego (por ejemplo de Football Life
+// "Cambiar de juego" (en la ventana de Buscar EDIT): vuelve a leer el EDIT y la base del juego, o pasa a otro juego (por ejemplo de Football Life
 // a PES 2021) con su EDIT y su carpeta Sider. La carpeta Sider de cada juego se recuerda al conectarla (sider-fl / sider-pes).
 const GAME_NAME = { fl: 'Football Life', pes: 'PES 2021' };
 const editGame = e => /\\2026\\/.test(e.path + '\\') ? 'fl' : 'pes';
@@ -671,23 +672,23 @@ async function gameReload(kind) {
   else toast('EDIT recargado. Para la base, conectá la carpeta Sider del juego.', 6000);
   render();
 }
-async function gameSwitcher() {
+async function gameSwitchHtml() {
   const cur = PESLOC.chosen && S.editHandle === PESLOC.chosen.handle ? PESLOC.chosen : null;
   const eg = cur ? editGame(cur) : null, bg = baseGame(), sider = FACES.dir;
   const kinds = [...new Set((PESLOC.edits || []).map(editGame))].filter(k => k !== eg);
   const saved = Object.fromEntries(await Promise.all(kinds.map(async k => [k, await idbGet('sider-' + k).catch(() => null)])));
-  ksModal('Cambiar de juego', `<p class="note"><b>EDIT abierto:</b> ${cur ? `${GAME_NAME[eg]} · <span class="mono">${esc(cur.path)}</span>` : S.d ? '<span>un EDIT abierto como copia</span>' : '<span>ninguno</span>'}<br><b>Base del juego:</b> ${S.names.size ? `${bg ? GAME_NAME[bg] : ''}${sider ? ` · <span class="mono">${esc(sider.name)}</span>` : ''} · <span>${S.names.size.toLocaleString('es-AR')} jugadores</span>` : '<span>sin cargar</span>'}</p>
+  return `<p class="note"><b>EDIT abierto:</b> ${cur ? `${GAME_NAME[eg]} · <span class="mono">${esc(cur.path)}</span>` : S.d ? '<span>un EDIT abierto como copia</span>' : '<span>ninguno</span>'}<br><b>Base del juego:</b> ${S.names.size ? `${bg ? GAME_NAME[bg] : ''}${sider ? ` · <span class="mono">${esc(sider.name)}</span>` : ''} · <span>${S.names.size.toLocaleString('es-AR')} jugadores</span>` : '<span>sin cargar</span>'}</p>
     ${eg && bg && eg !== bg ? `<div class="warnbox">El EDIT es de ${GAME_NAME[eg]} pero la base es de ${GAME_NAME[bg]}. Pasá los dos al mismo juego para que coincidan los jugadores.</div>` : ''}
     <div class="col" style="display:grid;gap:8px;margin-top:10px">
       <button class="btn primary" type="button" data-gs="">🔄 Recargar el EDIT y la base</button>
       ${kinds.map(k => `<button class="btn" type="button" data-gs="${k}">⇄ Pasar a ${GAME_NAME[k]}<small style="display:block;font-weight:normal;opacity:.8">${esc(PESLOC.edits.find(e => editGame(e) === k).path)} · ${saved[k] ? 'base de la carpeta ' + esc(saved[k].name) : 'te pide elegir su carpeta Sider'}</small></button>`).join('')}
       <button class="btn ghost" type="button" data-gs-other>📁 Usar otra carpeta Sider…</button>
     </div>
-    <p class="note">Recargar vuelve a leer el EDIT y la base del juego desde sus carpetas (kits, caras y nombres incluidos), por ejemplo después de actualizar el juego o cambiar de mods. Para dejar de usar un juego, pasá al otro: se abre su EDIT y se lee su base.</p>`,
-    (box, close) => {
-      box.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { close(); gameReload(b.dataset.gs || null); });
-      box.querySelector('[data-gs-other]').onclick = () => { close(); connectKits(); };
-    });
+    <p class="note">Recargar vuelve a leer el EDIT y la base del juego desde sus carpetas (kits, caras y nombres incluidos), por ejemplo después de actualizar el juego o cambiar de mods. Para dejar de usar un juego, pasá al otro: se abre su EDIT y se lee su base.</p>`;
+}
+function bindGameSwitch(box, close) {
+  box.querySelectorAll('[data-gs]').forEach(b => b.onclick = () => { close(); gameReload(b.dataset.gs || null); });
+  box.querySelector('[data-gs-other]').onclick = () => { close(); connectKits(); };
 }
 // al volver a la ventana: si el juego guardó el EDIT, avisar o recargar solo
 window.addEventListener('focus', async () => {
@@ -2295,7 +2296,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-kits]')) c
 kitsLoadCache(); namesLoadCache(); FACES.ready = restoreFaces().then(() => { if (FACES.count) render(); });
 $('fNames').onchange = e => { const f = e.target.files[0]; if (f) loadNames(f); e.target.value = ''; };
 $('bSave').onclick = save; $('bUndo').onclick = undo; $('bRedo').onclick = redo;
-$('bReload').onclick = () => reloadFromGame(); $('bFindEdit').onclick = editFinder; $('bSwitch').onclick = gameSwitcher; $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news'); $('tIdeas').onclick = () => setTab('ideas');
+$('bReload').onclick = () => reloadFromGame(); $('bFindEdit').onclick = editFinder; $('tTeams').onclick = () => setTab('teams'); $('tNats').onclick = () => setTab('nats'); $('tPlayers').onclick = () => setTab('players'); $('tFile').onclick = () => setTab('file'); $('tWepes').onclick = () => setTab('wepes'); $('tSider').onclick = () => setTab('sider'); $('tNews').onclick = () => setTab('news'); $('tIdeas').onclick = () => setTab('ideas');
 $('gq').oninput = e => gsearch(e.target.value);
 $('gq').onkeydown = e => { if (e.key === 'Enter') { const b = $('gres').querySelector('button'); if (b) gpick(b); } if (e.key === 'Escape') { $('gres').hidden = true; e.target.blur(); } };
 $('gres').onclick = e => { const b = e.target.closest('button'); if (b) gpick(b); };

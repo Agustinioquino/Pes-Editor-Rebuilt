@@ -719,9 +719,40 @@ function ksShowEl(el, on, setVal) {
   }
   if (kp && size) { if (!on) kpsSet({ [size]: 0 }); else if (kpsVals()[size] === 0) kpsSet({ [size]: null }); }
 }
-// Kit Studio a lo ancho: la lista de equipos se esconde (PREFS.ksWide) y un botón la vuelve a mostrar
-function ksWideOn() { return !!PREFS.ksWide && S.ttab === 'kits' && KS.mode === 'edit'; }
-function ksWideApply(m) { const sp = m && m.querySelector(':scope > .split'); if (sp) sp.classList.toggle('kswide', ksWideOn()); }
+// Kit Studio a lo ancho: la lista de equipos se esconde (PREFS.ksWide) con un botón flotante a la izquierda, como el de la música
+function ksEditShown() { return (S.tab === 'teams' || S.tab === 'nats') && S.ttab === 'kits' && KS.mode === 'edit'; }
+function ksWideOn() { return !!PREFS.ksWide && ksEditShown(); }
+function ksWideApply(m) { const sp = m && m.querySelector(':scope > .split'); if (sp && !sp.classList.contains('ksanim')) { sp.classList.toggle('kswide', ksWideOn()); sp.classList.toggle('kstall', ksWideOn()); } ksFab(m); }
+function ksFab(m) {
+  let b = $('ksTeamsFab'); if (!ksEditShown() || !S.f) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'ksTeamsFab'; b.className = 'ksfab'; document.body.appendChild(b); }
+  const w = !!PREFS.ksWide; b.onclick = () => ksWideToggle(m || $('main')); b.classList.toggle('on', w); b.setAttribute('aria-pressed', w);
+  b.title = tr(w ? 'Volver a mostrar la lista de equipos' : 'Esconder la lista de equipos para que el visor ocupe todo el ancho');
+  b.innerHTML = `<span class="ksfabi" aria-hidden="true">${w ? '☰' : '⇤'}</span><span class="ksfabt">${tr(w ? 'Mostrar equipos' : 'Ocultar equipos')}</span>`;
+}
+// la lista se desliza hacia la izquierda y el visor se agranda (o al revés); el 3D se redibuja en cada cuadro
+function ksWideToggle(m) {
+  const sp = m && m.querySelector(':scope > .split'), aside = sp && sp.querySelector(':scope > aside.list'), to = !PREFS.ksWide, ms = 420, ease = 'cubic-bezier(.2,.8,.2,1)';
+  PREFS.ksWide = to; savePrefs(); ksFab(m);
+  const done = () => { if (!sp) return; sp.classList.remove('ksanim'); sp.style.gridTemplateColumns = sp.style.columnGap = sp.style.transition = ''; if (aside) aside.style.cssText = ''; sp.classList.toggle('kswide', to); sp.classList.toggle('kstall', to); K3.viewer && K3.viewer.redraw(); KS.float && KS.float(); };
+  if (!sp || !aside || ANIM.reduce.matches) { done(); return; }
+  const t0 = performance.now(), tick = () => { K3.viewer && K3.viewer.redraw(); KS.float && KS.float(); if (performance.now() - t0 < ms + 120) requestAnimationFrame(tick); };
+  sp.classList.add('ksanim'); sp.classList.toggle('kstall', to); requestAnimationFrame(tick);
+  if (matchMedia('(max-width:860px)').matches) { // una columna: la lista sale o entra por la izquierda
+    const out = [{ transform: 'none', opacity: 1 }, { transform: 'translateX(-105%)', opacity: 0 }];
+    if (to) aside.animate(out, { duration: ms * .8, easing: ease }).finished.then(done, done); else { done(); aside.animate(out.slice().reverse(), { duration: ms, easing: ease }); }
+    return;
+  }
+  const w = to ? aside.getBoundingClientRect().width : Math.min(410, sp.clientWidth - 16), cols = x => `${x}px minmax(0,1fr)`;
+  if (!to) sp.classList.remove('kswide');
+  sp.style.gridTemplateColumns = cols(to ? w : 0); sp.style.columnGap = to ? '16px' : '0px';
+  Object.assign(aside.style, { overflow: 'hidden', minWidth: '0', transform: to ? 'none' : 'translateX(-40px)', opacity: to ? 1 : 0 });
+  sp.getBoundingClientRect();
+  sp.style.transition = `grid-template-columns ${ms}ms ${ease}, column-gap ${ms}ms ${ease}`; aside.style.transition = `transform ${ms}ms ${ease}, opacity ${ms * .7}ms`;
+  sp.style.gridTemplateColumns = cols(to ? 0 : w); sp.style.columnGap = to ? '0px' : '16px';
+  Object.assign(aside.style, { transform: to ? 'translateX(-40px)' : 'none', opacity: to ? 0 : 1 });
+  setTimeout(done, ms + 30);
+}
 function ksEditHtml(t, ctl, slotCard) {
   const L = K3.light, gk = KS.gk.includes(KS.sel), role = KS_ROLE(KS.sel, (gk ? KS.gk : KS.kits).indexOf(KS.sel), gk), kp = ksKpOn(), v3 = KS.view === '3d', tex = KS.view === 'tex';
   if (ksGateOn() && !tex) return `<div class="ksgate" id="ksGate"><span class="ksgateic" aria-hidden="true">📐</span><div>
@@ -802,7 +833,7 @@ function ksEditHtml(t, ctl, slotCard) {
   const info = `<p class="note" id="k3Info">${esc(KS.model ? `Modelo: camiseta${cfgGet(KS.cfg, 'TightKit') === '1' ? ' ajustada' : ''}, ${KS.model.collarName ? 'cuello ' + KS.model.collarName.split('_')[1] + (KS.model.collarExact ? '' : ' (el más parecido al ' + cfgGet(KS.cfg, 'Collar') + ')') : 'sin cuello'}, short ${ksN('ShortsModel')}.` : 'Cargando los modelos…')} ${ksTexOf('kit') ? '' : 'Sin textura del kit (está dentro de los .cpk): se pinta con los colores del config. Subí la textura en "Texturas" para verla.'}</p>`;
   return `<div class="ksshow">
       <section class="ksstage">
-        <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px">${view}<button class="btn small ${PREFS.ksWide ? 'primary' : 'ghost'}" type="button" id="ksWide" aria-pressed="${!!PREFS.ksWide}" title="${PREFS.ksWide ? 'Volver a mostrar la lista de equipos a la izquierda' : 'Esconder la lista de equipos para que el visor ocupe todo el ancho'}">${PREFS.ksWide ? '☰ Mostrar equipos' : '⇤ Más ancho'}</button></span>
+        <div class="row" style="justify-content:space-between">${view}
           <span class="note">${v3 ? 'Girá el kit con el mouse; el nombre y los números se agarran y se mueven, o con los atajos de abajo a la derecha.' : 'Espalda, frente y short a la vez: agarrá cada cosa y movela.'}</span></div>
         ${stage}
       </section>
@@ -971,7 +1002,6 @@ function bindKitStudio(t, m) {
   sh.querySelectorAll('[data-showel]').forEach(c => c.onchange = () => { ksShowEl(c.dataset.showel, c.checked, setVal); KS.tool = c.checked ? c.dataset.showel : null; KS.lookAt = KS.tool; kpChanged(); later(() => renderTeams(m)); });
   // paneles del costado, letra del nombre y el aviso de kitpos_slots.ini
   on('ksSide', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b) return; KS.pane = b.dataset.v; $('ksSide').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); sh.querySelectorAll('.kspane').forEach(p => p.hidden = p.dataset.pane !== KS.pane); });
-  on('ksWide', 'onclick', () => { PREFS.ksWide = !PREFS.ksWide; savePrefs(); renderTeams(m); const w = $('ks3dWrap') || sh; w.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
   on('ksNameFont', 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || b.disabled) return; PREFS.ksNameFont = b.dataset.v; savePrefs(); renderTeams(m); });
   on('ksGatePick', 'onclick', async () => { try { if (await kpsPick()) { toast('kitpos_slots.ini elegido: el editor lo recuerda.'); renderTeams(m); } } catch (e) { toast('No se pudo usar: ' + e.message, 7000); } });
   on('ksGateSkip', 'onclick', () => { KS.gateSkip = true; renderTeams(m); });

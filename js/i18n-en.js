@@ -4503,7 +4503,10 @@ const I18N_EN = {"⬇ Instalar el archivo":"⬇ Install the file",
 "☰ Mostrar equipos":"☰ Show teams",
 "⇤ Más ancho":"⇤ Wider",
 "Volver a mostrar la lista de equipos a la izquierda":"Show the team list on the left again",
-"Esconder la lista de equipos para que el visor ocupe todo el ancho":"Hide the team list so the viewer takes the full width"
+"Esconder la lista de equipos para que el visor ocupe todo el ancho":"Hide the team list so the viewer takes the full width",
+"Ocultar equipos":"Hide teams",
+"Mostrar equipos":"Show teams",
+"Volver a mostrar la lista de equipos":"Show the team list again"
 };
 // Ficha del jugador · Perfil: nombre y apellido, equipo y selección, nivel
 Object.assign(I18N_EN, {

@@ -801,13 +801,24 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 html[data-gfx="pes6"] :is(.k3looks button,.k3lk){border-radius:0}html[data-gfx="pes6"] :is(.k3looks button,.ksside button){font-family:var(--display);font-style:italic;text-transform:uppercase;letter-spacing:0}html[data-gfx="pes6"] .k3looks button{font-size:.6rem}html[data-gfx="pes6"] .ksside button{font-size:.62rem}
 /* Kit Studio a lo ancho: sin la lista de equipos */
 .split.wide.kswide{grid-template-columns:minmax(0,1fr)}.split.kswide>aside.list{display:none}
-.split.kswide #teamSheet{animation:kswide .35s ease}@keyframes kswide{from{opacity:.4;translate:-14px 0}}
-.kswide .ksshow{grid-template-columns:minmax(0,1fr) minmax(270px,340px)}
-.kswide .ksshow3d #ks3d{height:min(76vh,860px)}
-@media (max-width:1000px){.kswide .ksshow{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){.split.kswide #teamSheet{animation:none}}
+.kstall .ksshow{grid-template-columns:minmax(0,1fr) minmax(270px,340px)}
+.ksshow3d #ks3d{transition:height .42s cubic-bezier(.2,.8,.2,1)}.kstall .ksshow3d #ks3d{height:min(76vh,860px)}
+@media (max-width:1000px){.kstall .ksshow{grid-template-columns:1fr}}
+/* botón flotante para la lista de equipos: arriba del de la música */
+.ksfab{position:fixed;left:16px;bottom:92px;z-index:46;display:flex;align-items:center;gap:0;height:50px;min-width:50px;padding:0 13px;border-radius:25px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));background:color-mix(in srgb,var(--panel) 86%,var(--accent) 14%);color:var(--ink);box-shadow:0 18px 44px -16px #000b;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);cursor:pointer;font:inherit;font-weight:600;animation:ksfabIn .4s cubic-bezier(.2,.8,.2,1);transition:background .2s,scale .15s}
+.ksfab:active{scale:.94}.ksfab.on{background:var(--accent);color:var(--accent-ink,#fff);border-color:transparent}
+.ksfabi{font-size:1.25rem;line-height:1;width:22px;text-align:center}
+.ksfabt{max-width:0;overflow:hidden;white-space:nowrap;font-size:.85rem;transition:max-width .35s cubic-bezier(.2,.8,.2,1),margin .35s}
+.ksfab:hover .ksfabt,.ksfab:focus-visible .ksfabt{max-width:160px;margin-left:8px}
+@keyframes ksfabIn{from{opacity:0;translate:-24px 0}}
+html[data-gfx="pes6"] .ksfab{border-radius:0;background:linear-gradient(180deg,#f6f5f1f5,#e2e1dbf5);border:1px solid #8f8c84;color:#1c1c1a}
+html[data-gfx="pes6"] .ksfab.on{background:linear-gradient(180deg,#ffe36b,#e8b400);border-color:#8a6a00}
+html[data-gfx="pes6"] .ksfabt{font-family:var(--display);font-style:italic;text-transform:uppercase}
+html.tking .ksfab{bottom:142px}
+@media (max-width:640px){.ksfab{left:8px;bottom:84px}html.tking .ksfab{bottom:138px}}
+@media (prefers-reduced-motion:reduce){.ksfab,.ksshow3d #ks3d{animation:none;transition:none}}
 /* celular: visor más bajo, paneles y deslizadores más chicos */
-@media (max-width:640px){.ksshow3d #ks3d,.kswide .ksshow3d #ks3d{height:min(58vh,480px)}.k3float{scale:.82;transform-origin:top left}.k3tools .k3tsel button{padding:.2rem .4rem;font-size:.7rem}.k3hud{display:none}.k3looks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.ksshow3d #ks3d,.kstall .ksshow3d #ks3d{height:min(58vh,480px)}.k3float{scale:.82;transform-origin:top left}.k3tools .k3tsel button{padding:.2rem .4rem;font-size:.7rem}.k3hud{display:none}.k3looks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---- Visualizador de Kit Studio Pro: el kit en grande y los dorsales al costado ---- */
 .ksshow{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:14px;align-items:start}
 @media (max-width:1000px){.ksshow{grid-template-columns:1fr}}

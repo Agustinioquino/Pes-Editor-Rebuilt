@@ -579,6 +579,7 @@ function setTab(t) {
 }
 function render() {
   const m = $('main');
+  if (typeof ksFab === 'function') ksFab(m); // el botón flotante de Kit Studio solo con el editor de kits a la vista
   if (!S.f && S.tab === 'wepes') { renderWepes(m); return; }
   if (S.tab === 'news') { renderNews(m); return; }
   if (S.tab === 'ideas') { renderIdeas(m); return; }

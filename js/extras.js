@@ -154,7 +154,9 @@ async function connectKits(dirIn) {
     let exe = GDB.game && typeof gdbExe === 'function' ? await gdbExe(GDB.game) : null;
     if (!exe) { try { const t = await (await (await sider.getFileHandle('sider.ini')).getFile()).text(); const m = t.match(/^\s*exe\.name\s*=\s*"?([^"\r\n]+)/mi); if (m) exe = m[1].trim().replace(/^.*[\\/]/, ''); } catch { } }
     if (!exe && /^SiderAddons$/i.test(sider.name || '')) exe = 'Football Life';
-    if (exe) { localStorage.setItem('edit21-gameexe', exe); if (gameRefresh() && S.d) render(); }
+    if (exe) localStorage.setItem('edit21-gameexe', exe); else localStorage.removeItem('edit21-gameexe'); // otro juego: no queda el de antes
+    if (gameRefresh() && S.d) render();
+    if (!sider.readOnly && typeof exeGame === 'function') idbSet('sider-' + exeGame(exe), sider); // para "Cambiar de juego"
   } catch { }
   // nombres: de la copia del módulo edit21_db (content\edit21-db\Player.bin) o de los archivos del juego
   let namesMsg = '';
@@ -163,6 +165,7 @@ async function connectKits(dirIn) {
     if (bytes) {
       const m = await namesFromBin(bytes);
       S.names = m; S.namesFrom = 'la base del juego'; namesSave(); RATE_GEN++;
+      if (typeof dbAfterLoad === 'function') await dbAfterLoad(st);
       namesMsg = `${m.size.toLocaleString('es-AR')} nombres de jugadores`;
     } else namesMsg = 'Para los nombres, abrí el juego una vez con el módulo edit21_db activo';
   } catch { namesMsg = 'Todavía no está la copia de la base: abrí el juego una vez hasta el menú principal y volvé a conectar'; }

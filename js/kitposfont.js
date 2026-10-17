@@ -194,12 +194,10 @@ const KPF = (() => {
     const map = tex.__kp, chs = [...String(text)].map(ch => map.get(ch) || map.get(ch.toUpperCase()) || (ch === ' ' ? null : map.get('?')) || null);
     const ref = chs.find(Boolean) || map.values().next().value; if (!ref) return;
     const R = ref.sh, k = h / (R * CAP / ROW), ws = chs.map((q, i) => q ? q.sw * k * stretch : (String(text)[i] === ' ' ? h * .35 : 0)), gap = spacing * h;
-    const total = ws.reduce((a, b) => a + b, 0) + gap * Math.max(0, ws.length - 1); let x = cx - total / 2;
+    const total = ws.reduce((a, b) => a + b, 0) + gap * Math.max(0, ws.length - 1);
     if (maxW && total > maxW) return drawText(g, tex, text, cx, cy, h * maxW / total * .98, { stretch, spacing, curve });
-    chs.forEach((q, i) => {
-      if (q) { const w = ws[i], off = curve ? curve * h * ((x + w / 2 - cx) / (total / 2 || 1)) ** 2 : 0; g.drawImage(tex, q.sx, q.sy, q.sw, q.sh, x, cy - (BASE - CAP / 2) / ROW * R * k + off, w, R * k); }
-      x += ws[i] + gap;
-    });
+    // curve: la del juego (1000 / radio); cada letra va sobre el arco, girada (KFONT.arcText)
+    KFONT.arcText(g, chs.map((q, i) => ({ w: ws[i], draw: q ? gg => gg.drawImage(tex, q.sx, q.sy, q.sw, q.sh, -ws[i] / 2, -(BASE - CAP / 2) / ROW * R * k, ws[i], R * k) : null })), cx, cy, h, curve, gap);
   }
   // plantilla lista para usar a partir de una imagen (canvas) o de un .psd ya leído: { c: canvas 4096×3840, g: Map letra → casilla, cap }
   function tplLoad(src) {

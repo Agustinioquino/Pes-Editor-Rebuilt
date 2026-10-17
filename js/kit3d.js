@@ -378,7 +378,8 @@ function k3Scene(cfg, fit, extra = {}) {
 }
 const k3SetEnv = (R, L) => { if (!L.env) { K3GL.setTex(R, 4, null); return; } K3GL.setTex(R, 4, L.env.canvas); K3GL.setTex(R, 5, K3TW.envPrev ? K3TW.envPrev.canvas : null); };
 // renderizador fuera de pantalla reutilizable (maqueta y miniaturas)
-function k3Off() { if (K3.off) return K3.off; const c = document.createElement('canvas'); c.width = 480; c.height = 560; const R = K3GL.make(c); return (K3.off = R ? { c, R, model: null } : null); }
+// lienzo fuera de pantalla; el mapa de coordenadas (k3UvMap) usa uno propio: después de las miniaturas el compartido devolvía el mapa vacío
+function k3Off(key = 'off') { if (K3[key]) return K3[key]; const c = document.createElement('canvas'); c.width = 480; c.height = 560; const R = K3GL.make(c); return (K3[key] = R ? { c, R, model: null } : null); }
 const K3STUDIO = () => { const e = K3ENV.scene('estudio'), P = K3LIGHTS.estudio; return { key: P.key, fill: P.fill, rim: P.rim, amb: P.amb, exp: P.exp, spec: K3.light.spec ?? 1, envInt: .8, envYaw: 0, sh: e.sh, env: e, envMix: 1 }; };
 function k3Snapshot(model, cfg, tex, side, w = 240, h = 280, maps) {
   const O = k3Off(); if (!O || !model || !model.parts.length) return null;
@@ -393,7 +394,7 @@ function k3Snapshot(model, cfg, tex, side, w = 240, h = 280, maps) {
 // coordenada de textura de cada píxel de la maqueta (misma cámara que k3Snapshot): sirve para saber dónde quedó el
 // nombre o un número sobre la imagen y para arrastrarlos. Devuelve { w, h, uv } con uv[i*2] = u, uv[i*2+1] = v (-1 = vacío)
 function k3UvMap(model, cfg, side, w = 240, h = 280) {
-  const O = k3Off(); if (!O || !model || !model.parts.length) return null;
+  const O = k3Off('offUv'); if (!O || !model || !model.parts.length) return null;
   const shirt = model.raw ? model.parts : model.parts.filter(p => p.k === 'shirt' || p.k === 'sleeve' || p.k === 'collar'); if (!shirt.length) return null;
   if (O.c.width !== w * 2 || O.c.height !== h * 2) { O.c.width = w * 2; O.c.height = h * 2; }
   if (O.model !== model) { K3GL.upload(O.R, shirt); O.fit = k3Fit(shirt); O.model = model; }

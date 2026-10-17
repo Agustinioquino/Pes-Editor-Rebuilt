@@ -2,6 +2,18 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.059 alpha · Los kits en 3D, acomodados como en el juego
+
+*17 de octubre de 2026, 20:50 (hora de Argentina)*
+
+Kit Studio Pro junta el Editor y el visor 3D, y el nombre y los números se ven y se mueven donde los pone el juego.
+
+- **Editor y visor 3D juntos** (Kits). Kit Studio Pro junta el Editor y el visor 3D en una sola sección: el kit en grande al medio y al costado las pestañas Dorsales, Luz, Imagen y Tela. Un botón a la izquierda esconde la lista de equipos para ver el kit a lo ancho.
+- **Menú del nombre y los números en el 3D** (Kits). Click en el nombre o en un número del kit y al lado se abre un menú de vidrio con barras para altura, tamaño, ancho y curva. Se cierra con un click afuera o con Esc. El número del pecho y el del short se agregan o se quitan, y el dorsal cambia entre 7 y 07.
+- **Nombre y números donde los pone el juego** (Kits). El nombre, el dorsal, el número del pecho y el del short se dibujan en el 3D en el mismo lugar y tamaño que en el juego, medidos con el panel de KitPos. Debajo del visor una etiqueta dice si las posiciones salen del config.txt o de KitPos. El nombre usa la letra del kit, también las fuentes de KitPos (kitpos_letras.txt o content\kitpos\minusculas.txt).
+- **Jugadores de la base al EDIT, completos** (Plantel). Los jugadores que pasan de la base del juego a tu EDIT (con la media por rendimiento o con Agregar a mi EDIT) llegan con sus posiciones, pie hábil, físico, habilidades, jugadas COM y estilo, y los que habían pasado incompletos se arreglan solos. Nuevo: Pasar toda la base al EDIT, Volver a la base del juego y un aviso si la base del juego cambia.
+- **Cambiar de juego desde Buscar EDIT** (Archivo). En la ventana 📂 Buscar EDIT, Cambiar de juego vuelve a cargar el EDIT y la base, o pasa de Football Life a PES 2021 y al revés. El editor recuerda la carpeta Sider de cada juego.
+
 ## v0.058 alpha · Las fuentes pasan a Kit Studio, con sus requisitos
 
 *16 de octubre de 2026, 12:30 (hora de Argentina)*

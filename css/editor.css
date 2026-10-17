@@ -922,6 +922,9 @@ html[data-gfx="pes6"] .k3x{border-radius:0}
 .ks3dwrap.present .k3tools,.ks3dwrap.present .k3float,.ks3dwrap.present .k3arc,.ks3dwrap.present .k3hud{display:none}
 html[data-gfx="pes6"] :is(.k3tools,.k3tb,.k3tsel button,.k3arc,.k3ty,.k3del){border-radius:0!important}
 html[data-gfx="pes6"] .k3sl small{font-size:.5rem;letter-spacing:0}html[data-gfx="pes6"] .k3sls{gap:12px}
+/* los otros modos con el mismo menú del 3D: Retro con esquinas rectas como sus menús, Clásico con esquinas apenas redondeadas */
+html[data-gfx="retro"] :is(.k3tools,.k3tb,.k3tsel button,.k3arc,.k3ty,.k3del,.k3x,.k3float,.k3hud .hp,.k3cap,.k3cap .k3src,.ksdors,.ksdor){border-radius:0!important}
+html[data-gfx="clasico"] :is(.k3tools,.k3tb,.k3tsel button,.k3arc,.k3ty,.k3del,.k3x,.k3float,.k3hud .hp,.k3cap,.k3cap .k3src,.ksdors,.ksdor){border-radius:3px!important}
 :is(.k3tools,.k3float) :is(.k3tval,.k3thint){color:#fff!important}
 /* PES 6 pinta los textos de las tarjetas con acero oscuro: en el visor 3D van en blanco para leerse sobre el vidrio */
 html[data-gfx="pes6"] :is(.k3float,.k3tools,.k3hud,.k3arc) :is(p,.note,label,.lab,small,.emo,.k3si){color:#fff!important;-webkit-text-fill-color:#fff!important;background:none!important;filter:none!important;text-shadow:0 1px 2px #000c}

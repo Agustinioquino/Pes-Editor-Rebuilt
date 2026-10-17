@@ -776,7 +776,15 @@ html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts bu
 
 /* ---- visor 3D: capas, cámara, luz ---- */
 .k3fade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;z-index:2}
-.k3hud{position:absolute;left:10px;bottom:10px;z-index:3;font-size:.72rem;color:#fff;background:#0008;padding:3px 9px;border-radius:99px;pointer-events:none;backdrop-filter:blur(4px)}
+.ks3d{container:ks3d/inline-size}
+/* ayuda del visor: pastillas de vidrio que se acomodan al ancho (en un visor angosto quedan solo las primeras) */
+.k3cap .k3src{display:inline-block;justify-self:start;width:auto;margin-top:3px;padding:1px 7px;border-radius:99px;font-style:normal;font-size:.62rem;font-weight:700;color:#fff;background:#ffffff1f;border:1px solid #ffffff38;backdrop-filter:blur(6px)}.k3cap .k3src.kp{background:#56d6ff33;border-color:#56d6ff88}
+html[data-gfx="pes6"] .k3cap .k3src{border-radius:0}
+.k3hud{position:absolute;left:10px;bottom:10px;z-index:3;display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px;max-width:min(44%,440px);pointer-events:none}
+.k3hud .hp{font-size:clamp(.6rem,1.5cqi,.74rem);line-height:1.25;color:#fff;padding:3px 9px;border-radius:99px;background:radial-gradient(ellipse at 50% 30%,#ffffff1c,#0b0f1661 80%);border:1px solid #ffffff2e;backdrop-filter:blur(8px);box-shadow:0 4px 14px #0003;text-shadow:0 1px 2px #0009}
+@container ks3d (max-width:760px){.k3hud .hp:nth-child(n+3){display:none}}
+@container ks3d (max-width:700px){.k3hud{top:10px;right:10px;bottom:auto;left:auto;max-width:48%;justify-content:flex-end}.k3hud .hp:nth-child(n+2){display:none}}
+@container ks3d (max-width:380px){.k3hud{display:none}}
 .k3cam{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.k3cam .btn{padding:.25rem .2rem;font-size:.74rem}
 .k3envs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .k3envs button{display:grid;gap:3px;padding:3px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit;font-size:.68rem;font-weight:600;text-align:center;transition:border-color .15s,translate .15s}
@@ -820,7 +828,7 @@ html.tking .ksfab{bottom:142px}
 @media (max-width:640px){.ksfab{left:8px;bottom:84px}html.tking .ksfab{bottom:138px}}
 @media (prefers-reduced-motion:reduce){.ksfab,.ksshow3d #ks3d{animation:none;transition:none}}
 /* celular: visor más bajo, paneles y deslizadores más chicos */
-@media (max-width:640px){.ksshow3d #ks3d,.kstall .ksshow3d #ks3d{height:min(58vh,480px)}.k3float{scale:.82;transform-origin:top left}.k3tools .k3tsel button{padding:.2rem .4rem;font-size:.7rem}.k3hud{display:none}.k3looks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.ksshow3d #ks3d,.kstall .ksshow3d #ks3d{height:min(58vh,480px)}.k3float{scale:.82;transform-origin:top left}.k3tools .k3tsel button{padding:.2rem .4rem;font-size:.7rem}.k3looks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---- Visualizador de Kit Studio Pro: el kit en grande y los dorsales al costado ---- */
 .ksshow{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:14px;align-items:start}
 @media (max-width:1000px){.ksshow{grid-template-columns:1fr}}
@@ -873,8 +881,6 @@ html[data-gfx="pes6"] :is(.ksdors,.ksdor,.k3cap){border-radius:0!important}
 .k3tcol{display:grid;gap:4px}.k3tg{display:flex;gap:2px}
 .k3tval,.k3thint{margin:0;font-size:.68rem;opacity:.85;text-align:center;max-width:250px}
 .k3tools:not(.on) .k3thint{opacity:1;font-weight:600}.k3tools:not(.on) .k3thint::before{content:'👆 '}
-.ks3d:has(.k3tools) .k3hud{max-width:calc(100% - 340px);border-radius:10px}
-@media (max-width:700px){.ks3d:has(.k3tools) .k3hud{display:none}}
 .k3float{position:absolute;z-index:5;display:grid;gap:6px;justify-items:center;padding:10px 8px 8px;border-radius:18px;background:radial-gradient(ellipse at 50% 40%,#ffffff24,#0b0f1666 75%);color:#fff;border:1px solid #ffffff38;box-shadow:0 8px 26px #0005;backdrop-filter:blur(8px);transition:left .12s ease-out,top .12s ease-out}
 .k3sls{display:flex;gap:6px}
 .k3sl{display:grid;justify-items:center;gap:3px;width:38px;--kp:.5}

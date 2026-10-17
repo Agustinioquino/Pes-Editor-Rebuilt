@@ -693,6 +693,11 @@ function kitStudioCard(t) {
 // cada grupo con sus valores del config.txt y un nombre corto (el grupo ya dice de qué se trata); el primero de cada grupo se ve aunque el elemento esté apagado
 const KS_DORS = [['name', [['Name', 'Mostrar'], ['NameY', 'Altura'], ['NameSize', 'Tamaño'], ['NameStretch', 'Ancho'], ['NameShape', 'Curva']]], ['num', [['BackNumberType', 'Dígitos'], ['BackNumberY', 'Altura'], ['BackNumberSize', 'Tamaño'], ['BackNumberSpacing', 'Separación de los dígitos']]],
   ['chest', [['ChestNumberSize', 'Tamaño'], ['ChestNumberX', 'Horizontal'], ['ChestNumberY', 'Vertical']]], ['leg', [['ShortsNumberSide', 'Pierna'], ['ShortsNumberX', 'Horizontal'], ['ShortsNumberY', 'Vertical'], ['ShortsNumberSize', 'Tamaño']]]];
+// de dónde salen las posiciones del 3D: KitPos (kitpos_slots.ini) o el config.txt del kit
+function ksSrcChip() { const kp = ksKpOn() && Object.keys(kpsVals()).some(f => KPOS.FIELDS[f]), k = kp && kpsKit();
+  return `<em class="k3src ${kp ? 'kp' : ''}" title="${kp ? 'Las posiciones del 3D salen de kitpos_slots.ini, como en el juego con KitPos' : 'Las posiciones del 3D salen del config.txt del kit. Si en el juego usás KitPos, elegí kitpos_slots.ini para que coincidan'}">${kp ? '📐 KitPos' + (k && k.n ? ' · p' + k.n : '') : 'config.txt'}</em>`; }
+// ayuda del visor: cada parte (separadas por " · ") es una pastilla; si el visor es angosto quedan solo las primeras (CSS)
+const ksHudHtml = t => tr(t).split(' · ').map(p => `<span class="hp">${esc(p)}</span>`).join('');
 const KS_HUD = () => K3.paint ? '🖌 Pintando brillo · Shift: mover cámara' : KS.tool ? `${KPL_EL[KS.tool].n}: flechas para moverlo, + y − tamaño · Esc o click afuera: cerrar` : K3.place ? 'Arrastrá el nombre o un número para moverlo · Rueda encima: tamaño' : 'Girar: arrastrar · Mover: clic der. · Zoom: rueda';
 // atajos sobre el 3D: abajo, qué mover (y + para agregar el número del pecho o del short); al lado del recuadro del elegido,
 // deslizadores que se arrastran con el mouse (altura, tamaño, ancho, curva); arriba del nombre, una manija para curvarlo.
@@ -803,9 +808,9 @@ function ksEditHtml(t, ctl, slotCard) {
     <div class="ksslots">${KS_SLOTS.map(slotCard).join('')}</div>${KS.see ? `<div class="kstex"><canvas id="ksTex"></canvas></div>` : ''}<p class="note">Todo lo que subís o generás se convierte a .ftex (DXT5) con todos sus tamaños internos y se guarda en content\\kit-server\\${esc(KS.path)}\\${esc(KS.sel)}. Si ya había un archivo con ese nombre, la primera vez se guarda una copia .bak-edit21.</p></section>`;
   const G = k3Grade();
   const stage = !v3 ? kplHtml() : `<div class="ks3dwrap ksshow3d" id="ks3dWrap"><div class="ks3d ${L.bg === 'none' ? 'clear' : L.bg === 'game' ? 'game' : ''} ${L.bgGrad !== false ? 'grad' : ''} ${L.floor === false ? 'nofloor' : ''}" style="--k3bg:${esc(L.bgCol || '#1d2633')};--vig:${G.vig}"><canvas id="ks3d" aria-label="Vista 3D del kit: arrastrá para girar, clic derecho o Shift para mover, rueda para acercar; arrastrá el nombre o un número para moverlo"></canvas><canvas class="k3fade" id="ks3dFade" aria-hidden="true"></canvas><span class="k3floor"></span>
-      <div class="k3cap">${crest(t, 'k3crest')}<span><b>${esc(tget(t, 'name'))}</b><small>${esc(role)} · ${esc(KS.sel)}</small></span></div>
+      <div class="k3cap">${crest(t, 'k3crest')}<span><b>${esc(tget(t, 'name'))}</b><small>${esc(role)} · ${esc(KS.sel)}</small>${ksSrcChip()}</span></div>
       ${ksToolsHtml()}
-      <div class="k3hud"><span>${KS_HUD()}</span></div></div></div>
+      <div class="k3hud">${ksHudHtml(KS_HUD())}</div></div></div>
     <div class="ksshowbar">
       <div class="k3cam">${[['front', 'Frente'], ['back', 'Espalda'], ['left', 'Izq.'], ['right', 'Der.'], ['threeq', '3/4'], ['close', 'Pecho'], ['reset', '↺ Inicio']].map(([k, n]) => `<button class="btn small" type="button" data-cam="${k}">${n}</button>`).join('')}</div>
       <span class="kssep"></span>
@@ -909,7 +914,7 @@ function bindKitStudio(t, m) {
     if (b && get('shorts')) { const th = k3Thumb([get('shorts'), get('socks')].filter(Boolean), tex, 'shorts', 72, maps); b.getContext('2d').clearRect(0, 0, 72, 72); th && b.getContext('2d').drawImage(th, 0, 0); }
     if (K3.off) K3.off.model = null; };
   const startViewer = () => { const cv = $('ks3d'); if (!cv || !KS.model || K3.viewer) return; const place = () => K3.place && !K3.paint && K3.light.decals !== false;
-    const hud = t => { const h = sh.querySelector('.k3hud span'); if (h) h.textContent = t; };
+    const hud = t => { const h = sh.querySelector('.k3hud'); if (h) h.innerHTML = ksHudHtml(t); };
     const hudIdle = () => hud(KS_HUD());
     const setHot = k => { k = k || KS.tool || null; if (KS.hot === k) return; KS.hot = k; draw(); };
     let grab = null;
@@ -966,7 +971,7 @@ function bindKitStudio(t, m) {
   for (const [id, key] of [['k3Sleeve', 'sleeve'], ['k3Socks', 'socks'], ['k3Tuck', 'tuck']]) on(id, 'onclick', e => { const b = e.target.closest('[data-v]'); if (!b || K3[key] === b.dataset.v) return; K3[key] = b.dataset.v; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); ensureModel(); });
   on('k3Cap', 'onchange', e => { K3.cap = e.target.checked; ensureModel(); });
   on('k3Dec', 'onchange', e => { K3.light.decals = e.target.checked; savePrefs3(); draw(); });
-  on('k3Place', 'onchange', e => { K3.place = e.target.checked; if (!K3.place) { KS.hot = KS.tool || null; draw(); } const h = sh.querySelector('.k3hud span'); if (h) h.textContent = KS_HUD(); });
+  on('k3Place', 'onchange', e => { K3.place = e.target.checked; if (!K3.place) { KS.hot = KS.tool || null; draw(); } const h = sh.querySelector('.k3hud'); if (h) h.innerHTML = ksHudHtml(KS_HUD()); });
   // atajos del 3D (ksToolsHtml): elegir qué mover lleva la cámara hasta ahí; deslizadores al lado del recuadro y el teclado
   const look = k => { const v = V3(); if (!v) return; const f = v.fit(); v.go(k === 'chest' ? { yaw: 0, pitch: .05, dist: f.radius * 1.05, panX: 0, panY: f.radius * .5, fov: 48 } : k === 'leg' ? { yaw: 0, pitch: .05, dist: f.radius * 1.25, panX: 0, panY: -f.radius * .45, fov: 48 } : { yaw: Math.PI, pitch: .08, dist: f.radius * 2.1, panX: 0, panY: f.radius * .28, fov: 48 }); };
   const tVal = () => { const o = $('k3TVal'), E = KS.tool && KPL_EL[KS.tool]; if (o && E) o.textContent = [...E.move, E.size].map(kplVal).join(' · ');
@@ -1020,7 +1025,7 @@ function bindKitStudio(t, m) {
     KS.tool = k && kplOn(k) ? k : null; KS.hot = KS.tool; if (KS.tool) KPL.sel = KS.tool;
     const box = $('k3Tools'); if (box) { box.outerHTML = ksToolsHtml(); bindTools(); }
     if (KS.tool && cam) { look(KS.tool); const cv = $('ks3d'); if (cv) cv.focus({ preventScroll: true }); }
-    draw(); ksFloat(); const h = sh.querySelector('.k3hud span'); if (h) h.textContent = KS_HUD();
+    draw(); ksFloat(); const h = sh.querySelector('.k3hud'); if (h) h.innerHTML = ksHudHtml(KS_HUD());
   };
   if (KS.tool && !kplOn(KS.tool)) KS.tool = null;
   bindTools(); ksFloat(); if (KS.lookAt && V3()) look(KS.lookAt); KS.lookAt = null;

@@ -22,3 +22,8 @@ body:
     attributes:
       label: Sección
       options: [Equipos y plantel, Jugadores, Formación, Kit Studio Pro, Escudos y minifaces, Selecciones, Sider, Liga Master, Archivo / WEPES, Música, Apariencia, Otra]
+  - type: textarea
+    id: capturas
+    attributes:
+      label: Imágenes
+      description: Si ayudan a mostrar tu idea, arrastrá o pegá (Ctrl+V) capturas o bocetos acá.

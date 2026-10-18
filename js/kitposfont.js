@@ -4,6 +4,10 @@
 // la textura del nombre, la de NameFontFile). Así entran minúsculas, acentos, cirílico y griego.
 // La textura que arma KitPos: 4096 px de ancho, filas de 256 px; cada letra ocupa 2×ancho+4 px (2 de margen a cada
 // lado), entre letra y letra quedan 16 px y "alto" es siempre 124. La línea de base queda a 200 px del borde de arriba.
+// Fuente general (la que funciona en el juego, igual que la carpeta p1 de un kit que ya la usa): sin kitpos_letras.txt en el kit,
+// la textura del nombre (uXXXXpN_name.dds/.ftex, 4096×4096 DXT5 con 13 mips) lleva cada letra en el lugar exacto que dice
+// content\kitpos\minusculas.txt, y el kit tiene NameLower = 1 en kitpos_slots.ini. Esa tabla es una sola para todos los kits,
+// así que la fuente se dibuja dentro de sus casillas (fromTable): mismo orden, mismo ancho de cada letra.
 // La parte sin DOM (tabla, ubicación, .dds y .zip) se prueba en Node: test/kitposfont.test.js.
 const KPF = (() => {
   const W = 4096, ROW = 256, X0 = 8, GAP = 16, BASE = 200, CAP = 150, HUNITS = 124, MAX = 512;
@@ -23,6 +27,14 @@ const KPF = (() => {
     for (const m of metrics) { const span = 2 * m.w + 4; if (x + span > W - X0 && x > X0) { row++; x = X0; } cells.push({ ch: m.ch, w: m.w, x, row, span }); x += span + GAP; }
     const rows = row + 1; if (rows * ROW > 4096) throw new Error('Son demasiadas letras para una textura de 4096 px: sacá algún idioma o achicá el ancho.');
     return { cells, rows, W, H: Math.max(512, 2 ** Math.ceil(Math.log2(rows * ROW))) };
+  }
+  // casillas de una tabla ya hecha (minusculas.txt): cada letra en el mismo lugar y con el mismo ancho que dice la tabla
+  function fromTable(list) {
+    if (!list || !list.length) throw new Error('la tabla de letras (minusculas.txt) está vacía.');
+    const e0 = list[0], H = Math.round(ROW / ((e0.v1 - e0.v0) || 1));
+    if (![512, 1024, 2048, 4096].includes(H)) throw new Error('la tabla de letras (minusculas.txt) no tiene filas de 256 px.');
+    const cells = list.map(e => ({ ch: e.ch, w: e.w, x: Math.round(e.u0 * W), row: Math.round(e.v0 * H / ROW), span: Math.round((e.u1 - e.u0) * W) }));
+    return { cells, rows: Math.max(...cells.map(c => c.row)) + 1, W, H, table: true };
   }
   const f6 = v => v.toFixed(6);
   function letrasTxt(L, label) {
@@ -147,7 +159,9 @@ const KPF = (() => {
     const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = fill; g.fillRect(0, 0, c.width, c.height);
     img.__tint = { k: fill, c }; return c;
   }
-  function render(o, list) {
+  // table: la tabla de minusculas.txt ya leída (parseLetras); sin ella las letras se ubican solas y hace falta kitpos_letras.txt
+  function render(o, list, table) {
+    if (table) list = table.map(e => e.ch);
     // con una plantilla de Photoshop, sus letras van 1:1 y las que no dibujó salen de la fuente, a la misma altura
     const T = o.tpl || null, tsrc = T ? tinted(T.c, o.tplTint, o.fill) : null;
     const mc = document.createElement('canvas').getContext('2d'), wS = o.width || 1, capPx = ((T && T.cap) || CAP) * (o.size || 1);
@@ -163,18 +177,25 @@ const KPF = (() => {
       const bl = (m.actualBoundingBoxLeft || 0) * wS, br = (m.actualBoundingBoxRight || adv) * wS;
       return { ch, left: Math.min(0, -bl - ext), right: Math.max(adv, br + ext) + sh };
     }).map(x => Object.assign(x, { w: Math.max(1, Math.ceil((x.right - x.left) / 2)) }));
-    const L = layout(metrics), c = document.createElement('canvas'); c.width = L.W; c.height = L.H;
+    const L = table ? fromTable(table) : layout(metrics), c = document.createElement('canvas'); c.width = L.W; c.height = L.H;
+    // con la tabla general cada letra entra en su casilla: un ancho común para toda la fuente (el de las letras A–Z y a–z)
+    // y, si alguna igual no entra, se angosta solo esa; queda centrada en la casilla
+    const nat = mt => mt.right - mt.left, fitK = [];
+    if (table) { const r = L.cells.map((cell, i) => /[A-Za-z]/.test(cell.ch) && nat(metrics[i]) > 0 ? (cell.span - 4) / nat(metrics[i]) : null).filter(Boolean).sort((a, b) => a - b);
+      const k0 = r.length ? Math.max(.5, Math.min(2, r[r.length >> 1])) : 1;
+      L.cells.forEach((cell, i) => { const n = nat(metrics[i]); fitK[i] = n > 0 ? Math.min(k0, (cell.span - 4) / n) : 1; }); }
     const g = c.getContext('2d', { willReadFrequently: true }); g.font = fontCss(o, fs); g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.miterLimit = 2;
     const fill = () => { if (!o.grad) return o.fill; const gr = g.createLinearGradient(0, -capPx, 0, 0); gr.addColorStop(0, o.fill); gr.addColorStop(1, o.fill2 || o.fill); return gr; };
     L.cells.forEach((cell, i) => {
-      const mt = metrics[i], ox = cell.x + 2 - mt.left, by = cell.row * ROW + BASE + (+o.lift || 0);
+      const mt = metrics[i], fx = table ? fitK[i] : 1, pad = table ? Math.max(0, (cell.span - 4 - nat(mt) * fx) / 2) : 0;
+      const ox = cell.x + 2 + pad - mt.left * fx, by = cell.row * ROW + BASE + (+o.lift || 0);
       if (mt.tpl) { const { q, k, bear } = mt.tpl, iw = q.x1 - q.x0; g.save(); g.beginPath(); g.rect(cell.x, cell.row * ROW, cell.span, ROW); g.clip();
-        g.drawImage(tsrc, q.col * ROW + q.x0, q.row * ROW, iw, ROW, ox + bear, by - BASE * k, iw * k * wS, ROW * k); g.restore(); return; }
-      if (mt.img) { const { q, k, bear } = mt.img; g.drawImage(src, q.sx, q.sy, q.sw, q.sh, ox + bear, by + q.top * k, q.sw * k * wS, q.sh * k); return; }
+        g.drawImage(tsrc, q.col * ROW + q.x0, q.row * ROW, iw, ROW, ox + bear * fx, by - BASE * k, iw * k * wS * fx, ROW * k); g.restore(); return; }
+      if (mt.img) { const { q, k, bear } = mt.img; g.drawImage(src, q.sx, q.sy, q.sw, q.sh, ox + bear * fx, by + q.top * k, q.sw * k * wS * fx, q.sh * k); return; }
       if (cell.ch === ' ') return;
-      g.save(); g.translate(ox, by); g.scale(wS, 1);
+      g.save(); if (table) { g.beginPath(); g.rect(cell.x, cell.row * ROW, cell.span, ROW); g.clip(); } g.translate(ox, by); g.scale(wS * fx, 1);
       const draw = (style, lw) => { if (lw) { g.lineWidth = lw; g.strokeStyle = style; g.strokeText(cell.ch, 0, 0); } g.fillStyle = style; g.fillText(cell.ch, 0, 0); };
-      if (sh) { g.save(); g.translate(sh / wS, sh); draw(o.shadowColor || '#000000', ext * 2); g.restore(); }
+      if (sh) { g.save(); g.translate(sh / (wS * fx), sh); draw(o.shadowColor || '#000000', ext * 2); g.restore(); }
       if (o.stroke2) draw(o.color2, ((+o.stroke1 || 0) + (+o.stroke2)) * 2);
       if (o.stroke1) draw(o.color1, (+o.stroke1) * 2);
       g.fillStyle = fill(); g.fillText(cell.ch, 0, 0);
@@ -235,7 +256,7 @@ const KPF = (() => {
       g.fillStyle = '#a9adb6'; g.fillText(t.ch, x + 9, y + 8); }
     return c;
   }
-  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides };
+  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, fromTable, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides };
 })();
 
 // ===================== La pantalla del creador =====================
@@ -249,6 +270,17 @@ const KPF_PRESETS = {
   retro: { n: 'Retro', fill: '#fff6d8', grad: false, stroke1: 4, color1: '#c4161c', stroke2: 4, color2: '#ffffff', shadow: 0 },
   sombra: { n: 'Con sombra', fill: '#ffffff', grad: false, stroke1: 0, stroke2: 0, shadow: 6, shadowColor: '#000000' },
 };
+// la tabla de letras: content\kitpos\minusculas.txt de la carpeta Sider (la que lee KitPos) o, si no está, la que trae el editor
+async function kpfTable() {
+  const key = (typeof KITS !== 'undefined' && KITS.from || '') + '|' + (typeof KITS !== 'undefined' && KITS.when || 0);
+  if (KPFS.tbl && KPFS.tbl.for === key) return KPFS.tbl;
+  let text = null, src = 'editor', list = [];
+  try { const { sider } = await ksRoot(false); text = await readText(await subDir(sider, 'content/kitpos'), 'minusculas.txt'); list = KPF.parseLetras(text); KPF.fromTable(list); src = 'sider'; } catch { text = null; list = []; }
+  if (!list.length) { const r = await fetch('sider/minusculas.txt', { cache: 'no-cache' }); text = r.ok ? await r.text() : ''; list = KPF.parseLetras(text); }
+  if (!list.length) throw new Error('no se pudo leer la tabla de letras (minusculas.txt). ¿Sin internet?');
+  return KPFS.tbl = { list, text, src, for: key };
+}
+const kpfN = () => KPFS.tbl ? KPFS.tbl.list.length : 371;
 function kpfOpts() { return KPFS.o || (KPFS.o = { font: 'Saira Condensed', weight: 700, italic: false, width: 1, size: 1, fill: '#ffffff', fill2: '#c9d4e6', grad: false, stroke1: 0, color1: '#000000', stroke2: 0, color2: '#ffffff', shadow: 0, shadowColor: '#000000', img: null, imgName: '', imgSmall: true, imgTint: false }); }
 // fuentes subidas: quedan guardadas en el navegador para la próxima vez
 async function kpfLoadUserFonts() {
@@ -306,7 +338,7 @@ function kpfReqHtml() {
 function kpfHtml(has) {
   const O = kpfOpts(), fonts = kpfFontList(), kitsAll = has ? [...KS.kits, ...KS.gk] : [];
   if (has && (!KPFS.target || (KPFS.target !== '*' && !kitsAll.includes(KPFS.target)))) KPFS.target = KS.sel || '*';
-  const n = KPF.chars(KPFS.sets).length, rng = (id, lab, v, min, max, step, fmt) => `<div class="f"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"></div>`;
+  const n = kpfN(), rng = (id, lab, v, min, max, step, fmt) => `<div class="f"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"></div>`;
   const st = KPFS.st, row = (ok, b, txt, fix) => `<li class="${ok === true ? 'ok' : ok === false ? 'bad' : ok === 'info' ? 'info' : 'unk'}"><i aria-hidden="true">${ok === true ? '✓' : ok === false ? '✕' : ok === 'info' ? '•' : '?'}</i><span><b>${b}</b> ${txt}</span>${fix || ''}</li>`;
   const sec = (i, t, body, cls = '') => `<div class="kpfsec ${cls}"><h5>${i ? `<i>${i}</i>` : ''}${t}</h5>${body}</div>`;
   const chip = (k, i, gk) => { const me = KS.meta[k]; return `<button type="button" class="kpfkit" data-kit="${esc(k)}" aria-pressed="${KPFS.target === k}" title="${esc(k)}">${shirtSvg(me || {}, '1.9em')}<span><b>${esc(k)}</b><small>${KS_ROLE(k, i, gk)}</small></span></button>`; };
@@ -325,7 +357,7 @@ function kpfHtml(has) {
             <label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
             <button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>` : ''}
           <small class="note">.ttf, .otf o .woff; también podés arrastrar el archivo a esta pantalla. Las que subís quedan guardadas para la próxima.</small>`)}
-        ${sec(0, '🎨 Plantilla de Photoshop', `${O.tpl ? `<div class="kpfimg kpftpl"><canvas id="kpfTplTh" width="440" height="112"></canvas><div><b>${esc(O.tplName)}</b><small class="note">${O.tpl.count} de ${O.tpl.total} letras dibujadas en la plantilla${O.tpl.count < O.tpl.total || n > O.tpl.count ? `; las demás (espacio, guion bajo${KPFS.sets.cyr ? ', cirílico' : ''}${KPFS.sets.greek ? ', griego' : ''}…) salen de ${esc(O.font)}` : ''}.${O.tplPsd ? ' Del .psd no se leen los efectos de capa: para conservarlos, cargá el PNG.' : ''}</small>
+        ${sec(0, '🎨 Plantilla de Photoshop', `${O.tpl ? `<div class="kpfimg kpftpl"><canvas id="kpfTplTh" width="440" height="112"></canvas><div><b>${esc(O.tplName)}</b><small class="note">${O.tpl.count} de ${O.tpl.total} letras dibujadas en la plantilla${O.tpl.count < O.tpl.total || n > O.tpl.count ? `; las demás (espacio, cirílico, griego…) salen de ${esc(O.font)}` : ''}.${O.tplPsd ? ' Del .psd no se leen los efectos de capa: para conservarlos, cargá el PNG.' : ''}</small>
             <label class="chk"><input type="checkbox" id="kpfTplTint" ${O.tplTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
             <div class="kpfup"><button class="btn small" type="button" id="kpfTpl">↻ Cargar otra</button><button class="btn small ghost" type="button" id="kpfTplX">Quitar la plantilla</button></div></div></div>`
           : `<p class="note">Dibujá o retocá las letras en Photoshop, una por casilla, y traelas acá: pasan a la textura del juego tal cual, con sus colores y efectos.</p>
@@ -344,7 +376,7 @@ function kpfHtml(has) {
             <div class="f"><label for="kpfSh">Sombra <output>${O.shadow}</output></label><div class="row"><input type="range" id="kpfSh" min="0" max="12" value="${O.shadow}"><input type="color" id="kpfShC" value="${O.shadowColor}" aria-label="Color de la sombra"></div></div>
             <div class="f"><label for="kpfS1">Borde <output>${O.stroke1}</output></label><div class="row"><input type="range" id="kpfS1" min="0" max="14" value="${O.stroke1}"><input type="color" id="kpfC1" value="${O.color1}" aria-label="Color del borde"></div></div>
             <div class="f"><label for="kpfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row"><input type="range" id="kpfS2" min="0" max="14" value="${O.stroke2}"><input type="color" id="kpfC2" value="${O.color2}" aria-label="Color del segundo borde"></div></div></div>`)}
-        ${sec(0, 'Idiomas', `<div class="fchips" id="kpfSets">${KPF.SETS.map(s => `<button type="button" data-set="${s.k}" aria-pressed="${!!(s.fixed || KPFS.sets[s.k])}" ${s.fixed ? 'disabled' : ''} title="${esc(s.d)}">${s.n} <small>${[...s.chars].length}</small></button>`).join('')}</div>`)}
+        ${sec(0, 'Letras', `<p class="note">Van las ${n} de la tabla de KitPos, <span class="mono">content\\kitpos\\minusculas.txt</span>${KPFS.tbl && KPFS.tbl.src === 'sider' ? ' de tu carpeta Sider' : ''}: mayúsculas, minúsculas, números, tildes, Ñ, Europa central, cirílico y griego. Cada letra queda en el mismo lugar y con el mismo ancho que dice esa tabla, que es lo que lee el juego.</p>`)}
       </aside>
       <div class="kpfc">
         <div class="kpfsample"><label class="lab" for="kpfName">Nombre de prueba</label><input type="text" id="kpfName" value="${esc(KPFS.sample)}" maxlength="24"><div class="fchips" id="kpfSam">${KPF_SAMPLES.map(s => `<button type="button" data-s="${esc(s)}" aria-pressed="${s === KPFS.sample}">${esc(s)}</button>`).join('')}</div></div>
@@ -361,19 +393,19 @@ function kpfHtml(has) {
         ${has ? kposHtml(['name'], { save: true }) : ''}
         ${sec(4, 'Llevarla al juego', `${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
             <button class="btn" type="button" id="kpfTry" title="Abre el Editor de Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en el Editor</button>
-            <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21) y borra kitpos_letras.txt">↩ Volver a la anterior</button></div>`
+            <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21)">↩ Volver a la anterior</button></div>`
             : `<p class="note">Sin un kit elegido la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.</p><div class="kpfbtns"><button class="btn primary" type="button" id="kpfZip">⬇ Descargar .zip</button></div>`}
           <p class="note kpflog" id="kpfLog" aria-live="polite">${esc(KPFS.log)}</p>
-          ${has ? `<ul class="kpfst">${row(st ? st.kit || 'info' : null, 'Kit ' + esc(KS.sel), !st ? 'revisando…' : st.kit ? 'ya usa una fuente de KitPos (' + st.kitN + ' letras)' : 'usa la fuente común del juego')}</ul>` : ''}`, 'kpfgame')}
+          ${has ? `<ul class="kpfst">${row(st ? st.kit || 'info' : null, 'Kit ' + esc(KS.sel), !st ? 'revisando…' : st.old ? 'tiene un kitpos_letras.txt propio (' + st.kitN + ' letras): al guardar se reemplaza por la tabla general' : st.kit ? 'ya usa una fuente con minúsculas (NameLower = 1, ' + st.kitN + ' letras)' : 'usa la fuente común del juego')}</ul>` : ''}`, 'kpfgame')}
       </aside>
     </div>
     <details class="kpfhow"><summary>Cómo llega al juego</summary><ol>
       <li><b>KitPos en Sider.</b> Los cuatro requisitos de arriba: KitPos 6.4 o más nuevo en <span class="mono">modules\\kitpos.lua</span>, cargado en <span class="mono">sider.ini</span> debajo de kserv y con las minúsculas activadas. El editor trae KitPos: "Instalar KitPos" lo copia y agrega las líneas (con copia de sider.ini); "Descargar kitpos.lua" lo baja para copiarlo a mano.</li>
-      <li><b>Tres archivos en la carpeta del kit.</b> El botón guarda en <span class="mono">content\\kit-server\\&lt;equipo&gt;\\&lt;kit&gt;</span> la textura de letras como .dds y .ftex (DXT5, 4096 px de ancho, con el nombre de <span class="mono">NameFontFile</span> del config.txt) y <span class="mono">kitpos_letras.txt</span>, la tabla con el lugar de cada letra. La primera vez guarda una copia .bak-edit21 de la textura anterior.</li>
+      <li><b>Como un kit que ya muestra minúsculas.</b> El botón guarda en <span class="mono">content\\kit-server\\&lt;equipo&gt;\\&lt;kit&gt;</span> la textura de letras con el nombre del kit (<span class="mono">u2689p1_name.dds</span> y <span class="mono">.ftex</span>: 4096×4096, DXT5, 13 mips), pone ese nombre en <span class="mono">NameFontFile</span> del config.txt y activa <span class="mono">NameLower = 1</span> para ese kit en kitpos_slots.ini. Cada letra va en el lugar que dice <span class="mono">content\\kitpos\\minusculas.txt</span>, la tabla general de KitPos (si no la tenés, la copia). Si el kit tenía un kitpos_letras.txt viejo lo guarda como .bak-edit21 y lo saca, porque desordenaría las letras. La primera vez guarda una copia .bak-edit21 de la textura anterior.</li>
       <li><b>Posición, tamaño y arco.</b> El panel 📐 guarda los valores exactos en <span class="mono">content\\kitpos\\kitpos_slots.ini</span>, en la sección del kit (<span class="mono">[equipo ID p1]</span>) o de todo el equipo. Son los mismos que ajusta el panel de KitPos en el overlay de Sider.</li>
       <li><b>Minúsculas y acentos.</b> Con <span class="mono">minusculas_juego = 1</span> en kitpos_slots.ini (viene así de fábrica) el juego deja el nombre como está en la base y el editor del juego acepta minúsculas y las letras de la fuente.</li>
       <li><b>En el juego.</b> Abrí el juego de nuevo, entrá a Editar › Equipos › Uniformes y fijate el nombre en la espalda.</li>
-      <li><b>Sin la app ni la carpeta conectada.</b> "Descargar .zip" trae los tres archivos y un LEEME: copialos a la carpeta del kit y, si el config.txt no tiene NameFontFile, completalo con el nombre de la textura.</li></ol></details>
+      <li><b>Un .zip por uniforme.</b> "Descargar .zip" arma las carpetas como en Sider: la del kit elegido (o la de cada kit con "Todos") con su textura, <span class="mono">content\\kitpos\\minusculas.txt</span>, las líneas de NameLower para kitpos_slots.ini y un LEEME. Se descomprime en la carpeta de Sider.</li></ol></details>
   </div>`;
 }
 // ---- vista previa ----
@@ -400,7 +432,7 @@ function kpfDrawPreview(sh) {
     const p = KPFS.has && KS.cfg ? KS_POS.name() : null, o = p ? { stretch: p.stretch / 1.2, spacing: p.spacing, curve: p.curve } : {};
     g.save(); g.strokeStyle = '#ffffff14'; g.setLineDash([6, 8]); g.beginPath(); g.moveTo(W / 2, 20); g.lineTo(W / 2, H - 20); g.stroke(); g.restore();
     KPF.drawText(g, tex, KPFS.sample || 'Fernández', W / 2, 170, 128, { ...o, maxW: W - 60 });
-    const extra = [...new Set(KPF.chars(KPFS.sets).filter(c => !/[A-Za-z0-9 .\-'_]/.test(c)))].slice(0, 26).join('');
+    const extra = [...new Set(R.L.cells.map(c => c.ch).filter(c => !/[A-Za-z0-9 .\-'_]/.test(c)))].filter((c, i, a) => i % Math.max(1, Math.floor(a.length / 26)) === 0).slice(0, 26).join('');
     KPF.drawText(g, tex, 'Aa Bb Cc Ññ 0123456789', W / 2, 336, 52, { maxW: W - 60 }); if (extra) KPF.drawText(g, tex, extra, W / 2, 436, 46, { maxW: W - 60 }); }
   const ac = sh.querySelector('#kpfAtlas'); if (ac) { const g = ac.getContext('2d'), hh = Math.round(ac.width * tex.height / tex.width); if (ac.height !== hh) ac.height = hh;
     for (let y = 0; y < ac.height; y += 10) for (let x = 0; x < ac.width; x += 10) { g.fillStyle = (x + y) / 10 % 2 ? '#2a2f36' : '#353b44'; g.fillRect(x, y, 10, 10); }
@@ -428,8 +460,8 @@ function kpfBack3d(sh, now) {
   }, now ? 0 : 180);
 }
 function kpfRun(sh) {
-  clearTimeout(kpfRun.t); kpfRun.t = setTimeout(() => {
-    try { KPFS.out = KPF.render(kpfOpts(), KPF.chars(KPFS.sets)); KPFS.rev++; kpfDrawPreview(sh); kpfPresetThumbs(sh); }
+  clearTimeout(kpfRun.t); kpfRun.t = setTimeout(async () => {
+    try { const T = await kpfTable(), had = sh.querySelector('.kpfn'); KPFS.out = KPF.render(kpfOpts(), null, T.list); KPFS.rev++; kpfDrawPreview(sh); kpfPresetThumbs(sh); if (had) had.textContent = tr(T.list.length + ' letras'); }
     catch (e) { KPFS.out = null; const l = sh.querySelector('#kpfLog'); if (l) l.textContent = 'No se pudo armar la fuente: ' + e.message; }
   }, 90);
 }
@@ -443,7 +475,8 @@ async function kpfCheck(has) {
     try { const mods = await sider.getDirectoryHandle('modules'), t = await readText(mods, 'kitpos.lua'); st.lua = t != null; if (t) { const v = (t.match(/version\s*=\s*"([\d.]+)"/) || [])[1] || ''; st.ver = v; const [a, b] = v.split('.').map(Number); st.verOk = v ? (a > 6 || (a === 6 && (b || 0) >= 4)) : null; } } catch { st.lua = false; }
     let ini = null; try { ini = typeof siReadIni === 'function' ? await siReadIni(sider) : await readText(sider, 'sider.ini'); } catch { } if (ini != null) { const act = ini.split(/\r?\n/).filter(l => !/^\s*[;#]/.test(l)); st.ini = act.some(l => /^\s*lua\.module\s*=\s*"?kitpos\.lua"?\s*$/i.test(l)); st.luajit = act.some(l => /^\s*luajit\.ext\.enabled\s*=\s*1\b/i.test(l)); }
     try { const kd = await subDir(sider, 'content/kitpos'), s = await readText(kd, 'kitpos_slots.ini'); if (s != null) st.lower = !/^\s*minusculas_juego\s*=\s*0/m.test(s); else st.lower = true; } catch { st.lower = st.lua ? true : null; }
-    if (has && kit && KS.sel && KS.path) { try { const kd = await (await subDir(kit, KS.path)).getDirectoryHandle(KS.sel), t = await readText(kd, 'kitpos_letras.txt'); if (t) { st.kit = true; st.kitN = KPF.parseLetras(t).length; } } catch { } }
+    if (has && kit && KS.sel && KS.path) { try { const kd = await (await subDir(kit, KS.path)).getDirectoryHandle(KS.sel), t = await readText(kd, 'kitpos_letras.txt'); if (t) { st.kit = true; st.old = true; st.kitN = KPF.parseLetras(t).length; } } catch { }
+      if (!st.kit && kpsVals().NameLower === 1) { st.kit = true; st.kitN = kpfN(); } }
   } catch { }
   return st;
 }
@@ -455,53 +488,93 @@ async function kpfLowerOn() {
 // ---- guardar ----
 async function kpfBuild(log) {
   log('Armando la textura de letras…'); await new Promise(r => setTimeout(r, 20));
-  const R = KPF.render(kpfOpts(), KPF.chars(KPFS.sets)), px = new Uint8Array(R.px.buffer, R.px.byteOffset, R.px.length);
+  const T = await kpfTable(), R = KPF.render(kpfOpts(), null, T.list), px = new Uint8Array(R.px.buffer, R.px.byteOffset, R.px.length);
   const levels = await FTEXW.mipLevels(px, R.L.W, R.L.H, { dxt5: true, progress: p => log('Comprimiendo en DXT5 con todos sus tamaños… ' + Math.round(p * 100) + '%') });
   log('Armando el .dds y el .ftex…'); const dds = FTEXW.ddsMips(levels, R.L.W, R.L.H), ftex = await FTEXW.assemble(levels, R.L.W, R.L.H, true);
-  KPFS.out = R; return { R, dds, ftex };
+  KPFS.out = R; return { R, dds, ftex, T };
 }
 async function kpfBackup(kd, name) { try { const old = await kd.getFileHandle(name); try { await kd.getFileHandle(name + '.bak-edit21'); } catch { const bk = await kd.getFileHandle(name + '.bak-edit21', { create: true }), w = await bk.createWritable(); await w.write(await (await old.getFile()).arrayBuffer()); await w.close(); if (typeof bakNote === 'function') bakNote(kd); } } catch { } }
 async function kpfPut(kd, name, data) { await kpfBackup(kd, name); const fh = await kd.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(data); await w.close(); }
-// un kit: la textura con el nombre de NameFontFile (o uXXXXpN_name si estaba vacío) en .dds y .ftex, y la tabla de letras
+// Como en un kit que ya muestra minúsculas en el juego (la carpeta p1 de ejemplo): la textura se llama <KitFile>_name
+// (u2689p1_name.dds y .ftex), NameFontFile apunta a ella, el kit no tiene kitpos_letras.txt (usa la tabla general
+// content\kitpos\minusculas.txt) y en kitpos_slots.ini su sección [equipo ID pN] lleva NameLower = 1.
+const kpfFileFor = (cfg, kitName, team = KS.team) => ((cfg && cfgGet(cfg, 'KitFile') || '').trim() || 'u' + String(team).padStart(4, '0') + kitName) + '_name';
+// config.txt del kit con NameFontFile apuntando a su textura; changed si hubo que cambiarlo. apply: cambia el kit abierto (si no, una copia)
+function kpfCfgFor(kitName, txt, apply) {
+  const cur = apply && kitName === KS.sel, cfg = cur ? KS.cfg : cfgParse(kitName === KS.sel ? cfgSerialize(KS.cfg) : txt ?? KS.cfgTxt[kitName] ?? ''), file = kpfFileFor(cfg, kitName);
+  if ((cfgGet(cfg, 'NameFontFile') || '').trim() === file) return { cfg, file, changed: false };
+  let f = cfg.fields.find(x => x.key === 'NameFontFile');
+  if (!f) { cfg.lines.push(''); cfg.fields.push(f = { i: cfg.lines.length - 1, key: 'NameFontFile', value: '', pre: 'NameFontFile=', gap: '', comment: '', section: 'texture files' }); }
+  if (cur) cfgSet(KS.cfg, 'NameFontFile', file); else f.value = file;
+  return { cfg, file, changed: true };
+}
+const kpfKitSec = k => { const gk = KS.gk.includes(k); return KPOS.secKey(KS.team, gk ? 0 : KS.kits.indexOf(k) + 1, gk); };
 async function kpfInstallKit(dir, kitName, B) {
-  const kd = await dir.getDirectoryHandle(kitName), cur = kitName === KS.sel;
-  const cfg = cur ? KS.cfg : cfgParse((await readText(kd, 'config.txt')) || '');
-  let file = (cfgGet(cfg, 'NameFontFile') || '').trim(), cfgChanged = false;
-  if (!file) { const kf = (cfgGet(cfg, 'KitFile') || '').trim() || 'u' + String(KS.team).padStart(4, '0') + kitName; file = kf + '_name';
-    let f = cfg.fields.find(x => x.key === 'NameFontFile'); if (!f) { cfg.lines.push(''); cfg.fields.push(f = { i: cfg.lines.length - 1, key: 'NameFontFile', value: '', pre: 'NameFontFile=', gap: '', comment: '', section: 'texture files' }); }
-    if (cur) cfgSet(KS.cfg, 'NameFontFile', file); else { f.value = file; cfgChanged = true; } }
-  await kpfPut(kd, file + '.dds', B.dds); await kpfPut(kd, file + '.ftex', B.ftex); await kpfPut(kd, 'kitpos_letras.txt', B.R.txt);
-  if (cfgChanged) { const txt = cfgSerialize(cfg); await kpfPut(kd, 'config.txt', txt); KS.cfgTxt[kitName] = txt; }
+  const kd = await dir.getDirectoryHandle(kitName), { cfg, file, changed } = kpfCfgFor(kitName, kitName === KS.sel ? null : (await readText(kd, 'config.txt')) || '', true);
+  await kpfPut(kd, file + '.dds', B.dds); await kpfPut(kd, file + '.ftex', B.ftex);
+  // una tabla propia vieja (kitpos_letras.txt) le ganaría a minusculas.txt y desordenaría las letras: se guarda aparte y se saca
+  try { await kd.getFileHandle('kitpos_letras.txt'); await kpfBackup(kd, 'kitpos_letras.txt'); await kd.removeEntry('kitpos_letras.txt'); } catch { }
+  if (changed && kitName !== KS.sel) { const txt = cfgSerialize(cfg); await kpfPut(kd, 'config.txt', txt); KS.cfgTxt[kitName] = txt; }
   for (const k of [...KS.tex.keys()]) if (k.startsWith(KS.path + '/' + kitName + ':')) KS.tex.delete(k); delete KS.thumbs[kitName];
   return file;
+}
+// minusculas.txt: si la carpeta Sider no la tiene, se copia la que usa el editor (la de la fuente que se acaba de armar)
+async function kpfPutTable(T) {
+  const { sider } = await ksRoot(true), content = await sider.getDirectoryHandle('content', { create: true }), kd = await content.getDirectoryHandle('kitpos', { create: true });
+  if (T.src === 'sider' && await readText(kd, 'minusculas.txt') != null) return false;
+  await kpfPut(kd, 'minusculas.txt', T.text); return true;
 }
 async function kpfInstall(log) {
   const B = await kpfBuild(log), { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), wasDirty = KS.dirty;
   const targets = KPFS.target === '*' ? KS.kits.slice() : [KPFS.target], done = [];
   for (const k of targets) { log('Guardando en ' + k + '…'); done.push(k + ': ' + await kpfInstallKit(dir, k, B)); }
+  const n = done.length; if (await kpfPutTable(B.T)) done.push('content\\kitpos\\minusculas.txt');
+  // NameLower = 1 en la sección de cada kit (lo mismo que "Minúsculas en el nombre" del panel de KitPos)
+  await kpsLoad(); let lower = false;
+  if (KPS.cur && KPS.st && KPS.st.slots !== 'hidden') { let t = KPS.curText; for (const k of targets) t = KPOS.setValues(t, kpfKitSec(k), { NameLower: 1 }); KPS.curText = t; KPS.cur = KPOS.parse(t); lower = true; }
   if (targets.includes(KS.sel)) { if (!wasDirty && KS.dirty) await ksSave(); const c = B.R.canvas; KS.T.name = { c, file: done[0], where: 'kit' }; KS.texRev = (KS.texRev || 0) + 1; KS.dispKey = ''; }
-  return done;
+  return { done, lower, n };
 }
 async function kpfUndo() {
   const { kit } = await ksRoot(true), kd = await (await subDir(kit, KS.path)).getDirectoryHandle(KS.sel), file = (cfgGet(KS.cfg, 'NameFontFile') || '').trim(); let n = 0;
-  for (const e of ['.dds', '.ftex']) { try { const bk = await kd.getFileHandle(file + e + '.bak-edit21'), fh = await kd.getFileHandle(file + e, { create: true }), w = await fh.createWritable(); await w.write(await (await bk.getFile()).arrayBuffer()); await w.close(); n++; } catch { } }
-  try { await kd.removeEntry('kitpos_letras.txt'); n++; } catch { }
+  let wide = false; // la textura que vuelve es la del juego (4:1, sin minúsculas): entonces el kit deja de pedir NameLower
+  for (const e of ['.dds', '.ftex']) { try { const bk = await kd.getFileHandle(file + e + '.bak-edit21'), buf = await (await bk.getFile()).arrayBuffer(), fh = await kd.getFileHandle(file + e, { create: true }), w = await fh.createWritable(); await w.write(buf); await w.close(); n++;
+    if (e === '.dds' && buf.byteLength > 20) { const v = new DataView(buf); wide = v.getUint32(16, true) === 4 * v.getUint32(12, true); } } catch { } }
+  let own = false; try { const bk = await kd.getFileHandle('kitpos_letras.txt.bak-edit21'), fh = await kd.getFileHandle('kitpos_letras.txt', { create: true }), w = await fh.createWritable(); await w.write(await (await bk.getFile()).arrayBuffer()); await w.close(); n++; own = true; } catch { }
+  if (wide || own) { await kpsLoad(); if (KPS.cur && KPS.st && KPS.st.slots !== 'hidden' && kpsOwn('kit').NameLower != null) { KPS.curText = KPOS.setValues(KPS.curText, kpfKitSec(KS.sel), { NameLower: null }); KPS.cur = KPOS.parse(KPS.curText); await kpsSave(); } }
   for (const k of [...KS.tex.keys()]) if (k.startsWith(KS.path + '/' + KS.sel + ':')) KS.tex.delete(k);
   return n;
 }
-function kpfReadme(file) {
+function kpfReadme(kits, team) {
+  const sec = kits.map(k => k.sec).join(', ');
   return ['Fuente del nombre para KitPos - creada con PES Editor Rebuilt', '',
-    'Archivos:', `  ${file}.dds y ${file}.ftex  textura de letras (DXT5)`, '  kitpos_letras.txt  donde esta cada letra dentro de la textura', '',
-    'Como instalarla:', '  1. Copia los tres archivos a la carpeta del kit: Sider\\content\\kit-server\\<equipo>\\<kit>',
-    `  2. En el config.txt de ese kit, NameFontFile tiene que ser ${file} (sin extension).`,
-    '  3. Hace falta KitPos 6.4 o mas nuevo: modules\\kitpos.lua y en sider.ini lua.module = "kitpos.lua" debajo de kserv.lua (con luajit.ext.enabled = 1).',
-    '  4. Para minusculas y acentos: content\\kitpos\\kitpos_slots.ini, [opciones] minusculas_juego = 1.',
-    '  5. Abri el juego de nuevo y mira el nombre en Editar > Equipos > Uniformes.', ''].join('\r\n');
+    'Es el mismo formato que un kit que ya muestra minusculas y acentos en el juego:', '',
+    ...kits.map(k => `  ${k.dir}\\${k.file}.dds y ${k.file}.ftex  textura de letras (4096x4096, DXT5, 13 mips)${k.cfg ? ' + config.txt con NameFontFile=' + k.file : ''}`),
+    '  content\\kitpos\\minusculas.txt  donde esta cada letra dentro de la textura (una sola tabla para todos los kits)', '',
+    'Como instalarla:', '  1. Descomprimi el .zip dentro de la carpeta de Sider (la que tiene sider.exe): cada archivo cae en su lugar.',
+    `  2. En el config.txt de cada kit, NameFontFile tiene que ser el nombre de la textura sin extension (${kits.map(k => k.file).join(', ')}).`,
+    '  3. Si la carpeta del kit tiene un kitpos_letras.txt viejo, borralo: le gana a minusculas.txt y desordena las letras.',
+    `  4. En content\\kitpos\\kitpos_slots.ini agrega NameLower = 1.00000 en ${sec || '[equipo ID pN]'} (esta en "kitpos_slots - agregar.txt").`,
+    '  5. Hace falta KitPos 6.4 o mas nuevo: modules\\kitpos.lua y en sider.ini lua.module = "kitpos.lua" debajo de kserv.lua (con luajit.ext.enabled = 1),',
+    '     y en kitpos_slots.ini, [opciones] minusculas_juego = 1.',
+    `  6. Abri el juego de nuevo y mira el nombre en Editar > Equipos > Uniformes${team ? ' (' + team + ')' : ''}.`, ''].join('\r\n');
 }
+// .zip para cada uniforme: la carpeta del kit con su textura (y su config.txt si cambió NameFontFile), minusculas.txt y lo de kitpos_slots.ini
 async function kpfZip(log) {
-  const B = await kpfBuild(log), file = KPFS.has ? (cfgGet(KS.cfg, 'NameFontFile') || '').trim() || ksBase() + '_name' : 'uXXXXp1_name';
-  const z = KPF.zipMany([{ name: file + '.dds', data: B.dds }, { name: file + '.ftex', data: B.ftex }, { name: 'kitpos_letras.txt', data: B.R.txt }, { name: 'LEEME.txt', data: kpfReadme(file) }]);
-  await downloadBytes('fuente-kitpos-' + String(kpfOpts().font).replace(/[^\w-]+/g, '-').toLowerCase() + '.zip', z); return file;
+  const B = await kpfBuild(log), has = KPFS.has && KS.cfg, base = has ? 'content/kit-server/' + String(KS.path).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') + '/' : 'content/kit-server/<equipo>/';
+  const targets = has ? (KPFS.target === '*' ? KS.kits.slice() : [KPFS.target]) : ['p1'], files = [], kits = [];
+  for (const k of targets) {
+    const c = has ? kpfCfgFor(k, null, false) : { file: 'uXXXXp1_name', changed: false }, dir = base + k;
+    files.push({ name: dir + '/' + c.file + '.dds', data: B.dds }, { name: dir + '/' + c.file + '.ftex', data: B.ftex });
+    if (c.changed) files.push({ name: dir + '/config.txt', data: cfgSerialize(c.cfg) });
+    kits.push({ dir: dir.replace(/\//g, '\\'), file: c.file, cfg: c.changed, sec: '[' + (has ? kpfKitSec(k) : 'equipo ID p1') + ']' });
+  }
+  files.push({ name: 'content/kitpos/minusculas.txt', data: B.T.text },
+    { name: 'content/kitpos/kitpos_slots - agregar.txt', data: ['; Pegalo en content\\kitpos\\kitpos_slots.ini (si la seccion ya existe, agrega solo la linea NameLower)', ...kits.flatMap(k => [k.sec, 'NameLower = 1.00000', ''])].join('\r\n') },
+    { name: 'LEEME.txt', data: kpfReadme(kits, has && KPFS.t ? KPFS.t.name : '') });
+  const tag = has ? (String(KPFS.t && KPFS.t.name || KS.team).replace(/[^\w-]+/g, '-') + '-' + (KPFS.target === '*' ? 'todos' : KPFS.target)) : String(kpfOpts().font).replace(/[^\w-]+/g, '-');
+  const name = 'fuente-' + tag.toLowerCase().replace(/-+/g, '-').replace(/^-|-$/g, '') + '.zip';
+  await downloadBytes(name, KPF.zipMany(files)); return { name, kits };
 }
 function kpfBind(sh, has) {
   KPFS.has = has;
@@ -518,7 +591,6 @@ function kpfBind(sh, has) {
   on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgTint', el => O.imgTint = el.checked); on('kpfTplTint', el => O.tplTint = el.checked);
   $k('kpfFonts').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; O.font = b.dataset.font; $k('kpfFonts').querySelectorAll('[data-font]').forEach(x => x.setAttribute('aria-selected', x === b)); upd(); };
   $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); rr(); };
-  $k('kpfSets').onclick = e => { const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; KPFS.sets[b.dataset.set] = !KPFS.sets[b.dataset.set]; b.setAttribute('aria-pressed', !!KPFS.sets[b.dataset.set]); sh.querySelector('.kpfn').textContent = tr(KPF.chars(KPFS.sets).length + ' letras'); upd(); };
   const nm = $k('kpfName'); nm.oninput = () => { KPFS.sample = nm.value; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x.dataset.s === nm.value)); kpfDrawPreview(sh); };
   $k('kpfSam').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; KPFS.sample = nm.value = b.dataset.s; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x === b)); kpfDrawPreview(sh); };
   $k('kpfView').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; KPFS.view = b.dataset.v; $k('kpfView').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); $k('kpfShirt').hidden = KPFS.view === 'atlas'; sh.querySelector('.kpfatlas').hidden = KPFS.view !== 'atlas'; };
@@ -544,16 +616,16 @@ function kpfBind(sh, has) {
   const busy = (b, fn) => async () => { if (KPFS.busy) return; KPFS.busy = true; const btns = sh.querySelectorAll('.kpfgame .btn, .kpfreqs .btn'); btns.forEach(x => x.disabled = true);
     try { await fn(); } catch (e) { log('No se pudo: ' + e.message); toast('No se pudo: ' + e.message, 7000); } KPFS.busy = false; btns.forEach(x => x.disabled = false); };
   const ins = $k('kpfInstall'); if (ins) ins.onclick = busy(ins, async () => {
-    const done = await kpfInstall(log), kp = await kpsSave(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = true;
-    log('Listo: ' + done.join(' · ') + (kp ? ' · posición en kitpos_slots.ini' : '') + '. Abrí el juego de nuevo para verla.'); toast('Fuente guardada en ' + done.length + (done.length > 1 ? ' kits' : ' kit') + '. Abrí el juego de nuevo para verla.', 8000); rr(); });
+    const { done, lower, n } = await kpfInstall(log), kp = await kpsSave(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = true;
+    log('Listo: ' + done.join(' · ') + (kp && lower ? ' · minúsculas (NameLower = 1) en kitpos_slots.ini' : kp ? ' · kitpos_slots.ini' : '') + (lower ? '' : '. Falta NameLower = 1 en kitpos_slots.ini: elegí el archivo con 📄 y guardá de nuevo') + '. Abrí el juego de nuevo para verla.'); toast('Fuente guardada en ' + n + (n > 1 ? ' kits' : ' kit') + '. Abrí el juego de nuevo para verla.', 8000); rr(); });
   const tr3 = $k('kpfTry'); if (tr3) tr3.onclick = () => { if (!KPFS.out) return;
     KS.T.name = { c: KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || KS.sample.name }; KS.texRev = (KS.texRev || 0) + 1; KS.dispKey = ''; KS.mode = 'edit'; KS.view = '3d'; rr();
     setTimeout(() => { const w = document.getElementById('ks3dWrap'); if (w) w.scrollIntoView({ block: 'center', behavior: 'smooth' }); const b = document.querySelector('[data-cam="back"]'); if (b) b.click(); }, 500); toast('Probando la fuente en el Editor. Para que el juego la use, volvé a 🔤 Fuentes y tocá el botón de guardar.', 7000); };
   const dl = $k('kpfKpDl'); if (dl) dl.onclick = busy(dl, async () => { const r = await fetch('sider/kitpos.lua', { cache: 'no-cache' }), t = r.ok ? await r.text() : '', v = (t.match(/local m = \{ version = "([\d.]+)"/) || [])[1];
     if (!v) throw new Error('no se pudo bajar kitpos.lua (¿sin internet?)'); await downloadBytes('kitpos.lua', new TextEncoder().encode(t)); log('Descargado kitpos.lua (KitPos ' + v + '): copialo a Sider\\modules y agregá sus líneas en sider.ini.'); });
   const cp = $k('kpfIniCp'); if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(KPF_INI.replace(/\n/g, '\r\n')); toast('Líneas copiadas: pegalas en sider.ini, en la parte de [sider].'); } catch { toast('No se pudo copiar: seleccioná las líneas y copialas a mano.', 5000); } };
-  const zp = $k('kpfZip'); if (zp) zp.onclick = busy(zp, async () => { const f = await kpfZip(log); log('Descargado: ' + f + '.dds, ' + f + '.ftex, kitpos_letras.txt y LEEME.txt.'); });
-  const un = $k('kpfUndo'); if (un) un.onclick = busy(un, async () => { if (!await confirmBox('¿Volver a la textura de letras que tenía ' + KS.sel + ' y borrar su kitpos_letras.txt?')) return; const n = await kpfUndo(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = false; await ksLoadSlots(); log(n ? 'Listo: ' + KS.sel + ' volvió a su fuente anterior.' : 'No había nada para volver atrás en ' + KS.sel + '.'); rr(); });
+  const zp = $k('kpfZip'); if (zp) zp.onclick = busy(zp, async () => { const z = await kpfZip(log); log('Descargado ' + z.name + ': ' + z.kits.map(k => k.file + '.dds y .ftex').join(', ') + ', minusculas.txt y LEEME.txt. Descomprimilo en la carpeta de Sider.'); });
+  const un = $k('kpfUndo'); if (un) un.onclick = busy(un, async () => { if (!await confirmBox('¿Volver a la textura de letras que tenía ' + KS.sel + '?')) return; const n = await kpfUndo(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = false; await ksLoadSlots(); log(n ? 'Listo: ' + KS.sel + ' volvió a su fuente anterior.' : 'No había nada para volver atrás en ' + KS.sel + '.'); rr(); });
   const lw = $k('kpfLower'); if (lw) lw.onclick = busy(lw, async () => { await kpfLowerOn(); KPFS.st = null; KPFS.stFor = ''; toast('Minúsculas activadas en kitpos_slots.ini.'); rr(); });
   for (const id of ['kpfKp', 'kpfKp2']) { const b = $k(id); if (b) b.onclick = busy(b, async () => { const r = await kpsInstall(); KPFS.st = null; KPFS.stFor = '';
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : r.lua === 'nuevo' ? 'instalado' : 'listo') + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); rr(); }); }

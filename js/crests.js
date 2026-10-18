@@ -4,7 +4,7 @@
 // y el ID se cambia al del equipo. Lo que ya había queda guardado como .bak-edit21 (solo la primera vez).
 const CREST_SET = [ // tamaño de cada archivo cuando la carpeta del juego no trae otro escudo para copiar la medida
   ['f', 256], ['f_l', 512], ['f_ll', 1024], ['r', 256], ['r_l', 256], ['r_ll', 1024],
-  ['r_b_l', 256], ['r_b_ll', 1024], ['r_w', 256], ['r_w_l', 256], ['r_w_ll', 1024]];
+  ['r_b', 256], ['r_b_l', 256], ['r_b_ll', 1024], ['r_w', 256], ['r_w_l', 256], ['r_w_ll', 1024]];
 const CREST_FLAG = 'common/render/symbol/flag', CREST_ROOT = 'PESEditor-Escudos';
 // calidad: 'hd' copia la medida de los escudos que ya hay en la carpeta; '2k' (prueba) usa medidas fijas más grandes
 const CREST_Q_LS = 'edit21-crest-q', CREST_2K = { ll: [2056, 2088], l: [1028, 1044], n: [512, 520] };
@@ -12,7 +12,8 @@ function crestQ() { try { return localStorage.getItem(CREST_Q_LS) === '2k' ? '2k
 function crestQSet(q) { try { localStorage.setItem(CREST_Q_LS, q); } catch { } }
 // la letra de tamaño va al final: sin letra = normal, _l = grande, _ll = el más grande
 const crestSizeKey = suf => /_ll$/.test(suf) ? 'll' : /_l$/.test(suf) ? 'l' : 'n';
-function crestSize(tg, suf) { return crestQ() === '2k' ? CREST_2K[crestSizeKey(suf)] : tg.size[suf]; }
+// en HD no se copian medidas de 2K que hayan quedado en la carpeta: arriba de 1028×1044 el juego puede no mostrarlo bien
+function crestSize(tg, suf) { if (crestQ() === '2k') return CREST_2K[crestSizeKey(suf)]; const [w, h] = tg.size[suf]; return w > 1028 || h > 1044 ? CREST_2K.l : [w, h]; }
 // agrega la carpeta a sider.ini (antes de las otras cpk.root, así sus escudos mandan); copia de seguridad la primera vez
 async function crestIniAdd(sider, root, label = 'escudos propios') {
   const f = await sdbFile(sider, 'sider.ini'); if (!f) throw new Error('En esa carpeta no está sider.ini: elegí la carpeta de Sider (la que tiene sider.exe).');

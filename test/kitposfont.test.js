@@ -146,3 +146,58 @@ test('con la tabla de minusculas.txt cada letra queda en el lugar y con el ancho
   const m = KPF.glyphMap(list, 4096, 4096); assert.equal(Math.round(m.get('a').sx), 3802); assert.equal(Math.round(m.get('a').sh), 256);
   assert.throws(() => KPF.fromTable([]), /vacía/);
 });
+
+// ---- revisión: por qué la fuente de un kit se ve (o no) en el juego ----
+const TBL = () => KPF.parseLetras(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'sider', 'minusculas.txt'), 'utf8'));
+test('kitpos_letras.txt del kit copia la tabla de minusculas.txt línea por línea (y se reconoce como la misma)', () => {
+  const txt = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'sider', 'minusculas.txt'), 'utf8');
+  const out = KPF.kitTable(txt, 'Trebuchet\r\n; raro'), list = KPF.parseLetras(out);
+  assert.equal(list.length, 371); assert.ok(KPF.sameTable(list, TBL())); assert.match(out, /fuente: Trebuchet raro/); assert.ok(!/\n; raro/.test(out));
+  const moved = J(list); moved[5].u0 += .001; assert.ok(!KPF.sameTable(moved, TBL())); assert.ok(!KPF.sameTable([], []));
+});
+
+test('lee el tamaño de un .dds y de un .ftex por la cabecera y reconoce el formato de cada uno', () => {
+  const dds = new Uint8Array(128); dds.set([68, 68, 83, 32]); const v = new DataView(dds.buffer); v.setUint32(12, 1024, true); v.setUint32(16, 4096, true); dds.set([68, 88, 84, 53], 84);
+  assert.deepEqual(J(KPF.texSize(dds)), { w: 4096, h: 1024, fmt: 'DXT5' });
+  const ft = new Uint8Array(32); ft.set([70, 84, 69, 88]); const f = new DataView(ft.buffer); f.setUint16(8, 4, true); f.setUint16(10, 4096, true); f.setUint16(12, 4096, true);
+  assert.deepEqual(J(KPF.texSize(ft)), { w: 4096, h: 4096, fmt: 'DXT5' }); assert.equal(KPF.texSize(new Uint8Array(40)), null);
+  assert.equal(KPF.texKind({ w: 4096, h: 4096 }), 'kitpos'); assert.equal(KPF.texKind({ w: 4096, h: 1024 }), 'game'); assert.equal(KPF.texKind({ w: 4096, h: 2048 }), 'other'); assert.equal(KPF.texKind(null), null);
+});
+
+test('distingue letras ubicadas con la tabla de letras centradas en casillas de plantilla', () => {
+  const W = 4096, H = 4096, bw = W / 4, bh = 256, list = TBL();
+  const blank = () => ({ bw, bh, ink: new Uint8Array(bw * bh) }), put = (I, x0, y0, x1, y1) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) I.ink[y * bw + x] = 1; };
+  const T = blank(); for (const e of list) if (e.v1 * H / 4 <= bh) put(T, Math.ceil(e.u0 * W / 4) + 2, Math.ceil(e.v0 * H / 4) + 14, Math.floor(e.u1 * W / 4) - 2, Math.floor(e.v1 * H / 4) - 14);
+  assert.equal(KPF.layoutGuess(T, W, H, list), 'table');
+  const G = blank(); for (let r = 0; r < 4; r++) for (let c = 0; c < 16; c++) put(G, c * 64 + 20, r * 64 + 14, c * 64 + 44, r * 64 + 50); // su atlas: 16 letras por fila de 256 px
+  assert.equal(KPF.layoutGuess(G, W, H, list), 'grid');
+  assert.equal(KPF.layoutGuess(blank(), W, H, list), 'unknown');
+  // el alfa de un DXT5 alcanza para saber dónde hay tinta
+  const u8 = new Uint8Array(128 + 16 * 4); u8[128 + 16] = 255; assert.deepEqual(J(Array.from(KPF.inkDxt5(u8, 16, 4).ink)), [0, 1, 0, 0]);
+});
+
+const LOG = ['Sider DLL: version 7.3.3 (0)', 'Filename match: \\PES2021.exe', 'Loading module: kitpos.lua ...', '[kitpos.lua] kitpos: minusculas activas', '[kitpos.lua] kitpos: minusculas.txt: 371 letras',
+  '[kitpos.lua] kitpos: hook_ok', 'OK: Lua module initialized: kitpos.lua (stack position: 37)', '[kitpos.lua] kitpos: fuente del kit: D:\\x\\p2\\kitpos_letras.txt (216 letras)'].join('\r\n');
+test('lee de sider.log solo la última vez que se abrió el juego', () => {
+  const d = J(KPF.logDiag('Sider DLL: version 7.0.0 (0)\r\n[kitpos.lua] kitpos: bad_bytes 1\r\n' + LOG));
+  assert.deepEqual([d.sider, d.exe, d.listed, d.init, d.status, d.lower, d.table, d.noTable], ['7.3.3', 'PES2021.exe', true, true, 'hook_ok', true, 371, false]);
+  assert.deepEqual(d.fonts, [{ file: 'D:\\x\\p2\\kitpos_letras.txt', n: 216 }]);
+  const fl = J(KPF.logDiag('Sider DLL: version 7.3.3 (0)\r\nFilename match: \\FL_2026.exe\r\n[kitpos.lua] kitpos: bad_bytes 141EAC232'));
+  assert.deepEqual([fl.exe, fl.listed, fl.status, fl.statusArg], ['FL_2026.exe', false, 'bad_bytes', '141EAC232']);
+  assert.equal(KPF.logDiag('nada'), null);
+});
+
+test('explica por qué el nombre sale mal y ofrece el arreglo que corresponde', () => {
+  const ks = x => J(KPF.diagnose(x)).map(e => e.k + (e.fix ? ':' + e.fix : '')), sq = { w: 4096, h: 4096 }, log = KPF.logDiag(LOG);
+  // su caso: atlas de plantilla en un kit que no le pide la fuente a KitPos
+  assert.deepEqual(ks({ font: 'u0184p1_name', dds: sq, ftex: sq, table: null, nameLower: false, layout: 'grid', log }), ['grid:tpl', 'no-table']);
+  assert.deepEqual(ks({ font: 'f', dds: sq, table: null, nameLower: false, layout: 'table', log }), ['no-table:table']);
+  assert.deepEqual(ks({ font: 'f', dds: sq, ftex: sq, table: 'same', nameLower: true, layout: 'table', log, stale: true }), ['kp-ok', 'stale']);
+  assert.deepEqual(ks({ font: 'f', dds: sq, nameLower: true, layout: 'table', log: KPF.logDiag('Sider DLL: version 7.3.3 (0)\r\nFilename match: \\FL_2026.exe') }), ['kp-off:kp']);
+  assert.deepEqual(ks({ font: 'f', dds: sq, nameLower: true, log: KPF.logDiag('Sider DLL: version 7.3.3 (0)\r\nLoading module: kitpos.lua\r\n[kitpos.lua] kitpos: bad_bytes 1') }), ['kp-exe:game']);
+  assert.deepEqual(ks({ font: 'f', dds: { w: 4096, h: 1024 }, table: 'other' }), ['game-with-table:clear']);
+  assert.deepEqual(ks({ font: 'f', dds: { w: 4096, h: 1024 } }), ['game-ok']);
+  assert.deepEqual(ks({ font: 'f', dds: sq, ftex: { w: 2048, h: 512 } }), ['dds-ftex', 'game-ok']); // el juego usa el .ftex
+  assert.deepEqual(ks({ font: 'f', dds: { w: 4096, h: 2048 } }), ['other-no-table']);
+  assert.deepEqual(ks({ font: null }), ['no-font']); assert.deepEqual(ks({ font: 'f' }), ['no-tex']);
+});

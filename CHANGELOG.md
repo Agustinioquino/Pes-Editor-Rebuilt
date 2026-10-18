@@ -2,6 +2,19 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.061 alpha · Fuentes que se ven bien en el juego, y por qué a veces no
+
+*18 de octubre de 2026, 16:30 (hora de Argentina)*
+
+Fuentes revisa por qué el nombre de un kit sale mal en el juego, lo arregla con un clic y explica cómo inyectar la fuente a mano.
+
+- **Revisar este kit en el juego** (Kits). En Kit Studio Pro → 🔤 Fuentes, 🩺 Revisar este kit en el juego lee sider.log y la carpeta del kit y dice qué falta: KitPos no cargó, el kit no le pide la fuente, las letras están en casillas de plantilla, el .dds y el .ftex no coinciden o el juego no se abrió desde que guardaste. Cada problema trae su botón para arreglarlo.
+- **Las letras en su lugar** (Kits). Si la textura del kit tiene una letra por casilla de 256 px (como la plantilla de Photoshop), Reacomodar las letras la carga como plantilla y al guardar cada mayúscula y minúscula queda donde la busca KitPos. Así se arregla el nombre que salía en la espalda como una hoja de letras chiquitas y amontonadas.
+- **Cada kit con su tabla** (Kits). Guardar deja junto a la textura un kitpos_letras.txt con la misma tabla de minusculas.txt, además de NameLower = 1. Así el kit muestra las minúsculas aunque el navegador no deje guardar kitpos_slots.ini o la carpeta se copie a mano a otro Sider.
+- **Solo mayúsculas** (Kits). Nuevo formato Solo mayúsculas: una textura de 4096×1024 con el formato del juego, que se ve con cualquier Sider y sin KitPos, por ejemplo con otro ejecutable o en Football Life.
+- **Guía para inyectar a mano** (Kits). Una guía dentro de Fuentes explica cómo llega la fuente al juego, cómo copiarla a mano paso a paso, por qué a veces funciona y a veces no, y con qué juegos y mods es compatible. Con un ejemplo del nombre bien y del nombre amontonado.
+- **Escudos en todas las pantallas** (Kits). El escudo propio se guarda en sus 12 versiones, también la e_<id>_r_b.png que faltaba, y la versión HD queda en 1028×1044 como máximo. Antes algunos escudos se veían mal en ciertas pantallas del juego.
+
 ## v0.060 alpha · Fuentes con minúsculas que el juego sí lee
 
 *18 de octubre de 2026, 02:15 (hora de Argentina)*

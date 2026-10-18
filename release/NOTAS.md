@@ -2,45 +2,57 @@
 
 <div align="center">
 
-# 🔤 Fonts with lowercase the game actually reads
+# 🩺 Shirt fonts that show right in the game
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.060-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.060-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-**Fernández, Müller, Łukasiewicz, Иванов.** The font creator in Kit Studio now saves the name font **exactly like a kit that already shows lowercase and accents in the game**. We took a kit that worked in-game, looked at every file it had, and made the editor build the same thing. ✍️
+You save a beautiful font, open the game, turn the player around and… **the whole letter sheet is on his back, tiny and crammed together.** 😵 We chased that one down. Now the editor tells you **why a name shows wrong, fixes it in one click** and explains how the font really gets into the game.
 
-## 📐 Every letter in its place
+<img alt="Left: the crammed letter sheet the game draws when it ignores the table. Right: the same font with KitPos reading the table, the name Fernández" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/antes-despues.png" width="100%">
 
-**Teams → pick the club → Kit Studio Pro → 🔤 Fonts** now puts each letter where KitPos's general table says, `content\kitpos\minusculas.txt`:
+## 🔎 Why the name came out crammed
 
-- **371 letters**: uppercase, lowercase, numbers, accents, Ñ, Central Europe, Cyrillic and Greek.
-- One **4096×4096** texture (DXT5, 13 mips), the same size and format as the kit that works.
-- Before, each font made its own order of letters, and in the game they could come out **mixed up**. Not anymore.
+The game builds the name by copying each letter from fixed boxes in a 4:1 texture (two rows of capitals). KitPos changes that lookup **only for the kits that ask for it**. If a kit has a big KitPos texture but doesn't ask for the table, the game uses its own boxes on it and each letter grabs a whole column of tiny letters. On top of that, a texture with **one letter per 256 px box** (the Photoshop template, injected as is) puts capitals and lowercase in the wrong place even when KitPos is working.
 
-<img alt="Top: a kit's font that works in the game. Bottom: a font made by the editor, with every letter in the same place" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.060/mismo-lugar.png" width="100%">
+## 🩺 Check this kit in the game
 
-## 🏷 The file is named after the kit
+**Teams → pick the club → Kit Studio Pro → 🔤 Fonts → 🩺 Check this kit in the game** reads `sider.log` and the kit folder and tells you, in plain words, what's going on:
 
-**Save in the kit folder** creates the texture with the kit's own name, like `u2689p1_name.dds` and `.ftex`, and points `NameFontFile` in config.txt to it. It no longer overwrites a shared texture like `font white`.
+- KitPos didn't load, couldn't hook into the executable, or is too old.
+- The kit doesn't ask KitPos for its font (no `kitpos_letras.txt`, no `NameLower`).
+- The letters are in **template boxes**: 🔁 **Rearrange the letters** loads the texture as a template and, when you save, every letter lands where KitPos looks for it.
+- The `.dds` and the `.ftex` don't match (kserv reads the `.ftex` first).
+- You haven't opened the game since saving.
 
-- It turns on **NameLower = 1** for that kit in kitpos_slots.ini, so the game uses the lowercase.
-- If the kit had an old `kitpos_letras.txt`, it keeps it as `.bak-edit21` and removes it, because it would scramble the letters.
-- If your Sider doesn't have `minusculas.txt`, the editor copies it.
+Every problem comes with **its own button** to fix it.
 
-<img alt="The Fonts section in PES 6 mode with the name Fernández on a green shirt" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.060/fuentes-en.png" width="100%">
+<img alt="Check this kit in the game: letters in template boxes, and the kit does not ask KitPos for the font" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/diagnostico-en.png" width="60%">
 
-## 📦 One .zip per kit
+## 📄 Every kit carries its table
 
-**Download .zip** builds the folders just like in Sider: the chosen kit (or every kit with **All**) with its texture, plus `minusculas.txt`, the NameLower line for kitpos_slots.ini and a LEEME. **Unzip it straight into your Sider folder** and every file lands in its place.
+Saving now leaves a `kitpos_letras.txt` next to the texture, with **the same table** as `minusculas.txt`, besides `NameLower = 1`. So the kit shows lowercase even when the browser can't save `kitpos_slots.ini`, or when you copy the folder by hand to another Sider.
 
-<img alt="The letter texture: 371 letters in a 4096×4096 texture" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.060/textura-en.png" width="80%">
+## 🔠 Capitals only, anywhere
+
+New format next to **With lowercase**: **Capitals only** saves a 4096×1024 texture in the game's own format. No KitPos needed, so it works with any Sider and with other executables (Football Life included).
+
+## 📘 A guide for manual injection
+
+Inside Fonts there's a guide that explains **how the font reaches the game**, the **manual injection step by step**, a table of **why it sometimes works and sometimes doesn't** (with what to do in each case), and **compatibility** with other games and mods.
+
+<img alt="The guide inside Fonts: how it works, manual injection, why it sometimes fails and compatibility" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/guia-en.png" width="60%">
+
+## 🛡 Crests on every screen
+
+Your own crest is now saved in **all 12 versions**, including the `e_<id>_r_b.png` that was missing, and the HD one is capped at **1028×1044**. Some crests looked wrong on certain game screens; not anymore.
 
 ## ⬇️ Do I need to download anything?
 
-**No.** All of this is in the editor, and the Windows app loads it from the internet on its own: the next time you open it (or when "A new version of the editor is available" shows up) you've got it. You need KitPos 6.4 or newer in Sider, and the Requirements box in Fonts tells you if anything is missing.
+**No.** It's all in the editor, and the Windows app loads it on its own the next time you open it (or when "A new version of the editor is available" shows up).
 
-> This is an alpha version. If a name comes out wrong in the game, tell us in 💡 Ideas → Something's not working. ⚽
+> This is an alpha version. If a name still shows wrong, press 🩺 Check this kit and tell us what it says in 💡 Ideas → Something's not working. ⚽
 
 <br>
 
@@ -55,42 +67,54 @@
 
 <div align="center">
 
-# 🔤 Fuentes con minúsculas que el juego sí lee
+# 🩺 Fuentes que se ven bien en el juego
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.060-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.060-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-**Fernández, Müller, Łukasiewicz, Иванов.** El creador de fuentes de Kit Studio ahora guarda la fuente del nombre **igual que un kit que ya muestra minúsculas y tildes en el juego**. Tomamos un kit que funcionaba, miramos cada archivo que tenía e hicimos que el editor arme lo mismo. ✍️
+Guardás una fuente hermosa, abrís el juego, das vuelta al jugador y… **en la espalda aparece toda la hoja de letras, chiquita y amontonada.** 😵 Fuimos a buscar ese problema. Ahora el editor te dice **por qué un nombre sale mal, lo arregla con un clic** y explica cómo llega de verdad la fuente al juego.
 
-## 📐 Cada letra en su lugar
+<img alt="Izquierda: la hoja de letras amontonada que dibuja el juego cuando no usa la tabla. Derecha: la misma fuente con KitPos leyendo la tabla, el nombre Fernández" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/antes-despues.png" width="100%">
 
-**Equipos → elegí el club → Kit Studio Pro → 🔤 Fuentes** ahora pone cada letra donde dice la tabla general de KitPos, `content\kitpos\minusculas.txt`:
+## 🔎 Por qué el nombre salía amontonado
 
-- **371 letras**: mayúsculas, minúsculas, números, tildes, Ñ, Europa central, cirílico y griego.
-- Una textura de **4096×4096** (DXT5, 13 mips), del mismo tamaño y formato que el kit que funciona.
-- Antes cada fuente armaba su propio orden de letras y en el juego podían salir **mezcladas**. Eso se terminó.
+El juego arma el nombre copiando cada letra de casillas fijas en una textura 4:1 (dos filas de mayúsculas). KitPos cambia esa búsqueda **solo en los kits que se lo piden**. Si un kit tiene una textura grande de KitPos pero no pide la tabla, el juego usa sus casillas sobre ella y cada letra agarra una columna entera de letras chiquitas. Además, una textura con **una letra por casilla de 256 px** (la plantilla de Photoshop inyectada tal cual) pone mayúsculas y minúsculas en el lugar equivocado aunque KitPos funcione.
 
-<img alt="Arriba: la fuente de un kit que funciona en el juego. Abajo: una fuente hecha con el editor, con cada letra en el mismo lugar" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.060/mismo-lugar.png" width="100%">
+## 🩺 Revisar este kit en el juego
 
-## 🏷 El archivo se llama como el kit
+**Equipos → elegí el club → Kit Studio Pro → 🔤 Fuentes → 🩺 Revisar este kit en el juego** lee `sider.log` y la carpeta del kit y te dice, en palabras simples, qué pasa:
 
-**Guardar en la carpeta del kit** crea la textura con el nombre del propio kit, por ejemplo `u2689p1_name.dds` y `.ftex`, y apunta `NameFontFile` del config.txt a ella. Ya no pisa una textura compartida como `font white`.
+- KitPos no cargó, no pudo engancharse al ejecutable o es viejo.
+- El kit no le pide la fuente a KitPos (no tiene `kitpos_letras.txt` ni `NameLower`).
+- Las letras están en **casillas de plantilla**: 🔁 **Reacomodar las letras** carga la textura como plantilla y, al guardar, cada letra queda donde la busca KitPos.
+- El `.dds` y el `.ftex` no coinciden (kserv lee primero el `.ftex`).
+- No abriste el juego desde que guardaste.
 
-- Activa **NameLower = 1** para ese kit en kitpos_slots.ini, así el juego usa las minúsculas.
-- Si el kit tenía un `kitpos_letras.txt` viejo, lo guarda como `.bak-edit21` y lo saca, porque desordenaría las letras.
-- Si tu Sider no tiene `minusculas.txt`, el editor la copia.
+Cada problema trae **su botón** para arreglarlo.
 
-<img alt="La sección Fuentes en modo PES 6 con el nombre Fernández sobre una camiseta verde" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.060/fuentes-es.png" width="100%">
+<img alt="Revisar este kit en el juego: letras en casillas de plantilla y el kit no le pide la fuente a KitPos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/diagnostico-es.png" width="60%">
 
-## 📦 Un .zip por uniforme
+## 📄 Cada kit lleva su tabla
 
-**Descargar .zip** arma las carpetas igual que en Sider: la del kit elegido (o la de cada kit con **Todos**) con su textura, más `minusculas.txt`, la línea de NameLower para kitpos_slots.ini y un LEEME. **Lo descomprimís directo en la carpeta de Sider** y cada archivo cae en su lugar.
+Guardar ahora deja un `kitpos_letras.txt` junto a la textura, con **la misma tabla** que `minusculas.txt`, además de `NameLower = 1`. Así el kit muestra las minúsculas aunque el navegador no deje guardar `kitpos_slots.ini`, o aunque copies la carpeta a mano a otro Sider.
 
-<img alt="La textura de letras: 371 letras en una textura de 4096×4096" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.060/textura-es.png" width="80%">
+## 🔠 Solo mayúsculas, en cualquier lado
+
+Formato nuevo al lado de **Con minúsculas**: **Solo mayúsculas** guarda una textura de 4096×1024 con el formato del propio juego. No necesita KitPos, así que anda con cualquier Sider y con otros ejecutables (Football Life incluido).
+
+## 📘 Una guía para inyectar a mano
+
+Dentro de Fuentes hay una guía que explica **cómo llega la fuente al juego**, la **inyección manual paso a paso**, una tabla de **por qué a veces funciona y a veces no** (con qué hacer en cada caso) y la **compatibilidad** con otros juegos y mods.
+
+<img alt="La guía dentro de Fuentes: cómo funciona, inyección manual, por qué a veces falla y compatibilidad" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/guia-es.png" width="60%">
+
+## 🛡 Escudos en todas las pantallas
+
+El escudo propio ahora se guarda en **sus 12 versiones**, también la `e_<id>_r_b.png` que faltaba, y la HD queda en **1028×1044** como máximo. Algunos escudos se veían mal en ciertas pantallas del juego; ya no.
 
 ## ⬇️ ¿Tengo que descargar algo?
 
-**No.** Todo esto está en el editor, y la app de Windows lo carga sola desde internet: la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor") ya lo tenés. Hace falta KitPos 6.4 o más nuevo en Sider, y el cuadro de Requisitos de Fuentes te avisa si falta algo.
+**No.** Todo está en el editor, y la app de Windows lo carga sola la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor").
 
-> Es una versión alfa. Si un nombre sale mal en el juego, avisanos en 💡 Ideas → Algo no anda. ⚽
+> Es una versión alfa. Si un nombre sigue saliendo mal, tocá 🩺 Revisar este kit y contanos qué dice en 💡 Ideas → Algo no anda. ⚽

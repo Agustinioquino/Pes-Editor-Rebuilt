@@ -131,3 +131,18 @@ test('lee las capas de un .psd: nombres (también unicode), visibilidad, RLE y e
   assert.equal(KPF.tplFill(P), '#c8102e');
   assert.throws(() => KPF.psdRead(new Uint8Array([1, 2, 3, 4, 0, 0, 0, 0]).buffer), /Photoshop/);
 });
+
+// ---- fuente general: como la carpeta p1 que ya muestra minúsculas en el juego ----
+test('con la tabla de minusculas.txt cada letra queda en el lugar y con el ancho que dice la tabla (atlas 4096×4096)', () => {
+  const txt = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'sider', 'minusculas.txt'), 'utf8');
+  const list = KPF.parseLetras(txt), L = J(KPF.fromTable(list));
+  assert.equal(list.length, 371); assert.equal(L.W, 4096); assert.equal(L.H, 4096); assert.equal(L.cells.length, 371);
+  assert.deepEqual([L.cells[0].ch, L.cells[0].x, L.cells[0].span, L.cells[0].row], ['A', 8, 132, 0]);
+  assert.deepEqual([L.cells[1].ch, L.cells[1].x, L.cells[1].span], ['B', 156, 125]);
+  const a = L.cells.find(c => c.ch === 'a'), c = L.cells.find(c => c.ch === 'c'), w = L.cells.find(c => c.ch === 'Ϋ');
+  assert.deepEqual([a.x, a.row], [3802, 0]); assert.deepEqual([c.x, c.row], [8, 1]); assert.equal(w.row, 12);
+  for (const ch of ['ñ', 'Ñ', 'é', 'ł', 'ș', 'Ж', 'ω', '.', "'", '-', ' ']) assert.ok(L.cells.some(x => x.ch === ch), ch);
+  // la tabla que sale de esas casillas es la misma que la de KitPos
+  const m = KPF.glyphMap(list, 4096, 4096); assert.equal(Math.round(m.get('a').sx), 3802); assert.equal(Math.round(m.get('a').sh), 256);
+  assert.throws(() => KPF.fromTable([]), /vacía/);
+});

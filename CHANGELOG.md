@@ -2,6 +2,16 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.060 alpha · Fuentes con minúsculas que el juego sí lee
+
+*18 de octubre de 2026, 02:15 (hora de Argentina)*
+
+El creador de fuentes guarda la textura igual que un kit que ya muestra minúsculas y tildes en el juego, y la baja en un .zip por uniforme.
+
+- **Fuentes con el formato que lee el juego** (Kits). Fuentes pone cada letra en el lugar y con el ancho de content\kitpos\minusculas.txt, la tabla general de KitPos: 371 letras con mayúsculas, minúsculas, tildes, Ñ, Europa central, cirílico y griego, en una textura de 4096×4096. Antes cada fuente armaba su propio orden y en el juego las letras podían salir mezcladas.
+- **El archivo se llama como el kit** (Kits). Guardar en la carpeta del kit crea la textura con el nombre del kit (por ejemplo u2689p1_name.dds y .ftex) y apunta NameFontFile a ella, en vez de pisar una textura compartida como font white. También activa NameLower = 1 para ese kit en kitpos_slots.ini y, si el kit tenía un kitpos_letras.txt viejo, lo guarda como .bak-edit21 y lo saca.
+- **Un .zip por uniforme** (Kits). Descargar .zip arma las carpetas como en Sider: la del kit elegido, o la de cada kit con Todos, con su textura, más minusculas.txt, la línea de NameLower para kitpos_slots.ini y un LEEME. Se descomprime directo en la carpeta de Sider.
+
 ## v0.059 alpha · Los kits en 3D, acomodados como en el juego
 
 *17 de octubre de 2026, 20:50 (hora de Argentina)*

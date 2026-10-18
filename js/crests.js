@@ -152,7 +152,7 @@ function crestCard(t) {
         ${CR.err ? `<p class="note bad" role="alert">${esc(CR.err)}</p>` : ''}${CR.msg ? `<p class="note ${CR.done ? 'ok' : ''}" role="status">${CR.msg}</p>` : ''}
         ${own.length ? `<p class="note"><span>Tus archivos:</span> ${own.map(s => `<b>${s}</b>`).join(', ')}.${own.length < CREST_SET.length ? ' <span>Los demás tamaños salen de la imagen más grande.</span>' : ''}${CR.renamed ? ` <span>(${CR.renamed} con otro ID: se guardan con el ${crestId(t.id)})</span>` : ''}</p>` : ''}
         ${tg && tg.create && !CR.done ? '<p class="note warn">📂 Tu Sider no tiene una carpeta de escudos: al guardar la creo y la agrego a sider.ini para que se lea con livecpk.</p>' : ''}
-        ${tget(t, 'e_emblem') ? '<p class="note warn">Este equipo usa un escudo hecho en el modo Editar del juego, que tapa al de la carpeta Sider. <button class="btn small" type="button" id="crestUsePatch">Usar el escudo de Sider</button></p>' : ''}
+        ${tget(t, 'e_emblem') ? '<p class="note warn">Este equipo usa un escudo hecho en el modo Editar del juego, que tapa al de la carpeta Sider. Al guardar un escudo nuevo lo cambio también en el EDIT. <button class="btn small" type="button" id="crestUsePatch">Usar el escudo de Sider</button></p>' : ''}
       </div>
     </div>
     ${CR.thumbs ? `<div class="crestprev"><span class="lab">Vista previa de los archivos</span><div class="crestthumbs">${CR.thumbs.map(x => `<figure class="crestthumb ${crestKind(x.suf) || 'n'}"><div><img src="${x.url}" alt="${x.suf}"></div><figcaption><b>${x.suf}</b> <small>${x.w}×${x.h}</small>${crestKind(x.suf) && CR.adj[crestKind(x.suf)] && !CR.own[x.suf] ? ' <small class="crestfix">retocado</small>' : ''}</figcaption></figure>`).join('')}</div></div>` : ''}
@@ -198,6 +198,8 @@ async function crestSave(t) {
     CR.done = true; CR.msg = `Listo: ${n} archivos${crestQ() === '2k' ? ' en 2K' : ''} guardados en livecpk\\${esc(tg.root)}\\common\\render\\symbol\\flag${backed ? ' (lo que había quedó como .bak-edit21 hasta la próxima vez que abras el editor)' : ''}. Abrí el juego de nuevo para verlo.`
       + (iniAdded ? ` <span>Agregué la carpeta ${esc(tg.root)} a sider.ini para que Sider la lea (copia en sider.ini.bak-pes-editor).</span>` : '');
     tg.listed = true; tg.create = false; tg.flag = flag;
+    // el escudo hecho en el modo Editar tapa al de Sider: se apaga en el EDIT para que el juego muestre el nuevo
+    if (tget(t, 'e_emblem')) { setT(t, [['e_emblem', 0]], 'Escudo de Sider para ' + tget(t, 'name')); CR.msg += ' <span>También cambié el escudo en el EDIT: este equipo usaba el del modo Editar y ahora usa el nuevo. Guardá el EDIT para que el juego lo tome.</span>'; }
     toast('Escudo de ' + tget(t, 'name') + ' guardado.');
   } catch (e) { CR.err = e.message; }
   CR.busy = false; crestPaint(t);

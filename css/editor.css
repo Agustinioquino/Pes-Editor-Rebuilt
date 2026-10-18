@@ -755,6 +755,32 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .kpfhow{padding:10px 14px;border-radius:var(--r,8px);border:1px solid var(--line)}
 .kpfhow summary{font-weight:700;cursor:pointer}.kpfhow ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:6px;font-size:.88rem;max-width:110ch}
 .kpfhow .mono{font-family:var(--mono);font-size:.92em;background:color-mix(in srgb,var(--line) 45%,transparent);padding:0 3px;border-radius:3px}
+/* formato de la textura, revisión del kit y guía (Fuentes) */
+.kpffmt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;height:auto}.kpffmt button{display:grid;gap:1px;justify-items:start;align-content:center;text-align:left;font-family:inherit;padding:.4rem .6rem;min-width:0;height:auto;min-height:0;white-space:normal;overflow:visible;line-height:1.2}
+.kpffmt button b{font-size:.84rem}.kpffmt button small{font-size:.7rem;opacity:.8;font-family:var(--mono)}
+.kpffmtn{margin:4px 0 8px;font-size:.8rem}
+.kpfdiag{display:grid;gap:6px;margin-top:8px}.kpfdh{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.kpfdiag ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.kpfdiag li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;padding:7px 9px;border-radius:var(--r,6px);border:1px solid var(--line);border-left:4px solid var(--muted);background:var(--panel)}
+.kpfdiag li>i{font-style:normal;font-weight:800;display:grid;place-items:center;width:1.4em;height:1.4em;border-radius:50%;font-size:.78rem;color:#fff;background:var(--muted)}
+.kpfdiag li.ok{border-left-color:var(--ok,#2fa35a)}.kpfdiag li.ok>i{background:var(--ok,#2fa35a)}
+.kpfdiag li.bad{border-left-color:var(--bad,#d0453b)}.kpfdiag li.bad>i{background:var(--bad,#d0453b)}
+.kpfdiag li.warn{border-left-color:#d79a1e}.kpfdiag li.warn>i{background:#d79a1e}
+.kpfdiag li b{font-size:.86rem}.kpfdiag li p{margin:2px 0 5px;font-size:.8rem;line-height:1.38}.kpfdiag li .btn{justify-self:start}
+.kpfdiag>small{font-size:.74rem;overflow-wrap:anywhere}
+.kpfguide summary{font-family:var(--display);font-size:1.02rem}
+.kpfgsec{margin-top:12px;display:grid;gap:6px}.kpfgsec h6{margin:0;font-family:var(--display);font-size:.96rem;color:var(--accent)}
+.kpfgsec p,.kpfgsec ul{margin:0;font-size:.88rem;line-height:1.42;max-width:110ch}.kpfgsec ul{padding-left:1.3em;display:grid;gap:6px}
+.kpfguide .mono{overflow-wrap:anywhere}
+.kpfdemo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px;max-width:1080px}
+.kpfdemo figure{margin:0;display:grid;gap:4px}.kpfdemo canvas{width:100%;height:auto;border-radius:var(--r,6px);border:1px solid var(--line)}
+.kpfdemo figcaption{font-size:.8rem;font-weight:700}.kpfdemo figure:last-child figcaption{color:var(--bad,#d0453b)}
+.kpfwhy{display:grid;border:1px solid var(--line);border-radius:var(--r,6px);overflow:hidden;font-size:.84rem;max-width:1200px}
+.kpfwhy>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr);border-top:1px solid var(--line)}.kpfwhy>div:first-child{border-top:0}
+.kpfwhy>div>div{padding:6px 9px;line-height:1.36}.kpfwhy>div>div+div{border-left:1px solid var(--line)}
+.kpfwhy .hd{background:var(--sunk);font-weight:700}.kpfwhy>div>div:first-child{font-weight:600}
+@media (max-width:700px){.kpfwhy>div{grid-template-columns:minmax(0,1fr)}.kpfwhy>div>div+div{border-left:0;border-top:1px dashed var(--line)}.kpfwhy .hd{display:none}.kpffmt{grid-template-columns:minmax(0,1fr)}}
+html[data-gfx="pes6"] :is(.kpfdiag li,.kpfwhy,.kpfdemo canvas){border-radius:0!important}html[data-gfx="pes6"] .kpfdiag li>i{border-radius:0}
 html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sans-serif;font-style:italic;text-transform:none;letter-spacing:.01em}
 /* ---- Posición libre (KitPos): Kit Studio Pro y pestaña Fuentes ---- */
 .kpos{display:grid;gap:8px;margin-top:10px;padding:10px 12px;border-radius:var(--r,8px);border:1px solid var(--line);background:var(--sunk)}

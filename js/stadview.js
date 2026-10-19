@@ -17,11 +17,11 @@ const SV_ROWS = [['stadium', 'Estadio local', 'stand'], ['name', 'Nombre de esta
   ['turf', 'Tipo de césped', 'turf'], ['side_color', 'Color del campo', 'side'], ['seat_color', 'Color de los asientos', 'seat'],
   ['goal_style', 'Estilo de la portería', 'goal'], ['net_pattern', 'Diseño de la red', 'mesh'], ['net_design', 'Diseño red portería', 'net'],
   ['net1', 'Color de red de porterías 1', 'net'], ['net2', 'Color de red de porterías 2', 'net']];
-// valores que se recorren con ← →, en el orden del juego. El estilo de portería usa 2 bits: 1-3 son los tipos 1-3 y el
-// tipo 4 se guarda como 0 (deducido: falta confirmarlo con un EDIT guardado); sin "Opciones detalladas" el 0 es el del juego
-const svGoalTipo = (v, set) => v || (set ? 4 : 0);
+// valores que se recorren con ← →, en el orden del juego. Estilo de portería: goal_style guarda los tipos 1-3 y el
+// tipo 4 es un bit aparte (goal4), comparado con un EDIT guardado en el juego con el tipo 4
+const svGoalTipo = t => tget(t, 'goal4') ? 4 : tget(t, 'goal_style');
 const svRange = (a, b) => [...Array(b - a + 1)].map((_, i) => a + i);
-const SV_OPTS = { turf: svRange(1, SV_TURFS), side_color: svRange(1, 8), seat_color: svRange(1, 8), goal_style: [1, 2, 3, 0], net_pattern: svRange(1, SV_NETS), net_design: svRange(1, SV_DESIGNS) };
+const SV_OPTS = { turf: svRange(1, SV_TURFS), side_color: svRange(1, 8), seat_color: svRange(1, 8), goal_style: [1, 2, 3, 4], net_pattern: svRange(1, SV_NETS), net_design: svRange(1, SV_DESIGNS) };
 const SV_MAX = SV_OPTS; // filas con flechas
 // fotos tomadas del juego (assets/estadio): estadios que tienen la suya y céspedes con captura
 const SV_DIR = 'assets/estadio/';
@@ -157,7 +157,7 @@ function svValue(t, k) {
   if (k === 'side_color' || k === 'seat_color') { const v = tget(t, k), pal = k === 'side_color' ? SV_SIDE : SV_SEAT; return pal[v - 1] ? sw(pal[v - 1], `Color ${v} de 8`) : `<span class="sv-val">${v ? 'Valor ' + v : 'Del juego'}</span>`; }
   if (k === 'net1' || k === 'net2') { const c = svRgb(t, k.slice(3)); return `${sw(c, c)}<input type="color" class="sv-color" data-svc="${k}" value="${c}" tabindex="-1" aria-label="Elegir color">`; }
   if (k === 'net_design') return `<span class="sv-val">${svDesign(tget(t, k))}</span>`;
-  if (k === 'goal_style') return `<span class="sv-val">${svTipo(svGoalTipo(tget(t, k), tget(t, 'e_staddet')))}</span>`;
+  if (k === 'goal_style') return `<span class="sv-val">${svTipo(svGoalTipo(t))}</span>`;
   return `<span class="sv-val">${svTipo(tget(t, k))}</span>`;
 }
 // lista de estadios: primero los 31 del menú del juego y después los que solo usan sus equipos
@@ -187,7 +187,7 @@ function svPreview(t, row) {
   } else if (kind === 'seat') {
     const c = SV_SEAT[g('seat_color') - 1]; shot = svPhoto('asientos.jpg', 'Color de los asientos', c && ['asientos.jpg', [[SV_FROM.seat, c]]]);
   } else if (kind === 'goal') {
-    const v = svGoalTipo(g('goal_style'), g('e_staddet')); shot = v ? svPhoto('arco-' + v + '.jpg', 'Portería tipo ' + v) : svGoal(t); count = `${v || '–'}/${SV_GOALS}`;
+    const v = svGoalTipo(t); shot = v ? svPhoto('arco-' + v + '.jpg', 'Portería tipo ' + v) : svGoal(t); count = `${v || '–'}/${SV_GOALS}`;
   } else if (kind === 'mesh') {
     const v = g('net_pattern'); shot = v >= 1 && v <= SV_NETS ? svPhoto('malla-' + v + '.jpg', 'Red tipo ' + v) : svGoal(t); count = `${v || '–'}/${SV_NETS}`;
   } else {
@@ -237,12 +237,15 @@ function bindStadView(t) {
     const off = !svDesignUsesColors(t); card.querySelectorAll('.sv-row[data-k^="net"]').forEach(x => { if (/^net[12]$/.test(x.dataset.k)) { x.classList.toggle('sv-off', off); if (off) x.title = 'Las redes Blanca, Negra y Verde no usan este color'; else x.removeAttribute('title'); } });
     svRedraw(false);
   };
-  const put = (k, v) => { if (tget(t, k) === v && tget(t, 'e_staddet')) return; setT(t, [[k, v], ['e_staddet', 1]], label(k)); refresh(k); updateTop(); };
+  const put = (k, v) => {
+    if (k === 'goal_style') { if (svGoalTipo(t) === v && tget(t, 'e_staddet')) return; setT(t, [...(v === 4 ? [['goal4', 1]] : [['goal_style', v], ['goal4', 0]]), ['e_staddet', 1]], label(k)); refresh(k); updateTop(); return; }
+    if (tget(t, k) === v && tget(t, 'e_staddet')) return; setT(t, [[k, v], ['e_staddet', 1]], label(k)); refresh(k); updateTop();
+  };
   const step = (k, d) => {
     if (k === 'stadium') { const at = SV_GAME.indexOf(tget(t, 'stadium_id')), nx = at < 0 ? SV_GAME[d > 0 ? 0 : SV_GAME.length - 1] : SV_GAME[(at + d + SV_GAME.length) % SV_GAME.length]; setT(t, [['stadium_id', nx], ['e_stadium', 1]], 'Estadio de ' + tget(t, 'name')); refresh(k); svLock(); updateTop(); return; }
     if (svLocked(t)) { svLockTip(); return; }
     const o = SV_OPTS[k]; if (!o) return;
-    const at = o.indexOf(tget(t, k));
+    const at = o.indexOf(k === 'goal_style' ? svGoalTipo(t) : tget(t, k));
     put(k, at < 0 ? o[d > 0 ? 0 : o.length - 1] : o[(at + d + o.length) % o.length]);
   };
   const open = k => {

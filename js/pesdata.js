@@ -42,10 +42,11 @@ const PesData = (() => {
     ['id', 0, 32], ['manager_id', 0, 32], ['skip', 2], ['stadium_id', 0, 16], ['skip', 2], ['country', 0, 9], ['skip', 3],
     // opciones detalladas del estadio local (comparadas con el CSV de PES2020Editor): colores de la red del arco,
     // estilo del arco y diseño de la red. El "Diseño red portería" del juego (1 blanca, 2 negra, 3 verde, 4-15 tipos 1-12;
-    // 0 sin elegir) está en net_design, comparado con capturas del juego; PES2020Editor llama GoalNettingDesign a net_b7 + 2 × su bit bajo
+    // 0 sin elegir) está en net_design, comparado con capturas del juego; PES2020Editor llama GoalNettingDesign a net_b7 + 2 × su bit bajo.
+    // El estilo de portería Tipo 4 es goal4 (visto en un EDIT guardado en el juego); goal_style guarda los tipos 1-3
     ['net1r', 0, 6], ['net1g', 6, 6], ['goal_style', 4, 2], ['net_pattern', 6, 2], ['net2r', 0, 6], ['net2g', 6, 6], ['net2b', 4, 6],
     ['c1r', 2, 6], ['c1g', 0, 6], ['e_name', 6, 1], ['e_emblem', 7, 1], ['c2g', 0, 6], ['c2b', 6, 6], ['skip', 2],
-    ['e_stadium', 6, 1], ['e_stadname', 7, 1], ['e_staddet', 0, 1], ['turf', 4, 4], ['side_color', 0, 4], ['seat_color', 4, 4], ['c1b', 0, 6], ['c2r', 6, 6],
+    ['e_stadium', 6, 1], ['e_stadname', 7, 1], ['e_staddet', 0, 1], ['goal4', 1, 1], ['turf', 4, 4], ['side_color', 0, 4], ['seat_color', 4, 4], ['c1b', 0, 6], ['c2r', 6, 6],
     ['skip', 1], ['net1b', 0, 6], ['net_b7', 7, 1], ['net_design', 0, 4], ['skip', 0x37], ['rival1', 0, 32], ['rival2', 0, 32], ['rival3', 0, 32], ['skip', 4],
     ['str', 'name', 0x46], ['str', 'short', 4], ['str', 'stadium_name', 181],
     ['str', 'banner1', 16], ['str', 'banner2', 16], ['str', 'banner3', 16], ['str', 'banner4', 16],

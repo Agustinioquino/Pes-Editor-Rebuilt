@@ -731,6 +731,14 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .kpfposd .kpos{margin:0;border:0;padding:0;background:none}
 .kpfnav{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-top:2px}
 .kpfnav .btn.primary{transition:transform .2s}.kpfnav .btn.primary:hover{transform:translateX(3px)}
+.kpfskipbar{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;flex-wrap:wrap;padding:7px 8px 7px 12px;border:1px dashed var(--line);border-radius:10px;font-size:.86rem}
+.kpfskipbar .btn{margin-left:auto}
+.kpfskip{display:grid;gap:8px;padding:12px 14px;border:1px dashed var(--accent);border-radius:12px;background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.kpfskip.anim{animation:kpfUp .35s cubic-bezier(.2,.8,.2,1) both}
+.kpfskiph{display:flex;align-items:center;gap:8px;font-size:1.02rem}.kpfskiph span{font-size:1.4em}
+.kpfskip ol{margin:0;padding-left:1.3em;display:grid;gap:5px;font-size:.88rem;line-height:1.5}
+.kpfskip kbd{font:600 .78em var(--mono);padding:0 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--sunk);white-space:nowrap}
+.kpfskip .btn{justify-self:start}
 .kpfstage{overflow:hidden}
 .kpfstage.shine::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 35%,#ffffff40 50%,transparent 65%);transform:translateX(-100%);animation:kpfShine .85s ease-out}
 .kpflog.saved{padding:7px 10px 7px 34px;position:relative;border-radius:var(--r,6px);border:1px solid color-mix(in srgb,var(--ok,#2fa35a) 55%,var(--line));background:color-mix(in srgb,var(--ok,#2fa35a) 13%,var(--panel))}

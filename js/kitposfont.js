@@ -447,6 +447,16 @@ function kpfReqHtml(req = kpfReqState()) {
       sid && st && st.lower === false ? '<button class="btn small primary" type="button" id="kpfLower">Activar minúsculas</button>' : '')}
   </ol></details>`;
 }
+// "Saltar" en el paso Kit: la posición queda como está en el kit y se acomoda en el juego con el editor del overlay de KitPos
+function kpfSkipHtml() {
+  return `<div class="kpfskip anim"><div class="kpfskiph"><span aria-hidden="true">🎮</span><b>La posición la ajustás en el juego</b></div>
+    <p class="note">El nombre y los números quedan donde ya están en el kit. Al guardar solo se lleva la fuente.</p>
+    <ol><li>Abrí el juego con KitPos instalado (paso 4 → Requisitos) y entrá a una pantalla donde se vea el uniforme.</li>
+      <li>Tocá <kbd>Espacio</kbd> para abrir el panel de Sider y <kbd>1</kbd> hasta llegar a KitPos.</li>
+      <li><kbd>↑</kbd> <kbd>↓</kbd> eligen el nombre o un número, <kbd>←</kbd> <kbd>→</kbd> lo mueven (<kbd>Ctrl</kbd> fino, <kbd>Shift</kbd> grueso). <kbd>Tab</kbd> cambia entre este kit y todo el equipo.</li>
+      <li><kbd>G</kbd> guarda en kitpos_slots.ini, <kbd>V</kbd> refresca el uniforme, <kbd>Z</kbd> deshace y <kbd>Espacio</kbd> vuelve al juego.</li></ol>
+    <button class="btn small" type="button" data-unskip>📐 Mejor la ajusto acá</button></div>`;
+}
 function kpfHtml(has) {
   const O = kpfOpts(), fonts = kpfFontList(), kitsAll = has ? [...KS.kits, ...KS.gk] : [];
   if (has && (!KPFS.target || (KPFS.target !== '*' && !kitsAll.includes(KPFS.target)))) KPFS.target = KS.sel || '*';
@@ -457,7 +467,7 @@ function kpfHtml(has) {
   const tab = KPFS.tab = Math.min(4, Math.max(1, KPFS.tab || 1)), st0 = KPFS.st;
   const req = kpfReqState(), reqBad = req.filter(x => x === false).length, reqOk = req.filter(x => x === true).length;
   const kitLab = has ? (KPFS.target === '*' ? 'Todos' : esc(KPFS.target || KS.sel)) : '.zip';
-  const tabs = [['Fuente', esc(O.tpl ? 'Plantilla' : O.img ? 'Imagen' : O.font)], ['Estilo', 'Colores y bordes'], ['Kit', kitLab], ['Al juego', KPFS.fmt === 'game' ? 'Solo mayúsculas' : 'Con minúsculas']];
+  const tabs = [['Fuente', esc(O.tpl ? 'Plantilla' : O.img ? 'Imagen' : O.font)], ['Estilo', 'Colores y bordes'], ['Kit', has && KPFS.skipPos ? kitLab + ' · posición en el juego' : kitLab], ['Al juego', KPFS.fmt === 'game' ? 'Solo mayúsculas' : 'Con minúsculas']];
   const nav = i => `<div class="kpfnav">${i > 1 ? `<button class="btn ghost" type="button" data-go="${i - 1}">← ${tabs[i - 2][0]}</button>` : '<span></span>'}${i < 4 ? `<button class="btn primary" type="button" data-go="${i + 1}">Siguiente: ${tabs[i][0]} →</button>` : ''}</div>`;
   const panel = (i, h, body) => `<section class="kpfpanel" data-p="${i}" role="tabpanel" aria-labelledby="kpfTab${i}"><div class="kpfph" role="heading" aria-level="3"><i>${i}</i>${h}</div>${body}${nav(i)}</section>`;
   const reqChip = KPFS.fmt === 'game' ? '<span class="chip ok">🔠 Sin KitPos</span>' : !KITS.from ? '<span class="chip">Sider sin conectar</span>' : !st0 ? '<span class="chip">Revisando el juego…</span>'
@@ -498,7 +508,8 @@ function kpfHtml(has) {
             <div class="f"><label for="kpfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row"><input type="range" id="kpfS2" min="0" max="14" value="${O.stroke2}"><input type="color" id="kpfC2" value="${O.color2}" aria-label="Color del segundo borde"></div></div></div></div>`)}
         ${panel(3, 'Elegí el kit', `<div class="kpfsec">${has ? '' : `<p class="note">${KITS.from ? 'Este equipo no tiene carpeta en content\\kit-server: la fuente se descarga en un .zip para copiarla a mano a la carpeta de un kit.' : 'Sin la carpeta Sider conectada la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.'}</p>`}
           ${has ? `<div class="kpfkits" id="kpfKits"><button type="button" class="kpfkit all" data-kit="*" aria-pressed="${KPFS.target === '*'}"><span><b>Todos</b><small>${KS.kits.length} de jugador</small></span></button>${KS.kits.map((k, i) => chip(k, i, false)).join('')}${KS.gk.map((k, i) => chip(k, i, true)).join('')}</div>
-          ${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>` : ''}</div>${has ? `<details class="kpfsec kpfmore kpfposd" ${KPFS.posOpen ? 'open' : ''}><summary>📐 Posición libre <small>KitPos</small></summary>${kposHtml(['name'], { save: true })}</details>` : ''}`)}
+          ${KPFS.skipPos ? kpfSkipHtml() : `<div class="kpfskipbar"><span><span aria-hidden="true">🎮</span> ¿Preferís acomodar el nombre y los números dentro del juego?</span><button class="btn small" type="button" data-skip title="Pasa al último paso sin tocar la posición: el nombre y los números se acomodan después dentro del juego">Saltar este paso →</button></div>
+          ${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>`}` : ''}</div>${has && !KPFS.skipPos ? `<details class="kpfsec kpfmore kpfposd" ${KPFS.posOpen ? 'open' : ''}><summary>📐 Posición libre <small>KitPos</small></summary>${kposHtml(['name'], { save: true })}</details>` : ''}`)}
         ${panel(4, 'Llevala al juego', `<div class="kpfsec kpfgame">${kpfFmtHtml()}${KPFS.fmt === 'game' ? '' : kpfReqHtml(req)}${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
             <button class="btn" type="button" id="kpfTry" title="Abre el Editor de Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en el Editor</button>
             <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21)">↩ Volver a la anterior</button></div>`
@@ -844,6 +855,7 @@ async function kpfPutTable(T) {
   await kpfPut(kd, 'minusculas.txt', T.text); return true;
 }
 async function kpfInstall(log) {
+  if (KPFS.skipPos) kpfDropPos(); // saltó la posición: no se guardan arrastres que hayan quedado
   const B = await kpfBuild(log), { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), wasDirty = KS.dirty;
   const targets = KPFS.target === '*' ? KS.kits.slice() : [KPFS.target], done = [];
   for (const k of targets) { log('Guardando en ' + k + '…'); done.push(k + ': ' + await kpfInstallKit(dir, k, B)); }
@@ -921,13 +933,15 @@ async function kpfZip(log) {
   await downloadBytes(name, KPF.zipMany(files)); return { name, kits, game: B.game };
 }
 // cambiar de paso sin volver a dibujar la pantalla: el paso nuevo entra deslizándose desde el lado al que se va
+function kpfDropPos() { if (KPS.cur && KPS.orig != null && KPS.curText !== KPS.orig) { KPS.curText = KPS.orig; KPS.cur = KPOS.parse(KPS.orig); KS.dispKey = ''; } }
+function kpfAnim(p) { p.classList.remove('anim'); void p.offsetWidth; p.classList.add('anim'); p.addEventListener('animationend', e => { if (e.target === p) p.classList.remove('anim'); }, { once: true }); }
 function kpfGo(sh, n, req) {
   const root = sh.querySelector('#kpfDrop'); if (!root || !(n >= 1 && n <= 4)) return; const from = KPFS.tab || 1; KPFS.tab = n;
   root.dataset.step = n; root.dataset.dir = n < from ? 'back' : 'fwd';
   root.querySelectorAll('.kpftabs [data-go]').forEach((b, i) => { const done = i + 1 < n || (i === 3 && !!KPFS.done); b.setAttribute('aria-selected', i + 1 === n); b.classList.toggle('done', done); b.querySelector('i').textContent = done ? '✓' : i + 1; });
   const bar = root.querySelector('.kpfprog i'); if (bar) bar.style.width = (KPFS.done && n === 4 ? 100 : (n - 1) / 3 * 100) + '%';
   const p = root.querySelector(`.kpfpanel[data-p="${n}"]`);
-  if (p && n !== from) { p.classList.remove('anim'); void p.offsetWidth; p.classList.add('anim'); p.addEventListener('animationend', e => { if (e.target === p) p.classList.remove('anim'); }, { once: true }); }
+  if (p && n !== from) kpfAnim(p);
   if (p && p.getBoundingClientRect().top < 70) root.querySelector('.kpftabs').scrollIntoView({ block: 'start', behavior: 'smooth' });
   if (req) { const d = root.querySelector('.kpfreqs'); if (d) { d.open = KPFS.reqOpen = true; setTimeout(() => d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 80); } }
   if (n === 3) kpfBack3d(sh, true);
@@ -994,7 +1008,13 @@ function kpfBind(sh, has) {
   for (const id of ['kpfKp', 'kpfKp2']) { const b = $k(id); if (b) b.onclick = busy(b, async () => { const r = await kpsInstall(); KPFS.st = null; KPFS.stFor = '';
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : r.lua === 'nuevo' ? 'instalado' : 'listo') + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); rr(); }); }
   // pasos: pestañas, Siguiente/Anterior y el aviso de requisitos llevan al paso; los desplegables recuerdan si estaban abiertos
-  const root = $k('kpfDrop'); root.onclick = e => { const b = e.target.closest('[data-go]'); if (b && root.contains(b)) kpfGo(sh, +b.dataset.go, !!b.dataset.req); };
+  const root = $k('kpfDrop'); root.onclick = e => {
+    const b = e.target.closest('[data-go],[data-skip],[data-unskip]'); if (!b || !root.contains(b)) return;
+    if (b.dataset.go) return kpfGo(sh, +b.dataset.go, !!b.dataset.req);
+    // Saltar la posición (pasa al paso 4) o volver a ajustarla acá (paso 3)
+    const skip = b.hasAttribute('data-skip'); KPFS.skipPos = skip; if (skip) kpfDropPos(); KPFS.tab = skip ? 4 : 3; KPFS.stepAnim = true; rr();
+  };
+  if (KPFS.stepAnim) { KPFS.stepAnim = false; const p = root.querySelector(`.kpfpanel[data-p="${KPFS.tab}"]`); if (p) kpfAnim(p); }
   const pd = sh.querySelector('.kpfposd'); if (pd) pd.ontoggle = () => { KPFS.posOpen = pd.open; if (pd.open) kpfBack3d(sh, true); };
   const rq = sh.querySelector('.kpfreqs > summary'); if (rq) rq.onclick = () => { KPFS.reqOpen = !rq.parentElement.open; }; // el toggle también salta al dibujarse abierto
   if (KPFS.shine) { KPFS.shine = false; kpfShine(sh); }

@@ -847,6 +847,8 @@ const I18N_EN = {"Una foto o imagen con las letras escritas, en cualquier orden 
 "Estadio que usa":"Stadium used",
 "Estadio {x}":"Stadium {x}",
 "Estadio, rivales y banderas":"Stadium, rivals and flags",
+"Rivales y banderas":"Rivals and flags",
+"Estadio local":"Home stadium",
 "Estado":"Condition",
 "Estado de forma":"Form",
 "Estados Unidos":"United States",

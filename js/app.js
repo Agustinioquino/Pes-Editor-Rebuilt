@@ -880,7 +880,7 @@ function renderTeams(m) {
 }
 function teamSheet(t) {
   const r = PD.roster(S.d, t);
-  const tabs = [...(isNat(t) ? [['call', 'Convocatoria']] : []), ['roster', 'Plantel'], ['tactics', 'Formación'], ['data', 'Datos y colores'], ['kits', 'Kit Studio Pro'], ['stadium', 'Estadio, rivales y banderas']];
+  const tabs = [...(isNat(t) ? [['call', 'Convocatoria']] : []), ['roster', 'Plantel'], ['tactics', 'Formación'], ['data', 'Datos y colores'], ['stadloc', 'Estadio local'], ['kits', 'Kit Studio Pro'], ['stadium', 'Rivales y banderas']];
   if (S.ttab === 'call' && !isNat(t)) S.ttab = 'roster';
   FACE_CTX.nat = isNat(t);
   const coach = tget(t, 'manager_id');
@@ -889,7 +889,7 @@ function teamSheet(t) {
       <div class="sub">ID ${t.id} · ${isNat(t) ? 'Selección' : 'Club'} · ${r.length}/40 jugadores${(() => { const tr = teamRating(t), l = leagueOf(t); return (l ? ' · ' + esc(LEAGUE_NAME[l] || l) : '') + (tr ? ' · valor ' + fmtMoney(tr.value) : ''); })()} · DT ${esc(COACH.get(coach) || 'ID ' + coach)} · <span class="thstad" data-stad="${t.id}">🏟️ ${stadLabel(t)}</span></div></div></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ttab="${k}" aria-selected="${S.ttab === k}">${n}</button>`).join('')}</div>
   </div>
-  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) + crestCard(t) : stadiumCard(t)}
+  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) + crestCard(t) : S.ttab === 'stadloc' ? stadViewCard(t) : stadiumCard(t)}
   ${helpCard(S.ttab)}`;
 }
 function teamDataCard(t) {
@@ -909,15 +909,9 @@ function teamDataCard(t) {
   </div>`;
 }
 function stadiumCard(t) {
-  const sid = tget(t, 'stadium_id');
   const teams = [...S.ix.teams].filter(x => x.id !== t.id && PD.roster(S.d, x).length).sort((a, b) => tget(a, 'name').localeCompare(tget(b, 'name')));
   const rivalSel = k => { const v = tget(t, k); return `<select data-rival="${k}" aria-label="Rival"><option value="${NO_RIVAL}" ${v === NO_RIVAL ? 'selected' : ''}>Ninguno</option>${!S.ix.teamById.has(v) && v !== NO_RIVAL ? `<option value="${v}" selected>ID ${v}</option>` : ''}${teams.map(x => `<option value="${x.id}" ${x.id === v ? 'selected' : ''}>${esc(tget(x, 'name'))}</option>`).join('')}</select>`; };
-  return `<div class="card"><h3>Estadio</h3>
-    <div class="grid wide">
-      <div class="f"><label for="tStad">Estadio que usa</label><select id="tStad">${STADIUM.has(sid) ? '' : `<option value="${sid}" selected>ID ${sid}</option>`}${[...STADIUM].map(([id, n]) => `<option value="${id}" ${id === sid ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
-      <div class="f"><label for="tStadName">Nombre propio del estadio</label><input type="text" id="tStadName" value="${esc(tget(t, 'stadium_name'))}" maxlength="120" placeholder="Vacío = el del juego"></div>
-    </div></div>
-  <div class="card"><h3>Rivales clásicos</h3><div class="grid wide">
+  return `<div class="card"><h3>Rivales clásicos</h3><div class="grid wide">
     <div class="f"><span class="lab">Rival 1</span>${rivalSel('rival1')}</div><div class="f"><span class="lab">Rival 2</span>${rivalSel('rival2')}</div><div class="f"><span class="lab">Rival 3</span>${rivalSel('rival3')}</div></div>
     <p class="note">El juego usa los rivales para los clásicos y el ambiente de los partidos.</p></div>
   <div class="card"><h3>Banderas de la hinchada</h3><div class="grid wide">
@@ -940,7 +934,8 @@ function ageValCells(pid, ro) {
   const i = pInfo(pid), pv = playerValue(pid);
   const tip = pv ? (pv.manual ? 'Valor cargado a mano' + (pv.est != null ? ' (el estimado era ' + fmtMoney(pv.est) + ')' : '') : `Estimado: valoración ${pv.r}, ${pv.ageKnown ? pv.a + ' años' : 'edad desconocida'}, potencial ~${pv.pot}, ${pv.club ? tget(pv.club, 'name') : 'sin club'}${pv.league ? ' (' + (LEAGUE_NAME[pv.league] || pv.league) + ')' : ''}`) : 'Sin datos para estimar';
   const m = pMeta(pid);
-  return `<td class="mono c-age">${i && i.a ? i.a : ''}</td><td class="mono c-h">${m.h ? m.h : ''}</td><td class="c-nat">${m.nat ? `<span class="natw">${natFlag(m.nat)}<span class="natc" title="${esc(m.natName)}">${esc(m.natName)}</span></span>` : ''}</td><td class="mono c-foot">${m.foot}</td><td class="mono c-mv">${ro ? `<span title="${esc(tip)}" class="mval${pv && pv.manual ? ' man' : ''}">${pv ? fmtMoney(pv.v) : '—'}</span>` : `<button type="button" class="mval${pv && pv.manual ? ' man' : ''}" data-val="${pid}" title="${esc(tip)}. Tocá para cargar el valor real.">${pv ? fmtMoney(pv.v) : '—'}</button>`}</td>`;
+  const ie = k => ro ? '' : rieAttr(pid, k);
+  return `<td class="mono c-age"${ie('age')}>${i && i.a ? i.a : ''}</td><td class="mono c-h"${ie('h')}>${m.h ? m.h : ''}</td><td class="c-nat"${ie('nat')}>${m.nat ? `<span class="natw">${natFlag(m.nat)}<span class="natc" title="${esc(m.natName)}">${esc(m.natName)}</span></span>` : ''}</td><td class="mono c-foot"${ie('foot')}>${m.foot}</td><td class="mono c-mv">${ro ? `<span title="${esc(tip)}" class="mval${pv && pv.manual ? ' man' : ''}">${pv ? fmtMoney(pv.v) : '—'}</span>` : `<button type="button" class="mval${pv && pv.manual ? ' man' : ''}" data-val="${pid}" title="${esc(tip)}. Tocá para cargar el valor real.">${pv ? fmtMoney(pv.v) : '—'}</button>`}</td>`;
 }
 // affiliate (reserve / B) teams: same base name + suffix, or "Jong <name>"
 const FIL_RE = /^(.*?)\s+(B|II|U-?\d{2}|Sub-?\d{2}|Reserves|Reservas|Reserva|Castilla|Atl[eè]tic|Juvenil|Primavera|Youth|Academy|Next Gen|Futures)$/;
@@ -1040,7 +1035,7 @@ function rosterCard(t) {
           <div class="popmenu" id="rcols" hidden>${RCOLS.filter(([k]) => !RCOL_FIXED.has(k)).map(([k, n, tip]) => `<label class="chk"><input type="checkbox" data-col="${k}" ${hide.has(k) ? '' : 'checked'}> ${k === 'act' ? 'Acciones' : n === 'Val.' ? 'Valoración' : n === 'Nac.' ? 'Nacionalidad' : n === 'Pos.' ? 'Posición' : n === 'Cap.' ? 'Capitán' : n}</label>`).join('')}
             <button class="btn small ghost" type="button" id="rcolsReset">Volver a las de siempre</button></div></div>
         <div class="pop"><button class="btn small" type="button" id="rexpBtn" aria-expanded="false">Exportar</button>
-          <div class="popmenu" id="rexp" hidden><button class="btn small ghost" type="button" data-exp="csv">Descargar CSV (Excel)</button><button class="btn small ghost" type="button" data-exp="tsv">Copiar para pegar en una planilla</button><p class="note">Sale lo que se ve: filtros y columnas actuales.</p></div></div>
+          <div class="popmenu" id="rexp" hidden><button class="btn small ghost" type="button" data-exp="csv">Descargar CSV (Excel)</button><button class="btn small ghost" type="button" data-exp="tsv">Copiar para pegar en una planilla</button><p class="note">Sale lo que se ve: filtros y columnas actuales.</p><button class="btn small ghost" type="button" data-exp="p20">Jugadores para PES2020Editor</button><button class="btn small ghost" type="button" data-exp="t20">Equipo para PES2020Editor</button><p class="note">Con todas las columnas de PES2020Editor, para abrirlos ahí o compartirlos.</p></div></div>
       </div>
     </div>
     <div class="bulkbar" id="rbulk" hidden><b id="rbN">0</b> seleccionados
@@ -1061,9 +1056,9 @@ function rosterCard(t) {
           <td class="c-sel"><input type="checkbox" data-sel="${w.pid}" ${sel ? 'checked' : ''} aria-label="Seleccionar ${esc(w.name || 'ID ' + w.pid)}"></td>
           <td class="stno c-xi">${w.si >= 0 ? w.si + 1 : w.oi < 18 ? `<span class="bnch">S${w.oi - 10}</span>` : ''}</td>
           <td class="num c-num"><input type="number" min="1" max="99" value="${w.num}" data-num="${w.slot}" aria-label="Dorsal"></td>
-          <td class="c-player"><span class="pcell">${faceHtml(PREFS.rLook === 'kits' ? 0 : w.pid, kitFor(t, isGk), 'pl')}<span class="pn">${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
+          <td class="c-player"><span class="pcell">${faceHtml(PREFS.rLook === 'kits' ? 0 : w.pid, kitFor(t, isGk), 'pl')}<span class="pn"${rieAttr(w.pid, 'name')}>${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
           <td class="idc c-id">${w.pid}</td>
-          <td class="c-pos">${i ? posBadge(i.pos) : ''}</td>
+          <td class="c-pos"${rieAttr(w.pid, 'pos')}>${i ? posBadge(i.pos) : ''}</td>
           <td class="mono c-val">${i && i.r ? `<button type="button" class="qeval" data-qe="${w.pid}" title="Editar la media" aria-label="Editar la media de ${esc(w.name || 'este jugador')}"><b class="${vcls(i.r)}">${i.r}</b><i class="qepen" aria-hidden="true">✎</i></button>${adjHtml(i.adj, i.form)}` : ''}</td>
           ${ageValCells(w.pid)}
           <td class="c-act"><div class="acts">${p ? `<button class="btn small icon" data-edit="${w.pid}" type="button" title="Editar jugador" aria-label="Editar">✎</button>` : ''}
@@ -1119,6 +1114,51 @@ function rosterExport(t, kind) {
   a.download = 'Plantel ' + tget(t, 'name').replace(/[\\/:*?"<>|]/g, '') + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('CSV descargado: ' + rows.length + ' jugadores.');
 }
+// ---------- CSV con el formato de PES2020Editor (js/pes20csv.js) ----------
+// los jugadores del EDIT salen como están en el EDIT; los de la base del juego, desde la copia de Player.bin
+function p20Player(id) {
+  const p = S.ix.byId.get(id);
+  if (p) return { g: k => pget(p, k), x: { inEdit: true, look: [0, 1, 2, 3].some(i => S.d[p.base + 0xF0 + i]), rating: rating(p) } };
+  const o = DBRAW && DBRAW.off.get(id); if (o == null) return null;
+  const m = DB_TO_EDIT(), pp = Object.fromEntries(Object.entries(DB_POSFLAG).map(([role, bit]) => ['pos' + POS_TO_PP[role], bit]));
+  const str = { name: 0xFB, shirt: 0x81, shirt_nt: 0xBE };
+  const g = k => k in m ? dbBits(o, m[k][0], m[k][1]) + m[k][2] : k in pp ? dbBits(o, pp[k], 2) : k in str ? dbStr(o + str[k], 61)
+    : /^sk\d+$/.test(k) ? (DB_SKILL[k.slice(2)] != null ? dbBits(o, DB_SKILL[k.slice(2)], 1) : 0) : /^com\d$/.test(k) ? dbBits(o, DB_COM[+k[3]], 1)
+    : k === 'play_style' ? dbStyle(o) : k === 'id' || k === 'comm_id' ? id : k === 'height' ? DBRAW.b[o + 0x1B] + 100 : 0;
+  return { g, x: { inEdit: false, look: false, rating: Math.round(posFormula(g('reg_pos'), g)) } };
+}
+function p20Download(name, txt) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+  a.download = name.replace(/[\\/:*?"<>|]/g, ''); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+// devuelve cuántos salieron y cuántos se saltearon (jugadores de la base sin la copia de Player.bin conectada)
+function p20ExportPlayers(ids, name) {
+  const rows = []; let miss = 0;
+  for (const id of [...new Set(ids)].sort((a, b) => a - b)) { const q = p20Player(id); if (q) rows.push(Pes20Csv.playerRow(q.g, q.x)); else miss++; }
+  if (!rows.length) { toast('No hay datos de esos jugadores: conectá Player.bin para exportar los que no están en tu EDIT.', 5000); return; }
+  p20Download(name, Pes20Csv.file(Pes20Csv.PLAYER_HEAD, rows));
+  toast(`CSV para PES2020Editor: ${rows.length} jugador${rows.length === 1 ? '' : 'es'}${miss ? ` (faltan ${miss} de la base del juego: conectá Player.bin para sumarlos)` : ''}.`, miss ? 6000 : 3000);
+}
+function p20ExportRoster(t) { p20ExportPlayers(PD.roster(S.d, t).map(r => r.pid), 'Jugadores - ' + tget(t, 'name') + '.csv'); }
+function p20ExportTeams(ts, name) {
+  const u32 = o => (S.d[o] | S.d[o + 1] << 8 | S.d[o + 2] << 16 | S.d[o + 3] << 24) >>> 0;
+  const rows = ts.map(t => Pes20Csv.teamRow(k => tget(t, k), { national: isNat(t), kits: [...Array(10)].map((_, i) => u32(t.base + 0x30 + i * 4)) }));
+  p20Download(name, Pes20Csv.file(Pes20Csv.TEAM_HEAD, rows));
+  toast(`CSV para PES2020Editor: ${rows.length} equipo${rows.length === 1 ? '' : 's'}.`);
+}
+// todos los jugadores: los del EDIT, los de los planteles y, si Player.bin está conectado, toda la base
+function p20AllIds(withDb) {
+  const ids = new Set(S.ix.players.map(p => p.id)); for (const id of teamOf.keys()) ids.add(id);
+  if (withDb && DBRAW) for (const id of DBRAW.off.keys()) ids.add(id);
+  return [...ids].sort((a, b) => a - b);
+}
+function p20ExportTeamPlayers() {
+  const T = t => t && { id: t.id, name: tget(t, 'name') };
+  const rows = p20AllIds(true).map(id => { const ts = teamOf.get(id) || [], q = p20Player(id), n = q ? q.g('name') : (S.names.get(id) || {}).name || '';
+    return Pes20Csv.tpRow(id, n, T(ts.find(t => !isNat(t))), T(ts.find(isNat))); });
+  p20Download('Equipos-Jugadores - PES 2021 - Edit.csv', Pes20Csv.file(Pes20Csv.TP_HEAD, rows));
+  toast(`CSV para PES2020Editor: ${rows.length} jugadores con su equipo y selección.`);
+}
 function fillLazySelect(sel) {
   const k = sel.dataset.lazy, O = S._rOpts; if (!k || !O) return; delete sel.dataset.lazy;
   if (k === 't') sel.insertAdjacentHTML('beforeend', O.t);
@@ -1128,7 +1168,7 @@ function bindRosterTable(t, m) {
   const card = $('rtable').closest('.card');
   for (const ev of ['pointerdown', 'focusin', 'keydown']) card.addEventListener(ev, e => { const sl = e.target.closest && e.target.closest('select[data-lazy]'); if (sl) fillLazySelect(sl); }, true);
   const sh = $('teamSheet'), tb = $('rtable'), tn = () => tget(t, 'name'), rer = () => later(() => renderTeams(m));
-  rosterFilter();
+  rosterFilter(); rieBind(t, m, tb);
   const rq = $('rq'); rq.oninput = () => { S.rq = rq.value; rosterFilter(); };
   $('rgrp').onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; S.rgrp = b.dataset.g; $('rgrp').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };
   $('rst').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; S.rst = b.dataset.st; $('rst').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };
@@ -1139,7 +1179,7 @@ function bindRosterTable(t, m) {
   if (!document.__popClose) { document.__popClose = true; document.addEventListener('click', e => { if (!e.target.closest('.pop')) document.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); }); document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); }); }
   $('rcols').onchange = e => { const c = e.target.dataset.col; if (!c) return; const h = rHide(); e.target.checked ? h.delete(c) : h.add(c); PREFS.rHide = [...h]; savePrefs(); tb.classList.toggle('h-' + c, !e.target.checked); };
   $('rcolsReset').onclick = () => { PREFS.rHide = ['h', 'nat', 'foot']; savePrefs(); renderTeams(m); };
-  $('rexp').onclick = e => { const b = e.target.closest('[data-exp]'); if (b) { $('rexp').hidden = true; rosterExport(t, b.dataset.exp); } };
+  $('rexp').onclick = e => { const b = e.target.closest('[data-exp]'); if (!b) return; $('rexp').hidden = true; const k = b.dataset.exp; if (k === 'p20') p20ExportRoster(t); else if (k === 't20') p20ExportTeams([t], tget(t, 'name') + '.csv'); else rosterExport(t, k); };
   const hs = k => { const sk = RSORT_KEY[k]; if (S.rosterSort === sk || (k === 'xi' && S.rosterSort === 'filial')) S.rosterDir = S.rosterDir === -1 ? 1 : -1; else { S.rosterSort = sk; S.rosterDir = 1; } flipRender(m, () => renderTeams(m)); };
   tb.querySelector('thead').onclick = e => { const h = e.target.closest('[data-hsort]'); if (h) hs(h.dataset.hsort); };
   tb.querySelector('thead').onkeydown = e => { const h = e.target.closest('[data-hsort]'); if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); hs(h.dataset.hsort); } };
@@ -1243,9 +1283,12 @@ function bindTeam(t, m) {
     $('tCoach').onchange = e => { setT(t, [['manager_id', +e.target.value]], 'Entrenador de ' + tn()); rer(); };
     const uk = $('tUseKit'); if (uk) uk.onclick = () => { const k = kitFor(t, false), h1 = k.c1.slice(1), h2 = k.c2.slice(1); setT(t, [['c1r', c6(h1.slice(0, 2))], ['c1g', c6(h1.slice(2, 4))], ['c1b', c6(h1.slice(4, 6))], ['c2r', c6(h2.slice(0, 2))], ['c2g', c6(h2.slice(2, 4))], ['c2b', c6(h2.slice(4, 6))]], 'Colores de ' + tn() + ' desde el kit'); rer(); };
   }
-  if (S.ttab === 'stadium') {
+  if (S.ttab === 'stadloc') {
+    bindStadView(t);
     $('tStad').onchange = e => { setT(t, [['stadium_id', +e.target.value], ['e_stadium', 1]], 'Estadio de ' + tn()); rer(); };
     $('tStadName').onchange = e => { setT(t, [['stadium_name', e.target.value], ['e_stadname', e.target.value ? 1 : 0]], 'Nombre del estadio de ' + tn()); };
+  }
+  if (S.ttab === 'stadium') {
     sh.querySelectorAll('[data-rival]').forEach(s => s.onchange = () => setT(t, [[s.dataset.rival, +s.value]], 'Rivales de ' + tn()));
     sh.querySelectorAll('[data-banner]').forEach(s => s.onchange = () => setT(t, [[s.dataset.banner, s.value]], 'Banderas de ' + tn()));
   }
@@ -1568,7 +1611,8 @@ function playerSheet(p) {
     <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}${canBackToDb(p.id) ? '<button class="btn small" id="pToDb" type="button" title="Lo saca de tu EDIT: el juego vuelve a usar el jugador de su base, con todo como venía">↩ Volver a la base del juego</button>' : ''}
       <select id="pCopy" style="width:auto;max-width:260px" aria-label="Copiar de otro jugador"><option value="">Copiar de otro jugador…</option>${S.ix.players.filter(x => x.id !== p.id).map(x => `<option value="${x.id}">${esc(pget(x, 'name') || x.id)}</option>`).join('')}</select>
       <select id="pCopyWhat" style="width:auto" aria-label="Qué copiar"><option value="abil">habilidades</option><option value="skills">especiales y estilos</option><option value="pos">posiciones</option><option value="look">apariencia</option><option value="motion">movimientos</option></select>
-      <button class="btn small" id="pCopyBtn" type="button">Copiar</button></div>
+      <button class="btn small" id="pCopyBtn" type="button">Copiar</button>
+      <button class="btn small ghost" id="pCsv20" type="button" title="Descarga este jugador en un CSV con el formato de PES2020Editor">⬇ CSV para PES2020Editor</button></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${S.ptab === k}">${n}</button>`).join('')}</div>
   </div>
   ${S.ptab === 'face' ? (() => { const c = clubOf(p.id); return mnfCard(p.id, c ? kitFor(c, reg === 0) : null); })() : `<div class="card">${({ profile: tabProfile, pos: tabPos, abil: tabAbil, skills: tabSkills, look: tabLook, motion: tabMotion })[S.ptab](p)}</div>`}`;
@@ -2139,6 +2183,7 @@ function bindPlayer(p, m) {
   $('pLock').onchange = e => { setLock(p, e.target.checked); rer(); };
   const rv = $('pRevert'); if (rv) rv.onclick = () => { edit('Volver al original: ' + nm(), 'p' + p.id, regP(p), () => S.d.set(S.origData.subarray(p.base, p.base + 0x138), p.base)); toast('Jugador restaurado como estaba al abrir el archivo.', 4000, ['Deshacer', undo]); rer(); };
   const tdb = $('pToDb'); if (tdb) tdb.onclick = async () => { if (await confirmBox(`¿Volver a ${nm()} a la base del juego? Sale de tu EDIT y el juego usa el jugador como venía: se pierde lo que le cambiaste (media, habilidades, físico…). Se puede deshacer con Ctrl+Z.`)) { backToDb([p.id]); renderPlayers(m); } };
+  $('pCsv20').onclick = () => p20ExportPlayers([p.id], (pget(p, 'name') || 'Jugador ' + p.id) + '.csv');
   $('pCopyBtn').onclick = () => {
     const src = S.ix.byId.get(+$('pCopy').value); if (!src) { toast('Elegí de qué jugador copiar.'); return; }
     const what = $('pCopyWhat').value;
@@ -2256,6 +2301,11 @@ function renderFile(m) {
       <p class="note">Cada EDIT lleva el usuario de Windows de la PC donde se creó, y el juego rechaza los de otra PC. Para usar este archivo en otra computadora, poné el SID de esa PC (en esa PC: <code>cmd</code> → <code>whoami /user</code>) y descargá una copia. No lo guardes sobre el de esta PC.</p>
       <div class="row"><input type="text" id="fSid" value="${esc(i.sid)}" spellcheck="false" style="font-family:var(--mono);max-width:460px" aria-label="SID"><button class="btn" id="fSidBtn" type="button">Aplicar SID</button></div>
     </div>
+    <div class="card"><h3>Exportar para PES2020Editor</h3>
+      <p class="note">CSV con las mismas columnas que PES2020Editor, para abrirlos ahí o compartir tus ediciones. Los jugadores que no están en tu EDIT salen de la base del juego (hace falta conectar Player.bin).</p>
+      <div class="row"><button class="btn small" type="button" id="p20Edit">Jugadores de mi EDIT</button><button class="btn small" type="button" id="p20All" ${DBRAW ? '' : 'disabled title="Conectá Player.bin para sumar la base del juego"'}>Todos los jugadores (base del juego + EDIT)</button>
+      <button class="btn small" type="button" id="p20Teams">Equipos</button><button class="btn small" type="button" id="p20Tp">Equipos-Jugadores</button></div>
+      <p class="note">En Equipos, el césped, la red del arco, el patrocinio y las licencias todavía salen con los valores por defecto de PES2020Editor.</p></div>
     ${compareCardHtml()}
     ${S.dir ? `<div class="card"><h3>Respaldos en esta carpeta</h3><div id="baks" class="note">Buscando…</div></div>` : ''}
   <div class="card"><h3>Carpeta del juego</h3>
@@ -2266,6 +2316,10 @@ function renderFile(m) {
   ${helpCard('file')}
   </div>`;
   bindCompare();
+  $('p20Edit').onclick = () => p20ExportPlayers(S.ix.players.map(p => p.id), 'Jugadores.csv');
+  $('p20All').onclick = () => p20ExportPlayers(p20AllIds(true), 'Jugadores.csv');
+  $('p20Teams').onclick = () => p20ExportTeams(S.ix.teams, 'Equipos - PES 2021 - Edit.csv');
+  $('p20Tp').onclick = p20ExportTeamPlayers;
   m.querySelectorAll('[data-pesedit]').forEach(b => b.onclick = () => pesSwitch(+b.dataset.pesedit));
   { const a = $('pesAgain'); if (a) a.onclick = () => pesStart(); const o = $('pesOther'); if (o) o.onclick = () => { introShow(); pesPick(); }; }
   $('fDesc').onchange = e => { edit('Nombre del archivo', 'desc', [], () => PesCrypt.setDescription(S.f, e.target.value)); };

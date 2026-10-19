@@ -1908,6 +1908,8 @@ html[data-gfx="pes6"] .hxring.max{fill:#fbfaf5}
 @keyframes svBump{from{transform:translateY(40%);opacity:0}to{transform:none;opacity:1}}
 .sv-sw{display:inline-block;width:58px;height:22px;border-radius:12px;background:var(--c);border:2px solid #2a2f3a}
 .sv-row.sv-off{opacity:.5}
+.sv-card.sv-locked .sv-row:not([data-k="stadium"]),.sv-card.sv-locked .sv-sep{opacity:.4}
+.sv-card.sv-locked .sv-row:not([data-k="stadium"]) .sv-arr{visibility:hidden}
 .sv-pal{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:8px 0 12px;animation:svPal .22s cubic-bezier(.2,1.2,.4,1)}
 @keyframes svPal{from{opacity:0;transform:translateY(-6px)}}
 .sv-pc{all:unset;cursor:pointer;width:36px;height:28px;background:var(--c);border:2px solid #fff;box-shadow:0 0 0 1px #6b7280;transition:transform .12s}

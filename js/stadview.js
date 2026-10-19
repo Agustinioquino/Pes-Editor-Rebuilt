@@ -23,7 +23,12 @@ const SV_OPTS = { turf: svRange(1, SV_TURFS), side_color: svRange(1, 8), seat_co
 const SV_MAX = SV_OPTS; // filas con flechas
 // fotos tomadas del juego (assets/estadio): estadios que tienen la suya y céspedes con captura
 const SV_DIR = 'assets/estadio/';
-const SV_STAD_PHOTO = new Set([13, 15, 17, 18, 19, 20, 29, 40, 42, 43, 44, 45, 46, 47, 50, 54, 55]);
+// los 31 estadios del menú del juego, en su orden. Los 14 primeros tienen licencia: con ellos el juego no deja cambiar
+// el nombre ni las opciones detalladas (el 3, Allianz Parque, está deducido: falta su captura)
+const SV_GAME = [24, 59, 33, 34, 35, 36, 81, 14, 16, 27, 28, 62, 61, 74, 29, 46, 13, 50, 43, 15, 17, 18, 19, 20, 40, 42, 44, 45, 47, 54, 55];
+const SV_LICENSED = new Set(SV_GAME.slice(0, 14));
+const SV_STAD_PHOTO = new Set(SV_GAME.filter(id => id !== 33));
+const svLocked = t => SV_LICENSED.has(tget(t, 'stadium_id'));
 const SV_TURF_PHOTO = new Set([1, 2, 3, 4, 5, 7, 8]);
 
 // ---------- fotos teñidas ----------
@@ -145,12 +150,18 @@ function svGoal(t) {
 // ---------- tarjeta ----------
 function svValue(t, k) {
   const sw = (c, tip) => `<span class="sv-sw" style="--c:${c}" title="${esc(tip)}"></span>`;
-  if (k === 'stadium') { const sid = tget(t, 'stadium_id'); return `<span class="sv-val">${esc(STADIUM.get(sid) || 'Estadio ' + sid)}</span><select id="tStad" class="sv-pick" tabindex="-1" aria-label="Estadio local">${STADIUM.has(sid) ? '' : `<option value="${sid}" selected>ID ${sid}</option>`}${[...STADIUM].map(([id, n]) => `<option value="${id}" ${id === sid ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`; }
+  if (k === 'stadium') { const sid = tget(t, 'stadium_id'); return `<span class="sv-val">${esc(STADIUM.get(sid) || 'Estadio ' + sid)}</span><select id="tStad" class="sv-pick" tabindex="-1" aria-label="Estadio local">${STADIUM.has(sid) ? '' : `<option value="${sid}" selected>ID ${sid}</option>`}${svStadOpts(sid)}</select>`; }
   if (k === 'name') return `<input type="text" id="tStadName" class="sv-text" value="${esc(tget(t, 'stadium_name'))}" maxlength="120" placeholder="El del juego" aria-label="Nombre de estadio por equipo">`;
   if (k === 'side_color' || k === 'seat_color') { const v = tget(t, k), pal = k === 'side_color' ? SV_SIDE : SV_SEAT; return pal[v - 1] ? sw(pal[v - 1], `Color ${v} de 8`) : `<span class="sv-val">${v ? 'Valor ' + v : 'Del juego'}</span>`; }
   if (k === 'net1' || k === 'net2') { const c = svRgb(t, k.slice(3)); return `${sw(c, c)}<input type="color" class="sv-color" data-svc="${k}" value="${c}" tabindex="-1" aria-label="Elegir color">`; }
   if (k === 'net_design') return `<span class="sv-val">${svDesign(tget(t, k))}</span>`;
   return `<span class="sv-val">${svTipo(tget(t, k))}</span>`;
+}
+// lista de estadios: primero los 31 del menú del juego y después los que solo usan sus equipos
+function svStadOpts(sid) {
+  const o = id => `<option value="${id}" ${id === sid ? 'selected' : ''}>${esc(STADIUM.get(id) || 'Estadio ' + id)}</option>`;
+  const rest = [...STADIUM.keys()].filter(id => !SV_GAME.includes(id));
+  return `<optgroup label="Menú del juego">${SV_GAME.filter(id => STADIUM.has(id)).map(o).join('')}</optgroup>${rest.length ? `<optgroup label="Otros estadios (solo de sus equipos)">${rest.map(o).join('')}</optgroup>` : ''}`;
 }
 // paleta de 8 colores como "Configurar color" del juego
 function svPalette(t, k) {
@@ -163,9 +174,9 @@ function svPreview(t, row) {
   const k = SV_ROWS[row][0], kind = SV_ROWS[row][2], pk = S.svPeek, g = f => pk && pk.k === f ? pk.v : tget(t, f);
   let shot = '', count = '';
   if (kind === 'stand') {
-    const sid = g('stadium_id'), ids = [...STADIUM.keys()], nm = STADIUM.get(sid) || 'Estadio ' + sid;
+    const sid = g('stadium_id'), nm = STADIUM.get(sid) || 'Estadio ' + sid;
     shot = SV_STAD_PHOTO.has(sid) ? svPhoto('est-' + sid + '.jpg', nm) : svStand(t);
-    count = `${ids.indexOf(sid) + 1 || '–'}/${ids.length}`;
+    count = `${SV_GAME.indexOf(sid) + 1 || '–'}/${SV_GAME.length}`;
   } else if (kind === 'turf') {
     const v = g('turf'); shot = SV_TURF_PHOTO.has(v) ? svPhoto('cesped-' + v + '.jpg', 'Césped tipo ' + v) : svPitch(t); count = `${v || '–'}/${SV_TURFS}`;
   } else if (kind === 'side') {
@@ -186,7 +197,7 @@ function svPreview(t, row) {
 function stadViewCard(t) {
   S.svPeek = null;
   const row = Math.max(0, Math.min(SV_ROWS.length - 1, S.svRow || 0)), off = !svDesignUsesColors(t);
-  return `<div class="card sv-card" id="stadView"><div class="sv-head">${crest(t, 'mini')}<b>Opciones de estadio local</b><span class="sv-help">↑ ↓ elegir · ← → cambiar · Enter abrir</span></div>
+  return `<div class="card sv-card${svLocked(t) ? ' sv-locked' : ''}" id="stadView"><div class="sv-head">${crest(t, 'mini')}<b>Opciones de estadio local</b><span class="sv-help">↑ ↓ elegir · ← → cambiar · Enter abrir</span></div>
     <div class="sv-prev" id="svPrev">${svPreview(t, row)}</div>
     <div class="sv-list" id="svList" role="listbox" tabindex="0" aria-label="Opciones de estadio local" aria-activedescendant="svr${row}">
       ${SV_ROWS.map(([k, n], i) => `${i === 2 ? '<div class="sv-sep">Opciones detalladas</div>' : ''}<div class="sv-row${i === row ? ' on' : ''}${off && /^net[12]$/.test(k) ? ' sv-off" title="Las redes Blanca, Negra y Verde no usan este color' : ''}" id="svr${i}" role="option" aria-selected="${i === row}" data-svr="${i}" data-k="${k}">
@@ -213,6 +224,9 @@ function bindStadView(t) {
     svRedraw(SV_ROWS[prev][2] !== SV_ROWS[i][2]);
     if (focus) r.scrollIntoView({ block: 'nearest' });
   };
+  // con un estadio con licencia el juego deja elegir solo el estadio: el resto queda apagado, igual que en el menú
+  const svLock = () => { const L = svLocked(t); card.classList.toggle('sv-locked', L); card.querySelectorAll('#tStadName, .sv-color').forEach(x => { x.disabled = L; }); };
+  const svLockTip = () => toast('Con un estadio con licencia el juego no deja cambiar el nombre ni las opciones detalladas.', 4500);
   const label = k => 'Estadio de ' + tget(t, 'name') + ': ' + SV_ROWS.find(r => r[0] === k)[1].toLowerCase();
   const refresh = k => {
     const r = card.querySelector(`.sv-row[data-k="${k}"]`); r.querySelector('.sv-v').innerHTML = svValue(t, k);
@@ -222,12 +236,14 @@ function bindStadView(t) {
   };
   const put = (k, v) => { if (tget(t, k) === v && tget(t, 'e_staddet')) return; setT(t, [[k, v], ['e_staddet', 1]], label(k)); refresh(k); updateTop(); };
   const step = (k, d) => {
-    if (k === 'stadium') { const ids = [...STADIUM.keys()], at = ids.indexOf(tget(t, 'stadium_id')), nx = ids[(at + d + ids.length) % ids.length]; setT(t, [['stadium_id', nx], ['e_stadium', 1]], 'Estadio de ' + tget(t, 'name')); refresh(k); updateTop(); return; }
+    if (k === 'stadium') { const at = SV_GAME.indexOf(tget(t, 'stadium_id')), nx = at < 0 ? SV_GAME[d > 0 ? 0 : SV_GAME.length - 1] : SV_GAME[(at + d + SV_GAME.length) % SV_GAME.length]; setT(t, [['stadium_id', nx], ['e_stadium', 1]], 'Estadio de ' + tget(t, 'name')); refresh(k); svLock(); updateTop(); return; }
+    if (svLocked(t)) { svLockTip(); return; }
     const o = SV_OPTS[k]; if (!o) return;
     const at = o.indexOf(tget(t, k));
     put(k, at < 0 ? o[d > 0 ? 0 : o.length - 1] : o[(at + d + o.length) % o.length]);
   };
   const open = k => {
+    if (k !== 'stadium' && svLocked(t)) { svLockTip(); return; }
     const r = card.querySelector(`.sv-row[data-k="${k}"]`);
     if (k === 'side_color' || k === 'seat_color') { if (r.querySelector('.sv-pal')) { closePal(); return; } closePal(); r.insertAdjacentHTML('beforeend', svPalette(t, k)); return; }
     const x = r.querySelector('#tStad, #tStadName, .sv-color'); if (!x) return;
@@ -263,5 +279,5 @@ function bindStadView(t) {
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); step(k, e.key === 'ArrowRight' ? 1 : -1); }
     else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(k); }
   });
-  svApplyTint(card);
+  svLock(); svApplyTint(card);
 }

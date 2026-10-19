@@ -54,6 +54,7 @@ function rieBind(t, m, tb) {
   function close(commit, next) {
     if (!open) return;
     const o = open; open = null;
+    const row = o.cell.closest('tr'); if (row && !next) row.classList.remove('ie-row');
     const val = o.input.value, p = o.p;
     const changed = commit && apply(p, o.kind, val);
     if (changed && o.kind === 'pos') {
@@ -83,6 +84,7 @@ function rieBind(t, m, tb) {
     const tr = cell.closest('tr.prow'), pid = +tr.dataset.pid, kind = cell.dataset.ie, p = S.ix.byId.get(pid);
     if (!p) { toast((playerName(pid) || 'ID ' + pid) + ' sale de la base del juego. Agregalo a tu EDIT para editarlo.', 6000, typeof canMakeEditPlayer === 'function' && canMakeEditPlayer(pid) ? ['Agregar a mi EDIT', () => addDbPlayer(pid, false)] : undefined); return; }
     if (kind === 'foot') { if (apply(p, 'foot')) { rieShow(cell, p, 'foot'); rieSync(p, 'foot'); rieFlash(cell); updateTop(); } return; }
+    tb.querySelectorAll('tr.ie-row').forEach(r => r.classList.remove('ie-row')); tr.classList.add('ie-row');
     open = { cell, kind, p, html: cell.innerHTML };
     cell.innerHTML = `<span class="ie-box">${rieField(p, kind)}</span>`; cell.classList.add('ie-on');
     const input = open.input = cell.querySelector('.ie-in');

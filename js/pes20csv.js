@@ -61,7 +61,7 @@ const Pes20Csv = (() => {
   }
 
   // g(campo) del equipo en el EDIT; x: { national, kits: [los 10 números de kit] }
-  // de las columnas de estadio, red del arco, patrocinio y licencias todavía no se sabe dónde están en el EDIT:
+  // césped, banda, asientos, arco y red salen del EDIT; de patrocinio y licencias todavía no se sabe dónde están:
   // salen como las deja PES2020Editor en un equipo sin tocar (−1, vacío, False o 0)
   function teamRow(g, x = {}) {
     const r = new Array(TEAM_HEAD.length).fill('0'), set = (k, v) => { r[TI[k]] = String(v); };
@@ -74,11 +74,12 @@ const Pes20Csv = (() => {
     for (let i = 0; i < 10; i++) set('Kit' + (i + 1), x.kits ? x.kits[i] >>> 0 : 4294950912);
     const col = ['c1r', 'c1g', 'c1b', 'c2r', 'c2g', 'c2b'].map(g);
     ['TeamColor1R', 'TeamColor1G', 'TeamColor1B', 'TeamColor2R', 'TeamColor2G', 'TeamColor2B'].forEach((k, i) => set(k, col[i]));
-    ['GoalNettingColor1R', 'GoalNettingColor1G', 'GoalNettingColor1B', 'GoalNettingColor2R', 'GoalNettingColor2G', 'GoalNettingColor2B'].forEach((k, i) => set(k, col[i]));
+    ['GoalNettingColor1R', 'GoalNettingColor1G', 'GoalNettingColor1B', 'GoalNettingColor2R', 'GoalNettingColor2G', 'GoalNettingColor2B'].forEach((k, i) => set(k, g(['net1r', 'net1g', 'net1b', 'net2r', 'net2g', 'net2b'][i])));
+    [['TurfPattern', 'turf'], ['SidelineColour', 'side_color'], ['SeatColour', 'seat_color'], ['GoalStyle', 'goal_style'], ['NetPattern', 'net_pattern'], ['GoalNettingDesign', 'net_design']].forEach(([k, f]) => set(k, g(f)));
     for (const k of ['SponsorColorR', 'SponsorColorG', 'SponsorColorB']) set(k, 63);
     for (let i = TI.EditName; i <= TI.LicencedCoach2; i++) r[i] = 'False';
     for (const k of ['HasAnthem', 'Value2']) set(k, 'False');
-    set('EditName', B(g('e_name'))); set('EditEmblem', B(g('e_emblem'))); set('EditStadium', B(g('e_stadium'))); set('EditStadiumName', B(g('e_stadname')));
+    set('EditName', B(g('e_name'))); set('EditEmblem', B(g('e_emblem'))); set('EditStadium', B(g('e_stadium'))); set('EditStadiumName', B(g('e_stadname'))); set('EditStadiumDetails', B(g('e_staddet')));
     set('EditRivals', B([1, 2, 3].some(i => g('rival' + i) !== 262143)));
     return r;
   }

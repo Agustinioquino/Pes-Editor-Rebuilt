@@ -909,14 +909,9 @@ function teamDataCard(t) {
   </div>`;
 }
 function stadiumCard(t) {
-  const sid = tget(t, 'stadium_id');
   const teams = [...S.ix.teams].filter(x => x.id !== t.id && PD.roster(S.d, x).length).sort((a, b) => tget(a, 'name').localeCompare(tget(b, 'name')));
   const rivalSel = k => { const v = tget(t, k); return `<select data-rival="${k}" aria-label="Rival"><option value="${NO_RIVAL}" ${v === NO_RIVAL ? 'selected' : ''}>Ninguno</option>${!S.ix.teamById.has(v) && v !== NO_RIVAL ? `<option value="${v}" selected>ID ${v}</option>` : ''}${teams.map(x => `<option value="${x.id}" ${x.id === v ? 'selected' : ''}>${esc(tget(x, 'name'))}</option>`).join('')}</select>`; };
-  return `<div class="card"><h3>Estadio</h3>
-    <div class="grid wide">
-      <div class="f"><label for="tStad">Estadio que usa</label><select id="tStad">${STADIUM.has(sid) ? '' : `<option value="${sid}" selected>ID ${sid}</option>`}${[...STADIUM].map(([id, n]) => `<option value="${id}" ${id === sid ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
-      <div class="f"><label for="tStadName">Nombre propio del estadio</label><input type="text" id="tStadName" value="${esc(tget(t, 'stadium_name'))}" maxlength="120" placeholder="Vacío = el del juego"></div>
-    </div></div>
+  return `${stadViewCard(t)}
   <div class="card"><h3>Rivales clásicos</h3><div class="grid wide">
     <div class="f"><span class="lab">Rival 1</span>${rivalSel('rival1')}</div><div class="f"><span class="lab">Rival 2</span>${rivalSel('rival2')}</div><div class="f"><span class="lab">Rival 3</span>${rivalSel('rival3')}</div></div>
     <p class="note">El juego usa los rivales para los clásicos y el ambiente de los partidos.</p></div>
@@ -1290,6 +1285,7 @@ function bindTeam(t, m) {
     const uk = $('tUseKit'); if (uk) uk.onclick = () => { const k = kitFor(t, false), h1 = k.c1.slice(1), h2 = k.c2.slice(1); setT(t, [['c1r', c6(h1.slice(0, 2))], ['c1g', c6(h1.slice(2, 4))], ['c1b', c6(h1.slice(4, 6))], ['c2r', c6(h2.slice(0, 2))], ['c2g', c6(h2.slice(2, 4))], ['c2b', c6(h2.slice(4, 6))]], 'Colores de ' + tn() + ' desde el kit'); rer(); };
   }
   if (S.ttab === 'stadium') {
+    bindStadView(t);
     $('tStad').onchange = e => { setT(t, [['stadium_id', +e.target.value], ['e_stadium', 1]], 'Estadio de ' + tn()); rer(); };
     $('tStadName').onchange = e => { setT(t, [['stadium_name', e.target.value], ['e_stadname', e.target.value ? 1 : 0]], 'Nombre del estadio de ' + tn()); };
     sh.querySelectorAll('[data-rival]').forEach(s => s.onchange = () => setT(t, [[s.dataset.rival, +s.value]], 'Rivales de ' + tn()));

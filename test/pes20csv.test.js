@@ -44,6 +44,16 @@ test("el equipo tiene las columnas de PES2020Editor y los kits en orden", () => 
   assert.equal(at("National"), "False");
 });
 
+test("el estadio del equipo sale con los mismos valores que PES2020Editor (C.A La Mafia Animal)", () => {
+  // valores leídos del EDIT y columnas que exportó PES2020Editor para el mismo equipo
+  const t = { turf: 2, side_color: 5, seat_color: 5, goal_style: 2, net_pattern: 1, net_design: 3, net1r: 5, net1g: 38, net1b: 5, net2r: 48, net2g: 38, net2b: 5, e_staddet: 1 };
+  const row = C.teamRow(k => t[k] ?? 0, { national: false });
+  const at = k => row[C.TEAM_HEAD.indexOf(k)];
+  assert.deepEqual(["TurfPattern", "SidelineColour", "SeatColour", "GoalStyle", "NetPattern", "GoalNettingDesign"].map(at), ["2", "5", "5", "2", "1", "3"]);
+  assert.deepEqual(["R", "G", "B"].flatMap(c => [at("GoalNettingColor1" + c), at("GoalNettingColor2" + c)]), ["5", "48", "38", "38", "5", "5"]);
+  assert.equal(at("EditStadiumDetails"), "True");
+});
+
 test("los ; y saltos de línea de un nombre no rompen el CSV", () => {
   const p = C.parse(C.file(["Id", "Name"], [["1", "A;B\r\nC"]]));
   assert.deepEqual([...p.rows[0]], ["1", "A B  C"]);

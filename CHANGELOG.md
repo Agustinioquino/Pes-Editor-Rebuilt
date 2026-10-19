@@ -2,6 +2,18 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.062 alpha · Tu estadio con fotos del juego y fuentes desde cualquier imagen
+
+*19 de octubre de 2026, 15:45 (hora de Argentina)*
+
+El estadio local se ve como el menú del juego, las fuentes se hacen en cuatro pasos y desde una foto, y la tabla del plantel se edita en la misma celda.
+
+- **Estadio local, como en el juego** (Interfaz). El equipo tiene su propia pestaña Estadio local, con el mismo menú que "Opciones de estadio local" del juego y una foto de vista previa del estadio, el césped, la portería o la red. Están los 31 estadios del menú del juego en su orden, también los 13 con licencia, y las opciones detalladas: césped, color del campo, color de los asientos, estilo de la portería, diseño de la red y sus colores. La otra pestaña pasa a llamarse Rivales y banderas.
+- **Fuentes en cuatro pasos** (Kits). Kit Studio Pro → 🔤 Fuentes es ahora un camino de cuatro pasos: Fuente, Estilo, Kit y Al juego, con animaciones. En Kit, Saltar este paso deja acomodar el nombre y el dorsal dentro del juego, y 🎯 Precisa muestra la espalda de la camiseta plana para ubicarlos píxel por píxel.
+- **Letras de una foto** (Kits). 📷 Letras de una foto saca el abecedario de cualquier imagen, en cualquier orden: reconoce cada letra por su forma y marca con borde punteado las dudosas. Lee PNG, JPG, WEBP, GIF, BMP, AVIF, SVG, PSD y los .dds/.ftex del juego, y también se puede pegar con Ctrl+V. Sin caracteres especiales deja solo las letras simples (la á como a, la Ø como O). El .zip trae un tutorial paso a paso para meter la fuente en el juego.
+- **Editar en la tabla del plantel** (Plantel). Un clic en el nombre, la posición, la edad, la altura, la nacionalidad o el pie de un jugador abre el campo en la misma celda. Enter guarda, Esc cancela y Tab pasa al siguiente dato; cada cambio se deshace con Ctrl+Z.
+- **CSV para PES2020Editor** (Archivo). Jugadores, equipos y la lista equipo–jugadores se exportan con las mismas columnas y el mismo formato que PES2020Editor: desde Archivo, desde el menú Exportar del plantel o con ⬇ CSV para PES2020Editor en cada jugador.
+
 ## v0.061 alpha · Fuentes que se ven bien en el juego, y por qué a veces no
 
 *18 de octubre de 2026, 16:30 (hora de Argentina)*

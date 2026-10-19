@@ -940,7 +940,8 @@ function ageValCells(pid, ro) {
   const i = pInfo(pid), pv = playerValue(pid);
   const tip = pv ? (pv.manual ? 'Valor cargado a mano' + (pv.est != null ? ' (el estimado era ' + fmtMoney(pv.est) + ')' : '') : `Estimado: valoración ${pv.r}, ${pv.ageKnown ? pv.a + ' años' : 'edad desconocida'}, potencial ~${pv.pot}, ${pv.club ? tget(pv.club, 'name') : 'sin club'}${pv.league ? ' (' + (LEAGUE_NAME[pv.league] || pv.league) + ')' : ''}`) : 'Sin datos para estimar';
   const m = pMeta(pid);
-  return `<td class="mono c-age">${i && i.a ? i.a : ''}</td><td class="mono c-h">${m.h ? m.h : ''}</td><td class="c-nat">${m.nat ? `<span class="natw">${natFlag(m.nat)}<span class="natc" title="${esc(m.natName)}">${esc(m.natName)}</span></span>` : ''}</td><td class="mono c-foot">${m.foot}</td><td class="mono c-mv">${ro ? `<span title="${esc(tip)}" class="mval${pv && pv.manual ? ' man' : ''}">${pv ? fmtMoney(pv.v) : '—'}</span>` : `<button type="button" class="mval${pv && pv.manual ? ' man' : ''}" data-val="${pid}" title="${esc(tip)}. Tocá para cargar el valor real.">${pv ? fmtMoney(pv.v) : '—'}</button>`}</td>`;
+  const ie = k => ro ? '' : rieAttr(pid, k);
+  return `<td class="mono c-age"${ie('age')}>${i && i.a ? i.a : ''}</td><td class="mono c-h"${ie('h')}>${m.h ? m.h : ''}</td><td class="c-nat"${ie('nat')}>${m.nat ? `<span class="natw">${natFlag(m.nat)}<span class="natc" title="${esc(m.natName)}">${esc(m.natName)}</span></span>` : ''}</td><td class="mono c-foot"${ie('foot')}>${m.foot}</td><td class="mono c-mv">${ro ? `<span title="${esc(tip)}" class="mval${pv && pv.manual ? ' man' : ''}">${pv ? fmtMoney(pv.v) : '—'}</span>` : `<button type="button" class="mval${pv && pv.manual ? ' man' : ''}" data-val="${pid}" title="${esc(tip)}. Tocá para cargar el valor real.">${pv ? fmtMoney(pv.v) : '—'}</button>`}</td>`;
 }
 // affiliate (reserve / B) teams: same base name + suffix, or "Jong <name>"
 const FIL_RE = /^(.*?)\s+(B|II|U-?\d{2}|Sub-?\d{2}|Reserves|Reservas|Reserva|Castilla|Atl[eè]tic|Juvenil|Primavera|Youth|Academy|Next Gen|Futures)$/;
@@ -1061,9 +1062,9 @@ function rosterCard(t) {
           <td class="c-sel"><input type="checkbox" data-sel="${w.pid}" ${sel ? 'checked' : ''} aria-label="Seleccionar ${esc(w.name || 'ID ' + w.pid)}"></td>
           <td class="stno c-xi">${w.si >= 0 ? w.si + 1 : w.oi < 18 ? `<span class="bnch">S${w.oi - 10}</span>` : ''}</td>
           <td class="num c-num"><input type="number" min="1" max="99" value="${w.num}" data-num="${w.slot}" aria-label="Dorsal"></td>
-          <td class="c-player"><span class="pcell">${faceHtml(PREFS.rLook === 'kits' ? 0 : w.pid, kitFor(t, isGk), 'pl')}<span class="pn">${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
+          <td class="c-player"><span class="pcell">${faceHtml(PREFS.rLook === 'kits' ? 0 : w.pid, kitFor(t, isGk), 'pl')}<span class="pn"${rieAttr(w.pid, 'name')}>${w.name ? esc(w.name) : `<span class="sub">sin nombre${S.names.size ? '' : ' · conectá la carpeta Sider'}</span>`}</span>${w.cap ? '<span class="capb" title="Capitán">C</span>' : ''}${w.unl ? lockIco(p) : ''}</span></td>
           <td class="idc c-id">${w.pid}</td>
-          <td class="c-pos">${i ? posBadge(i.pos) : ''}</td>
+          <td class="c-pos"${rieAttr(w.pid, 'pos')}>${i ? posBadge(i.pos) : ''}</td>
           <td class="mono c-val">${i && i.r ? `<button type="button" class="qeval" data-qe="${w.pid}" title="Editar la media" aria-label="Editar la media de ${esc(w.name || 'este jugador')}"><b class="${vcls(i.r)}">${i.r}</b><i class="qepen" aria-hidden="true">✎</i></button>${adjHtml(i.adj, i.form)}` : ''}</td>
           ${ageValCells(w.pid)}
           <td class="c-act"><div class="acts">${p ? `<button class="btn small icon" data-edit="${w.pid}" type="button" title="Editar jugador" aria-label="Editar">✎</button>` : ''}
@@ -1173,7 +1174,7 @@ function bindRosterTable(t, m) {
   const card = $('rtable').closest('.card');
   for (const ev of ['pointerdown', 'focusin', 'keydown']) card.addEventListener(ev, e => { const sl = e.target.closest && e.target.closest('select[data-lazy]'); if (sl) fillLazySelect(sl); }, true);
   const sh = $('teamSheet'), tb = $('rtable'), tn = () => tget(t, 'name'), rer = () => later(() => renderTeams(m));
-  rosterFilter();
+  rosterFilter(); rieBind(t, m, tb);
   const rq = $('rq'); rq.oninput = () => { S.rq = rq.value; rosterFilter(); };
   $('rgrp').onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; S.rgrp = b.dataset.g; $('rgrp').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };
   $('rst').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; S.rst = b.dataset.st; $('rst').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); rosterFilter(); };

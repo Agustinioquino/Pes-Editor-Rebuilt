@@ -509,7 +509,8 @@ function kpfHtml(has) {
         ${panel(3, 'Elegí el kit', `<div class="kpfsec">${has ? '' : `<p class="note">${KITS.from ? 'Este equipo no tiene carpeta en content\\kit-server: la fuente se descarga en un .zip para copiarla a mano a la carpeta de un kit.' : 'Sin la carpeta Sider conectada la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.'}</p>`}
           ${has ? `<div class="kpfkits" id="kpfKits"><button type="button" class="kpfkit all" data-kit="*" aria-pressed="${KPFS.target === '*'}"><span><b>Todos</b><small>${KS.kits.length} de jugador</small></span></button>${KS.kits.map((k, i) => chip(k, i, false)).join('')}${KS.gk.map((k, i) => chip(k, i, true)).join('')}</div>
           ${KPFS.skipPos ? kpfSkipHtml() : `<div class="kpfskipbar"><span><span aria-hidden="true">🎮</span> ¿Preferís acomodar el nombre y los números dentro del juego?</span><button class="btn small" type="button" data-skip title="Pasa al último paso sin tocar la posición: el nombre y los números se acomodan después dentro del juego">Saltar este paso →</button></div>
-          ${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>`}` : ''}</div>${has && !KPFS.skipPos ? `<details class="kpfsec kpfmore kpfposd" ${KPFS.posOpen ? 'open' : ''}><summary>📐 Posición libre <small>KitPos</small></summary>${kposHtml(['name'], { save: true })}</details>` : ''}`)}
+          ${KPFS.posView === '3d' ? `${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>` : kprHtml()}
+          <div class="kpfview" role="group" aria-label="Vista"><button type="button" class="btn small" data-posview="plano" aria-pressed="${KPFS.posView !== '3d'}" title="La espalda en plano, a la resolución de la textura: la posición exacta">🎯 Precisa</button><button type="button" class="btn small" data-posview="3d" aria-pressed="${KPFS.posView === '3d'}" title="La camiseta en 3D, para ver cómo queda puesta">🧊 En 3D</button></div>`}` : ''}</div>${has && !KPFS.skipPos ? `<details class="kpfsec kpfmore kpfposd" ${KPFS.posOpen ? 'open' : ''}><summary>📐 Posición libre <small>KitPos</small></summary>${kposHtml(['name'], { save: true })}</details>` : ''}`)}
         ${panel(4, 'Llevala al juego', `<div class="kpfsec kpfgame">${kpfFmtHtml()}${KPFS.fmt === 'game' ? '' : kpfReqHtml(req)}${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
             <button class="btn" type="button" id="kpfTry" title="Abre el Editor de Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en el Editor</button>
             <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21)">↩ Volver a la anterior</button></div>`
@@ -770,6 +771,7 @@ function kpfWrap(fn) {
   try { return fn(); } finally { KS.T.name = saveT; KS.sample = saveS; KS.dispKey = ''; }
 }
 function kpfBack3d(sh, now) {
+  if (sh.querySelector('#kprBox')) { if (KPFS.has && KS.cfg && KPFS.kprApi) kprPaint(sh, KPFS.kprApi); return; } // vista precisa (kitprec.js)
   if (!sh.querySelector('#kplBox') || !KPFS.has || !KS.cfg || !KPFS.out) return;
   clearTimeout(kpfBack3d.t); kpfBack3d.t = setTimeout(async () => {
     try {
@@ -1009,8 +1011,9 @@ function kpfBind(sh, has) {
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : r.lua === 'nuevo' ? 'instalado' : 'listo') + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); rr(); }); }
   // pasos: pestañas, Siguiente/Anterior y el aviso de requisitos llevan al paso; los desplegables recuerdan si estaban abiertos
   const root = $k('kpfDrop'); root.onclick = e => {
-    const b = e.target.closest('[data-go],[data-skip],[data-unskip]'); if (!b || !root.contains(b)) return;
+    const b = e.target.closest('[data-go],[data-skip],[data-unskip],[data-posview]'); if (!b || !root.contains(b)) return;
     if (b.dataset.go) return kpfGo(sh, +b.dataset.go, !!b.dataset.req);
+    if (b.dataset.posview) { if (KPFS.posView !== b.dataset.posview) { KPFS.posView = b.dataset.posview; rr(); } return; }
     // Saltar la posición (pasa al paso 4) o volver a ajustarla acá (paso 3)
     const skip = b.hasAttribute('data-skip'); KPFS.skipPos = skip; if (skip) kpfDropPos(); KPFS.tab = skip ? 4 : 3; KPFS.stepAnim = true; rr();
   };
@@ -1020,9 +1023,11 @@ function kpfBind(sh, has) {
   if (KPFS.shine) { KPFS.shine = false; kpfShine(sh); }
   KPFS.diagAnim = KPFS.doneAnim = false;
   // posición, tamaño y arco del nombre (KitPos)
-  kposBind(sh, () => kpfDrawPreview(sh), rr);
+  kposBind(sh, () => { kpfDrawPreview(sh); if (KPR.repaint) KPR.repaint(); }, rr);
   KPFS.kplApi = { cfg: false, wrap: kpfWrap, changed: () => { KS.dispKey = ''; if (KPS.sync) KPS.sync(); if (kpfBind.raf) return; kpfBind.raf = requestAnimationFrame(() => { kpfBind.raf = 0; if (sh.querySelector('#kpfShirt')) kpfDrawPreview(sh); kpfBack3d(sh, true); }); } };
   kplBind(sh, KPFS.kplApi);
+  KPFS.kprApi = { cfg: false, wrap: kpfWrap, changed: () => { KS.dispKey = ''; if (KPS.sync) KPS.sync(); if (kpfBind.raf2) return; kpfBind.raf2 = requestAnimationFrame(() => { kpfBind.raf2 = 0; if (sh.querySelector('#kpfShirt')) kpfDrawPreview(sh); }); } };
+  kprBind(sh, KPFS.kprApi);
   kpfPresetThumbs(sh);
   if (KPFS.out && KPFS.outFor === JSON.stringify([O.font, KPFS.sets])) kpfDrawPreview(sh);
   KPFS.outFor = JSON.stringify([O.font, KPFS.sets]); kpfRun(sh);

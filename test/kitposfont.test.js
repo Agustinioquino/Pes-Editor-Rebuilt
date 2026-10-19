@@ -266,3 +266,62 @@ test('letras de una foto: reconoce cada una por su forma, en cualquier orden', (
   // cada letra se usa una vez: dos L en la foto, la segunda queda con otra o sin letra
   const two = KPF.photoGuess([shape('L', 60, 80), shape('L', 62, 80)], refs); assert.equal(new Set(two.seq.filter(Boolean)).size, two.seq.filter(Boolean).length);
 });
+
+// ---- el Sider de otra persona: carpeta del equipo (map.txt / sider.log) y NameFontFile de cada kit ----
+const LOG_OTRO = [
+  '============================',
+  'Sider DLL: version 7.4.1 (0)',
+  '[kserv.lua] tid: 101 ==> content path: Liga\\Otro',
+  '[kserv.lua] tid: 184 ==> content path: Bundesliga (Germany)\\Schalke',
+  '[kserv.lua] WARNING: unable to load kit config from: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1-UCL\\config.txt',
+  '[kserv.lua] i=1, org_cfg=table: 0x0755f9f0',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1\\Schalke 04 Home B.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1\\Schalke 04 Home B_srm.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1\\Number Blue.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1\\Number White.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1\\Font White.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p1\\Font White_ex.ftex',
+  '[kserv.lua] i=2, org_cfg=table: 0x07610d58',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p2\\Schalke 04 Away B.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p2\\Font Blue.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\p2\\Font Blue_ex.ftex',
+  '[kserv.lua] checking: D:\\Juegos\\sider\\.\\content\\kit-server\\Bundesliga (Germany)\\Schalke\\g1\\Schalke 04 GK B.ftex',
+].join('\r\n');
+
+test('map.txt de otro Sider: la carpeta del equipo, con o sin comillas y comentarios', () => {
+  const map = '\uFEFF# kits\r\n101, "Liga\\Otro"\r\n184,"Bundesliga (Germany)\\Schalke"   # el de Ale\r\n200, Sin Comillas\\Equipo\\\r\n';
+  assert.equal(KPF.mapFolder(map, 184), 'Bundesliga (Germany)\\Schalke');
+  assert.equal(KPF.mapFolder(map, '101'), 'Liga\\Otro');
+  assert.equal(KPF.mapFolder(map, 200), 'Sin Comillas\\Equipo');
+  assert.equal(KPF.mapFolder(map, 999), null);
+});
+
+test('sider.log de otro Sider: carpeta del equipo y la textura de letras de cada kit (la que kserv busca con su _ex)', () => {
+  const r = J(KPF.logKits(LOG_OTRO, 184));
+  assert.equal(r.path, 'Bundesliga (Germany)\\Schalke');
+  assert.deepEqual(r.kits.map(k => [k.folder, k.font]), [['p1', 'Font White'], ['p2', 'Font Blue'], ['g1', null]]);
+  assert.equal(KPF.logKits(LOG_OTRO, 555), null);
+  // si el log tiene varias sesiones, cuenta la última
+  const two = LOG_OTRO.replace('Bundesliga (Germany)\\Schalke', 'Vieja\\Carpeta') + '\r\nSider DLL: version 7.4.1 (0)\r\n[kserv.lua] tid: 184 ==> content path: Nueva\\Schalke\r\n';
+  assert.equal(KPF.logKits(two, 184).path, 'Nueva\\Schalke');
+});
+
+test('el .zip para otro Sider usa su carpeta del kit y su NameFontFile; si no se sabe, uXXXXpN_name', () => {
+  const D = { path: 'Bundesliga (Germany)\\Schalke', kits: KPF.logKits(LOG_OTRO, 184).kits };
+  assert.deepEqual(J(KPF.destPlan(D, ['p1', 'p2', 'p3'], 184)), [
+    { kit: 'p1', folder: 'p1', file: 'Font White', own: true },
+    { kit: 'p2', folder: 'p2', file: 'Font Blue', own: true },
+    { kit: 'p3', folder: 'p3', file: 'u0184p3_name', own: false }]);
+  // un config.txt suelto (sin log) vale para un solo kit
+  assert.deepEqual(J(KPF.destPlan({ path: 'X', font: 'Font Red' }, ['p1'], 7)), [{ kit: 'p1', folder: 'p1', file: 'Font Red', own: true }]);
+  assert.equal(KPF.destPlan({ path: 'X', font: 'Font Red' }, ['p1', 'p2'], 7)[1].file, 'u0007p2_name');
+});
+
+test('NameFontFile de un config.txt: se lee y se cambia sin tocar el resto (ni el \\r del final)', () => {
+  const cfg = '; texture files\r\nKitFile=Schalke 04 Home B\r\nNameFontFile=Font White        ; letras\r\nShirtColor1=#2144a8\r\n';
+  assert.equal(KPF.cfgFontGet(cfg), 'Font White');
+  const out = KPF.cfgFontSet(cfg, 'u0184p1_name');
+  assert.equal(out, cfg.replace('NameFontFile=Font White        ; letras', 'NameFontFile=u0184p1_name        ; letras'));
+  const none = 'KitFile=x\r\n', add = KPF.cfgFontSet(none, 'u0001p1_name');
+  assert.equal(add, 'KitFile=x\r\nNameFontFile=u0001p1_name\r\n'); assert.equal(KPF.cfgFontGet('KitFile=x'), null);
+});

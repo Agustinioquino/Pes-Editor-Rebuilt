@@ -2,6 +2,14 @@
 
 Todos los cambios de PES Editor Rebuilt. La misma lista está en la pestaña **Novedades** del editor.
 
+## v0.063 alpha · Fuentes para el Sider de otra persona
+
+*19 de octubre de 2026, 16:35 (hora de Argentina)*
+
+El .zip de una fuente sale con la carpeta del equipo y la textura de letras de quien la va a usar, aunque su patch tenga otra estructura.
+
+- **Fuentes para el Sider de otra persona** (Kits). En Kit Studio Pro → 🔤 Fuentes, paso 4, 📨 Para el Sider de otra persona lee su sider.log, su map.txt o el config.txt de su kit. El .zip sale con su carpeta del equipo (por ejemplo Bundesliga (Germany)\Schalke en vez de la tuya) y con la textura de letras que ya usa cada kit (por ejemplo Font White), así no tiene que tocar su config.txt. Ya no va tu config.txt en un .zip para otra persona, y el LEEME dice para qué Sider se armó.
+
 ## v0.062 alpha · Tu estadio con fotos del juego y fuentes desde cualquier imagen
 
 *19 de octubre de 2026, 15:45 (hora de Argentina)*

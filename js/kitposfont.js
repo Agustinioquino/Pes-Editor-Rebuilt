@@ -209,12 +209,14 @@ const KPF = (() => {
       for (const L of lines) { const bl = L.base(cxOf(c)), top = bl - L.cap * 1.45, y = cyOf(c), d = y < top ? top - y : y > bl + L.cap * .45 ? y - bl - L.cap * .45 : 0; if (d < bd) { bd = d; bestL = L; } }
       if (bestL && bd <= bestL.cap * .3) bestL.cs.push(c); }
     // en cada fila, los pedazos que se pisan a lo ancho son una misma letra (i, j, Ñ, Ä, letras cortadas en la foto)
+    // pedazos de una letra que quedan fuera de la parte más grande (el punto de la i, una tilde); el punto dentro de un 0 no cuenta
+    const partsOf = ids => { const big = ids.map(i => comps[i]).sort((p, q) => q.area - p.area)[0]; return 1 + ids.filter(i => { const c = comps[i]; if (c === big) return false; const cx = (c.x0 + c.x1) / 2, cy = (c.y0 + c.y1) / 2; return cx < big.x0 || cx > big.x1 || cy < big.y0 || cy > big.y1; }).length; };
     const glyphs = []; lines.sort((p, q) => p.base(w / 2) - q.base(w / 2)).forEach((L, li) => {
       const gs = []; for (const c of L.cs.sort((p, q) => p.x0 - q.x0)) {
         const g = gs.find(g => Math.min(g.x1, c.x1) - Math.max(g.x0, c.x0) + 1 >= Math.min(wOf(c), g.x1 - g.x0 + 1) * .5);
         if (g) { g.x0 = Math.min(g.x0, c.x0); g.x1 = Math.max(g.x1, c.x1); g.y0 = Math.min(g.y0, c.y0); g.y1 = Math.max(g.y1, c.y1); g.ids.push(c.id); }
         else gs.push({ x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1, ids: [c.id] }); }
-      gs.sort((p, q) => p.x0 - q.x0); for (const g of gs) glyphs.push({ ...g, line: li, top: g.y0 - L.base((g.x0 + g.x1) / 2), cap: L.cap });
+      gs.sort((p, q) => p.x0 - q.x0); for (const g of gs) glyphs.push({ ...g, line: li, top: g.y0 - L.base((g.x0 + g.x1) / 2), cap: L.cap, parts: partsOf(g.ids) });
     });
     // las letras sin el fondo: alfa suave en los bordes y el color sin la mezcla con el fondo
     const keep = new Uint8Array(comps.length); for (const g of glyphs) for (const id of g.ids) keep[id] = 1;
@@ -243,6 +245,42 @@ const KPF = (() => {
     const n = scan;
     for (const s of [PH_A, PH_A + '.', PH_A + PH_a, PH_A + PH_a + '.', PH_A + PH_0, PH_A + '.' + PH_0, PH_A + PH_a + PH_0, PH_a, PH_0, PH_A + 'Ñ', PH_A + 'Ñ' + PH_a + 'ñ']) if (s.length === n) return [...s];
     const all = [...(PH_A + PH_a + PH_0)]; return Array.from({ length: n }, (_, i) => all[i] || '');
+  }
+  // ---- qué letra es cada una por su forma (cualquier orden) ----
+  // Cada letra se reduce a una grilla de 16×16 estirada a su caja (así una fuente angosta y una ancha se parecen) más su
+  // proporción y dónde queda respecto de la línea de base (minúscula, mayúscula, cola, tilde). Se compara con las mismas
+  // letras dibujadas con varias tipografías (refs, las arma el navegador) y cada letra de la foto se queda con la más parecida.
+  const GN = 16;
+  // a: alfa (0–255) de una imagen de ancho W; (x0, y0)–(x1, y1) la caja de la letra; base: y de la línea de base; cap: alto de mayúscula
+  function glyphFeat(a, W, x0, y0, x1, y1, base, cap) {
+    const w = x1 - x0 + 1, h = y1 - y0 + 1, raw = new Float32Array(GN * GN), cnt = new Float32Array(GN * GN);
+    for (let y = y0; y <= y1; y++) { const gy = Math.min(GN - 1, Math.floor((y - y0) * GN / h)); for (let x = x0; x <= x1; x++) { const gx = Math.min(GN - 1, Math.floor((x - x0) * GN / w)), k = gy * GN + gx; raw[k] += a[y * W + x] / 255; cnt[k]++; } }
+    for (let k = 0; k < raw.length; k++) raw[k] = cnt[k] ? raw[k] / cnt[k] : 0;
+    const v = new Float32Array(GN * GN); // suavizado 3×3: tolera bordes distintos entre tipografías
+    for (let y = 0; y < GN; y++) for (let x = 0; x < GN; x++) { let s = 0, n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && xx >= 0 && yy < GN && xx < GN) { const wt = dx || dy ? 1 : 2; s += raw[yy * GN + xx] * wt; n += wt; } } v[y * GN + x] = s / n; }
+    let ink = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) ink += a[y * W + x] / 255;
+    return { v, asp: w / h, top: (base - y0) / cap, bot: (y1 - base) / cap, fill: ink / (w * h), parts: 1 };
+  }
+  const MULTI = /^[ijÁÉÍÓÚÑÜáéíóúñü!?:;"%=]$/;
+  function featDist(p, q) {
+    let s = 0; for (let k = 0; k < p.v.length; k++) { const d = p.v[k] - q.v[k]; s += d * d; } s /= p.v.length;
+    return s + .06 * Math.abs(Math.log(p.asp / q.asp)) + .25 * Math.abs(p.top - q.top) + .25 * Math.abs(p.bot - q.bot) + .3 * Math.abs(p.fill - q.fill);
+  }
+  // feats: las de la foto; refs: [{ ch, f }]; hint: lo que diría el orden (photoSeq), que gana si su forma está casi igual de cerca.
+  // Cada letra se usa una sola vez: se reparten de la más segura a la menos segura.
+  function photoGuess(feats, refs, hint = []) {
+    const chars = [...new Set(refs.map(r => r.ch))], best = feats.map(f => { const m = new Map(); for (const r of refs) { const d = featDist(f, r.f) + ((f.parts || 1) > 1 !== MULTI.test(r.ch) ? .12 : 0); if (!m.has(r.ch) || d < m.get(r.ch)) m.set(r.ch, d); } return m; });
+    // si el orden de siempre (A–Z, a–z…) coincide con la forma en casi todas, la hoja está en orden: se usa tal cual
+    if (hint.length === feats.length) { let same = 0; best.forEach((m, i) => { const top = Math.min(...m.values()); if (hint[i] && m.has(hint[i]) && m.get(hint[i]) <= top * 1.6 + .01) same++; }); if (same >= feats.length * .7) return { seq: hint.slice(), dist: [], doubt: [], ordered: true }; }
+    const pairs = []; best.forEach((m, i) => { const top = Math.min(...m.values()); for (const ch of chars) { let d = m.get(ch); if (ch === hint[i] && d <= top * 1.25 + .004) d = Math.min(d, top) - 1e-6; pairs.push([d, i, ch]); } });
+    pairs.sort((p, q) => p[0] - q[0]);
+    const out = feats.map(() => ''), used = new Set(), sure = feats.map(() => 0); let left = feats.length;
+    for (const [d, i, ch] of pairs) { if (!left) break; if (out[i] || used.has(ch)) continue; out[i] = ch; used.add(ch); sure[i] = d; left--; }
+    // para revisar: la que no se quedó con su forma más parecida, o cuya segunda opción está casi igual de cerca
+    // también las que se disputaron la misma letra (las dos se parecían más a ella que a cualquier otra)
+    const first = best.map(m => [...m].sort((p, q) => p[1] - q[1])[0][0]), clash = new Set(first.filter((c, i) => first.indexOf(c) !== i));
+    const doubt = best.map((m, i) => { const v = [...m.values()].sort((p, q) => p - q); return !out[i] || m.get(out[i]) > v[0] + 1e-9 || v[1] - v[0] < .015 || clash.has(first[i]); });
+    return { seq: out, dist: sure, doubt };
   }
   // letra → recorte de la foto ({ sx, sy, sw, sh, top, cap }, igual que imgGlyphs); seq: la letra de cada una ('' = no se usa)
   function photoMap(scan, seq) {
@@ -487,7 +525,7 @@ const KPF = (() => {
     if (x.stale) add('info', 'stale');
     return out;
   }
-  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, fromTable, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, photoScan, photoSeq, photoMap, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides,
+  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, fromTable, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, photoScan, photoSeq, photoMap, glyphFeat, featDist, photoGuess, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides,
     kitTable, sameTable, texSize, texKind, inkDxt5, inkRgba, layoutGuess, logDiag, diagnose };
 })();
 
@@ -553,8 +591,7 @@ async function kpfAddFont(file) {
 // o imagen con las letras escritas en filas (las encuentra KPF.photoScan; después se puede corregir qué letra es cada una)
 async function kpfAddImage(file) {
   const n = file.name.toLowerCase(), buf = await file.arrayBuffer(), name = file.name.replace(/\.[^.]+$/, '');
-  const img = n.endsWith('.ftex') ? await ftexDecode(buf, 4096) : n.endsWith('.dds') ? DDS.decode(buf) : await FTEXW.rawFromImage(new Blob([buf]));
-  const c = imgToCanvas({ w: img.w, h: img.h, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.w * img.h * 4) });
+  const c = await kpfDecode(n, buf, file.type);
   if (kpfGameTex(c)) { Object.assign(kpfOpts(), { img: c, imgName: name, imgPh: null }); return { game: true }; }
   // foto: a lo sumo 2048 px de lado (alcanza para letras nítidas y se procesa rápido)
   const z = Math.min(1, 2048 / Math.max(c.width, c.height)), w = Math.max(1, Math.round(c.width * z)), h = Math.max(1, Math.round(c.height * z));
@@ -563,10 +600,56 @@ async function kpfAddImage(file) {
   if (!S.glyphs.length) throw new Error('no encontré letras en la imagen. Usá una foto con las letras sobre un fondo liso, bien separadas entre sí.');
   if (S.glyphs.length > 160) throw new Error(`encontré ${S.glyphs.length} manchas en la imagen: parece una foto con mucho detalle. Recortala para que queden solo las letras sobre un fondo liso.`);
   const out = document.createElement('canvas'); out.width = w; out.height = h; out.getContext('2d').putImageData(new ImageData(S.rgba, w, h), 0, 0);
-  const ph = { scan: { ...S, rgba: null }, seq: KPF.photoSeq(S) };
+  const seq = kpfGuess(S, out), ph = { scan: { ...S, rgba: null }, seq };
   out.__ph = KPF.photoMap(ph.scan, ph.seq);
   Object.assign(kpfOpts(), { img: out, imgName: name, imgPh: ph, imgTint: true }); // de una foto se toma la forma: se pintan con el color del estilo
   return { game: false, n: S.glyphs.length, lines: S.lines };
+}
+// letras de referencia para reconocer las de una foto: A–Z, a–z, números, signos y tildes del español, dibujadas con
+// varias tipografías (las que tiene la compu de la lista de Kit Studio, las genéricas y las que subió el usuario)
+const KPF_REF_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-'ÁÉÍÓÚÑÜÇáéíóúñüç";
+function kpfRefs() {
+  if (KPFS.refs) return KPFS.refs;
+  const fams = [...new Set([...(KPFS.userFonts || []), 'Saira Condensed', ...(typeof KS_FONTS !== 'undefined' ? KS_FONTS : []).filter(f => { try { return ksFontInstalled(f); } catch { return false; } }).slice(0, 14)])];
+  const list = [...fams.map(f => `"${f}", sans-serif`), 'sans-serif', 'serif', 'monospace'], Z = 240, BL = 176, c = document.createElement('canvas'); c.width = Z; c.height = Z;
+  const g = c.getContext('2d', { willReadFrequently: true }), refs = [];
+  for (const fam of list) for (const wt of [400, 800]) {
+    g.font = `${wt} 120px ${fam}`; const cap = g.measureText('H').actualBoundingBoxAscent || 86;
+    for (const ch of KPF_REF_CHARS) {
+      g.clearRect(0, 0, Z, Z); g.fillStyle = '#000'; g.fillText(ch, 40, BL); const d = g.getImageData(0, 0, Z, Z).data, a = new Uint8Array(Z * Z);
+      let x0 = Z, y0 = Z, x1 = -1, y1 = -1; for (let i = 0; i < a.length; i++) { a[i] = d[i * 4 + 3]; if (a[i] > 100) { const x = i % Z, y = (i - x) / Z; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+      if (x1 >= 0) refs.push({ ch, f: KPF.glyphFeat(a, Z, x0, y0, x1, y1, BL, cap) });
+    }
+  }
+  return KPFS.refs = refs;
+}
+// qué letra es cada una de la foto: por su forma (cualquier orden) y, cuando dos formas se parecen, según el orden
+function kpfGuess(S, canvas) {
+  const hint = KPF.photoSeq(S); let refs; try { refs = kpfRefs(); } catch { return hint; } if (!refs.length) return hint;
+  const W = canvas.width, d = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, canvas.height).data, a = new Uint8Array(W * canvas.height); for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3];
+  const feats = S.glyphs.map(q => ({ ...KPF.glyphFeat(a, W, q.x0, q.y0, q.x1, q.y1, q.y0 - q.top, q.cap), parts: q.parts || 1 }));
+  const G = KPF.photoGuess(feats, refs, hint); S.doubt = G.doubt; return G.seq;
+}
+// cualquier imagen a un canvas: texturas del juego (.dds, .ftex), .psd (las capas visibles juntas), .svg y lo que abra el navegador
+async function kpfDecode(n, buf, type) {
+  const raw = img => imgToCanvas({ w: img.w, h: img.h, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.w * img.h * 4) });
+  if (n.endsWith('.ftex')) return raw(await ftexDecode(buf, 4096));
+  if (n.endsWith('.dds')) return raw(DDS.decode(buf));
+  if (n.endsWith('.psd')) { const P = KPF.psdRead(buf), c = document.createElement('canvas'); c.width = P.w; c.height = P.h; const g = c.getContext('2d');
+    for (const l of P.layers.filter(l => l.visible && l.kind === 'pixel' && l.w && l.h && l.rgba && !/gu[ií]as?|guide/i.test(l.name))) { const t = document.createElement('canvas'); t.width = l.w; t.height = l.h; t.getContext('2d').putImageData(new ImageData(l.rgba, l.w, l.h), 0, 0); g.globalAlpha = l.opacity / 255; g.drawImage(t, l.left, l.top); }
+    return c; }
+  const viaImg = () => new Promise((res, rej) => { const u = URL.createObjectURL(new Blob([buf], { type: n.endsWith('.svg') ? 'image/svg+xml' : type || '' })), im = new Image();
+    im.onload = () => { const c = document.createElement('canvas'), z = n.endsWith('.svg') && Math.max(im.naturalWidth, im.naturalHeight) < 1500 ? 1500 / Math.max(im.naturalWidth || 1, im.naturalHeight || 1) : 1; c.width = Math.round((im.naturalWidth || 1500) * z); c.height = Math.round((im.naturalHeight || 500) * z); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('no pude abrir ese formato de imagen en este navegador. Guardala como PNG o JPG y probá de nuevo.')); }; im.src = u; });
+  if (n.endsWith('.svg')) return viaImg();
+  try { return raw(await FTEXW.rawFromImage(new Blob([buf]))); } catch { return viaImg(); }
+}
+// pegar una imagen (Ctrl+V) en la pantalla de Fuentes: se leen sus letras como las de una foto
+function kpfPasteOn(fn) {
+  KPFS.paste = fn; if (KPFS.pasteBound) return; KPFS.pasteBound = true;
+  document.addEventListener('paste', e => { if (!document.getElementById('kpfDrop') || !KPFS.paste) return; const t = e.target; if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return;
+    const f = [...(e.clipboardData && e.clipboardData.files || [])].find(x => /^image\//.test(x.type)); if (!f) return; e.preventDefault();
+    KPFS.paste(new File([f], f.name && f.name !== 'image.png' ? f.name : 'imagen pegada.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type })); });
 }
 // ¿es la textura del nombre de un kit? transparente, 4:1 y con casi todas las letras en sus casillas (no cajas llenas)
 function kpfGameTex(c) {
@@ -629,7 +712,7 @@ function kpfHtml(has) {
     <div class="kpfstudio">
       <aside class="kpfl">
         ${sec(1, 'Fuente', `<div class="kpffonts" id="kpfFonts" role="listbox" aria-label="Fuente">${fonts.map(f => `<button type="button" role="option" data-font="${esc(f)}" aria-selected="${f === O.font}" title="${esc(f)}"><b style="font-family:${esc(KPF.fontCss({ font: f }, 22).replace(/^.*?px /, ''))}">Aa Ññ</b><small>${esc(f)}</small></button>`).join('')}</div>
-          <div class="kpfup"><button class="btn small primary" type="button" id="kpfUp">＋ Subir fuente</button><button class="btn small" type="button" id="kpfImg" title="Una foto o imagen con las letras escritas (por ejemplo de la A a la Z, en una o varias filas, sobre un fondo liso), o la textura del nombre de un kit">📷 Letras de una foto</button></div>
+          <div class="kpfup"><button class="btn small primary" type="button" id="kpfUp">＋ Subir fuente</button><button class="btn small" type="button" id="kpfImg" title="Una foto o imagen con las letras escritas, en cualquier orden y en una o varias filas, sobre un fondo liso (PNG, JPG, WEBP, GIF, BMP, SVG, PSD…), o la textura del nombre de un kit. También se puede pegar con Ctrl+V">📷 Letras de una foto</button></div>
           ${O.img ? kpfImgHtml(O) : ''}
           <small class="note">.ttf, .otf o .woff; también podés arrastrar el archivo a esta pantalla. Las que subís quedan guardadas para la próxima.</small>`)}
         ${sec(0, '🎨 Plantilla de Photoshop', `${O.tpl ? `<div class="kpfimg kpftpl"><canvas id="kpfTplTh" width="440" height="112"></canvas><div><b>${esc(O.tplName)}</b><small class="note">${O.tpl.count} de ${O.tpl.total} letras dibujadas en la plantilla${O.tpl.count < O.tpl.total || n > O.tpl.count ? `; las demás (espacio, cirílico, griego…) salen de ${esc(O.font)}` : ''}.${O.tplPsd ? ' Del .psd no se leen los efectos de capa: para conservarlos, cargá el PNG.' : ''}</small>
@@ -919,8 +1002,8 @@ function kpfImgHtml(O) {
     ${opts}<button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>`;
   const S = ph.scan, used = ph.seq.filter(Boolean), dup = [...new Set(used.filter((c, i) => used.indexOf(c) !== i))], cap = Math.round(S.cap);
   const hasLower = used.some(c => c !== c.toUpperCase());
-  return `<div class="kpfimg kpfph${!O.imgTint && S.dark ? ' lt' : ''}"><div class="kpfphh"><b>📷 ${esc(O.imgName)}</b><small class="note">Encontré ${S.glyphs.length} letras en ${S.lines} ${S.lines === 1 ? 'fila' : 'filas'}. Revisá que cada una tenga la letra que es: si no, escribila encima (borrala para no usarla).</small></div>
-    <div class="kpfphg" id="kpfPh" role="list">${S.glyphs.map((g, i) => `<label class="kpfpg${ph.seq[i] ? '' : ' off'}${ph.seq[i] && dup.includes(ph.seq[i]) ? ' dup' : ''}" role="listitem"><canvas data-g="${i}" width="40" height="44"></canvas><input type="text" maxlength="2" data-i="${i}" value="${esc(ph.seq[i])}" aria-label="Letra ${i + 1}" spellcheck="false" autocomplete="off"></label>`).join('')}</div>
+  return `<div class="kpfimg kpfph${!O.imgTint && S.dark ? ' lt' : ''}"><div class="kpfphh"><b>📷 ${esc(O.imgName)}</b><small class="note">Encontré ${S.glyphs.length} letras en ${S.lines} ${S.lines === 1 ? 'fila' : 'filas'}. Revisá que cada una tenga la letra que es: si no, escribila encima (borrala para no usarla).${S.doubt && S.doubt.some(Boolean) ? ` Las ${S.doubt.filter(Boolean).length} marcadas con borde punteado se parecen a otra letra: miralas primero.` : ''}</small></div>
+    <div class="kpfphg" id="kpfPh" role="list">${S.glyphs.map((g, i) => `<label class="kpfpg${ph.seq[i] ? '' : ' off'}${ph.seq[i] && dup.includes(ph.seq[i]) ? ' dup' : ''}${S.doubt && S.doubt[i] ? ' doubt' : ''}" role="listitem"${S.doubt && S.doubt[i] ? ' title="Revisá esta: se parece a otra letra"' : ''}><canvas data-g="${i}" width="40" height="44"></canvas><input type="text" maxlength="2" data-i="${i}" value="${esc(ph.seq[i])}" aria-label="Letra ${i + 1}" spellcheck="false" autocomplete="off"></label>`).join('')}</div>
     <div class="f kpfphs"><label for="kpfPhSeq">Todas en orden</label><input type="text" id="kpfPhSeq" value="${esc(ph.seq.map(c => c || '·').join(''))}" spellcheck="false" autocomplete="off" title="Una letra por cada una de la foto, en orden (· para no usarla)"></div>
     ${dup.length ? `<small class="warn">${esc(dup.join(' '))}: ${dup.length === 1 ? 'está' : 'están'} dos veces; se usa la primera.</small>` : ''}
     ${cap < 48 ? `<small class="warn">Las letras de la foto son chicas (${cap} px de alto): en la camiseta pueden verse borrosas. Usá una foto más de cerca o más grande.</small>` : ''}
@@ -1122,16 +1205,17 @@ function kpfBind(sh, has) {
   // asImg: viene del botón de la foto (nunca es una plantilla)
   const addFile = async (f, asImg) => { const n = f.name.toLowerCase();
     try { let bmp = null; if (!asImg && /\.(png|webp)$/.test(n)) { try { bmp = await createImageBitmap(f); } catch { } }
-      let T = null; if (n.endsWith('.psd') || (bmp && bmp.width >= 1024 && bmp.height / bmp.width > .85)) { try { T = await kpfAddTemplate(f, bmp); } catch (e) { if (n.endsWith('.psd') || !/transparencia/.test(e.message)) throw e; } } // una foto cuadrada sin transparencia no es una plantilla
+      let T = null; if (n.endsWith('.psd') || (bmp && bmp.width >= 1024 && bmp.height / bmp.width > .85)) { try { T = await kpfAddTemplate(f, bmp); } catch (e) { if (!asImg && (n.endsWith('.psd') || !/transparencia/.test(e.message))) throw e; } } // una foto cuadrada sin transparencia no es una plantilla
       if (T) toast(`Plantilla cargada: ${T.count} letras.`);
       else if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); }
-      else if (/\.(png|jpe?g|webp|bmp|dds|ftex)$/.test(n)) { const r = await kpfAddImage(f); toast(r.game ? 'Letras de ' + f.name + ' cargadas.' : `Encontré ${r.n} letras en la foto: revisá que cada una tenga su letra.`, 5000); }
+      else if (/\.(png|jpe?g|jfif|webp|bmp|gif|avif|svg|ico|tiff?|heic|heif|dds|ftex|psd)$/.test(n) || /^image\//.test(f.type)) { const r = await kpfAddImage(f); toast(r.game ? 'Letras de ' + f.name + ' cargadas.' : `Encontré ${r.n} letras en la foto: revisá que cada una tenga su letra.`, 5000); }
       else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff), una imagen ni una plantilla (.psd).', 5000); return; } rr(); }
     catch (e) { toast('No se pudo usar ' + f.name + ': ' + e.message, 7000); } };
   $k('kpfUp').onclick = () => pick('.ttf,.otf,.woff,.woff2', addFile);
-  $k('kpfImg').onclick = () => pick('.png,.jpg,.jpeg,.webp,.bmp,.dds,.ftex', f => addFile(f, true));
+  const IMG_ACCEPT = 'image/*,.png,.jpg,.jpeg,.jfif,.webp,.bmp,.gif,.avif,.svg,.psd,.dds,.ftex';
+  $k('kpfImg').onclick = () => pick(IMG_ACCEPT, f => addFile(f, true)); kpfPasteOn(f => addFile(f, true));
   const ix = $k('kpfImgX'); if (ix) ix.onclick = () => { O.img = null; O.imgName = ''; O.imgPh = null; rr(); };
-  const i2 = $k('kpfImg2'); if (i2) i2.onclick = () => pick('.png,.jpg,.jpeg,.webp,.bmp,.dds,.ftex', f => addFile(f, true));
+  const i2 = $k('kpfImg2'); if (i2) i2.onclick = () => pick(IMG_ACCEPT, f => addFile(f, true));
   // letras de la foto: cada casilla, o todas juntas en orden
   const ph = $k('kpfPh'); if (ph) ph.oninput = e => { const el = e.target.closest('input[data-i]'); if (!el) return; const seq = O.imgPh.seq.slice(), v = [...el.value.trim()].pop() || ''; seq[+el.dataset.i] = v; if (el.value !== v) el.value = v; kpfPhotoSeq(seq); el.closest('label').classList.toggle('off', !v); upd(); };
   // sin volver a dibujar la pantalla (se pierde el foco al pasar a la siguiente): las repetidas y el campo de todas

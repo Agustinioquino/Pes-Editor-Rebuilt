@@ -251,3 +251,18 @@ test('letras de una imagen transparente: lo que se ve es la letra', () => {
   const S = KPF.photoScan(px, w, h); assert.equal(S.glyphs.length, 3); assert.equal(S.lines, 1);
   assert.deepEqual([...S.rgba.subarray((50 * w + 30) * 4, (50 * w + 30) * 4 + 4)], [200, 20, 20, 255]); // conserva el color
 });
+test('letras de una foto: reconoce cada una por su forma, en cualquier orden', () => {
+  // formas simples dibujadas en un alfa de W×H: L, T, O (anillo) e I (palito); la referencia y la "foto" con tamaños distintos
+  const shape = (ch, w, h) => { const a = new Uint8Array(w * h), t = Math.max(2, Math.round(Math.min(w, h) / 5)), on = (x, y) => { a[y * w + x] = 255; };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (ch === 'L' && (x < t || y >= h - t)) on(x, y); if (ch === 'T' && (y < t || Math.abs(x - w / 2) < t / 2)) on(x, y);
+      if (ch === 'O' && (x < t || x >= w - t || y < t || y >= h - t)) on(x, y); if (ch === 'I' && Math.abs(x - w / 2) < t / 2) on(x, y); }
+    return KPF.glyphFeat(a, w, 0, 0, w - 1, h - 1, h - 1, h - 1); };
+  const refs = ['L', 'T', 'O', 'I'].map(ch => ({ ch, f: shape(ch, 40, 50) }));
+  const feats = ['O', 'I', 'L', 'T'].map(ch => shape(ch, 70, 90)); // desordenadas y más grandes
+  const G = KPF.photoGuess(feats, refs, ['L', 'T', 'O', 'I']); // el orden de siempre no coincide con las formas: manda la forma
+  assert.equal(G.seq.join(''), 'OILT'); assert.ok(!G.ordered);
+  assert.equal(KPF.photoGuess(feats, refs, ['O', 'I', 'L', 'T']).ordered, true); // si coincide, la hoja está en orden
+  // cada letra se usa una vez: dos L en la foto, la segunda queda con otra o sin letra
+  const two = KPF.photoGuess([shape('L', 60, 80), shape('L', 62, 80)], refs); assert.equal(new Set(two.seq.filter(Boolean)).size, two.seq.filter(Boolean).length);
+});

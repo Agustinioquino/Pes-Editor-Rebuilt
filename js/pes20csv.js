@@ -75,7 +75,8 @@ const Pes20Csv = (() => {
     const col = ['c1r', 'c1g', 'c1b', 'c2r', 'c2g', 'c2b'].map(g);
     ['TeamColor1R', 'TeamColor1G', 'TeamColor1B', 'TeamColor2R', 'TeamColor2G', 'TeamColor2B'].forEach((k, i) => set(k, col[i]));
     ['GoalNettingColor1R', 'GoalNettingColor1G', 'GoalNettingColor1B', 'GoalNettingColor2R', 'GoalNettingColor2G', 'GoalNettingColor2B'].forEach((k, i) => set(k, g(['net1r', 'net1g', 'net1b', 'net2r', 'net2g', 'net2b'][i])));
-    [['TurfPattern', 'turf'], ['SidelineColour', 'side_color'], ['SeatColour', 'seat_color'], ['GoalStyle', 'goal_style'], ['NetPattern', 'net_pattern'], ['GoalNettingDesign', 'net_design']].forEach(([k, f]) => set(k, g(f)));
+    [['TurfPattern', 'turf'], ['SidelineColour', 'side_color'], ['SeatColour', 'seat_color'], ['GoalStyle', 'goal_style'], ['NetPattern', 'net_pattern']].forEach(([k, f]) => set(k, g(f)));
+    set('GoalNettingDesign', g('net_b7') + 2 * (g('net_design') & 1)); // así lo lee PES2020Editor (2 bits desde 0x20.7)
     for (const k of ['SponsorColorR', 'SponsorColorG', 'SponsorColorB']) set(k, 63);
     for (let i = TI.EditName; i <= TI.LicencedCoach2; i++) r[i] = 'False';
     for (const k of ['HasAnthem', 'Value2']) set(k, 'False');

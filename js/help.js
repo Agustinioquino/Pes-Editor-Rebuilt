@@ -77,9 +77,14 @@ const HELP = {
       ['Cuello y short', 'tocá la miniatura para ver todos los modelos del juego con tu textura y elegir uno.'],
       ['Guardar kit', 'escribe el config.txt (con copia la primera vez). Las texturas se guardan apenas las subís o generás. Hay que volver a abrir el juego para verlo.'],
       ['Orden y copias', '↑ sube el kit en order.ini (el primero es el titular). ⧉ duplica el kit como p5, g4… para empezar uno nuevo.']]]] },
-  stadium: { t: 'estadio, rivales y banderas', intro: 'Datos del ambiente de los partidos de local.', groups: [
+  stadloc: { t: 'el estadio local', intro: 'El mismo menú que "Opciones de estadio local" del juego, con fotos del juego.', groups: [
+    ['Cómo se usa', [
+      ['Elegir y cambiar', '↑ ↓ eligen la opción, ← → cambian el valor y Enter abre la lista de estadios, la paleta de colores o el selector de color de la red. También se puede tocar con el mouse.'],
+      ['Estadio y nombre', 'el estadio que usa de local y el nombre que muestra el juego para este equipo (vacío = el del juego).'],
+      ['Opciones detalladas', 'tipo de césped, color del borde del campo y de los asientos, estilo de la portería, diseño de la red y sus colores. Al cambiar una, el juego pasa a "Opciones detalladas: Establecido".'],
+      ['Colores de la red', 'solo se usan con los diseños "Tipo 1" a "Tipo 12"; las redes Blanca, Negra y Verde tienen su color fijo.']]]] },
+  stadium: { t: 'rivales y banderas', intro: 'Datos del ambiente de los partidos de local.', groups: [
     ['Qué hace cada cosa', [
-      ['Estadio', 'el estadio que usa de local. "Nombre propio" reemplaza el nombre que muestra el juego.'],
       ['Rivales clásicos', 'el juego los usa para los clásicos: cambia el ambiente y los cánticos.'],
       ['Banderas', 'los textos de las banderas de la hinchada (hasta 15 letras cada una).']]]] },
   call: { t: 'la convocatoria', intro: 'La lista de la selección. Los convocados siguen en sus clubes: convocar no los saca de ningún plantel.', groups: [

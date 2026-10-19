@@ -880,7 +880,7 @@ function renderTeams(m) {
 }
 function teamSheet(t) {
   const r = PD.roster(S.d, t);
-  const tabs = [...(isNat(t) ? [['call', 'Convocatoria']] : []), ['roster', 'Plantel'], ['tactics', 'Formación'], ['data', 'Datos y colores'], ['kits', 'Kit Studio Pro'], ['stadium', 'Estadio, rivales y banderas']];
+  const tabs = [...(isNat(t) ? [['call', 'Convocatoria']] : []), ['roster', 'Plantel'], ['tactics', 'Formación'], ['data', 'Datos y colores'], ['stadloc', 'Estadio local'], ['kits', 'Kit Studio Pro'], ['stadium', 'Rivales y banderas']];
   if (S.ttab === 'call' && !isNat(t)) S.ttab = 'roster';
   FACE_CTX.nat = isNat(t);
   const coach = tget(t, 'manager_id');
@@ -889,7 +889,7 @@ function teamSheet(t) {
       <div class="sub">ID ${t.id} · ${isNat(t) ? 'Selección' : 'Club'} · ${r.length}/40 jugadores${(() => { const tr = teamRating(t), l = leagueOf(t); return (l ? ' · ' + esc(LEAGUE_NAME[l] || l) : '') + (tr ? ' · valor ' + fmtMoney(tr.value) : ''); })()} · DT ${esc(COACH.get(coach) || 'ID ' + coach)} · <span class="thstad" data-stad="${t.id}">🏟️ ${stadLabel(t)}</span></div></div></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ttab="${k}" aria-selected="${S.ttab === k}">${n}</button>`).join('')}</div>
   </div>
-  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) + crestCard(t) : stadiumCard(t)}
+  ${S.ttab === 'kits' ? kitStudioCard(t) : S.ttab === 'call' ? callCard(t) : S.ttab === 'roster' ? dbRosterCard(t) + rosterCard(t) + squadCard(t) : S.ttab === 'tactics' ? tacticsCard(t) : S.ttab === 'data' ? teamDataCard(t) + crestCard(t) : S.ttab === 'stadloc' ? stadViewCard(t) : stadiumCard(t)}
   ${helpCard(S.ttab)}`;
 }
 function teamDataCard(t) {
@@ -911,8 +911,7 @@ function teamDataCard(t) {
 function stadiumCard(t) {
   const teams = [...S.ix.teams].filter(x => x.id !== t.id && PD.roster(S.d, x).length).sort((a, b) => tget(a, 'name').localeCompare(tget(b, 'name')));
   const rivalSel = k => { const v = tget(t, k); return `<select data-rival="${k}" aria-label="Rival"><option value="${NO_RIVAL}" ${v === NO_RIVAL ? 'selected' : ''}>Ninguno</option>${!S.ix.teamById.has(v) && v !== NO_RIVAL ? `<option value="${v}" selected>ID ${v}</option>` : ''}${teams.map(x => `<option value="${x.id}" ${x.id === v ? 'selected' : ''}>${esc(tget(x, 'name'))}</option>`).join('')}</select>`; };
-  return `${stadViewCard(t)}
-  <div class="card"><h3>Rivales clásicos</h3><div class="grid wide">
+  return `<div class="card"><h3>Rivales clásicos</h3><div class="grid wide">
     <div class="f"><span class="lab">Rival 1</span>${rivalSel('rival1')}</div><div class="f"><span class="lab">Rival 2</span>${rivalSel('rival2')}</div><div class="f"><span class="lab">Rival 3</span>${rivalSel('rival3')}</div></div>
     <p class="note">El juego usa los rivales para los clásicos y el ambiente de los partidos.</p></div>
   <div class="card"><h3>Banderas de la hinchada</h3><div class="grid wide">
@@ -1284,10 +1283,12 @@ function bindTeam(t, m) {
     $('tCoach').onchange = e => { setT(t, [['manager_id', +e.target.value]], 'Entrenador de ' + tn()); rer(); };
     const uk = $('tUseKit'); if (uk) uk.onclick = () => { const k = kitFor(t, false), h1 = k.c1.slice(1), h2 = k.c2.slice(1); setT(t, [['c1r', c6(h1.slice(0, 2))], ['c1g', c6(h1.slice(2, 4))], ['c1b', c6(h1.slice(4, 6))], ['c2r', c6(h2.slice(0, 2))], ['c2g', c6(h2.slice(2, 4))], ['c2b', c6(h2.slice(4, 6))]], 'Colores de ' + tn() + ' desde el kit'); rer(); };
   }
-  if (S.ttab === 'stadium') {
+  if (S.ttab === 'stadloc') {
     bindStadView(t);
     $('tStad').onchange = e => { setT(t, [['stadium_id', +e.target.value], ['e_stadium', 1]], 'Estadio de ' + tn()); rer(); };
     $('tStadName').onchange = e => { setT(t, [['stadium_name', e.target.value], ['e_stadname', e.target.value ? 1 : 0]], 'Nombre del estadio de ' + tn()); };
+  }
+  if (S.ttab === 'stadium') {
     sh.querySelectorAll('[data-rival]').forEach(s => s.onchange = () => setT(t, [[s.dataset.rival, +s.value]], 'Rivales de ' + tn()));
     sh.querySelectorAll('[data-banner]').forEach(s => s.onchange = () => setT(t, [[s.dataset.banner, s.value]], 'Banderas de ' + tn()));
   }

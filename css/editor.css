@@ -774,6 +774,13 @@ canvas[data-drag]{cursor:grab;touch-action:none}
 .kpfup{display:flex;gap:6px;flex-wrap:wrap}
 .kpfimg{display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid var(--line);border-radius:var(--r,8px);background:var(--panel)}
 .kpfimg canvas{width:110px;height:auto;border-radius:4px;flex:none}.kpfimg>div{display:grid;gap:4px;min-width:0}
+.kpfphoto{flex-direction:column;align-items:stretch}.kpfphoto .warn{color:var(--warn,#e0a020);font-weight:600}.kpfphh{display:grid;gap:3px}.kpfphc{display:grid;gap:2px}
+.kpfphg{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:4px;max-height:236px;overflow:auto;padding:2px}
+.kpfpg{display:grid;justify-items:center;gap:2px;padding:3px 2px 2px;border:1.5px solid var(--line);border-radius:calc(var(--r,8px) * .7);background:#2a3038;cursor:text;transition:opacity .15s,border-color .15s}
+.kpfpg canvas{width:100%;max-width:40px;height:auto;border-radius:0!important;background:none!important}
+.kpfpg input{width:100%;min-width:0;padding:1px 0;text-align:center;font:700 .95rem/1.2 var(--mono);color:#fff;background:#0006;border:0;border-radius:3px}
+html .kpfphoto .kpfpg{background:#2a3038!important}html .kpfphoto.lt .kpfpg{background:#e6e9ee!important}.kpfpg input{text-transform:none!important}.kpfpg:focus-within{border-color:var(--accent)}.kpfpg.doubt{border-style:dashed;border-color:var(--warn,#e0a020)}.kpfpg.off{opacity:.45;border-style:dashed}.kpfpg.dup{border-color:var(--warn,#e0a020)}
+.kpfphs{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}.kpfphs input{min-width:0;font-family:var(--mono);letter-spacing:.06em}
 .kpftpl{flex-direction:column}.kpftpl canvas{width:100%;background:#2a3038}.kpftplhow{font-size:.85rem}.kpftplhow summary{cursor:pointer;font-weight:600;color:var(--muted)}.kpftplhow ol{margin:6px 0 0;padding-left:1.2em;display:grid;gap:4px}
 .kpfpres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .kpfpres button{display:grid;gap:3px;padding:4px 4px 5px;border:1.5px solid var(--line);border-radius:var(--r,8px);background:var(--panel);color:inherit;font:inherit;font-size:.72rem;cursor:pointer;min-width:0}
@@ -857,7 +864,7 @@ html[data-gfx="pes6"] #kpfSam button{font-family:"Saira","Segoe UI",system-ui,sa
 .kposr.own label{color:var(--accent);font-weight:700}
 .kposx{grid-area:x;border:0;background:none;color:inherit;cursor:pointer;font-size:.95rem;padding:0;opacity:.75}.kposx:disabled{opacity:.2;cursor:default}
 html[data-gfx="pes6"] :is(.kpos,.kposg fieldset,.kpfsec,.kpfstage,.kpfkit,.kpfpres button,.kpfhow,.kplpanels,.kplov,.kprw){border-radius:0!important}
-html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts button,.kpfimg,.kpfgame,.kpfst li,.kpfback,.kpfprev>canvas,.kpfatlas canvas){border-radius:0!important}
+html[data-gfx="pes6"] :is(.kpfreqs,.kpfreq,.kpfreq .kpfini,.kpfhero,.kpffonts button,.kpfimg,.kpfgame,.kpfst li,.kpfback,.kpfprev>canvas,.kpfatlas canvas,.kpfpg,.kpfpg input){border-radius:0!important}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2 label output,.ksgenl label output{font-family:var(--mono);color:var(--accent);margin-left:4px}
 

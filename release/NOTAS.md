@@ -2,57 +2,67 @@
 
 <div align="center">
 
-# 🩺 Shirt fonts that show right in the game
+# 🏟️ Your home stadium with real photos, fonts from any picture
 
-**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Open PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ Windows app (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.062-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Portable version](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.062-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-You save a beautiful font, open the game, turn the player around and… **the whole letter sheet is on his back, tiny and crammed together.** 😵 We chased that one down. Now the editor tells you **why a name shows wrong, fixes it in one click** and explains how the font really gets into the game.
+Three big things land at once. The **home stadium** now looks like the game's own menu, with real photos. **Shirt fonts** are made in four simple steps, and you can **take the letters from a photo**, in any order. And the squad table lets you **edit right in the cell** and export to **PES2020Editor**. ⚽
 
-<img alt="Left: the crammed letter sheet the game draws when it ignores the table. Right: the same font with KitPos reading the table, the name Fernández" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/antes-despues.png" width="100%">
+<img alt="Home stadium options with the stadium photo, turf, field colour, seats, goal style and net design" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/estadio-local.png" width="60%">
 
-## 🔎 Why the name came out crammed
+## 🏟️ Home stadium, like in the game
 
-The game builds the name by copying each letter from fixed boxes in a 4:1 texture (two rows of capitals). KitPos changes that lookup **only for the kits that ask for it**. If a kit has a big KitPos texture but doesn't ask for the table, the game uses its own boxes on it and each letter grabs a whole column of tiny letters. On top of that, a texture with **one letter per 256 px box** (the Photoshop template, injected as is) puts capitals and lowercase in the wrong place even when KitPos is working.
+The team now has its own **Home stadium** tab (the old one is now *Rivals and flags*):
 
-## 🩺 Check this kit in the game
+- The menu looks like the game's, with a **preview photo** of the stadium, the turf, the goal or the net. Use **↑ ↓** to pick and **← →** to change.
+- **47 photos taken from the game**: stadiums, turf, pitch border, seats, goals and net designs. Seats, border and net are tinted with the colour your EDIT saves.
+- The **31 stadiums of the game's menu**, in order and with a photo, including the 13 licensed ones (Maracanã, Bombonera, Monumental…). With a licensed stadium the name and detailed options switch off, just like in the game.
+- **Detailed options** found in the EDIT: turf, field colour, seat colour, goal style (Tipo 4 included), net design and net colours, with the game's own 8-colour palettes.
 
-**Teams → pick the club → Kit Studio Pro → 🔤 Fonts → 🩺 Check this kit in the game** reads `sider.log` and the kit folder and tells you, in plain words, what's going on:
+## 🔤 Fonts in four steps
 
-- KitPos didn't load, couldn't hook into the executable, or is too old.
-- The kit doesn't ask KitPos for its font (no `kitpos_letras.txt`, no `NameLower`).
-- The letters are in **template boxes**: 🔁 **Rearrange the letters** loads the texture as a template and, when you save, every letter lands where KitPos looks for it.
-- The `.dds` and the `.ftex` don't match (kserv reads the `.ftex` first).
-- You haven't opened the game since saving.
+**Kit Studio Pro → 🔤 Fonts** is now a short path: **Font → Style → Kit → To the game**, with animations and a check on each step you finish.
 
-Every problem comes with **its own button** to fix it.
+- In **Kit**, if you'd rather place the name and number inside the game, there's **Skip this step**.
+- **🎯 Precise** shows the back of the shirt flat, pixel by pixel, to place the name and number exactly.
 
-<img alt="Check this kit in the game: letters in template boxes, and the kit does not ask KitPos for the font" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/diagnostico-en.png" width="60%">
+<img alt="Font creator in four steps: the Kit step with the name and number on the back of the shirt" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/fuentes-pasos.png" width="60%">
 
-## 📄 Every kit carries its table
+## 📷 Letters from a photo
 
-Saving now leaves a `kitpos_letras.txt` next to the texture, with **the same table** as `minusculas.txt`, besides `NameLower = 1`. So the kit shows lowercase even when the browser can't save `kitpos_slots.ini`, or when you copy the folder by hand to another Sider.
+**📷 Letters from a photo** takes the alphabet from any picture: a photo of a real shirt, a screenshot or a drawing.
 
-## 🔠 Capitals only, anywhere
+- **Any order**: the editor recognises each letter by its shape. If it's unsure, it marks the letter with a dashed border so you check it first.
+- **Lowercase and uppercase**, rows of any length, full stop included.
+- **Any format**: PNG, JPG, WEBP, GIF, BMP, AVIF, SVG, PSD and the game's own .dds/.ftex. You can also **paste with Ctrl+V**.
+- Accented letters missing from the photo are built from the photo's letter plus the font's accent.
+- **No special characters**: if you only want the plain letters, á becomes a and Ø becomes O. Whatever the photo doesn't have stays empty.
 
-New format next to **With lowercase**: **Capitals only** saves a 4096×1024 texture in the game's own format. No KitPos needed, so it works with any Sider and with other executables (Football Life included).
+<img alt="A shuffled alphabet photo and the letters the editor recognised" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/letras-de-una-foto.png" width="60%">
 
-## 📘 A guide for manual injection
+<img alt="Ødegaard with special characters and Odegaard without them" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/sin-especiales.png" width="60%">
 
-Inside Fonts there's a guide that explains **how the font reaches the game**, the **manual injection step by step**, a table of **why it sometimes works and sometimes doesn't** (with what to do in each case), and **compatibility** with other games and mods.
+The **.zip** you download now comes with a **step-by-step tutorial** to put the font into the game.
 
-<img alt="The guide inside Fonts: how it works, manual injection, why it sometimes fails and compatibility" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/guia-en.png" width="60%">
+## ✏️ Edit in the squad table
 
-## 🛡 Crests on every screen
+One click on a player's **name, position, age, height, nationality or foot** opens the field right in the cell. **Enter** saves, **Esc** cancels and **Tab** moves to the next field. Every change can be undone with Ctrl+Z.
 
-Your own crest is now saved in **all 12 versions**, including the `e_<id>_r_b.png` that was missing, and the HD one is capped at **1028×1044**. Some crests looked wrong on certain game screens; not anymore.
+<img alt="Editing a player's name directly in the squad table" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/tabla-editar.png" width="60%">
+
+## 📊 CSV for PES2020Editor
+
+Players, teams and the team–player list can now be exported with **exactly the same columns and format as PES2020Editor**: from **Archivo**, from the squad's **Exportar** menu, or with **⬇ CSV for PES2020Editor** on each player.
+
+<img alt="The squad's Export menu with the PES2020Editor options" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/csv-pes2020editor.png" width="50%">
 
 ## ⬇️ Do I need to download anything?
 
 **No.** It's all in the editor, and the Windows app loads it on its own the next time you open it (or when "A new version of the editor is available" shows up).
 
-> This is an alpha version. If a name still shows wrong, press 🩺 Check this kit and tell us what it says in 💡 Ideas → Something's not working. ⚽
+> This is an alpha version. If something doesn't look right, tell us in 💡 Ideas → Something's not working. ⚽
 
 <br>
 
@@ -67,54 +77,64 @@ Your own crest is now saved in **all 12 versions**, including the `e_<id>_r_b.pn
 
 <div align="center">
 
-# 🩺 Fuentes que se ven bien en el juego
+# 🏟️ Tu estadio con fotos del juego y fuentes desde cualquier imagen
 
-**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.061-alpha/PES-Editor-Rebuilt-Portable.exe)
+**[▶ Abrir PES Editor Rebuilt](https://agustinioquino.github.io/Pes-Editor-Rebuilt/)** · **[⬇️ App para Windows (.exe)](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.062-alpha/PES-Editor-Rebuilt-Setup.exe)** · [📦 Versión portátil](https://github.com/Agustinioquino/Pes-Editor-Rebuilt/releases/download/v0.062-alpha/PES-Editor-Rebuilt-Portable.exe)
 
 </div>
 
-Guardás una fuente hermosa, abrís el juego, das vuelta al jugador y… **en la espalda aparece toda la hoja de letras, chiquita y amontonada.** 😵 Fuimos a buscar ese problema. Ahora el editor te dice **por qué un nombre sale mal, lo arregla con un clic** y explica cómo llega de verdad la fuente al juego.
+Llegan tres cosas grandes juntas. El **estadio local** ahora se ve como el menú del juego, con fotos de verdad. Las **fuentes de camiseta** se hacen en cuatro pasos simples, y podés **sacar las letras de una foto**, en cualquier orden. Y la tabla del plantel te deja **editar en la misma celda** y exportar para **PES2020Editor**. ⚽
 
-<img alt="Izquierda: la hoja de letras amontonada que dibuja el juego cuando no usa la tabla. Derecha: la misma fuente con KitPos leyendo la tabla, el nombre Fernández" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/antes-despues.png" width="100%">
+<img alt="Opciones de estadio local con la foto del estadio, césped, color del campo, asientos, estilo de la portería y diseño de la red" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/estadio-local.png" width="60%">
 
-## 🔎 Por qué el nombre salía amontonado
+## 🏟️ Estadio local, como en el juego
 
-El juego arma el nombre copiando cada letra de casillas fijas en una textura 4:1 (dos filas de mayúsculas). KitPos cambia esa búsqueda **solo en los kits que se lo piden**. Si un kit tiene una textura grande de KitPos pero no pide la tabla, el juego usa sus casillas sobre ella y cada letra agarra una columna entera de letras chiquitas. Además, una textura con **una letra por casilla de 256 px** (la plantilla de Photoshop inyectada tal cual) pone mayúsculas y minúsculas en el lugar equivocado aunque KitPos funcione.
+El equipo tiene ahora su propia pestaña **Estadio local** (la otra pasa a llamarse *Rivales y banderas*):
 
-## 🩺 Revisar este kit en el juego
+- El menú se ve como el del juego, con **foto de vista previa** del estadio, el césped, la portería o la red. Con **↑ ↓** elegís y con **← →** cambiás.
+- **47 fotos sacadas del juego**: estadios, céspedes, borde del campo, asientos, porterías y diseños de red. Los asientos, el borde y la red se tiñen con el color que guarda tu EDIT.
+- Los **31 estadios del menú del juego**, en su orden y con foto, también los 13 con licencia (Maracanã, Bombonera, Monumental…). Con un estadio con licencia el nombre y las opciones detalladas se apagan, como en el juego.
+- **Opciones detalladas** ubicadas en el EDIT: césped, color del campo, color de los asientos, estilo de la portería (con el Tipo 4), diseño de la red y colores de la red, con las paletas de 8 colores del juego.
 
-**Equipos → elegí el club → Kit Studio Pro → 🔤 Fuentes → 🩺 Revisar este kit en el juego** lee `sider.log` y la carpeta del kit y te dice, en palabras simples, qué pasa:
+## 🔤 Fuentes en cuatro pasos
 
-- KitPos no cargó, no pudo engancharse al ejecutable o es viejo.
-- El kit no le pide la fuente a KitPos (no tiene `kitpos_letras.txt` ni `NameLower`).
-- Las letras están en **casillas de plantilla**: 🔁 **Reacomodar las letras** carga la textura como plantilla y, al guardar, cada letra queda donde la busca KitPos.
-- El `.dds` y el `.ftex` no coinciden (kserv lee primero el `.ftex`).
-- No abriste el juego desde que guardaste.
+**Kit Studio Pro → 🔤 Fuentes** ahora es un camino corto: **Fuente → Estilo → Kit → Al juego**, con animaciones y un tilde en cada paso que terminás.
 
-Cada problema trae **su botón** para arreglarlo.
+- En **Kit**, si preferís acomodar el nombre y el dorsal dentro del juego, está **Saltar este paso**.
+- **🎯 Precisa** muestra la espalda de la camiseta plana, píxel por píxel, para ubicar el nombre y el número justo donde va.
 
-<img alt="Revisar este kit en el juego: letras en casillas de plantilla y el kit no le pide la fuente a KitPos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/diagnostico-es.png" width="60%">
+<img alt="Creador de fuentes en cuatro pasos: el paso Kit con el nombre y el dorsal en la espalda de la camiseta" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/fuentes-pasos.png" width="60%">
 
-## 📄 Cada kit lleva su tabla
+## 📷 Letras de una foto
 
-Guardar ahora deja un `kitpos_letras.txt` junto a la textura, con **la misma tabla** que `minusculas.txt`, además de `NameLower = 1`. Así el kit muestra las minúsculas aunque el navegador no deje guardar `kitpos_slots.ini`, o aunque copies la carpeta a mano a otro Sider.
+**📷 Letras de una foto** saca el abecedario de cualquier imagen: una foto de una camiseta real, una captura o un dibujo.
 
-## 🔠 Solo mayúsculas, en cualquier lado
+- **En cualquier orden**: el editor reconoce cada letra por su forma. Si duda, la marca con borde punteado para que la mires primero.
+- **Minúsculas y mayúsculas**, filas de cualquier largo y el punto incluido.
+- **Cualquier formato**: PNG, JPG, WEBP, GIF, BMP, AVIF, SVG, PSD y los .dds/.ftex del juego. También podés **pegarla con Ctrl+V**.
+- Las letras con tilde que no están en la foto se arman con la letra de la foto más el acento de la fuente.
+- **Sin caracteres especiales**: si querés solo las letras simples, la á queda como a y la Ø como O. Lo que la foto no tiene queda vacío.
 
-Formato nuevo al lado de **Con minúsculas**: **Solo mayúsculas** guarda una textura de 4096×1024 con el formato del propio juego. No necesita KitPos, así que anda con cualquier Sider y con otros ejecutables (Football Life incluido).
+<img alt="Una foto con el abecedario mezclado y las letras que reconoció el editor" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/letras-de-una-foto.png" width="60%">
 
-## 📘 Una guía para inyectar a mano
+<img alt="Ødegaard con caracteres especiales y Odegaard sin ellos" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/sin-especiales.png" width="60%">
 
-Dentro de Fuentes hay una guía que explica **cómo llega la fuente al juego**, la **inyección manual paso a paso**, una tabla de **por qué a veces funciona y a veces no** (con qué hacer en cada caso) y la **compatibilidad** con otros juegos y mods.
+El **.zip** que descargás ahora trae un **tutorial paso a paso** para meter la fuente en el juego.
 
-<img alt="La guía dentro de Fuentes: cómo funciona, inyección manual, por qué a veces falla y compatibilidad" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.061/guia-es.png" width="60%">
+## ✏️ Editar en la tabla del plantel
 
-## 🛡 Escudos en todas las pantallas
+Un clic en el **nombre, la posición, la edad, la altura, la nacionalidad o el pie** de un jugador abre el campo en la misma celda. **Enter** guarda, **Esc** cancela y **Tab** pasa al siguiente dato. Cada cambio se deshace con Ctrl+Z.
 
-El escudo propio ahora se guarda en **sus 12 versiones**, también la `e_<id>_r_b.png` que faltaba, y la HD queda en **1028×1044** como máximo. Algunos escudos se veían mal en ciertas pantallas del juego; ya no.
+<img alt="Editando el nombre de un jugador directo en la tabla del plantel" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/tabla-editar.png" width="60%">
+
+## 📊 CSV para PES2020Editor
+
+Jugadores, equipos y la lista equipo–jugadores se exportan ahora con **las mismas columnas y el mismo formato que PES2020Editor**: desde **Archivo**, desde el menú **Exportar** del plantel o con **⬇ CSV para PES2020Editor** en cada jugador.
+
+<img alt="El menú Exportar del plantel con las opciones para PES2020Editor" src="https://raw.githubusercontent.com/Agustinioquino/Pes-Editor-Rebuilt/main/docs/releases/v0.062/csv-pes2020editor.png" width="50%">
 
 ## ⬇️ ¿Tengo que descargar algo?
 
 **No.** Todo está en el editor, y la app de Windows lo carga sola la próxima vez que la abras (o cuando aparezca "Hay una versión nueva del editor").
 
-> Es una versión alfa. Si un nombre sigue saliendo mal, tocá 🩺 Revisar este kit y contanos qué dice en 💡 Ideas → Algo no anda. ⚽
+> Es una versión alfa. Si algo no se ve bien, contanos en 💡 Ideas → Algo no anda. ⚽

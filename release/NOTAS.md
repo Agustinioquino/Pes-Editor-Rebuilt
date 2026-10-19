@@ -18,7 +18,7 @@ The team now has its own **Home stadium** tab (the old one is now *Rivals and fl
 
 - The menu looks like the game's, with a **preview photo** of the stadium, the turf, the goal or the net. Use **↑ ↓** to pick and **← →** to change.
 - **47 photos taken from the game**: stadiums, turf, pitch border, seats, goals and net designs. Seats, border and net are tinted with the colour your EDIT saves.
-- The **31 stadiums of the game's menu**, in order and with a photo, including the 13 licensed ones (Maracanã, Bombonera, Monumental…). With a licensed stadium the name and detailed options switch off, just like in the game.
+- The **31 stadiums of the game's menu**, in order and with a photo, including the 14 licensed ones (Maracanã, Bombonera, Monumental…). With a licensed stadium the name and detailed options switch off, just like in the game.
 - **Detailed options** found in the EDIT: turf, field colour, seat colour, goal style (Tipo 4 included), net design and net colours, with the game's own 8-colour palettes.
 
 ## 🔤 Fonts in four steps
@@ -93,7 +93,7 @@ El equipo tiene ahora su propia pestaña **Estadio local** (la otra pasa a llama
 
 - El menú se ve como el del juego, con **foto de vista previa** del estadio, el césped, la portería o la red. Con **↑ ↓** elegís y con **← →** cambiás.
 - **47 fotos sacadas del juego**: estadios, céspedes, borde del campo, asientos, porterías y diseños de red. Los asientos, el borde y la red se tiñen con el color que guarda tu EDIT.
-- Los **31 estadios del menú del juego**, en su orden y con foto, también los 13 con licencia (Maracanã, Bombonera, Monumental…). Con un estadio con licencia el nombre y las opciones detalladas se apagan, como en el juego.
+- Los **31 estadios del menú del juego**, en su orden y con foto, también los 14 con licencia (Maracanã, Bombonera, Monumental…). Con un estadio con licencia el nombre y las opciones detalladas se apagan, como en el juego.
 - **Opciones detalladas** ubicadas en el EDIT: césped, color del campo, color de los asientos, estilo de la portería (con el Tipo 4), diseño de la red y colores de la red, con las paletas de 8 colores del juego.
 
 ## 🔤 Fuentes en cuatro pasos

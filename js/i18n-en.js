@@ -4955,4 +4955,6 @@ Object.assign(I18N_EN, {
 "oculto o fuera de la espalda":"hidden or off the back",
 "Instalá KitPos (paso 4 → Requisitos) para moverlo desde acá":"Install KitPos (step 4 → Requirements) to move it from here",
 "paso":"step",
+"👕 Remera":"👕 Shirt",
+"Remera de referencia: dónde queda en la espalda lo que estás moviendo. Tocala para ir a esa parte":"Reference shirt: where what you're moving sits on the back. Tap it to jump to that part",
 });

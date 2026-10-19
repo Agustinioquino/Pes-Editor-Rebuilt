@@ -3,11 +3,35 @@
 // cada punto de la pantalla es un punto de la textura, así que mover el nombre o el dorsal es una cuenta exacta con las
 // mismas fórmulas de KS_POS / KS_GAME (las medidas en el juego). La caja de cada cosa se mide sobre lo que se dibuja de verdad.
 // Zoom hasta ver cada píxel de la textura, marcas de los pasos del juego y valores con decimales.
-const KPR = { sel: 'name', zoom: 1, cx: null, cy: null, guides: true, drag: null, box: {}, tex: null, view: null };
+const KPR = { sel: 'name', zoom: 1, cx: null, cy: null, guides: true, shirt: true, drag: null, box: {}, tex: null, view: null };
 const KPR_EL = {
   name: { n: 'Nombre', col: '#ffd84a', y: 'NameY', size: 'NameSize', wide: 'NameStretch', arc: 'NameShape', f: ['NameY', 'NameSize', 'NameStretch', 'NameSpacing', 'NameCurve'] },
   num: { n: 'Dorsal', col: '#56d6ff', y: 'BackNumberY', size: 'BackNumberSize', wide: 'BackNumberSpacing', f: ['BackNumberY', 'BackNumberSize', 'BackNumberSpacing'] },
 };
+// remera básica de referencia (assets/remera-espalda.png, 640×600): dónde cae la espalda de la textura en el dibujo
+const KPR_SHIRT = { img: null, body: [154, 48, 486, 568], W: 640, H: 600 };
+function kprShirt() {
+  const S = KPR_SHIRT; if (!S.img) { S.img = new Image(); S.img.onload = () => { if (KPR.repaint) KPR.repaint(); }; S.img.src = 'assets/remera-espalda.png'; }
+  return S.img.complete && S.img.naturalWidth ? S.img : null;
+}
+// lugar de la remera en el lienzo (abajo a la izquierda) y la cuenta espalda -> dibujo
+function kprMini(V) {
+  const w = Math.round(Math.min(140, Math.max(96, V.cw * .3))), h = Math.round(w * KPR_SHIRT.H / KPR_SHIRT.W), x = 8, y = V.ch - h - 8, [b0, b1, b2, b3] = KPR_SHIRT.body, q = w / KPR_SHIRT.W;
+  return { x, y, w, h, mx: bx => x + (b0 + bx / kprBW() * (b2 - b0)) * q, my: by => y + (b1 + by / kprBH() * (b3 - b1)) * q, bx: px => ((px - x) / q - b0) / (b2 - b0) * kprBW(), by: py => ((py - y) / q - b1) / (b3 - b1) * kprBH() };
+}
+function kprMiniPaint(g, V) {
+  const T = kprShirt(); if (!T) return; const M = kprMini(V); KPR.mini = M;
+  g.save(); g.fillStyle = '#10141acc'; g.strokeStyle = '#ffffff40'; g.lineWidth = 1; g.beginPath(); g.roundRect ? g.roundRect(M.x - 4, M.y - 4, M.w + 8, M.h + 8, 8) : g.rect(M.x - 4, M.y - 4, M.w + 8, M.h + 8); g.fill(); g.stroke();
+  g.drawImage(T, M.x, M.y, M.w, M.h);
+  // centro de la espalda y lo que hay en ella: el nombre y el dorsal en sus colores
+  g.setLineDash([2, 2]); g.strokeStyle = '#00000055'; g.beginPath(); g.moveTo(Math.round(M.mx(kprBW() / 2)) + .5, M.my(0)); g.lineTo(Math.round(M.mx(kprBW() / 2)) + .5, M.my(kprBH())); g.stroke(); g.setLineDash([]);
+  for (const el of Object.keys(KPR_EL)) { const b = KPR.box[el]; if (!b) continue; const on = el === KPR.sel, x0 = M.mx(b.x0), y0 = M.my(b.y0), w = Math.max(2, M.mx(b.x1) - x0), h = Math.max(2, M.my(b.y1) - y0);
+    g.fillStyle = KPR_EL[el].col + (on ? 'ee' : '99'); g.fillRect(x0, y0, w, h); g.strokeStyle = on ? '#000' : '#0008'; g.lineWidth = on ? 1.2 : .8; g.strokeRect(x0 + .5, y0 + .5, w - 1, h - 1); }
+  // lo que se ve con el zoom
+  if (KPR.zoom > 1.01) { const x0 = Math.max(M.mx(0), M.mx(V.bx(0))), y0 = Math.max(M.my(0), M.my(V.by(0))), x1 = Math.min(M.mx(kprBW()), M.mx(V.bx(V.cw))), y1 = Math.min(M.my(kprBH()), M.my(V.by(V.ch)));
+    g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.strokeRect(x0, y0, x1 - x0, y1 - y0); g.strokeStyle = '#000a'; g.lineWidth = 1; g.strokeRect(x0 - 1.5, y0 - 1.5, x1 - x0 + 3, y1 - y0 + 3); }
+  g.restore();
+}
 const KPR_ZMAX = 16, KPR_MS = 2048; // zoom máximo; escala a la que se mide la caja de cada cosa
 const kprBW = () => UVR.back[1] - UVR.back[0], kprBH = () => UVR.back[3] - UVR.back[2];
 // centro (alto) de cada cosa en la espalda derecha (0 = cuello), en unidades de la textura, y la inversa
@@ -49,7 +73,7 @@ function kprHtml() {
   return `<div class="kpr" id="kprBox">
     <div class="kprbar"><div class="fchips kplpick">${chips}</div>
       <div class="kprzoom"><button class="btn small" type="button" data-kprz="out" title="Alejar (rueda del mouse)">−</button><output id="kprZ">${Math.round(KPR.zoom * 100)}%</output><button class="btn small" type="button" data-kprz="in" title="Acercar (rueda del mouse)">＋</button><button class="btn small" type="button" data-kprz="fit" title="Ver toda la espalda (0)">⤢</button><button class="btn small" type="button" data-kprz="el" title="Acercar a lo elegido">🎯</button>
-        <button class="btn small" type="button" data-kprg aria-pressed="${KPR.guides}" title="Línea del centro y marcas de los pasos del juego">▦ Guías</button></div></div>
+        <button class="btn small" type="button" data-kprg aria-pressed="${KPR.guides}" title="Línea del centro y marcas de los pasos del juego">▦ Guías</button><button class="btn small" type="button" data-kprs aria-pressed="${KPR.shirt}" title="Remera de referencia: dónde queda en la espalda lo que estás moviendo. Tocala para ir a esa parte">👕 Remera</button></div></div>
     <div class="kprw"><canvas id="kprCv" tabindex="0" aria-label="Espalda del kit en plano: arrastrá el nombre o el dorsal para moverlo. Flechas: un píxel de la textura; + y −: tamaño; rueda: zoom"></canvas></div>
     <p class="note kplval" id="kprVal" aria-live="polite"></p>
     <div class="kprf" id="kprF"></div>
@@ -98,6 +122,7 @@ function kprPaint(root, api) {
       g.restore();
     }
   }
+  KPR.mini = null; if (KPR.shirt) kprMiniPaint(g, V);
   const D = KPR.drag; if (D && D.tip) { g.save(); g.font = '600 12px system-ui, sans-serif'; const tw = g.measureText(D.tip).width + 14, x = Math.min(V.cw - tw - 2, Math.max(2, D.px + 14)), y = Math.min(V.ch - 24, Math.max(2, D.py + 16));
     g.fillStyle = '#000c'; g.beginPath(); g.roundRect ? g.roundRect(x, y, tw, 21, 5) : g.rect(x, y, tw, 21); g.fill(); g.fillStyle = '#fff'; g.fillText(D.tip, x + 7, y + 14.5); g.restore(); }
   kprInfo(box, api, S);
@@ -129,6 +154,7 @@ function kprBind(root, api) {
     if (a === 'fit') { KPR.zoom = 1; KPR.cx = KPR.cy = null; paint(); return; }
     if (a === 'el') { const bb = KPR.box[KPR.sel]; if (!bb) return; const fit = Math.min(V.cw / kprBW(), V.ch / kprBH()); KPR.zoom = Math.max(1, Math.min(KPR_ZMAX, V.cw * .8 / ((bb.x1 - bb.x0) * fit), V.ch * .45 / ((bb.y1 - bb.y0) * fit))); KPR.cx = (bb.x0 + bb.x1) / 2; KPR.cy = (bb.y0 + bb.y1) / 2; paint(); return; }
     zoomAt(KPR.zoom * (a === 'in' ? 1.5 : 1 / 1.5), V.cw / 2, V.ch / 2); });
+  const sb0 = box.querySelector('[data-kprs]'); if (sb0) sb0.onclick = () => { KPR.shirt = !KPR.shirt; sb0.setAttribute('aria-pressed', KPR.shirt); paint(); };
   const gb = box.querySelector('[data-kprg]'); if (gb) gb.onclick = () => { KPR.guides = !KPR.guides; gb.setAttribute('aria-pressed', KPR.guides); paint(); };
   const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   const hit = (x, y) => { const V = KPR.view; if (!V) return null; const sel = KPR.sel, sb = kprSBox(V, KPR.box[sel]);
@@ -138,6 +164,7 @@ function kprBind(root, api) {
   const vals = el => { const E = KPR_EL[el], s = {}; for (const k of [E.y, E.size, E.wide, E.arc].filter(Boolean)) s[k] = ksP(k); return s; };
   cv.onpointermove = e => {
     const [x, y] = pos(e), D = KPR.drag, V = KPR.view; if (!V) return;
+    const M = KPR.mini; if (!D && M && x >= M.x - 4 && x <= M.x + M.w + 4 && y >= M.y - 4 && y <= M.y + M.h + 4) { cv.style.cursor = 'pointer'; return; }
     if (!D) { const h = hit(x, y), was = KPR.hover; KPR.hover = h && h.el; cv.style.cursor = h ? (h.mode === 'move' ? 'grab' : h.cur) : KPR.zoom > 1 ? 'move' : ''; if (KPR.hover !== was) paint(); return; }
     D.px = x; D.py = y; const E = KPR_EL[D.el], dx = (x - D.x) / V.k, dy = (y - D.y) / V.k;
     if (D.mode === 'pan') { KPR.cx = D.cx - (x - D.x) / V.k; KPR.cy = D.cy - (y - D.y) / V.k; paint(); return; }
@@ -148,6 +175,8 @@ function kprBind(root, api) {
   };
   cv.onpointerdown = e => {
     if (e.button !== 0 && e.button !== 1) return; cv.focus({ preventScroll: true }); const [x, y] = pos(e), V = KPR.view; if (!V) return;
+    const M = KPR.mini; if (e.button === 0 && M && x >= M.x - 4 && x <= M.x + M.w + 4 && y >= M.y - 4 && y <= M.y + M.h + 4) { // tocar la remera lleva a esa parte de la espalda
+      const bx = M.bx(x), by = M.by(y); if (bx >= 0 && bx <= kprBW() && by >= 0 && by <= kprBH()) { e.preventDefault(); KPR.zoom = Math.max(KPR.zoom, 3); KPR.cx = bx; KPR.cy = by; paint(); } return; }
     const h = e.button === 0 ? hit(x, y) : null;
     if (h) { if (h.el !== KPR.sel) { KPR.sel = h.el; paint(); } }
     if (!h || !kprCan(api)) { if (KPR.zoom > 1 || e.button === 1) { e.preventDefault(); KPR.drag = { mode: 'pan', x, y, cx: KPR.cx, cy: KPR.cy }; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; } else if (h) kprInfo(box, api, (KPR.tex && KPR.tex.S) || 1024); return; }

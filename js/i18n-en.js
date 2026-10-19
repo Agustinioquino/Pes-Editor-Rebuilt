@@ -1,6 +1,10 @@
 // Diccionario español → inglés de lo que se ve en pantalla. La clave es el texto original; {x} es una parte que cambia.
 // Si algo queda en español, se agrega acá.
-const I18N_EN = {"📷 Letras de una foto":"📷 Letters from a photo",
+const I18N_EN = {"Sin caracteres especiales":"No special characters",
+"Las letras con tilde, diéresis o cedilla salen sin la marca (á → a, Ñ → N) y las que la imagen no tiene (cirílico, griego…) quedan vacías: nada sale de otra fuente":"Letters with an accent, umlaut or cedilla come out without the mark (á → a, Ñ → N) and the ones the image doesn't have (Cyrillic, Greek…) stay empty: nothing comes from another font",
+"{x} letras salen de la foto; las letras con tilde, sin la tilde; números y signos, de {x}.":"{x} letters come from the photo; accented letters, without the accent; numbers and signs, from {x}.",
+"{x} letras salen de la foto (las minúsculas, de las mayúsculas si está marcado abajo); las letras con tilde, sin la tilde; números y signos, de {x}.":"{x} letters come from the photo (lowercase from the capitals if checked below); accented letters, without the accent; numbers and signs, from {x}.",
+"📷 Letras de una foto":"📷 Letters from a photo",
 "Una foto o imagen con las letras escritas (por ejemplo de la A a la Z, en una o varias filas, sobre un fondo liso), o la textura del nombre de un kit":"A photo or image with the letters written out (for example A to Z, in one or more rows, on a plain background), or a kit's name texture",
 "Encontré {x} letras en {x} fila. Revisá que cada una tenga la letra que es: si no, escribila encima (borrala para no usarla).":"Found {x} letters in {x} row. Check that each one has the right letter: if not, type it over (delete it to leave it out).",
 "Encontré {x} letras en {x} filas. Revisá que cada una tenga la letra que es: si no, escribila encima (borrala para no usarla).":"Found {x} letters in {x} rows. Check that each one has the right letter: if not, type it over (delete it to leave it out).",

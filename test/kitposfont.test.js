@@ -234,7 +234,13 @@ test('letras de una foto: qué letra es cada una según cuántas hay, y el mapa 
   assert.equal(KPF.photoSeq(27).join(''), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.');
   assert.equal(KPF.photoSeq(52).slice(26).join(''), 'abcdefghijklmnopqrstuvwxyz');
   assert.equal(KPF.photoSeq(5).join(''), 'ABCDE');
-  const { w, h, px } = fakePhoto(), S = KPF.photoScan(px, w, h), m = KPF.photoMap(S, ['A', 'B', '', 'C', 'C', 'i', '.', 'x', 'y', 'z']);
+  const { w, h, px } = fakePhoto(), S = KPF.photoScan(px, w, h);
+  assert.equal(KPF.photoSeq(S).join(''), 'ABCDEF.GHI'); // el alfabeto sigue en la otra fila; la mancha chica es el punto
+  // una fila de minúsculas (letras más bajas que la mayúscula) después de la de mayúsculas, con el punto al final de la primera
+  const low = { glyphs: [...'ABC'].map((_, i) => ({ line: 0, top: -100, cap: 100, y0: 0, y1: 99 })).concat([{ line: 0, top: -20, cap: 100, y0: 80, y1: 99 }],
+    [-140, -70, -140, -70].map(t => ({ line: 1, top: t, cap: 140, y0: 0, y1: -t }))) };
+  assert.equal(KPF.photoSeq(low).join(''), 'ABC.abcd');
+  const m = KPF.photoMap(S, ['A', 'B', '', 'C', 'C', 'i', '.', 'x', 'y', 'z']);
   assert.deepEqual(J([...m.keys()]), ['A', 'B', 'C', 'i', '.', 'x', 'y', 'z']); // la que no se usa no está; la repetida, la primera
   assert.equal(m.get('C').sx, S.glyphs[3].x0); assert.deepEqual(J(Object.keys(m.get('A'))), ['sx', 'sy', 'sw', 'sh', 'top', 'cap']);
 });

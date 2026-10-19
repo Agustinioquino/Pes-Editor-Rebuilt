@@ -226,9 +226,21 @@ const KPF = (() => {
       rgba[i * 4 + 3] = a * 255; }
     return { w, h, rgba, glyphs: glyphs.map(({ ids, ...g }) => g), lines: lines.length, cap: med(lines.map(L => L.cap)), dark, thr };
   }
-  // qué letra es cada una, según cuántas hay: A–Z, A–Z y el punto, A–Z a–z, con números…
+  // qué letra es cada una. Con el resultado de photoScan se mira cada fila: una fila de minúsculas tiene letras más bajas que
+  // la mayúscula (a, c, e, m…); el alfabeto sigue de una fila a la otra (A–M y N–Z) y una mancha chica es el punto.
+  // Con un número, solo según cuántas hay: A–Z, A–Z y el punto, A–Z a–z, con números…
   const PH_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', PH_a = 'abcdefghijklmnopqrstuvwxyz', PH_0 = '0123456789';
-  function photoSeq(n) {
+  function photoSeq(scan) {
+    if (typeof scan !== 'number') {
+      const gs = scan.glyphs, small = g => -g.top < g.cap * .35 && g.y1 - g.y0 + 1 < g.cap * .35, lines = [...new Set(gs.map(g => g.line))];
+      let up = 0, lo = 0, dg = 0; const out = [];
+      for (const li of lines) {
+        const row = gs.filter(g => g.line === li), big = row.filter(g => !small(g)), lower = big.length > 2 && big.filter(g => -g.top < g.cap * .85).length >= big.length * .25;
+        for (const g of row) out.push(small(g) ? '.' : lower ? (PH_a[lo++] || '') : up < 26 ? PH_A[up++] : (PH_0[dg++] || ''));
+      }
+      return out;
+    }
+    const n = scan;
     for (const s of [PH_A, PH_A + '.', PH_A + PH_a, PH_A + PH_a + '.', PH_A + PH_0, PH_A + '.' + PH_0, PH_A + PH_a + PH_0, PH_a, PH_0, PH_A + 'Ñ', PH_A + 'Ñ' + PH_a + 'ñ']) if (s.length === n) return [...s];
     const all = [...(PH_A + PH_a + PH_0)]; return Array.from({ length: n }, (_, i) => all[i] || '');
   }
@@ -271,14 +283,18 @@ const KPF = (() => {
       let y = 0; while (y < q.sh && !ink(y)) y++; while (y < q.sh && ink(y)) y++; const gap = y; while (y < q.sh && !ink(y)) y++;
       return q.__dl = y < q.sh && gap < q.sh * .4 ? { ...q, sy: q.sy + y, sh: q.sh - y, top: q.top + y } : q;
     }
+    const PLAIN = { Ø: 'O', ø: 'o', Ł: 'L', ł: 'l', Đ: 'D', đ: 'd', Ð: 'D', ð: 'd', Ħ: 'H', ħ: 'h', ı: 'i' }; // letras con barra: sin caracteres especiales, la letra sola
     const metrics = list.map(ch => {
       const up = ch.toUpperCase(), tq = T && (T.g.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && T.g.get(up)));
       if (tq) { const k = (o.size || 1) * (T.g.has(ch) ? 1 : .76), bear = capPx * .05, iw = tq.x1 - tq.x0; return { ch, left: 0, right: iw * k * wS + bear * 2, tpl: { q: tq, k, bear } }; }
       const q = IG && (IG.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && IG.get(up)));
       if (q) { const k = capPx / q.cap * (IG.has(ch) ? 1 : .76), bear = capPx * .05, adv = q.sw * k * wS + bear * 2; return { ch, left: 0, right: adv, img: { q, k, bear } }; }
       // letra con tilde, diéresis, cedilla… que la imagen no tiene: la letra de la imagen y la marca de la fuente (á = a + ´)
-      const dc = IG && ch.normalize('NFD'), base = dc && dc.length > 1 && /^\p{M}+$/u.test(dc.slice(1)) ? dc[0] : null, bu = base && base.toUpperCase();
+      const dc = IG && ch.normalize('NFD'), base = dc && dc.length > 1 && /^\p{M}+$/u.test(dc.slice(1)) ? dc[0] : IG && o.imgPlain ? PLAIN[ch] || null : null, bu = base && base.toUpperCase();
       const used = base && (IG.get(base) ? base : o.imgSmall && bu !== base && IG.get(bu) ? bu : null);
+      // sin caracteres especiales: la letra de la imagen sin la marca (á → a, Ñ → N) y lo que no tiene (cirílico, griego, ß…) queda vacío
+      if (o.imgPlain && used) { const qb = IG.get(used), k = capPx / qb.cap * (used === base ? 1 : .76), bear = capPx * .05; return { ch, left: 0, right: qb.sw * k * wS + bear * 2, img: { q: qb, k, bear } }; }
+      if (o.imgPlain && !/^[0-9 .\-'_]$/.test(ch)) return { ch, left: 0, right: capPx * .3, empty: true };
       if (used) { const qb = /^[ij]$/.test(used) ? dotless(IG.get(used)) : IG.get(used), k = capPx / qb.cap * (used === base ? 1 : .76), bear = capPx * .05, adv = qb.sw * k * wS + bear * 2;
         return { ch, left: 0, right: adv, img: { q: qb, k, bear, mark: used === 'i' ? 'ı' : used === 'j' ? 'ȷ' : used } }; }
       const m = mc.measureText(ch), adv = m.width * wS;
@@ -302,7 +318,7 @@ const KPF = (() => {
         g.drawImage(tsrc, q.col * ROW + q.x0, q.row * ROW, iw, ROW, ox + bear * fx, by - BASE * k, iw * k * wS * fx, ROW * k); g.restore(); return; }
       if (mt.img) { const { q, k, bear, mark } = mt.img, gx = ox + bear * fx, gw = q.sw * k * wS * fx; g.drawImage(src, q.sx, q.sy, q.sw, q.sh, gx, by + q.top * k, gw, q.sh * k);
         if (mark) markDraw(g, cell.ch, mark, gx + gw / 2, by + q.top * k, by + (q.top + q.sh) * k, wS * fx); return; }
-      if (cell.ch === ' ') return;
+      if (cell.ch === ' ' || mt.empty) return;
       g.save(); if (table) { g.beginPath(); g.rect(cell.x, cell.row * ROW, cell.span, ROW); g.clip(); } g.translate(ox, by); g.scale(wS * fx, 1);
       const draw = (style, lw) => { if (lw) { g.lineWidth = lw; g.strokeStyle = style; g.strokeText(cell.ch, 0, 0); } g.fillStyle = style; g.fillText(cell.ch, 0, 0); };
       if (sh) { g.save(); g.translate(sh / (wS * fx), sh); draw(o.shadowColor || '#000000', ext * 2); g.restore(); }
@@ -547,7 +563,7 @@ async function kpfAddImage(file) {
   if (!S.glyphs.length) throw new Error('no encontré letras en la imagen. Usá una foto con las letras sobre un fondo liso, bien separadas entre sí.');
   if (S.glyphs.length > 160) throw new Error(`encontré ${S.glyphs.length} manchas en la imagen: parece una foto con mucho detalle. Recortala para que queden solo las letras sobre un fondo liso.`);
   const out = document.createElement('canvas'); out.width = w; out.height = h; out.getContext('2d').putImageData(new ImageData(S.rgba, w, h), 0, 0);
-  const ph = { scan: { ...S, rgba: null }, seq: KPF.photoSeq(S.glyphs.length) };
+  const ph = { scan: { ...S, rgba: null }, seq: KPF.photoSeq(S) };
   out.__ph = KPF.photoMap(ph.scan, ph.seq);
   Object.assign(kpfOpts(), { img: out, imgName: name, imgPh: ph, imgTint: true }); // de una foto se toma la forma: se pintan con el color del estilo
   return { game: false, n: S.glyphs.length, lines: S.lines };
@@ -898,7 +914,7 @@ function kpfDrawPreview(sh) {
 }
 // el panel de la imagen cargada: con una foto, cada letra encontrada con la letra que es (se puede corregir)
 function kpfImgHtml(O) {
-  const ph = O.imgPh, opts = `<label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>`;
+  const ph = O.imgPh, opts = `<label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label><label class="chk" title="Las letras con tilde, diéresis o cedilla salen sin la marca (á → a, Ñ → N) y las que la imagen no tiene (cirílico, griego…) quedan vacías: nada sale de otra fuente"><input type="checkbox" id="kpfImgPlain" ${O.imgPlain ? 'checked' : ''}> Sin caracteres especiales</label>`;
   if (!ph) return `<div class="kpfimg"><canvas id="kpfImgTh" width="220" height="56"></canvas><div><b>${esc(O.imgName)}</b><small class="note">A–Z y el punto salen de la imagen; lo demás, de ${esc(O.font)}.</small>
     ${opts}<button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>`;
   const S = ph.scan, used = ph.seq.filter(Boolean), dup = [...new Set(used.filter((c, i) => used.indexOf(c) !== i))], cap = Math.round(S.cap);
@@ -908,7 +924,7 @@ function kpfImgHtml(O) {
     <div class="f kpfphs"><label for="kpfPhSeq">Todas en orden</label><input type="text" id="kpfPhSeq" value="${esc(ph.seq.map(c => c || '·').join(''))}" spellcheck="false" autocomplete="off" title="Una letra por cada una de la foto, en orden (· para no usarla)"></div>
     ${dup.length ? `<small class="warn">${esc(dup.join(' '))}: ${dup.length === 1 ? 'está' : 'están'} dos veces; se usa la primera.</small>` : ''}
     ${cap < 48 ? `<small class="warn">Las letras de la foto son chicas (${cap} px de alto): en la camiseta pueden verse borrosas. Usá una foto más de cerca o más grande.</small>` : ''}
-    <small class="note">${used.length - dup.length} letras salen de la foto${hasLower ? '' : ' (las minúsculas, de las mayúsculas si está marcado abajo)'}; las demás, de ${esc(O.font)}.</small>
+    <small class="note">${used.length - dup.length} letras salen de la foto${hasLower ? '' : ' (las minúsculas, de las mayúsculas si está marcado abajo)'}${O.imgPlain ? `; las letras con tilde, sin la tilde; números y signos, de ${esc(O.font)}.` : `; las demás, de ${esc(O.font)}.`}</small>
     <div class="kpfphc">${opts}</div><div class="kpfup"><button class="btn small" type="button" id="kpfImg2">↻ Otra foto</button><button class="btn small ghost" type="button" id="kpfImgX">Quitar la foto</button></div></div>`;
 }
 const kpfTintImg = (c, fill) => { if (c.__th2 && c.__th2.k === fill) return c.__th2.c; const t = document.createElement('canvas'); t.width = c.width; t.height = c.height; const g = t.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = fill; g.fillRect(0, 0, t.width, t.height); c.__th2 = { k: fill, c: t }; return t; };
@@ -1092,7 +1108,7 @@ function kpfBind(sh, has) {
   on('kpfW', el => O.weight = +el.value); on('kpfIt', el => O.italic = el.checked); on('kpfWidth', el => O.width = el.value / 100); on('kpfSize', el => O.size = el.value / 100);
   on('kpfFill', el => O.fill = el.value); on('kpfGrad', el => { O.grad = el.checked; $k('kpfFill2').disabled = !el.checked; }); on('kpfFill2', el => O.fill2 = el.value);
   on('kpfSh', el => O.shadow = +el.value); on('kpfShC', el => O.shadowColor = el.value); on('kpfS1', el => O.stroke1 = +el.value); on('kpfC1', el => O.color1 = el.value); on('kpfS2', el => O.stroke2 = +el.value); on('kpfC2', el => O.color2 = el.value);
-  on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgTint', el => { O.imgTint = el.checked; const p = sh.querySelector('.kpfph'); if (p) p.classList.toggle('lt', !el.checked && !!(O.imgPh && O.imgPh.scan.dark)); }); on('kpfTplTint', el => O.tplTint = el.checked);
+  on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgPlain', el => O.imgPlain = el.checked); on('kpfImgTint', el => { O.imgTint = el.checked; const p = sh.querySelector('.kpfph'); if (p) p.classList.toggle('lt', !el.checked && !!(O.imgPh && O.imgPh.scan.dark)); }); on('kpfTplTint', el => O.tplTint = el.checked);
   $k('kpfFonts').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; O.font = b.dataset.font; $k('kpfFonts').querySelectorAll('[data-font]').forEach(x => x.setAttribute('aria-selected', x === b)); upd(); };
   $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); rr(); };
   const nm = $k('kpfName'); nm.oninput = () => { KPFS.sample = nm.value; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x.dataset.s === nm.value)); kpfDrawPreview(sh); };

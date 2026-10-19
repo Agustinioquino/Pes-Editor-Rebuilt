@@ -1040,7 +1040,7 @@ function rosterCard(t) {
           <div class="popmenu" id="rcols" hidden>${RCOLS.filter(([k]) => !RCOL_FIXED.has(k)).map(([k, n, tip]) => `<label class="chk"><input type="checkbox" data-col="${k}" ${hide.has(k) ? '' : 'checked'}> ${k === 'act' ? 'Acciones' : n === 'Val.' ? 'Valoración' : n === 'Nac.' ? 'Nacionalidad' : n === 'Pos.' ? 'Posición' : n === 'Cap.' ? 'Capitán' : n}</label>`).join('')}
             <button class="btn small ghost" type="button" id="rcolsReset">Volver a las de siempre</button></div></div>
         <div class="pop"><button class="btn small" type="button" id="rexpBtn" aria-expanded="false">Exportar</button>
-          <div class="popmenu" id="rexp" hidden><button class="btn small ghost" type="button" data-exp="csv">Descargar CSV (Excel)</button><button class="btn small ghost" type="button" data-exp="tsv">Copiar para pegar en una planilla</button><p class="note">Sale lo que se ve: filtros y columnas actuales.</p></div></div>
+          <div class="popmenu" id="rexp" hidden><button class="btn small ghost" type="button" data-exp="csv">Descargar CSV (Excel)</button><button class="btn small ghost" type="button" data-exp="tsv">Copiar para pegar en una planilla</button><p class="note">Sale lo que se ve: filtros y columnas actuales.</p><button class="btn small ghost" type="button" data-exp="p20">Jugadores para PES2020Editor</button><button class="btn small ghost" type="button" data-exp="t20">Equipo para PES2020Editor</button><p class="note">Con todas las columnas de PES2020Editor, para abrirlos ahí o compartirlos.</p></div></div>
       </div>
     </div>
     <div class="bulkbar" id="rbulk" hidden><b id="rbN">0</b> seleccionados
@@ -1119,6 +1119,51 @@ function rosterExport(t, kind) {
   a.download = 'Plantel ' + tget(t, 'name').replace(/[\\/:*?"<>|]/g, '') + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('CSV descargado: ' + rows.length + ' jugadores.');
 }
+// ---------- CSV con el formato de PES2020Editor (js/pes20csv.js) ----------
+// los jugadores del EDIT salen como están en el EDIT; los de la base del juego, desde la copia de Player.bin
+function p20Player(id) {
+  const p = S.ix.byId.get(id);
+  if (p) return { g: k => pget(p, k), x: { inEdit: true, look: [0, 1, 2, 3].some(i => S.d[p.base + 0xF0 + i]), rating: rating(p) } };
+  const o = DBRAW && DBRAW.off.get(id); if (o == null) return null;
+  const m = DB_TO_EDIT(), pp = Object.fromEntries(Object.entries(DB_POSFLAG).map(([role, bit]) => ['pos' + POS_TO_PP[role], bit]));
+  const str = { name: 0xFB, shirt: 0x81, shirt_nt: 0xBE };
+  const g = k => k in m ? dbBits(o, m[k][0], m[k][1]) + m[k][2] : k in pp ? dbBits(o, pp[k], 2) : k in str ? dbStr(o + str[k], 61)
+    : /^sk\d+$/.test(k) ? (DB_SKILL[k.slice(2)] != null ? dbBits(o, DB_SKILL[k.slice(2)], 1) : 0) : /^com\d$/.test(k) ? dbBits(o, DB_COM[+k[3]], 1)
+    : k === 'play_style' ? dbStyle(o) : k === 'id' || k === 'comm_id' ? id : k === 'height' ? DBRAW.b[o + 0x1B] + 100 : 0;
+  return { g, x: { inEdit: false, look: false, rating: Math.round(posFormula(g('reg_pos'), g)) } };
+}
+function p20Download(name, txt) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+  a.download = name.replace(/[\\/:*?"<>|]/g, ''); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+// devuelve cuántos salieron y cuántos se saltearon (jugadores de la base sin la copia de Player.bin conectada)
+function p20ExportPlayers(ids, name) {
+  const rows = []; let miss = 0;
+  for (const id of [...new Set(ids)].sort((a, b) => a - b)) { const q = p20Player(id); if (q) rows.push(Pes20Csv.playerRow(q.g, q.x)); else miss++; }
+  if (!rows.length) { toast('No hay datos de esos jugadores: conectá Player.bin para exportar los que no están en tu EDIT.', 5000); return; }
+  p20Download(name, Pes20Csv.file(Pes20Csv.PLAYER_HEAD, rows));
+  toast(`CSV para PES2020Editor: ${rows.length} jugador${rows.length === 1 ? '' : 'es'}${miss ? ` (faltan ${miss} de la base del juego: conectá Player.bin para sumarlos)` : ''}.`, miss ? 6000 : 3000);
+}
+function p20ExportRoster(t) { p20ExportPlayers(PD.roster(S.d, t).map(r => r.pid), 'Jugadores - ' + tget(t, 'name') + '.csv'); }
+function p20ExportTeams(ts, name) {
+  const u32 = o => (S.d[o] | S.d[o + 1] << 8 | S.d[o + 2] << 16 | S.d[o + 3] << 24) >>> 0;
+  const rows = ts.map(t => Pes20Csv.teamRow(k => tget(t, k), { national: isNat(t), kits: [...Array(10)].map((_, i) => u32(t.base + 0x30 + i * 4)) }));
+  p20Download(name, Pes20Csv.file(Pes20Csv.TEAM_HEAD, rows));
+  toast(`CSV para PES2020Editor: ${rows.length} equipo${rows.length === 1 ? '' : 's'}.`);
+}
+// todos los jugadores: los del EDIT, los de los planteles y, si Player.bin está conectado, toda la base
+function p20AllIds(withDb) {
+  const ids = new Set(S.ix.players.map(p => p.id)); for (const id of teamOf.keys()) ids.add(id);
+  if (withDb && DBRAW) for (const id of DBRAW.off.keys()) ids.add(id);
+  return [...ids].sort((a, b) => a - b);
+}
+function p20ExportTeamPlayers() {
+  const T = t => t && { id: t.id, name: tget(t, 'name') };
+  const rows = p20AllIds(true).map(id => { const ts = teamOf.get(id) || [], q = p20Player(id), n = q ? q.g('name') : (S.names.get(id) || {}).name || '';
+    return Pes20Csv.tpRow(id, n, T(ts.find(t => !isNat(t))), T(ts.find(isNat))); });
+  p20Download('Equipos-Jugadores - PES 2021 - Edit.csv', Pes20Csv.file(Pes20Csv.TP_HEAD, rows));
+  toast(`CSV para PES2020Editor: ${rows.length} jugadores con su equipo y selección.`);
+}
 function fillLazySelect(sel) {
   const k = sel.dataset.lazy, O = S._rOpts; if (!k || !O) return; delete sel.dataset.lazy;
   if (k === 't') sel.insertAdjacentHTML('beforeend', O.t);
@@ -1139,7 +1184,7 @@ function bindRosterTable(t, m) {
   if (!document.__popClose) { document.__popClose = true; document.addEventListener('click', e => { if (!e.target.closest('.pop')) document.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); }); document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.popmenu').forEach(x => { x.hidden = true; }); }); }
   $('rcols').onchange = e => { const c = e.target.dataset.col; if (!c) return; const h = rHide(); e.target.checked ? h.delete(c) : h.add(c); PREFS.rHide = [...h]; savePrefs(); tb.classList.toggle('h-' + c, !e.target.checked); };
   $('rcolsReset').onclick = () => { PREFS.rHide = ['h', 'nat', 'foot']; savePrefs(); renderTeams(m); };
-  $('rexp').onclick = e => { const b = e.target.closest('[data-exp]'); if (b) { $('rexp').hidden = true; rosterExport(t, b.dataset.exp); } };
+  $('rexp').onclick = e => { const b = e.target.closest('[data-exp]'); if (!b) return; $('rexp').hidden = true; const k = b.dataset.exp; if (k === 'p20') p20ExportRoster(t); else if (k === 't20') p20ExportTeams([t], tget(t, 'name') + '.csv'); else rosterExport(t, k); };
   const hs = k => { const sk = RSORT_KEY[k]; if (S.rosterSort === sk || (k === 'xi' && S.rosterSort === 'filial')) S.rosterDir = S.rosterDir === -1 ? 1 : -1; else { S.rosterSort = sk; S.rosterDir = 1; } flipRender(m, () => renderTeams(m)); };
   tb.querySelector('thead').onclick = e => { const h = e.target.closest('[data-hsort]'); if (h) hs(h.dataset.hsort); };
   tb.querySelector('thead').onkeydown = e => { const h = e.target.closest('[data-hsort]'); if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); hs(h.dataset.hsort); } };
@@ -1568,7 +1613,8 @@ function playerSheet(p) {
     <div class="row">${changed ? '<button class="btn small" id="pRevert" type="button">Volver al original de este jugador</button>' : ''}${canBackToDb(p.id) ? '<button class="btn small" id="pToDb" type="button" title="Lo saca de tu EDIT: el juego vuelve a usar el jugador de su base, con todo como venía">↩ Volver a la base del juego</button>' : ''}
       <select id="pCopy" style="width:auto;max-width:260px" aria-label="Copiar de otro jugador"><option value="">Copiar de otro jugador…</option>${S.ix.players.filter(x => x.id !== p.id).map(x => `<option value="${x.id}">${esc(pget(x, 'name') || x.id)}</option>`).join('')}</select>
       <select id="pCopyWhat" style="width:auto" aria-label="Qué copiar"><option value="abil">habilidades</option><option value="skills">especiales y estilos</option><option value="pos">posiciones</option><option value="look">apariencia</option><option value="motion">movimientos</option></select>
-      <button class="btn small" id="pCopyBtn" type="button">Copiar</button></div>
+      <button class="btn small" id="pCopyBtn" type="button">Copiar</button>
+      <button class="btn small ghost" id="pCsv20" type="button" title="Descarga este jugador en un CSV con el formato de PES2020Editor">⬇ CSV para PES2020Editor</button></div>
     <div class="subtabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${S.ptab === k}">${n}</button>`).join('')}</div>
   </div>
   ${S.ptab === 'face' ? (() => { const c = clubOf(p.id); return mnfCard(p.id, c ? kitFor(c, reg === 0) : null); })() : `<div class="card">${({ profile: tabProfile, pos: tabPos, abil: tabAbil, skills: tabSkills, look: tabLook, motion: tabMotion })[S.ptab](p)}</div>`}`;
@@ -2139,6 +2185,7 @@ function bindPlayer(p, m) {
   $('pLock').onchange = e => { setLock(p, e.target.checked); rer(); };
   const rv = $('pRevert'); if (rv) rv.onclick = () => { edit('Volver al original: ' + nm(), 'p' + p.id, regP(p), () => S.d.set(S.origData.subarray(p.base, p.base + 0x138), p.base)); toast('Jugador restaurado como estaba al abrir el archivo.', 4000, ['Deshacer', undo]); rer(); };
   const tdb = $('pToDb'); if (tdb) tdb.onclick = async () => { if (await confirmBox(`¿Volver a ${nm()} a la base del juego? Sale de tu EDIT y el juego usa el jugador como venía: se pierde lo que le cambiaste (media, habilidades, físico…). Se puede deshacer con Ctrl+Z.`)) { backToDb([p.id]); renderPlayers(m); } };
+  $('pCsv20').onclick = () => p20ExportPlayers([p.id], (pget(p, 'name') || 'Jugador ' + p.id) + '.csv');
   $('pCopyBtn').onclick = () => {
     const src = S.ix.byId.get(+$('pCopy').value); if (!src) { toast('Elegí de qué jugador copiar.'); return; }
     const what = $('pCopyWhat').value;
@@ -2256,6 +2303,11 @@ function renderFile(m) {
       <p class="note">Cada EDIT lleva el usuario de Windows de la PC donde se creó, y el juego rechaza los de otra PC. Para usar este archivo en otra computadora, poné el SID de esa PC (en esa PC: <code>cmd</code> → <code>whoami /user</code>) y descargá una copia. No lo guardes sobre el de esta PC.</p>
       <div class="row"><input type="text" id="fSid" value="${esc(i.sid)}" spellcheck="false" style="font-family:var(--mono);max-width:460px" aria-label="SID"><button class="btn" id="fSidBtn" type="button">Aplicar SID</button></div>
     </div>
+    <div class="card"><h3>Exportar para PES2020Editor</h3>
+      <p class="note">CSV con las mismas columnas que PES2020Editor, para abrirlos ahí o compartir tus ediciones. Los jugadores que no están en tu EDIT salen de la base del juego (hace falta conectar Player.bin).</p>
+      <div class="row"><button class="btn small" type="button" id="p20Edit">Jugadores de mi EDIT</button><button class="btn small" type="button" id="p20All" ${DBRAW ? '' : 'disabled title="Conectá Player.bin para sumar la base del juego"'}>Todos los jugadores (base del juego + EDIT)</button>
+      <button class="btn small" type="button" id="p20Teams">Equipos</button><button class="btn small" type="button" id="p20Tp">Equipos-Jugadores</button></div>
+      <p class="note">En Equipos, el césped, la red del arco, el patrocinio y las licencias todavía salen con los valores por defecto de PES2020Editor.</p></div>
     ${compareCardHtml()}
     ${S.dir ? `<div class="card"><h3>Respaldos en esta carpeta</h3><div id="baks" class="note">Buscando…</div></div>` : ''}
   <div class="card"><h3>Carpeta del juego</h3>
@@ -2266,6 +2318,10 @@ function renderFile(m) {
   ${helpCard('file')}
   </div>`;
   bindCompare();
+  $('p20Edit').onclick = () => p20ExportPlayers(S.ix.players.map(p => p.id), 'Jugadores.csv');
+  $('p20All').onclick = () => p20ExportPlayers(p20AllIds(true), 'Jugadores.csv');
+  $('p20Teams').onclick = () => p20ExportTeams(S.ix.teams, 'Equipos - PES 2021 - Edit.csv');
+  $('p20Tp').onclick = p20ExportTeamPlayers;
   m.querySelectorAll('[data-pesedit]').forEach(b => b.onclick = () => pesSwitch(+b.dataset.pesedit));
   { const a = $('pesAgain'); if (a) a.onclick = () => pesStart(); const o = $('pesOther'); if (o) o.onclick = () => { introShow(); pesPick(); }; }
   $('fDesc').onchange = e => { edit('Nombre del archivo', 'desc', [], () => PesCrypt.setDescription(S.f, e.target.value)); };

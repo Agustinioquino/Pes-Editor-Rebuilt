@@ -141,12 +141,160 @@ const KPF = (() => {
   // color de relleno para pintar las letras: una capa de relleno visible recortada sobre las letras
   const tplFill = P => { const f = P.layers.find(l => l.visible && l.kind === 'fill' && l.clipping && l.fill && !tplSkip(l.name)); return f ? '#' + f.fill.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('') : null; };
 
+  // ---- letras de una foto (sin DOM, se prueba en Node) ----
+  // Una foto o imagen con las letras escritas en una o varias filas (fondo liso, de cualquier color, con sombras de luz):
+  // se separa el fondo, se encuentra cada letra (sus pedazos: punto de la i, tildes) y se ordena por filas, de izquierda a
+  // derecha. Cada fila tiene su línea de base (recta, aunque la foto esté un poco torcida) y su alto de mayúscula.
+  // px: RGBA, w×h. Devuelve { rgba: las letras sin el fondo, glyphs: [{ x0, y0, x1, y1, line, top, cap }], lines, cap, dark }
+  function photoScan(px, w, h) {
+    const n = w * h, lum = new Float32Array(n);
+    for (let i = 0; i < n; i++) lum[i] = .299 * px[i * 4] + .587 * px[i * 4 + 1] + .114 * px[i * 4 + 2];
+    let clear = 0; for (let i = 0; i < n; i++) if (px[i * 4 + 3] < 128) clear++;
+    const med = a => { const s = Float64Array.from(a).sort(); return s.length ? s[s.length >> 1] : 0; };
+    const ink = new Float32Array(n); // qué tan "letra" es cada píxel (0–255)
+    let bg = [0, 0, 0], dark = false;
+    if (clear > n * .02) { for (let i = 0; i < n; i++) ink[i] = px[i * 4 + 3]; } // con transparencia: lo que se ve es la letra
+    else {
+      // fondo: el color del borde de la imagen
+      const bw = Math.max(2, Math.round(Math.min(w, h) * .02)), br = [[], [], []];
+      for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) if (x < bw || y < bw || x >= w - bw || y >= h - bw) for (let c = 0; c < 3; c++) br[c].push(px[(y * w + x) * 4 + c]);
+      bg = br.map(med); const bgL = .299 * bg[0] + .587 * bg[1] + .114 * bg[2];
+      // ¿letras oscuras sobre fondo claro o al revés? lo decide la mayoría de lo que se aparta del fondo
+      let lo = 0, hi = 0; for (let i = 0; i < n; i += 3) { const d = lum[i] - bgL; if (d < -40) lo++; else if (d > 40) hi++; }
+      dark = lo >= hi;
+      // luz despareja de una foto: el brillo del fondo por bloques (el más claro, o el más oscuro, de cada bloque), suavizado
+      const B = Math.max(16, Math.round(Math.min(w, h) / 12)), bx = Math.ceil(w / B), by = Math.ceil(h / B), blk = new Float32Array(bx * by);
+      for (let j = 0; j < by; j++) for (let i = 0; i < bx; i++) { const v = [];
+        for (let y = j * B; y < Math.min(h, (j + 1) * B); y += 2) for (let x = i * B; x < Math.min(w, (i + 1) * B); x += 2) v.push(lum[y * w + x]);
+        v.sort((a, b) => a - b); blk[j * bx + i] = v[Math.min(v.length - 1, Math.floor(v.length * (dark ? .9 : .1)))]; }
+      const sm = new Float32Array(bx * by); // mediana 3×3: los bloques tapados por una letra toman el valor de sus vecinos
+      for (let j = 0; j < by; j++) for (let i = 0; i < bx; i++) { const v = []; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a >= 0 && b >= 0 && a < bx && b < by) v.push(blk[b * bx + a]); } sm[j * bx + i] = med(v); }
+      const at = (x, y) => { const fx = Math.max(0, Math.min(bx - 1, x / B - .5)), fy = Math.max(0, Math.min(by - 1, y / B - .5)), i0 = Math.floor(fx), j0 = Math.floor(fy), i1 = Math.min(bx - 1, i0 + 1), j1 = Math.min(by - 1, j0 + 1), u = fx - i0, v = fy - j0;
+        return (sm[j0 * bx + i0] * (1 - u) + sm[j0 * bx + i1] * u) * (1 - v) + (sm[j1 * bx + i0] * (1 - u) + sm[j1 * bx + i1] * u) * v; };
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x, f = bgL > 8 ? at(x, y) / bgL : 1;
+        const dr = px[i * 4] - bg[0] * f, dg = px[i * 4 + 1] - bg[1] * f, db = px[i * 4 + 2] - bg[2] * f; ink[i] = Math.min(255, Math.sqrt(dr * dr + dg * dg + db * db) / 1.2); }
+    }
+    // umbral de Otsu sobre lo que se aparta del fondo
+    const hist = new Float64Array(256); for (let i = 0; i < n; i++) hist[ink[i] | 0]++;
+    let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+    let wB = 0, sB = 0, best = -1, thr = 128; for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += t * hist[t]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2; if (v > best) { best = v; thr = t; } }
+    thr = Math.max(clear > n * .02 ? 100 : 28, thr);
+    const on = new Uint8Array(n); for (let i = 0; i < n; i++) on[i] = ink[i] > thr ? 1 : 0;
+    // manchas conectadas (8 vecinos)
+    const lab = new Int32Array(n).fill(-1), comps = [], st = new Int32Array(n);
+    for (let s = 0; s < n; s++) { if (!on[s] || lab[s] >= 0) continue; const id = comps.length; let sp = 0, x0 = w, y0 = h, x1 = -1, y1 = -1, area = 0; st[sp++] = s; lab[s] = id;
+      while (sp) { const p = st[--sp], x = p % w, y = (p - x) / w; area++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        for (let dy = -1; dy <= 1; dy++) { const yy = y + dy; if (yy < 0 || yy >= h) continue; for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; if (xx < 0 || xx >= w) continue; const q = yy * w + xx; if (on[q] && lab[q] < 0) { lab[q] = id; st[sp++] = q; } } } }
+      comps.push({ id, x0, y0, x1, y1, area }); }
+    // fuera: ruido, marcos y bordes de la foto (manchas enormes)
+    let cs = comps.filter(c => c.area >= 8 && (c.x1 - c.x0) < w * .6 && (c.y1 - c.y0) < h * .7);
+    const hOf = c => c.y1 - c.y0 + 1, wOf = c => c.x1 - c.x0 + 1, cyOf = c => (c.y0 + c.y1) / 2, cxOf = c => (c.x0 + c.x1) / 2;
+    const big = cs.slice().sort((a, b) => b.area - a.area).slice(0, Math.max(1, Math.ceil(cs.length / 2))), medH = med(big.map(hOf)) || 1;
+    cs = cs.filter(c => c.area >= Math.max(8, medH * medH * .003));
+    const main = cs.filter(c => hOf(c) >= medH * .45).sort((a, b) => cyOf(a) - cyOf(b)), small = cs.filter(c => hOf(c) < medH * .45);
+    // filas: los centros ordenados de arriba abajo; un salto grande empieza otra fila
+    const rows = []; for (const c of main) { const r = rows[rows.length - 1]; if (r && cyOf(c) - r.lastCy <= medH * .5) { r.cs.push(c); r.lastCy = cyOf(c); } else rows.push({ cs: [c], lastCy: cyOf(c) }); }
+    const lines = rows.map(r => {
+      const cs = r.cs, bot = med(cs.map(c => c.y1)), ok = cs.filter(c => Math.abs(c.y1 - bot) <= medH * .15);
+      let a = bot, b = 0; // base = a + b·x (recta por el pie de las letras que no bajan)
+      if (ok.length >= 3) { const mx = ok.reduce((s, c) => s + cxOf(c), 0) / ok.length, my = ok.reduce((s, c) => s + c.y1, 0) / ok.length; let sxy = 0, sxx = 0; for (const c of ok) { sxy += (cxOf(c) - mx) * (c.y1 - my); sxx += (cxOf(c) - mx) ** 2; } b = sxx ? sxy / sxx : 0; if (Math.abs(b) > .15) b = 0; a = my - b * mx; }
+      const base = x => a + b * x, hs = cs.map(c => base(cxOf(c)) - c.y0).sort((p, q) => p - q), p90 = hs[Math.min(hs.length - 1, Math.floor(hs.length * .9))];
+      return { cs: cs.slice(), base, cap: med(hs.filter(v => v >= p90 * .82)) || p90 || medH };
+    });
+    // una fila solo de minúsculas sin letras altas (n…z) mide el alto de la x, no el de la mayúscula: si es parecida a la
+    // más alta (entre 60 y 90 %), se toma como el mismo tamaño de letra
+    const capMax = Math.max(...lines.map(L => L.cap)); for (const L of lines) if (L.cap >= capMax * .6 && L.cap < capMax * .9) L.cap = capMax;
+    // pedazos chicos (punto, tilde, guion, coma, apóstrofo) a la fila más cercana
+    for (const c of small) { let bestL = null, bd = Infinity;
+      for (const L of lines) { const bl = L.base(cxOf(c)), top = bl - L.cap * 1.45, y = cyOf(c), d = y < top ? top - y : y > bl + L.cap * .45 ? y - bl - L.cap * .45 : 0; if (d < bd) { bd = d; bestL = L; } }
+      if (bestL && bd <= bestL.cap * .3) bestL.cs.push(c); }
+    // en cada fila, los pedazos que se pisan a lo ancho son una misma letra (i, j, Ñ, Ä, letras cortadas en la foto)
+    // pedazos de una letra que quedan fuera de la parte más grande (el punto de la i, una tilde); el punto dentro de un 0 no cuenta
+    const partsOf = ids => { const big = ids.map(i => comps[i]).sort((p, q) => q.area - p.area)[0]; return 1 + ids.filter(i => { const c = comps[i]; if (c === big) return false; const cx = (c.x0 + c.x1) / 2, cy = (c.y0 + c.y1) / 2; return cx < big.x0 || cx > big.x1 || cy < big.y0 || cy > big.y1; }).length; };
+    const glyphs = []; lines.sort((p, q) => p.base(w / 2) - q.base(w / 2)).forEach((L, li) => {
+      const gs = []; for (const c of L.cs.sort((p, q) => p.x0 - q.x0)) {
+        const g = gs.find(g => Math.min(g.x1, c.x1) - Math.max(g.x0, c.x0) + 1 >= Math.min(wOf(c), g.x1 - g.x0 + 1) * .5);
+        if (g) { g.x0 = Math.min(g.x0, c.x0); g.x1 = Math.max(g.x1, c.x1); g.y0 = Math.min(g.y0, c.y0); g.y1 = Math.max(g.y1, c.y1); g.ids.push(c.id); }
+        else gs.push({ x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1, ids: [c.id] }); }
+      gs.sort((p, q) => p.x0 - q.x0); for (const g of gs) glyphs.push({ ...g, line: li, top: g.y0 - L.base((g.x0 + g.x1) / 2), cap: L.cap, parts: partsOf(g.ids) });
+    });
+    // las letras sin el fondo: alfa suave en los bordes y el color sin la mezcla con el fondo
+    const keep = new Uint8Array(comps.length); for (const g of glyphs) for (const id of g.ids) keep[id] = 1;
+    const rgba = new Uint8ClampedArray(n * 4), lo = thr * .55, hi = Math.min(255, thr * 1.4), R = 2;
+    const near = new Uint8Array(n); // alrededor de cada letra que quedó (para el borde suave)
+    for (let i = 0; i < n; i++) if (lab[i] >= 0 && keep[lab[i]]) { const x = i % w, y = (i - x) / w; for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < w && yy < h) near[yy * w + xx] = 1; } }
+    for (let i = 0; i < n; i++) { if (!near[i]) continue; const a = clear > n * .02 ? px[i * 4 + 3] / 255 : Math.max(0, Math.min(1, (ink[i] - lo) / Math.max(1, hi - lo))); if (!a) continue;
+      for (let c = 0; c < 3; c++) rgba[i * 4 + c] = clear > n * .02 ? px[i * 4 + c] : (px[i * 4 + c] - bg[c] * (1 - a)) / a;
+      rgba[i * 4 + 3] = a * 255; }
+    return { w, h, rgba, glyphs: glyphs.map(({ ids, ...g }) => g), lines: lines.length, cap: med(lines.map(L => L.cap)), dark, thr };
+  }
+  // qué letra es cada una. Con el resultado de photoScan se mira cada fila: una fila de minúsculas tiene letras más bajas que
+  // la mayúscula (a, c, e, m…); el alfabeto sigue de una fila a la otra (A–M y N–Z) y una mancha chica es el punto.
+  // Con un número, solo según cuántas hay: A–Z, A–Z y el punto, A–Z a–z, con números…
+  const PH_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', PH_a = 'abcdefghijklmnopqrstuvwxyz', PH_0 = '0123456789';
+  function photoSeq(scan) {
+    if (typeof scan !== 'number') {
+      const gs = scan.glyphs, small = g => -g.top < g.cap * .35 && g.y1 - g.y0 + 1 < g.cap * .35, lines = [...new Set(gs.map(g => g.line))];
+      let up = 0, lo = 0, dg = 0; const out = [];
+      for (const li of lines) {
+        const row = gs.filter(g => g.line === li), big = row.filter(g => !small(g)), lower = big.length > 2 && big.filter(g => -g.top < g.cap * .85).length >= big.length * .25;
+        for (const g of row) out.push(small(g) ? '.' : lower ? (PH_a[lo++] || '') : up < 26 ? PH_A[up++] : (PH_0[dg++] || ''));
+      }
+      return out;
+    }
+    const n = scan;
+    for (const s of [PH_A, PH_A + '.', PH_A + PH_a, PH_A + PH_a + '.', PH_A + PH_0, PH_A + '.' + PH_0, PH_A + PH_a + PH_0, PH_a, PH_0, PH_A + 'Ñ', PH_A + 'Ñ' + PH_a + 'ñ']) if (s.length === n) return [...s];
+    const all = [...(PH_A + PH_a + PH_0)]; return Array.from({ length: n }, (_, i) => all[i] || '');
+  }
+  // ---- qué letra es cada una por su forma (cualquier orden) ----
+  // Cada letra se reduce a una grilla de 16×16 estirada a su caja (así una fuente angosta y una ancha se parecen) más su
+  // proporción y dónde queda respecto de la línea de base (minúscula, mayúscula, cola, tilde). Se compara con las mismas
+  // letras dibujadas con varias tipografías (refs, las arma el navegador) y cada letra de la foto se queda con la más parecida.
+  const GN = 16;
+  // a: alfa (0–255) de una imagen de ancho W; (x0, y0)–(x1, y1) la caja de la letra; base: y de la línea de base; cap: alto de mayúscula
+  function glyphFeat(a, W, x0, y0, x1, y1, base, cap) {
+    const w = x1 - x0 + 1, h = y1 - y0 + 1, raw = new Float32Array(GN * GN), cnt = new Float32Array(GN * GN);
+    for (let y = y0; y <= y1; y++) { const gy = Math.min(GN - 1, Math.floor((y - y0) * GN / h)); for (let x = x0; x <= x1; x++) { const gx = Math.min(GN - 1, Math.floor((x - x0) * GN / w)), k = gy * GN + gx; raw[k] += a[y * W + x] / 255; cnt[k]++; } }
+    for (let k = 0; k < raw.length; k++) raw[k] = cnt[k] ? raw[k] / cnt[k] : 0;
+    const v = new Float32Array(GN * GN); // suavizado 3×3: tolera bordes distintos entre tipografías
+    for (let y = 0; y < GN; y++) for (let x = 0; x < GN; x++) { let s = 0, n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && xx >= 0 && yy < GN && xx < GN) { const wt = dx || dy ? 1 : 2; s += raw[yy * GN + xx] * wt; n += wt; } } v[y * GN + x] = s / n; }
+    let ink = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) ink += a[y * W + x] / 255;
+    return { v, asp: w / h, top: (base - y0) / cap, bot: (y1 - base) / cap, fill: ink / (w * h), parts: 1 };
+  }
+  const MULTI = /^[ijÁÉÍÓÚÑÜáéíóúñü!?:;"%=]$/;
+  function featDist(p, q) {
+    let s = 0; for (let k = 0; k < p.v.length; k++) { const d = p.v[k] - q.v[k]; s += d * d; } s /= p.v.length;
+    return s + .06 * Math.abs(Math.log(p.asp / q.asp)) + .25 * Math.abs(p.top - q.top) + .25 * Math.abs(p.bot - q.bot) + .3 * Math.abs(p.fill - q.fill);
+  }
+  // feats: las de la foto; refs: [{ ch, f }]; hint: lo que diría el orden (photoSeq), que gana si su forma está casi igual de cerca.
+  // Cada letra se usa una sola vez: se reparten de la más segura a la menos segura.
+  function photoGuess(feats, refs, hint = []) {
+    const chars = [...new Set(refs.map(r => r.ch))], best = feats.map(f => { const m = new Map(); for (const r of refs) { const d = featDist(f, r.f) + ((f.parts || 1) > 1 !== MULTI.test(r.ch) ? .12 : 0); if (!m.has(r.ch) || d < m.get(r.ch)) m.set(r.ch, d); } return m; });
+    // si el orden de siempre (A–Z, a–z…) coincide con la forma en casi todas, la hoja está en orden: se usa tal cual
+    if (hint.length === feats.length) { let same = 0; best.forEach((m, i) => { const top = Math.min(...m.values()); if (hint[i] && m.has(hint[i]) && m.get(hint[i]) <= top * 1.6 + .01) same++; }); if (same >= feats.length * .7) return { seq: hint.slice(), dist: [], doubt: [], ordered: true }; }
+    const pairs = []; best.forEach((m, i) => { const top = Math.min(...m.values()); for (const ch of chars) { let d = m.get(ch); if (ch === hint[i] && d <= top * 1.25 + .004) d = Math.min(d, top) - 1e-6; pairs.push([d, i, ch]); } });
+    pairs.sort((p, q) => p[0] - q[0]);
+    const out = feats.map(() => ''), used = new Set(), sure = feats.map(() => 0); let left = feats.length;
+    for (const [d, i, ch] of pairs) { if (!left) break; if (out[i] || used.has(ch)) continue; out[i] = ch; used.add(ch); sure[i] = d; left--; }
+    // para revisar: la que no se quedó con su forma más parecida, o cuya segunda opción está casi igual de cerca
+    // también las que se disputaron la misma letra (las dos se parecían más a ella que a cualquier otra)
+    const first = best.map(m => [...m].sort((p, q) => p[1] - q[1])[0][0]), clash = new Set(first.filter((c, i) => first.indexOf(c) !== i));
+    const doubt = best.map((m, i) => { const v = [...m.values()].sort((p, q) => p - q); return !out[i] || m.get(out[i]) > v[0] + 1e-9 || v[1] - v[0] < .015 || clash.has(first[i]); });
+    return { seq: out, dist: sure, doubt };
+  }
+  // letra → recorte de la foto ({ sx, sy, sw, sh, top, cap }, igual que imgGlyphs); seq: la letra de cada una ('' = no se usa)
+  function photoMap(scan, seq) {
+    const m = new Map(); scan.glyphs.forEach((g, i) => { const ch = seq[i]; if (!ch || m.has(ch)) return; m.set(ch, { sx: g.x0, sy: g.y0, sw: g.x1 - g.x0 + 1, sh: g.y1 - g.y0 + 1, top: g.top, cap: g.cap }); });
+    return m;
+  }
+
   // ---- dibujo (solo en el navegador) ----
   const famCss = f => `"${String(f).replace(/["\\]/g, '')}", sans-serif`;
   const fontCss = (o, px) => `${o.italic ? 'italic ' : ''}${o.weight || 700} ${px}px ${famCss(o.font)}`;
   const UPPER_IMG = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.';
   // letras de una textura con el formato del juego (A–Z y punto): se recortan con las casillas de KFONT
   function imgGlyphs(img) {
+    if (img && img.__ph) return img.__ph; // letras de una foto (photoMap)
     if (!img || typeof KFONT === 'undefined') return null;
     const H = KFONT.glyph(img, 'name', 'H'), T = KFONT.glyph(img, 'name', 'T'); if (!H || !T) return null;
     const c1 = KFONT.cell('name', 'H', img.width, img.height), c2 = KFONT.cell('name', 'T', img.width, img.height);
@@ -167,11 +315,26 @@ const KPF = (() => {
     const mc = document.createElement('canvas').getContext('2d'), wS = o.width || 1, capPx = ((T && T.cap) || CAP) * (o.size || 1);
     mc.font = fontCss(o, 100); const capRef = mc.measureText('H').actualBoundingBoxAscent || 70, fs = 100 * capPx / capRef; mc.font = fontCss(o, fs);
     const ext = (+o.stroke1 || 0) + (+o.stroke2 || 0), sh = +o.shadow || 0, IG = o.img ? imgGlyphs(o.img) : null, src = IG ? tinted(o.img, o.imgTint, o.fill) : null;
+    // la i y la j de la imagen sin su punto (para í, ï, ĵ…): se corta desde la primera fila vacía debajo del punto
+    function dotless(q) {
+      if (q.__dl) return q.__dl; const a = o.img.getContext('2d', { willReadFrequently: true }).getImageData(q.sx, q.sy, q.sw, q.sh).data, ink = y => { for (let x = 0; x < q.sw; x++) if (a[(y * q.sw + x) * 4 + 3] > 40) return true; return false; };
+      let y = 0; while (y < q.sh && !ink(y)) y++; while (y < q.sh && ink(y)) y++; const gap = y; while (y < q.sh && !ink(y)) y++;
+      return q.__dl = y < q.sh && gap < q.sh * .4 ? { ...q, sy: q.sy + y, sh: q.sh - y, top: q.top + y } : q;
+    }
+    const PLAIN = { Ø: 'O', ø: 'o', Ł: 'L', ł: 'l', Đ: 'D', đ: 'd', Ð: 'D', ð: 'd', Ħ: 'H', ħ: 'h', ı: 'i' }; // letras con barra: sin caracteres especiales, la letra sola
     const metrics = list.map(ch => {
       const up = ch.toUpperCase(), tq = T && (T.g.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && T.g.get(up)));
       if (tq) { const k = (o.size || 1) * (T.g.has(ch) ? 1 : .76), bear = capPx * .05, iw = tq.x1 - tq.x0; return { ch, left: 0, right: iw * k * wS + bear * 2, tpl: { q: tq, k, bear } }; }
       const q = IG && (IG.get(ch) || (o.imgSmall && ch !== up && up.length === 1 && IG.get(up)));
       if (q) { const k = capPx / q.cap * (IG.has(ch) ? 1 : .76), bear = capPx * .05, adv = q.sw * k * wS + bear * 2; return { ch, left: 0, right: adv, img: { q, k, bear } }; }
+      // letra con tilde, diéresis, cedilla… que la imagen no tiene: la letra de la imagen y la marca de la fuente (á = a + ´)
+      const dc = IG && ch.normalize('NFD'), base = dc && dc.length > 1 && /^\p{M}+$/u.test(dc.slice(1)) ? dc[0] : IG && o.imgPlain ? PLAIN[ch] || null : null, bu = base && base.toUpperCase();
+      const used = base && (IG.get(base) ? base : o.imgSmall && bu !== base && IG.get(bu) ? bu : null);
+      // sin caracteres especiales: la letra de la imagen sin la marca (á → a, Ñ → N) y lo que no tiene (cirílico, griego, ß…) queda vacío
+      if (o.imgPlain && used) { const qb = IG.get(used), k = capPx / qb.cap * (used === base ? 1 : .76), bear = capPx * .05; return { ch, left: 0, right: qb.sw * k * wS + bear * 2, img: { q: qb, k, bear } }; }
+      if (o.imgPlain && !/^[0-9 .\-'_]$/.test(ch)) return { ch, left: 0, right: capPx * .3, empty: true };
+      if (used) { const qb = /^[ij]$/.test(used) ? dotless(IG.get(used)) : IG.get(used), k = capPx / qb.cap * (used === base ? 1 : .76), bear = capPx * .05, adv = qb.sw * k * wS + bear * 2;
+        return { ch, left: 0, right: adv, img: { q: qb, k, bear, mark: used === 'i' ? 'ı' : used === 'j' ? 'ȷ' : used } }; }
       const m = mc.measureText(ch), adv = m.width * wS;
       if (ch === ' ') return { ch, left: 0, right: adv };
       const bl = (m.actualBoundingBoxLeft || 0) * wS, br = (m.actualBoundingBoxRight || adv) * wS;
@@ -191,8 +354,9 @@ const KPF = (() => {
       const ox = cell.x + 2 + pad - mt.left * fx, by = cell.row * ROW + BASE + (+o.lift || 0);
       if (mt.tpl) { const { q, k, bear } = mt.tpl, iw = q.x1 - q.x0; g.save(); g.beginPath(); g.rect(cell.x, cell.row * ROW, cell.span, ROW); g.clip();
         g.drawImage(tsrc, q.col * ROW + q.x0, q.row * ROW, iw, ROW, ox + bear * fx, by - BASE * k, iw * k * wS * fx, ROW * k); g.restore(); return; }
-      if (mt.img) { const { q, k, bear } = mt.img; g.drawImage(src, q.sx, q.sy, q.sw, q.sh, ox + bear * fx, by + q.top * k, q.sw * k * wS * fx, q.sh * k); return; }
-      if (cell.ch === ' ') return;
+      if (mt.img) { const { q, k, bear, mark } = mt.img, gx = ox + bear * fx, gw = q.sw * k * wS * fx; g.drawImage(src, q.sx, q.sy, q.sw, q.sh, gx, by + q.top * k, gw, q.sh * k);
+        if (mark) markDraw(g, cell.ch, mark, gx + gw / 2, by + q.top * k, by + (q.top + q.sh) * k, wS * fx); return; }
+      if (cell.ch === ' ' || mt.empty) return;
       g.save(); if (table) { g.beginPath(); g.rect(cell.x, cell.row * ROW, cell.span, ROW); g.clip(); } g.translate(ox, by); g.scale(wS * fx, 1);
       const draw = (style, lw) => { if (lw) { g.lineWidth = lw; g.strokeStyle = style; g.strokeText(cell.ch, 0, 0); } g.fillStyle = style; g.fillText(cell.ch, 0, 0); };
       if (sh) { g.save(); g.translate(sh / (wS * fx), sh); draw(o.shadowColor || '#000000', ext * 2); g.restore(); }
@@ -201,6 +365,15 @@ const KPF = (() => {
       g.fillStyle = fill(); g.fillText(cell.ch, 0, 0);
       g.restore();
     });
+    // la marca (tilde, diéresis, cedilla…) de ch dibujada con la fuente, sobre o bajo la letra de la imagen: (cx, top, bot) es
+    // el centro, el borde de arriba y el de abajo de esa letra; se respeta la distancia entre la marca y la letra de la fuente
+    function markDraw(g, ch, base, cx, top, bot, sx) {
+      const t = document.createElement('canvas'), Z = ROW * 2; t.width = Z; t.height = Z; const tg = t.getContext('2d'); tg.font = fontCss(o, fs); tg.textBaseline = 'alphabetic'; tg.fillStyle = o.fill || '#ffffff';
+      const mb = tg.measureText(base), bx = Z / 2 - (mb.actualBoundingBoxRight - mb.actualBoundingBoxLeft) / 2 + mb.actualBoundingBoxLeft, bl = Z * .62; tg.fillText(ch, bx, bl);
+      const fTop = bl - mb.actualBoundingBoxAscent, fBot = bl + mb.actualBoundingBoxDescent;
+      const part = (y0, y1, dy) => { if (y1 - y0 < 1) return; g.save(); g.translate(cx, 0); g.scale(sx, 1); g.drawImage(t, 0, y0, Z, y1 - y0, -Z / 2, y0 + dy, Z, y1 - y0); g.restore(); };
+      part(0, Math.floor(fTop - 1), top - fTop); part(Math.ceil(fBot + 1), Z, bot - fBot);
+    }
     // donde no hay letra el color es el del relleno (si no, al achicarse la textura los bordes se oscurecen)
     const im = g.getImageData(0, 0, L.W, L.H), d = im.data, fc = (o.fill || '#ffffff').match(/[0-9a-f]{2}/gi).map(h => parseInt(h, 16));
     for (let i = 0; i < d.length; i += 4) if (!d[i + 3]) { d[i] = fc[0]; d[i + 1] = fc[1]; d[i + 2] = fc[2]; }
@@ -352,7 +525,7 @@ const KPF = (() => {
     if (x.stale) add('info', 'stale');
     return out;
   }
-  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, fromTable, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides,
+  return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, fromTable, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, photoScan, photoSeq, photoMap, glyphFeat, featDist, photoGuess, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides,
     kitTable, sameTable, texSize, texKind, inkDxt5, inkRgba, layoutGuess, logDiag, diagnose };
 })();
 
@@ -388,6 +561,13 @@ function kpfGameCanvas(o) {
     for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.') { const q = T.g.get(ch); if (!q) continue; const [x, y, w, h] = KFONT.cell('name', ch, c.width, c.height), iw = q.x1 - q.x0;
       const k = h * .84 / cap, dw = Math.min(iw * k * (o.width || 1), w * .92), dh = KPF.ROW * k, cy = y + h / 2 - (KPF.BASE - cap / 2) * k; // misma línea de base para todas
       g.clearRect(x, y, w, h); g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); g.drawImage(src, q.col * KPF.ROW + q.x0, q.row * KPF.ROW, iw, KPF.ROW, x + (w - dw) / 2, cy, dw, dh); g.restore(); } }
+  // letras de una foto (o de otra textura del juego): misma altura de mayúscula y misma línea de base en todas las casillas
+  const IG = !T && o.img ? KPF.imgGlyphs(o.img) : null;
+  if (IG) { const src = o.imgTint ? kpfTintImg(o.img, o.fill) : o.img;
+    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.') { const q = IG.get(ch); if (!q) continue; const [x, y, w, h] = KFONT.cell('name', ch, c.width, c.height);
+      const k = Math.min(h * .84 / q.cap, h * .97 / q.sh), dw = Math.min(q.sw * k * (o.width || 1), w * .92), base = y + h / 2 + h * .84 / 2; // la J o la Q largas, un poco más chicas
+      g.clearRect(x, y, w, h); g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); const up = Math.min(0, y + h * .99 - (base + (q.top + q.sh) * k)); // y si bajan de la base, suben lo justo para entrar en la casilla
+      g.drawImage(src, q.sx, q.sy, q.sw, q.sh, x + (w - dw) / 2, base + q.top * k + up, dw, q.sh * k); g.restore(); } }
   // donde no hay letra, el color del relleno (si no, al achicarse la textura los bordes se oscurecen)
   const im = g.getImageData(0, 0, c.width, c.height), d = im.data, fc = (o.fill || '#ffffff').match(/[0-9a-f]{2}/gi).map(h => parseInt(h, 16));
   for (let i = 0; i < d.length; i += 4) if (!d[i + 3]) { d[i] = fc[0]; d[i + 1] = fc[1]; d[i + 2] = fc[2]; }
@@ -407,12 +587,80 @@ async function kpfAddFont(file) {
   try { const all = ((await idbGet('kpfFonts')) || []).filter(x => x.name !== name); all.unshift({ name, buf }); await idbSet('kpfFonts', all.slice(0, 12)); } catch { }
   kpfOpts().font = name; return name;
 }
+// letras de una imagen: la textura del nombre de un kit (formato del juego, A–Z y el punto en sus casillas) o cualquier foto
+// o imagen con las letras escritas en filas (las encuentra KPF.photoScan; después se puede corregir qué letra es cada una)
 async function kpfAddImage(file) {
-  const n = file.name.toLowerCase(), buf = await file.arrayBuffer();
-  const img = n.endsWith('.ftex') ? await ftexDecode(buf, 4096) : n.endsWith('.dds') ? DDS.decode(buf) : await FTEXW.rawFromImage(new Blob([buf]));
-  const c = imgToCanvas(img); if (!KPF.imgGlyphs(c)) throw new Error('no encontré las letras A–Z con el formato del juego (dos filas: A a N y O a Z con el punto).');
-  Object.assign(kpfOpts(), { img: c, imgName: file.name.replace(/\.[^.]+$/, '') });
+  const n = file.name.toLowerCase(), buf = await file.arrayBuffer(), name = file.name.replace(/\.[^.]+$/, '');
+  const c = await kpfDecode(n, buf, file.type);
+  if (kpfGameTex(c)) { Object.assign(kpfOpts(), { img: c, imgName: name, imgPh: null }); return { game: true }; }
+  // foto: a lo sumo 2048 px de lado (alcanza para letras nítidas y se procesa rápido)
+  const z = Math.min(1, 2048 / Math.max(c.width, c.height)), w = Math.max(1, Math.round(c.width * z)), h = Math.max(1, Math.round(c.height * z));
+  const s = document.createElement('canvas'); s.width = w; s.height = h; const sg = s.getContext('2d', { willReadFrequently: true }); sg.drawImage(c, 0, 0, w, h);
+  const S = KPF.photoScan(sg.getImageData(0, 0, w, h).data, w, h);
+  if (!S.glyphs.length) throw new Error('no encontré letras en la imagen. Usá una foto con las letras sobre un fondo liso, bien separadas entre sí.');
+  if (S.glyphs.length > 160) throw new Error(`encontré ${S.glyphs.length} manchas en la imagen: parece una foto con mucho detalle. Recortala para que queden solo las letras sobre un fondo liso.`);
+  const out = document.createElement('canvas'); out.width = w; out.height = h; out.getContext('2d').putImageData(new ImageData(S.rgba, w, h), 0, 0);
+  const seq = kpfGuess(S, out), ph = { scan: { ...S, rgba: null }, seq };
+  out.__ph = KPF.photoMap(ph.scan, ph.seq);
+  Object.assign(kpfOpts(), { img: out, imgName: name, imgPh: ph, imgTint: true }); // de una foto se toma la forma: se pintan con el color del estilo
+  return { game: false, n: S.glyphs.length, lines: S.lines };
 }
+// letras de referencia para reconocer las de una foto: A–Z, a–z, números, signos y tildes del español, dibujadas con
+// varias tipografías (las que tiene la compu de la lista de Kit Studio, las genéricas y las que subió el usuario)
+const KPF_REF_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-'ÁÉÍÓÚÑÜÇáéíóúñüç";
+function kpfRefs() {
+  if (KPFS.refs) return KPFS.refs;
+  const fams = [...new Set([...(KPFS.userFonts || []), 'Saira Condensed', ...(typeof KS_FONTS !== 'undefined' ? KS_FONTS : []).filter(f => { try { return ksFontInstalled(f); } catch { return false; } }).slice(0, 14)])];
+  const list = [...fams.map(f => `"${f}", sans-serif`), 'sans-serif', 'serif', 'monospace'], Z = 240, BL = 176, c = document.createElement('canvas'); c.width = Z; c.height = Z;
+  const g = c.getContext('2d', { willReadFrequently: true }), refs = [];
+  for (const fam of list) for (const wt of [400, 800]) {
+    g.font = `${wt} 120px ${fam}`; const cap = g.measureText('H').actualBoundingBoxAscent || 86;
+    for (const ch of KPF_REF_CHARS) {
+      g.clearRect(0, 0, Z, Z); g.fillStyle = '#000'; g.fillText(ch, 40, BL); const d = g.getImageData(0, 0, Z, Z).data, a = new Uint8Array(Z * Z);
+      let x0 = Z, y0 = Z, x1 = -1, y1 = -1; for (let i = 0; i < a.length; i++) { a[i] = d[i * 4 + 3]; if (a[i] > 100) { const x = i % Z, y = (i - x) / Z; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+      if (x1 >= 0) refs.push({ ch, f: KPF.glyphFeat(a, Z, x0, y0, x1, y1, BL, cap) });
+    }
+  }
+  return KPFS.refs = refs;
+}
+// qué letra es cada una de la foto: por su forma (cualquier orden) y, cuando dos formas se parecen, según el orden
+function kpfGuess(S, canvas) {
+  const hint = KPF.photoSeq(S); let refs; try { refs = kpfRefs(); } catch { return hint; } if (!refs.length) return hint;
+  const W = canvas.width, d = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, canvas.height).data, a = new Uint8Array(W * canvas.height); for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3];
+  const feats = S.glyphs.map(q => ({ ...KPF.glyphFeat(a, W, q.x0, q.y0, q.x1, q.y1, q.y0 - q.top, q.cap), parts: q.parts || 1 }));
+  const G = KPF.photoGuess(feats, refs, hint); S.doubt = G.doubt; return G.seq;
+}
+// cualquier imagen a un canvas: texturas del juego (.dds, .ftex), .psd (las capas visibles juntas), .svg y lo que abra el navegador
+async function kpfDecode(n, buf, type) {
+  const raw = img => imgToCanvas({ w: img.w, h: img.h, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.w * img.h * 4) });
+  if (n.endsWith('.ftex')) return raw(await ftexDecode(buf, 4096));
+  if (n.endsWith('.dds')) return raw(DDS.decode(buf));
+  if (n.endsWith('.psd')) { const P = KPF.psdRead(buf), c = document.createElement('canvas'); c.width = P.w; c.height = P.h; const g = c.getContext('2d');
+    for (const l of P.layers.filter(l => l.visible && l.kind === 'pixel' && l.w && l.h && l.rgba && !/gu[ií]as?|guide/i.test(l.name))) { const t = document.createElement('canvas'); t.width = l.w; t.height = l.h; t.getContext('2d').putImageData(new ImageData(l.rgba, l.w, l.h), 0, 0); g.globalAlpha = l.opacity / 255; g.drawImage(t, l.left, l.top); }
+    return c; }
+  const viaImg = () => new Promise((res, rej) => { const u = URL.createObjectURL(new Blob([buf], { type: n.endsWith('.svg') ? 'image/svg+xml' : type || '' })), im = new Image();
+    im.onload = () => { const c = document.createElement('canvas'), z = n.endsWith('.svg') && Math.max(im.naturalWidth, im.naturalHeight) < 1500 ? 1500 / Math.max(im.naturalWidth || 1, im.naturalHeight || 1) : 1; c.width = Math.round((im.naturalWidth || 1500) * z); c.height = Math.round((im.naturalHeight || 500) * z); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('no pude abrir ese formato de imagen en este navegador. Guardala como PNG o JPG y probá de nuevo.')); }; im.src = u; });
+  if (n.endsWith('.svg')) return viaImg();
+  try { return raw(await FTEXW.rawFromImage(new Blob([buf]))); } catch { return viaImg(); }
+}
+// pegar una imagen (Ctrl+V) en la pantalla de Fuentes: se leen sus letras como las de una foto
+function kpfPasteOn(fn) {
+  KPFS.paste = fn; if (KPFS.pasteBound) return; KPFS.pasteBound = true;
+  document.addEventListener('paste', e => { if (!document.getElementById('kpfDrop') || !KPFS.paste) return; const t = e.target; if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return;
+    const f = [...(e.clipboardData && e.clipboardData.files || [])].find(x => /^image\//.test(x.type)); if (!f) return; e.preventDefault();
+    KPFS.paste(new File([f], f.name && f.name !== 'image.png' ? f.name : 'imagen pegada.' + ((f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')), { type: f.type })); });
+}
+// ¿es la textura del nombre de un kit? transparente, 4:1 y con casi todas las letras en sus casillas (no cajas llenas)
+function kpfGameTex(c) {
+  const r = c.width / c.height; if (r < 3.5 || r > 4.5 || typeof KFONT === 'undefined') return false;
+  const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data; let clear = 0; for (let i = 3; i < d.length; i += 64) if (d[i] < 128) clear++;
+  if (clear < d.length / 64 * .2) return false;
+  let ok = 0; for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') { const q = KFONT.glyph(c, 'name', ch), cl = KFONT.cell('name', ch, c.width, c.height); if (q && q.sw < cl[2] * .97 && q.sh < cl[3] * .97) ok++; }
+  return ok >= 20 && !!KPF.imgGlyphs(c);
+}
+// cambia qué letra es cada una de la foto (seq: una por letra encontrada, '' = no se usa)
+function kpfPhotoSeq(seq) { const O = kpfOpts(), ph = O.imgPh; if (!ph || !O.img) return; ph.seq = seq; O.img.__ph = KPF.photoMap(ph.scan, seq); O.img.__tint = null; }
 // plantilla de Photoshop con las letras dibujadas (PNG transparente o el .psd)
 async function kpfAddTemplate(file, bmp) {
   const n = file.name.toLowerCase(), src = n.endsWith('.psd') ? KPF.psdRead(await file.arrayBuffer()) : bmp || await createImageBitmap(file);
@@ -432,44 +680,59 @@ function kpfCard(t, folder) { const has = !!(folder && KS.cfg && KS.team === t.i
 function kpfBindIn(t, m, sh) { if (!sh.querySelector('#kpfDrop')) return; KPFS.rr = () => ksRerender(); kpfBind(sh, KPFS.team === t.id && !!KS.cfg); }
 // requisitos para que el juego use la fuente: Sider con kserv, KitPos 6.4+, sider.ini y las minúsculas de kitpos_slots.ini
 const KPF_INI = '[sider]\nlua.enabled = 1\nluajit.ext.enabled = 1\nlua.module = "kserv.lua"\nlua.module = "kitpos.lua"';
-function kpfReqHtml() {
+function kpfReqHtml(req = kpfReqState()) {
   const sid = !!KITS.from, st = sid ? KPFS.st : null, wait = sid && !st;
   const mark = ok => ok === true ? ['ok', '✓', 'Listo'] : ok === false ? ['bad', '✕', 'Falta'] : ok === 'later' ? ['unk later', '○', 'Después de instalar KitPos'] : !sid ? ['unk', '○', 'Sin revisar'] : wait ? ['unk', '…', 'Revisando'] : ['unk', '?', 'No se pudo revisar'];
   const item = (n, ok, title, body, btns) => { const [c, i, l] = mark(ok); return `<li class="kpfreq ${c}"><div class="kpfrh"><i>${n}</i><b>${title}</b><span class="chip ${c === 'ok' ? 'ok' : c === 'bad' ? 'warn' : ''}"><span aria-hidden="true">${i}</span> ${l}</span></div>${body}${btns ? `<div class="kpfup">${btns}</div>` : ''}</li>`; };
-  const luaOk = st && (st.lua ? st.verOk !== false : st.lua), iniOk = st && (st.ini && st.luajit !== false ? true : st.ini === false || st.luajit === false ? false : null);
-  return `<section class="kpfreqs" aria-label="Requisitos"><h5>✅ Requisitos para verla en el juego</h5><ol>
-    ${item(1, st ? st.kitServer : null, 'Sider con kserv', '<p class="note">Sider con el módulo <span class="mono">kserv.lua</span> y la carpeta <span class="mono">content\\kit-server</span>, donde viven los kits.</p>', sid ? '' : '<button class="btn small primary" type="button" data-kits>Conectar carpeta Sider</button>')}
+  const [, luaOk, iniOk] = req, bad = req.filter(x => x === false).length;
+  return `<details class="kpfreqs" aria-label="Requisitos" ${bad || !st || KPFS.reqOpen ? 'open' : ''}><summary>${bad ? '⚠' : '✅'} Requisitos para verla en el juego <small>${!st ? '' : bad ? `falta${bad > 1 ? 'n' : ''} ${bad}` : 'todo listo'}</small></summary><ol>
+    ${item(1, req[0], 'Sider con kserv', '<p class="note">Sider con el módulo <span class="mono">kserv.lua</span> y la carpeta <span class="mono">content\\kit-server</span>, donde viven los kits.</p>', sid ? '' : '<button class="btn small primary" type="button" data-kits>Conectar carpeta Sider</button>')}
     ${item(2, luaOk, 'Descargar KitPos 6.4 o más nuevo', `<p class="note">KitPos es el módulo de Sider que dibuja el nombre con esta fuente. Va en <span class="mono">Sider\\modules\\kitpos.lua</span>.${st && st.lua ? ` Tenés la versión ${esc(st.ver || '?')}${st.verOk === false ? ': hace falta la 6.4 o una más nueva.' : '.'}` : st && st.lua === false ? ' No está en la carpeta modules.' : ''}</p>`,
       `${sid && st && (st.lua === false || st.verOk === false) ? `<button class="btn small primary" type="button" id="kpfKp" title="Copia el kitpos.lua que trae el editor a modules y agrega sus líneas en sider.ini (con copia)">${st.lua ? '⟳ Actualizar KitPos' : '🎮 Instalar KitPos'}</button>` : ''}<button class="btn small" type="button" id="kpfKpDl" title="Baja el kitpos.lua que trae el editor para copiarlo a mano en Sider\\modules">⬇ Descargar kitpos.lua</button>`)}
     ${item(3, iniOk, 'Configurarlo en sider.ini', `<p class="note">${st && st.ini && st.luajit === false ? 'Carga kitpos.lua, pero falta <span class="mono">luajit.ext.enabled = 1</span>. ' : st && st.ini === false ? 'Todavía no carga kitpos.lua. ' : st && st.ini == null ? 'El navegador no deja leer los .ini: en la app de Windows se revisa solo, o elegí sider.ini en la pestaña Sider. ' : ''}La línea de KitPos va debajo de la de kserv:</p><pre class="kpfini">${esc(KPF_INI)}</pre>`,
       `${sid && st && iniOk === false ? '<button class="btn small primary" type="button" id="kpfKp2" title="Agrega las líneas que faltan (con copia sider.ini.bak-pes-editor)">🔧 Arreglar sider.ini</button>' : ''}<button class="btn small ghost" type="button" id="kpfIniCp">📋 Copiar líneas</button>`)}
-    ${item(4, st ? (st.lower == null && st.lua === false ? 'later' : st.lower) : null, 'Minúsculas activadas', `<p class="note">En <span class="mono">content\\kitpos\\kitpos_slots.ini</span>, sección <span class="mono">[opciones]</span>: <span class="mono">minusculas_juego = 1</span> (viene así de fábrica). Si está en 0, el juego pasa el nombre a mayúsculas y le saca los acentos.</p>`,
+    ${item(4, req[3], 'Minúsculas activadas', `<p class="note">En <span class="mono">content\\kitpos\\kitpos_slots.ini</span>, sección <span class="mono">[opciones]</span>: <span class="mono">minusculas_juego = 1</span> (viene así de fábrica). Si está en 0, el juego pasa el nombre a mayúsculas y le saca los acentos.</p>`,
       sid && st && st.lower === false ? '<button class="btn small primary" type="button" id="kpfLower">Activar minúsculas</button>' : '')}
-  </ol></section>`;
+  </ol></details>`;
+}
+// "Saltar" en el paso Kit: la posición queda como está en el kit y se acomoda en el juego con el editor del overlay de KitPos
+function kpfSkipHtml() {
+  return `<div class="kpfskip anim"><div class="kpfskiph"><span aria-hidden="true">🎮</span><b>La posición la ajustás en el juego</b></div>
+    <p class="note">El nombre y los números quedan donde ya están en el kit. Al guardar solo se lleva la fuente.</p>
+    <ol><li>Abrí el juego con KitPos instalado (paso 4 → Requisitos) y entrá a una pantalla donde se vea el uniforme.</li>
+      <li>Tocá <kbd>Espacio</kbd> para abrir el panel de Sider y <kbd>1</kbd> hasta llegar a KitPos.</li>
+      <li><kbd>↑</kbd> <kbd>↓</kbd> eligen el nombre o un número, <kbd>←</kbd> <kbd>→</kbd> lo mueven (<kbd>Ctrl</kbd> fino, <kbd>Shift</kbd> grueso). <kbd>Tab</kbd> cambia entre este kit y todo el equipo.</li>
+      <li><kbd>G</kbd> guarda en kitpos_slots.ini, <kbd>V</kbd> refresca el uniforme, <kbd>Z</kbd> deshace y <kbd>Espacio</kbd> vuelve al juego.</li></ol>
+    <button class="btn small" type="button" data-unskip>📐 Mejor la ajusto acá</button></div>`;
 }
 function kpfHtml(has) {
   const O = kpfOpts(), fonts = kpfFontList(), kitsAll = has ? [...KS.kits, ...KS.gk] : [];
   if (has && (!KPFS.target || (KPFS.target !== '*' && !kitsAll.includes(KPFS.target)))) KPFS.target = KS.sel || '*';
   const n = kpfN(), rng = (id, lab, v, min, max, step, fmt) => `<div class="f"><label for="${id}">${lab} <output>${fmt(v)}</output></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"></div>`;
   const st = KPFS.st, row = (ok, b, txt, fix) => `<li class="${ok === true ? 'ok' : ok === false ? 'bad' : ok === 'info' ? 'info' : 'unk'}"><i aria-hidden="true">${ok === true ? '✓' : ok === false ? '✕' : ok === 'info' ? '•' : '?'}</i><span><b>${b}</b> ${txt}</span>${fix || ''}</li>`;
-  const sec = (i, t, body, cls = '') => `<div class="kpfsec ${cls}"><h5>${i ? `<i>${i}</i>` : ''}${t}</h5>${body}</div>`;
   const chip = (k, i, gk) => { const me = KS.meta[k]; return `<button type="button" class="kpfkit" data-kit="${esc(k)}" aria-pressed="${KPFS.target === k}" title="${esc(k)}">${shirtSvg(me || {}, '1.9em')}<span><b>${esc(k)}</b><small>${KS_ROLE(k, i, gk)}</small></span></button>`; };
-  const step = KPFS.done ? 4 : has ? 3 : 2;
-  return `<div class="kpf" id="kpfDrop">
+  // por pasos: un paso a la vez a la izquierda y la vista previa siempre a la vista
+  const tab = KPFS.tab = Math.min(4, Math.max(1, KPFS.tab || 1)), st0 = KPFS.st;
+  const req = kpfReqState(), reqBad = req.filter(x => x === false).length, reqOk = req.filter(x => x === true).length;
+  const kitLab = has ? (KPFS.target === '*' ? 'Todos' : esc(KPFS.target || KS.sel)) : '.zip';
+  const tabs = [['Fuente', esc(O.tpl ? 'Plantilla' : O.img ? 'Imagen' : O.font)], ['Estilo', 'Colores y bordes'], ['Kit', has && KPFS.skipPos ? kitLab + ' · posición en el juego' : kitLab], ['Al juego', KPFS.fmt === 'game' ? 'Solo mayúsculas' : 'Con minúsculas']];
+  const nav = i => `<div class="kpfnav">${i > 1 ? `<button class="btn ghost" type="button" data-go="${i - 1}">← ${tabs[i - 2][0]}</button>` : '<span></span>'}${i < 4 ? `<button class="btn primary" type="button" data-go="${i + 1}">Siguiente: ${tabs[i][0]} →</button>` : ''}</div>`;
+  const panel = (i, h, body) => `<section class="kpfpanel" data-p="${i}" role="tabpanel" aria-labelledby="kpfTab${i}"><div class="kpfph" role="heading" aria-level="3"><i>${i}</i>${h}</div>${body}${nav(i)}</section>`;
+  const reqChip = KPFS.fmt === 'game' ? '<span class="chip ok">🔠 Sin KitPos</span>' : !KITS.from ? '<span class="chip">Sider sin conectar</span>' : !st0 ? '<span class="chip">Revisando el juego…</span>'
+    : `<button type="button" class="chip ${reqBad ? 'warn' : 'ok'} kpfreqchip" data-go="4" data-req="1">${reqBad ? `⚠ Falta${reqBad > 1 ? 'n' : ''} ${reqBad} requisito${reqBad > 1 ? 's' : ''}` : `✓ Requisitos ${reqOk}/4`}</button>`;
+  return `<div class="kpf" id="kpfDrop" data-step="${tab}">
     <header class="kpfhero"><div class="kpfht"><h2>🔤 Creador de fuentes</h2>
-      <p class="note">La fuente del nombre de la camiseta con cualquier tipografía: mayúsculas, minúsculas, tildes, Ñ, cirílico y griego. Se guarda como la textura de letras del kit y la tabla de letras que lee KitPos.</p></div>
-      <ol class="kpfsteps" aria-label="Pasos">${['Fuente', 'Estilo', 'Kit', 'Al juego'].map((x, i) => `<li class="${i + 1 < step ? 'done' : i + 1 === step ? 'now' : ''}"><i>${i + 1 < step ? '✓' : i + 1}</i>${x}</li>`).join('')}</ol>
-      <span class="chip kpfn">${n} letras</span></header>
-    ${KPFS.fmt === 'game' ? '' : kpfReqHtml()}
-    <div class="kpfstudio">
-      <aside class="kpfl">
-        ${sec(1, 'Fuente', `<div class="kpffonts" id="kpfFonts" role="listbox" aria-label="Fuente">${fonts.map(f => `<button type="button" role="option" data-font="${esc(f)}" aria-selected="${f === O.font}" title="${esc(f)}"><b style="font-family:${esc(KPF.fontCss({ font: f }, 22).replace(/^.*?px /, ''))}">Aa Ññ</b><small>${esc(f)}</small></button>`).join('')}</div>
-          <div class="kpfup"><button class="btn small primary" type="button" id="kpfUp">＋ Subir fuente</button><button class="btn small" type="button" id="kpfImg" title="Una textura de letras con el formato del juego (A a Z y el punto): esas letras se usan tal cual">🖼 Letras de una imagen</button></div>
-          ${O.img ? `<div class="kpfimg"><canvas id="kpfImgTh" width="220" height="56"></canvas><div><b>${esc(O.imgName)}</b><small class="note">A–Z y el punto salen de la imagen; lo demás, de ${esc(O.font)}.</small>
-            <label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
-            <button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>` : ''}
-          <small class="note">.ttf, .otf o .woff; también podés arrastrar el archivo a esta pantalla. Las que subís quedan guardadas para la próxima.</small>`)}
-        ${sec(0, '🎨 Plantilla de Photoshop', `${O.tpl ? `<div class="kpfimg kpftpl"><canvas id="kpfTplTh" width="440" height="112"></canvas><div><b>${esc(O.tplName)}</b><small class="note">${O.tpl.count} de ${O.tpl.total} letras dibujadas en la plantilla${O.tpl.count < O.tpl.total || n > O.tpl.count ? `; las demás (espacio, cirílico, griego…) salen de ${esc(O.font)}` : ''}.${O.tplPsd ? ' Del .psd no se leen los efectos de capa: para conservarlos, cargá el PNG.' : ''}</small>
+      <p class="note">El nombre de la camiseta con cualquier tipografía: mayúsculas, minúsculas, tildes, Ñ, cirílico y griego. Cuatro pasos y queda en el kit.</p></div>
+      <div class="kpfchips"><span class="chip kpfn">${n} letras</span>${reqChip}</div>
+      <nav class="kpftabs" role="tablist" aria-label="Pasos">${tabs.map(([t, sub], i) => `<button type="button" role="tab" id="kpfTab${i + 1}" data-go="${i + 1}" aria-selected="${tab === i + 1}" class="${i + 1 < tab || (i === 3 && KPFS.done) ? 'done' : ''}"><i>${i + 1 < tab || (i === 3 && KPFS.done) ? '✓' : i + 1}</i><span><b>${t}</b><small>${sub}</small></span></button>`).join('')}
+        <span class="kpfprog" aria-hidden="true"><i style="width:${KPFS.done && tab === 4 ? 100 : (tab - 1) / 3 * 100}%"></i></span></nav></header>
+    <div class="kpfwork">
+      <div class="kpfpanels">
+        ${panel(1, 'Elegí la fuente', `<div class="kpfsec"><div class="kpffonts" id="kpfFonts" role="listbox" aria-label="Fuente">${fonts.map(f => `<button type="button" role="option" data-font="${esc(f)}" aria-selected="${f === O.font}" title="${esc(f)}"><b style="font-family:${esc(KPF.fontCss({ font: f }, 22).replace(/^.*?px /, ''))}">Aa Ññ</b><small>${esc(f)}</small></button>`).join('')}</div>
+          <div class="kpfup"><button class="btn small primary" type="button" id="kpfUp">＋ Subir fuente</button><button class="btn small" type="button" id="kpfImg" title="Una foto o imagen con las letras escritas, en cualquier orden y en una o varias filas, sobre un fondo liso (PNG, JPG, WEBP, GIF, BMP, SVG, PSD…), o la textura del nombre de un kit. También se puede pegar con Ctrl+V">📷 Letras de una foto</button></div>
+          ${O.img ? kpfImgHtml(O) : ''}
+          <small class="note">.ttf, .otf o .woff; también podés arrastrar el archivo a esta pantalla. Las que subís quedan guardadas para la próxima.</small></div>
+          <details class="kpfsec kpfmore" ${O.tpl ? 'open' : ''}><summary>🎨 Plantilla de Photoshop <small>${O.tpl ? esc(O.tplName) : 'letras dibujadas a mano'}</small></summary>${O.tpl ? `<div class="kpfimg kpftpl"><canvas id="kpfTplTh" width="440" height="112"></canvas><div><b>${esc(O.tplName)}</b><small class="note">${O.tpl.count} de ${O.tpl.total} letras dibujadas en la plantilla${O.tpl.count < O.tpl.total || n > O.tpl.count ? `; las demás (espacio, cirílico, griego…) salen de ${esc(O.font)}` : ''}.${O.tplPsd ? ' Del .psd no se leen los efectos de capa: para conservarlos, cargá el PNG.' : ''}</small>
             <label class="chk"><input type="checkbox" id="kpfTplTint" ${O.tplTint ? 'checked' : ''}> Pintarlas con el color de relleno</label>
             <div class="kpfup"><button class="btn small" type="button" id="kpfTpl">↻ Cargar otra</button><button class="btn small ghost" type="button" id="kpfTplX">Quitar la plantilla</button></div></div></div>`
           : `<p class="note">Dibujá o retocá las letras en Photoshop, una por casilla, y traelas acá: pasan a la textura del juego tal cual, con sus colores y efectos.</p>
@@ -479,18 +742,29 @@ function kpfHtml(has) {
             <li>4096 px de ancho, una casilla de 256×256 por letra (A–Z, a–z, números, acentos y Europa central). Apoyá cada letra en la línea roja (a 200 px) y centrala en la marca de arriba.</li>
             <li>Dibujá en la capa <b>Letras</b>, o pegá ahí el PNG de "Letras de esta fuente" para partir de una tipografía y retocarla.</li>
             <li>Ocultá el fondo y las guías (acción <b>KitPos Preparar PNG</b>) y guardá como PNG con transparencia.</li>
-            <li>Cargalo acá o arrastralo a esta pantalla. Las casillas vacías salen de la fuente elegida.</li></ol></details>`)}
-        ${sec(2, 'Estilo', `<div class="kpfpres" id="kpfPre">${Object.entries(KPF_PRESETS).map(([k, p]) => `<button type="button" data-pre="${k}" title="${p.n}"><canvas data-prethumb="${k}" width="120" height="54"></canvas><span>${p.n}</span></button>`).join('')}</div>
+            <li>Cargalo acá o arrastralo a esta pantalla. Las casillas vacías salen de la fuente elegida.</li></ol></details></details>
+          <details class="kpfsec kpfmore"><summary>🔠 Qué letras van <small>${n}</small></summary><p class="note">Van las ${n} de la tabla de KitPos, <span class="mono">content\\kitpos\\minusculas.txt</span>${KPFS.tbl && KPFS.tbl.src === 'sider' ? ' de tu carpeta Sider' : ''}: mayúsculas, minúsculas, números, tildes, Ñ, Europa central, cirílico y griego. Cada letra queda en el mismo lugar y con el mismo ancho que dice esa tabla, que es lo que lee el juego.</p></details>`)}
+        ${panel(2, 'Dale estilo', `<div class="kpfsec"><div class="kpfpres" id="kpfPre">${Object.entries(KPF_PRESETS).map(([k, p]) => `<button type="button" data-pre="${k}" title="${p.n}"><canvas data-prethumb="${k}" width="120" height="54"></canvas><span>${p.n}</span></button>`).join('')}</div>
           <div class="grid2"><div class="f"><label for="kpfW">Grosor</label><select id="kpfW">${[[400, 'Normal'], [600, 'Semi negrita'], [700, 'Negrita'], [800, 'Extra negrita'], [900, 'Black']].map(([v, l]) => `<option value="${v}" ${+O.weight === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
             <div class="f"><span class="lab">&nbsp;</span><label class="chk"><input type="checkbox" id="kpfIt" ${O.italic ? 'checked' : ''}> Cursiva</label></div></div>
           <div class="grid2">${rng('kpfWidth', 'Ancho', Math.round(O.width * 100), 60, 140, 1, v => v + '%')}${rng('kpfSize', 'Tamaño', Math.round(O.size * 100), 70, 110, 1, v => v + '%')}</div>
           <div class="kpfcolors"><div class="f"><label for="kpfFill">Relleno</label><div class="row"><input type="color" id="kpfFill" value="${O.fill}"><label class="chk"><input type="checkbox" id="kpfGrad" ${O.grad ? 'checked' : ''}> Degradado</label><input type="color" id="kpfFill2" value="${O.fill2}" aria-label="Color de abajo del degradado" ${O.grad ? '' : 'disabled'}></div></div>
             <div class="f"><label for="kpfSh">Sombra <output>${O.shadow}</output></label><div class="row"><input type="range" id="kpfSh" min="0" max="12" value="${O.shadow}"><input type="color" id="kpfShC" value="${O.shadowColor}" aria-label="Color de la sombra"></div></div>
             <div class="f"><label for="kpfS1">Borde <output>${O.stroke1}</output></label><div class="row"><input type="range" id="kpfS1" min="0" max="14" value="${O.stroke1}"><input type="color" id="kpfC1" value="${O.color1}" aria-label="Color del borde"></div></div>
-            <div class="f"><label for="kpfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row"><input type="range" id="kpfS2" min="0" max="14" value="${O.stroke2}"><input type="color" id="kpfC2" value="${O.color2}" aria-label="Color del segundo borde"></div></div></div>`)}
-        ${sec(0, 'Letras', `<p class="note">Van las ${n} de la tabla de KitPos, <span class="mono">content\\kitpos\\minusculas.txt</span>${KPFS.tbl && KPFS.tbl.src === 'sider' ? ' de tu carpeta Sider' : ''}: mayúsculas, minúsculas, números, tildes, Ñ, Europa central, cirílico y griego. Cada letra queda en el mismo lugar y con el mismo ancho que dice esa tabla, que es lo que lee el juego.</p>`)}
-      </aside>
-      <div class="kpfc">
+            <div class="f"><label for="kpfS2">Segundo borde <output>${O.stroke2}</output></label><div class="row"><input type="range" id="kpfS2" min="0" max="14" value="${O.stroke2}"><input type="color" id="kpfC2" value="${O.color2}" aria-label="Color del segundo borde"></div></div></div></div>`)}
+        ${panel(3, 'Elegí el kit', `<div class="kpfsec">${has ? '' : `<p class="note">${KITS.from ? 'Este equipo no tiene carpeta en content\\kit-server: la fuente se descarga en un .zip para copiarla a mano a la carpeta de un kit.' : 'Sin la carpeta Sider conectada la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.'}</p>`}
+          ${has ? `<div class="kpfkits" id="kpfKits"><button type="button" class="kpfkit all" data-kit="*" aria-pressed="${KPFS.target === '*'}"><span><b>Todos</b><small>${KS.kits.length} de jugador</small></span></button>${KS.kits.map((k, i) => chip(k, i, false)).join('')}${KS.gk.map((k, i) => chip(k, i, true)).join('')}</div>
+          ${KPFS.skipPos ? kpfSkipHtml() : `<div class="kpfskipbar"><span><span aria-hidden="true">🎮</span> ¿Preferís acomodar el nombre y los números dentro del juego?</span><button class="btn small" type="button" data-skip title="Pasa al último paso sin tocar la posición: el nombre y los números se acomodan después dentro del juego">Saltar este paso →</button></div>
+          ${KPFS.posView === '3d' ? `${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>` : kprHtml()}
+          <div class="kpfview" role="group" aria-label="Vista"><button type="button" class="btn small" data-posview="plano" aria-pressed="${KPFS.posView !== '3d'}" title="La espalda en plano, a la resolución de la textura: la posición exacta">🎯 Precisa</button><button type="button" class="btn small" data-posview="3d" aria-pressed="${KPFS.posView === '3d'}" title="La camiseta en 3D, para ver cómo queda puesta">🧊 En 3D</button></div>`}` : ''}</div>${has && !KPFS.skipPos ? `<details class="kpfsec kpfmore kpfposd" ${KPFS.posOpen ? 'open' : ''}><summary>📐 Posición libre <small>KitPos</small></summary>${kposHtml(['name'], { save: true })}</details>` : ''}`)}
+        ${panel(4, 'Llevala al juego', `<div class="kpfsec kpfgame">${kpfFmtHtml()}${KPFS.fmt === 'game' ? '' : kpfReqHtml(req)}${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
+            <button class="btn" type="button" id="kpfTry" title="Abre el Editor de Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en el Editor</button>
+            <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21)">↩ Volver a la anterior</button></div>`
+            : `<p class="note">Sin un kit elegido la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.</p><div class="kpfbtns"><button class="btn primary" type="button" id="kpfZip">⬇ Descargar .zip</button></div>`}
+          <p class="note kpflog ${KPFS.done && KPFS.log ? 'saved' : ''} ${KPFS.doneAnim ? 'anim' : ''}" id="kpfLog" aria-live="polite">${esc(KPFS.log)}</p>
+          ${has ? `<ul class="kpfst">${row(st ? st.kit || 'info' : null, 'Kit ' + esc(KS.sel), !st ? 'revisando…' : st.old ? 'tiene un kitpos_letras.txt de otra textura (' + st.kitN + ' letras): al guardar se reemplaza por la tabla correcta' : st.own === 'same' ? 'tiene su tabla de letras (kitpos_letras.txt, ' + st.kitN + ' letras)' : st.kit ? 'ya usa una fuente con minúsculas (NameLower = 1, ' + st.kitN + ' letras)' : 'usa la fuente común del juego')}</ul>${kpfDiagHtml()}` : ''}</div>${kpfGuideHtml()}`)}
+      </div>
+      <div class="kpfc kpfstick">
         <div class="kpfsample"><label class="lab" for="kpfName">Nombre de prueba</label><input type="text" id="kpfName" value="${esc(KPFS.sample)}" maxlength="24"><div class="fchips" id="kpfSam">${KPF_SAMPLES.map(s => `<button type="button" data-s="${esc(s)}" aria-pressed="${s === KPFS.sample}">${esc(s)}</button>`).join('')}</div></div>
         <div class="kpfstage">
           <div class="seg kpfview" id="kpfView">${[['shirt', '👕 Camiseta'], ['atlas', '🔠 Textura de letras']].map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${(KPFS.view || 'shirt') === v}">${l}</button>`).join('')}</div>
@@ -498,21 +772,13 @@ function kpfHtml(has) {
           <div class="kpfatlas" ${KPFS.view === 'atlas' ? '' : 'hidden'}><canvas id="kpfAtlas" width="1100" height="275" aria-label="Textura de letras generada"></canvas><small class="note mono" id="kpfDim">—</small></div>
         </div>
       </div>
-      <aside class="kpfr">
-        ${sec(3, 'Kit', `${has ? '' : `<p class="note">${KITS.from ? 'Este equipo no tiene carpeta en content\\kit-server: la fuente se descarga en un .zip para copiarla a mano a la carpeta de un kit.' : 'Sin la carpeta Sider conectada la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.'}</p>`}
-          ${has ? `<div class="kpfkits" id="kpfKits"><button type="button" class="kpfkit all" data-kit="*" aria-pressed="${KPFS.target === '*'}"><span><b>Todos</b><small>${KS.kits.length} de jugador</small></span></button>${KS.kits.map((k, i) => chip(k, i, false)).join('')}${KS.gk.map((k, i) => chip(k, i, true)).join('')}</div>
-          ${kplHtml(['back'], { size: [320, 380], note: false })}<p class="note">Arrastrá el nombre o el dorsal sobre la espalda: esquinas = tamaño, costados = ancho, manija de arriba = arco.${ksKpOn() ? ' Se guarda con 💾 Guardar posición.' : ''}</p>` : ''}`)}
-        ${has ? kposHtml(['name'], { save: true }) : ''}
-        ${sec(4, 'Llevarla al juego', `${kpfFmtHtml()}${has ? `<div class="kpfbtns"><button class="btn primary" type="button" id="kpfInstall">${window.pesNative ? '🎮 Instalar en el juego' : '💾 Guardar en la carpeta del kit'}</button>
-            <button class="btn" type="button" id="kpfTry" title="Abre el Editor de Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en el Editor</button>
-            <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21)">↩ Volver a la anterior</button></div>`
-            : `<p class="note">Sin un kit elegido la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.</p><div class="kpfbtns"><button class="btn primary" type="button" id="kpfZip">⬇ Descargar .zip</button></div>`}
-          <p class="note kpflog" id="kpfLog" aria-live="polite">${esc(KPFS.log)}</p>
-          ${has ? `<ul class="kpfst">${row(st ? st.kit || 'info' : null, 'Kit ' + esc(KS.sel), !st ? 'revisando…' : st.old ? 'tiene un kitpos_letras.txt de otra textura (' + st.kitN + ' letras): al guardar se reemplaza por la tabla correcta' : st.own === 'same' ? 'tiene su tabla de letras (kitpos_letras.txt, ' + st.kitN + ' letras)' : st.kit ? 'ya usa una fuente con minúsculas (NameLower = 1, ' + st.kitN + ' letras)' : 'usa la fuente común del juego')}</ul>${kpfDiagHtml()}` : ''}`, 'kpfgame')}
-      </aside>
     </div>
-    ${kpfGuideHtml()}
   </div>`;
+}
+// los 4 requisitos (kserv, KitPos, sider.ini, minúsculas): true listo, false falta, null sin revisar, 'later' después de KitPos
+function kpfReqState() {
+  const st = KITS.from ? KPFS.st : null; if (!st) return [null, null, null, null];
+  return [st.kitServer, st.lua ? st.verOk !== false : st.lua, st.ini && st.luajit !== false ? true : st.ini === false || st.luajit === false ? false : null, st.lower == null && st.lua === false ? 'later' : st.lower];
 }
 // ---- formato: con minúsculas (KitPos) o solo mayúsculas (el del juego, sin KitPos) ----
 const kpfEn = () => typeof LANG !== 'undefined' && LANG === 'en';
@@ -561,7 +827,7 @@ function kpfDiagHtml() {
   const kpTxt = L ? (L.status === 'hook_ok' ? (L.lower ? (en ? 'KitPos active with lowercase' : 'KitPos activo con minúsculas') : (en ? 'KitPos active, no lowercase' : 'KitPos activo, sin minúsculas')) : L.listed ? 'KitPos: ' + (L.status || (en ? 'no status' : 'sin estado')) : (en ? 'no KitPos' : 'sin KitPos')) : '';
   return `<div class="kpfdiag" data-noi18n>
     <div class="kpfdh"><button class="btn small" type="button" id="kpfDiag">🩺 ${en ? 'Check this kit in the game' : 'Revisar este kit en el juego'}</button>${D ? `<small class="note">${esc(KS.sel)}</small>` : ''}</div>
-    ${D ? `<ul>${D.items.map(it => { const [t, d] = kpfDiagText(it.k, D.x); return `<li class="${it.lvl}"><i aria-hidden="true">${ic[it.lvl]}</i><div><b>${esc(t)}</b><p>${esc(d)}</p>${it.fix ? `<button class="btn small ${it.lvl === 'bad' ? 'primary' : ''}" type="button" data-dfix="${it.fix}">${KPF_FIX[it.fix][en ? 1 : 0]}</button>` : ''}</div></li>`; }).join('')}</ul>
+    ${D ? `<ul class="${KPFS.diagAnim ? 'anim' : ''}">${D.items.map(it => { const [t, d] = kpfDiagText(it.k, D.x); return `<li class="${it.lvl}"><i aria-hidden="true">${ic[it.lvl]}</i><div><b>${esc(t)}</b><p>${esc(d)}</p>${it.fix ? `<button class="btn small ${it.lvl === 'bad' ? 'primary' : ''}" type="button" data-dfix="${it.fix}">${KPF_FIX[it.fix][en ? 1 : 0]}</button>` : ''}</div></li>`; }).join('')}</ul>
       <small class="note">${L ? `sider.log ${esc(when)} · Sider ${esc(L.sider || '?')} · ${esc(L.exe || '?')} · ${esc(kpTxt)}` : (en ? 'sider.log could not be read: the check uses only the kit folder and sider.ini.' : 'No se pudo leer sider.log: se revisó solo la carpeta del kit y sider.ini.')}</small>`
       : `<small class="note">${en ? 'Reads the kit folder, its texture and table, and what KitPos wrote in sider.log the last time the game was opened.' : 'Lee la carpeta del kit, su textura y su tabla, y lo que KitPos dejó en sider.log la última vez que se abrió el juego.'}</small>`}
   </div>`;
@@ -739,11 +1005,32 @@ function kpfDrawPreview(sh) {
     if (game) { for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.') { const r = KFONT.cell('name', ch, tex.width, tex.height); g.strokeRect(r[0] * k + .5, r[1] * k + .5, r[2] * k, r[3] * k); } }
     else for (const c of R.L.cells) g.strokeRect(c.x * k + .5, c.row * KPF.ROW * k + .5, c.span * k, KPF.ROW * k); }
   const dim = sh.querySelector('#kpfDim'); if (dim) dim.textContent = game ? `${tex.width}×${tex.height} px · 27 letras · DXT5` : `${R.L.W}×${R.L.H} px · ${R.L.cells.length} letras · DXT5`;
-  const it = sh.querySelector('#kpfImgTh'), O = kpfOpts(); if (it && O.img) { const g = it.getContext('2d'); g.fillStyle = '#2a3038'; g.fillRect(0, 0, it.width, it.height); const z = Math.min(it.width / O.img.width, it.height / O.img.height); g.drawImage(O.img, 0, 0, O.img.width * z, O.img.height * z); }
+  const O = kpfOpts(), ph = O.imgPh; if (ph && O.img) { const src = O.imgTint ? kpfTintImg(O.img, O.fill) : O.img;
+    for (const cv of sh.querySelectorAll('#kpfPh canvas[data-g]')) { const q = ph.scan.glyphs[+cv.dataset.g], g = cv.getContext('2d'), sw = q.x1 - q.x0 + 1, shh = q.y1 - q.y0 + 1;
+      // todas a la misma escala de su fila y sobre la misma línea (un punto se ve chico, una tilde arriba); lugar para tildes y colas
+      const z = Math.min((cv.width - 6) / sw, (cv.height - 4) / (q.cap * 1.55), (cv.height - 4) / shh), base = Math.min(2 + q.cap * 1.3 * z, cv.height - 2 - (shh + q.top) * z), y = Math.max(2, base + q.top * z);
+      g.clearRect(0, 0, cv.width, cv.height); g.drawImage(src, q.x0, q.y0, sw, shh, (cv.width - sw * z) / 2, y, sw * z, shh * z); } }
+  const it = sh.querySelector('#kpfImgTh'); if (it && O.img) { const g = it.getContext('2d'); g.fillStyle = '#2a3038'; g.fillRect(0, 0, it.width, it.height); const z = Math.min(it.width / O.img.width, it.height / O.img.height); g.drawImage(O.img, 0, 0, O.img.width * z, O.img.height * z); }
   const tt = sh.querySelector('#kpfTplTh'); if (tt && O.tpl) { const g = tt.getContext('2d'), z = tt.height / 256; g.fillStyle = '#2a3038'; g.fillRect(0, 0, tt.width, tt.height);
     g.drawImage(tinted0(O.tpl.c, O), 0, 0, tt.width / z, 256, 0, 0, tt.width, tt.height); }
   kpfDemo(sh); kpfBack3d(sh);
 }
+// el panel de la imagen cargada: con una foto, cada letra encontrada con la letra que es (se puede corregir)
+function kpfImgHtml(O) {
+  const ph = O.imgPh, opts = `<label class="chk"><input type="checkbox" id="kpfImgSmall" ${O.imgSmall ? 'checked' : ''}> Minúsculas como mayúsculas más chicas</label><label class="chk"><input type="checkbox" id="kpfImgTint" ${O.imgTint ? 'checked' : ''}> Pintarlas con el color de relleno</label><label class="chk" title="Las letras con tilde, diéresis o cedilla salen sin la marca (á → a, Ñ → N) y las que la imagen no tiene (cirílico, griego…) quedan vacías: nada sale de otra fuente"><input type="checkbox" id="kpfImgPlain" ${O.imgPlain ? 'checked' : ''}> Sin caracteres especiales</label>`;
+  if (!ph) return `<div class="kpfimg"><canvas id="kpfImgTh" width="220" height="56"></canvas><div><b>${esc(O.imgName)}</b><small class="note">A–Z y el punto salen de la imagen; lo demás, de ${esc(O.font)}.</small>
+    ${opts}<button class="btn small ghost" type="button" id="kpfImgX">Quitar la imagen</button></div></div>`;
+  const S = ph.scan, used = ph.seq.filter(Boolean), dup = [...new Set(used.filter((c, i) => used.indexOf(c) !== i))], cap = Math.round(S.cap);
+  const hasLower = used.some(c => c !== c.toUpperCase());
+  return `<div class="kpfimg kpfphoto${!O.imgTint && S.dark ? ' lt' : ''}"><div class="kpfphh"><b>📷 ${esc(O.imgName)}</b><small class="note">Encontré ${S.glyphs.length} letras en ${S.lines} ${S.lines === 1 ? 'fila' : 'filas'}. Revisá que cada una tenga la letra que es: si no, escribila encima (borrala para no usarla).${S.doubt && S.doubt.some(Boolean) ? ` Las ${S.doubt.filter(Boolean).length} marcadas con borde punteado se parecen a otra letra: miralas primero.` : ''}</small></div>
+    <div class="kpfphg" id="kpfPh" role="list">${S.glyphs.map((g, i) => `<label class="kpfpg${ph.seq[i] ? '' : ' off'}${ph.seq[i] && dup.includes(ph.seq[i]) ? ' dup' : ''}${S.doubt && S.doubt[i] ? ' doubt' : ''}" role="listitem"${S.doubt && S.doubt[i] ? ' title="Revisá esta: se parece a otra letra"' : ''}><canvas data-g="${i}" width="40" height="44"></canvas><input type="text" maxlength="2" data-i="${i}" value="${esc(ph.seq[i])}" aria-label="Letra ${i + 1}" spellcheck="false" autocomplete="off"></label>`).join('')}</div>
+    <div class="f kpfphs"><label for="kpfPhSeq">Todas en orden</label><input type="text" id="kpfPhSeq" value="${esc(ph.seq.map(c => c || '·').join(''))}" spellcheck="false" autocomplete="off" title="Una letra por cada una de la foto, en orden (· para no usarla)"></div>
+    ${dup.length ? `<small class="warn">${esc(dup.join(' '))}: ${dup.length === 1 ? 'está' : 'están'} dos veces; se usa la primera.</small>` : ''}
+    ${cap < 48 ? `<small class="warn">Las letras de la foto son chicas (${cap} px de alto): en la camiseta pueden verse borrosas. Usá una foto más de cerca o más grande.</small>` : ''}
+    <small class="note">${used.length - dup.length} letras salen de la foto${hasLower ? '' : ' (las minúsculas, de las mayúsculas si está marcado abajo)'}${O.imgPlain ? `; las letras con tilde, sin la tilde; números y signos, de ${esc(O.font)}.` : `; las demás, de ${esc(O.font)}.`}</small>
+    <div class="kpfphc">${opts}</div><div class="kpfup"><button class="btn small" type="button" id="kpfImg2">↻ Otra foto</button><button class="btn small ghost" type="button" id="kpfImgX">Quitar la foto</button></div></div>`;
+}
+const kpfTintImg = (c, fill) => { if (c.__th2 && c.__th2.k === fill) return c.__th2.c; const t = document.createElement('canvas'); t.width = c.width; t.height = c.height; const g = t.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = fill; g.fillRect(0, 0, t.width, t.height); c.__th2 = { k: fill, c: t }; return t; };
 const tinted0 = (c, O) => { if (!O.tplTint) return c; if (c.__th && c.__th.k === O.fill) return c.__th.c; const t = document.createElement('canvas'); t.width = 1024; t.height = 256; const g = t.getContext('2d'); g.drawImage(c, 0, 0, 1024, 256, 0, 0, 1024, 256); g.globalCompositeOperation = 'source-in'; g.fillStyle = O.fill; g.fillRect(0, 0, 1024, 256); c.__th = { k: O.fill, c: t }; return t; };
 // la espalda del kit con el modelo 3D real, el nombre de prueba y la fuente nueva; ahí se ubican el nombre y el dorsal (kitplace.js)
 function kpfWrap(fn) {
@@ -751,6 +1038,7 @@ function kpfWrap(fn) {
   try { return fn(); } finally { KS.T.name = saveT; KS.sample = saveS; KS.dispKey = ''; }
 }
 function kpfBack3d(sh, now) {
+  if (sh.querySelector('#kprBox')) { if (KPFS.has && KS.cfg && KPFS.kprApi) kprPaint(sh, KPFS.kprApi); return; } // vista precisa (kitprec.js)
   if (!sh.querySelector('#kplBox') || !KPFS.has || !KS.cfg || !KPFS.out) return;
   clearTimeout(kpfBack3d.t); kpfBack3d.t = setTimeout(async () => {
     try {
@@ -836,6 +1124,7 @@ async function kpfPutTable(T) {
   await kpfPut(kd, 'minusculas.txt', T.text); return true;
 }
 async function kpfInstall(log) {
+  if (KPFS.skipPos) kpfDropPos(); // saltó la posición: no se guardan arrastres que hayan quedado
   const B = await kpfBuild(log), { kit } = await ksRoot(true), dir = await subDir(kit, KS.path), wasDirty = KS.dirty;
   const targets = KPFS.target === '*' ? KS.kits.slice() : [KPFS.target], done = [];
   for (const k of targets) { log('Guardando en ' + k + '…'); done.push(k + ': ' + await kpfInstallKit(dir, k, B)); }
@@ -860,38 +1149,90 @@ async function kpfUndo() {
   return n;
 }
 function kpfReadme(kits, team, game) {
-  const files = kits.map(k => `  ${k.dir}\\${k.file}.dds + ${k.file}.ftex${k.cfg ? ' + config.txt (NameFontFile=' + k.file + ')' : ''}${game ? '' : ' + kitpos_letras.txt'}`);
-  if (game) return ['Fuente del nombre (formato del juego) - PES Editor Rebuilt', '',
-    'Textura de 4096x1024 con las letras A-Z y el punto en las casillas del juego. El nombre sale en MAYUSCULAS,',
-    'pero funciona en cualquier juego y con cualquier Sider (no hace falta KitPos).', '', ...files, '',
-    'Como instalarla a mano:', '  1. Descomprimi el .zip dentro de la carpeta de Sider (la que tiene sider.exe): cada archivo cae en su lugar.',
-    `  2. En el config.txt de cada kit, NameFontFile = ${kits.map(k => k.file).join(', ')} (sin extension).`,
-    '  3. Si la carpeta del kit tiene kitpos_letras.txt, borralo, y saca NameLower de su seccion en content\\kitpos\\kitpos_slots.ini:',
-    '     con la textura del juego, KitPos recortaria letras que no estan ahi.',
-    '  4. Si hay .dds y .ftex, que sean la misma textura: kserv lee primero el .ftex.',
-    `  5. Cerra y abri el juego, y mira el nombre en Editar > Equipos > Uniformes${team ? ' (' + team + ')' : ''}.`, '', '---', '',
-    'Shirt name font (game format) - PES Editor Rebuilt', '',
-    '4096x1024 texture with A-Z and the dot in the game\'s own boxes. Names show in CAPITALS, but it works in any game and with any Sider (no KitPos needed).', '',
-    'Manual install: unzip into the Sider folder, set NameFontFile in each kit\'s config.txt, delete any kitpos_letras.txt in the kit folder and remove NameLower',
-    'for that kit in content\\kitpos\\kitpos_slots.ini, keep .dds and .ftex identical (kserv reads .ftex first), then restart the game.', ''].join('\r\n');
-  return ['Fuente del nombre con minusculas (KitPos) - PES Editor Rebuilt', '',
-    'Es el mismo formato que un kit que ya muestra minusculas y acentos en el juego:', '', ...files,
-    '  content\\kitpos\\minusculas.txt  la tabla general: donde esta cada letra dentro de la textura', '',
-    'Como instalarla a mano:', '  1. Descomprimi el .zip dentro de la carpeta de Sider (la que tiene sider.exe): cada archivo cae en su lugar.',
-    `  2. En el config.txt de cada kit, NameFontFile = ${kits.map(k => k.file).join(', ')} (sin extension).`,
-    '  3. kitpos_letras.txt va en la carpeta del kit: es la misma tabla que minusculas.txt y hace que KitPos use la fuente en ese kit.',
-    '     Si la textura esta en un livecpk y no en content\\kit-server, pega ademas lo de "kitpos_slots - agregar.txt" en kitpos_slots.ini.',
-    '  4. Si hay .dds y .ftex, que sean la misma textura: kserv lee primero el .ftex.',
-    '  5. Hace falta KitPos 6.4 o mas nuevo: modules\\kitpos.lua y en sider.ini lua.module = "kitpos.lua" debajo de kserv.lua (con luajit.ext.enabled = 1),',
-    '     y en kitpos_slots.ini, [opciones] minusculas_juego = 1.',
-    `  6. Cerra y abri el juego (KitPos lee las tablas una vez por partida) y mira el nombre en Editar > Equipos > Uniformes${team ? ' (' + team + ')' : ''}.`, '',
-    'Si en la espalda aparece toda la hoja de letras chiquita y amontonada, KitPos no esta usando la tabla en ese kit: revisa sider.log',
-    '(lineas [kitpos.lua]) o usa "Revisar este kit" en Kit Studio > Fuentes.', '', '---', '',
-    'Shirt name font with lowercase (KitPos) - PES Editor Rebuilt', '',
-    'Manual install: unzip into the Sider folder; set NameFontFile in each kit\'s config.txt; keep kitpos_letras.txt in the kit folder (same table as',
-    'minusculas.txt, it makes KitPos use the font on that kit). Keep .dds and .ftex identical (kserv reads .ftex first). Needs KitPos 6.4+ loaded below',
-    'kserv.lua in sider.ini with luajit.ext.enabled = 1. Restart the game: KitPos reads the tables once per session.',
-    'If the whole letter sheet shows up tiny on the back, KitPos is not applying the table to that kit: check sider.log or "Check this kit" in the editor.', ''].join('\r\n');
+  // tutorial paso a paso con los nombres reales de este .zip (sin tildes: se lee bien en cualquier Bloc de notas)
+  const one = kits.length === 1, k0 = kits[0] || { dir: 'content\\kit-server\\<equipo>\\p1', file: 'uXXXXp1_name', sec: '[equipo ID p1]' };
+  const named = !/<equipo>|uXXXX/.test(k0.dir + k0.file), where = team ? ' (' + team + ')' : '';
+  const files = kits.map(k => `     ${k.dir}\\${k.file}.ftex\r\n     ${k.dir}\\${k.file}.dds${game ? '' : `\r\n     ${k.dir}\\kitpos_letras.txt`}${k.cfg ? `\r\n     ${k.dir}\\config.txt   (ya trae NameFontFile = ${k.file})` : ''}`);
+  const filesEn = kits.map(k => `     ${k.dir}\\${k.file}.ftex + .dds${game ? '' : ' + kitpos_letras.txt'}${k.cfg ? ' + config.txt (already has NameFontFile = ' + k.file + ')' : ''}`);
+  const nf = kits.map(k => `     ${k.dir}\\config.txt  ->  NameFontFile = ${k.file}`);
+  const find = named ? [] : ['  0. Busca la carpeta del equipo: abri content\\kit-server\\map.txt en la carpeta de Sider y fijate que carpeta tiene el ID del equipo.',
+    '     Adentro hay una carpeta por kit (p1, p2...). En el config.txt del kit, KitFile = u0184p1 -> la textura se llama u0184p1_name.',
+    '     Renombra <equipo>, p1 y uXXXXp1_name de este .zip con esos nombres (o elegi el kit en Kit Studio Pro > Fuentes y descargalo de nuevo).'];
+  const findEn = named ? [] : ['  0. Find the team folder: open content\\kit-server\\map.txt in the Sider folder and look up the team ID. Inside there is one folder per kit',
+    '     (p1, p2...). With KitFile = u0184p1 in the kit\'s config.txt the texture is u0184p1_name. Rename <equipo>, p1 and uXXXXp1_name in this .zip.'];
+  if (game) return ['FUENTE DEL NOMBRE - SOLO MAYUSCULAS - PES Editor Rebuilt' + where, '='.repeat(60), '',
+    'Textura de 4096x1024 con A-Z y el punto en las casillas del juego. El nombre sale en MAYUSCULAS, pero anda',
+    'en cualquier juego y con cualquier Sider: no hace falta KitPos.', '',
+    'QUE HAY EN ESTE .ZIP', ...files, '',
+    'COMO INSTALARLA (5 minutos)', ...find,
+    '  1. Cerra el juego. Hace una copia de la carpeta del kit por si queres volver atras.',
+    '  2. Descomprimi el .zip en la carpeta de Sider (la que tiene sider.exe), aceptando reemplazar: cada archivo cae en su lugar.',
+    '  3. Revisa que el config.txt ' + (one ? 'del kit' : 'de cada kit') + ' diga:', ...nf,
+    '     (sin extension). Si el .zip trae config.txt, ya esta hecho.',
+    '  4. Si la carpeta del kit tiene un kitpos_letras.txt viejo, borralo, y saca la linea NameLower de su seccion',
+    `     ${kits.map(k => k.sec).join(' ')} en content\\kitpos\\kitpos_slots.ini: si no, KitPos recorta letras que no estan.`,
+    '  5. Abri el juego y mira el nombre en Editar > Equipos > Uniformes' + where + '.', '',
+    'SI NO SE VE BIEN',
+    '  - Sigue la fuente vieja: kserv lee primero el .ftex. Reemplaza los dos (.ftex y .dds) y reinicia el juego.',
+    '  - Letras cortadas o la hoja entera en la espalda: quedo un kitpos_letras.txt o un NameLower de antes (paso 4).',
+    '  - En Kit Studio Pro > Fuentes, "Revisar este kit en el juego" lee sider.log y la carpeta del kit y te dice que falta.', '',
+    '-'.repeat(60), '',
+    'SHIRT NAME FONT - CAPITALS ONLY - PES Editor Rebuilt' + where, '',
+    '4096x1024 texture with A-Z and the dot in the game\'s own boxes. Names show in CAPITALS; works in any game and Sider, no KitPos needed.', '',
+    'FILES', ...filesEn, '', 'HOW TO INSTALL', ...findEn,
+    '  1. Close the game and back up the kit folder.',
+    '  2. Unzip into the Sider folder (the one with sider.exe), replacing files.',
+    '  3. Check NameFontFile in each kit\'s config.txt: ' + kits.map(k => k.file).join(', ') + ' (no extension).',
+    '  4. Delete any old kitpos_letras.txt in the kit folder and remove NameLower from ' + kits.map(k => k.sec).join(' ') + ' in content\\kitpos\\kitpos_slots.ini.',
+    '  5. Start the game and check the name in Edit > Teams > Kits.', '',
+    'IF IT LOOKS WRONG: replace both .ftex and .dds (kserv reads .ftex first) and restart; or use "Check this kit in the game" in Kit Studio Pro > Fonts.', ''].join('\r\n');
+  return ['FUENTE DEL NOMBRE CON MINUSCULAS (KitPos) - PES Editor Rebuilt' + where, '='.repeat(60), '',
+    'Mayusculas, minusculas, tildes, enie, cirilico y griego. Es el mismo formato que un kit que ya muestra minusculas en el juego:',
+    'una textura de 4096x4096 y la tabla que dice donde esta cada letra.', '',
+    'QUE HAY EN ESTE .ZIP', ...files,
+    '     content\\kitpos\\minusculas.txt   la tabla general de letras (la misma que usa la textura)',
+    '     content\\kitpos\\kitpos_slots - agregar.txt   solo para el caso del paso 5', '',
+    'ANTES: LO QUE TIENE QUE TENER TU SIDER (una sola vez)',
+    '  a. KitPos 6.4 o mas nuevo en modules\\kitpos.lua. (En Kit Studio Pro > Fuentes, "Requisitos para verla en el juego" lo instala con un clic.)',
+    '  b. En sider.ini, en este orden:',
+    '        luajit.ext.enabled = 1',
+    '        lua.module = "kserv.lua"',
+    '        lua.module = "kitpos.lua"        <- debajo de kserv.lua',
+    '  c. En content\\kitpos\\kitpos_slots.ini, seccion [opciones]:  minusculas_juego = 1', '',
+    'COMO INSTALARLA (5 minutos)', ...find,
+    '  1. Cerra el juego. Hace una copia de la carpeta del kit por si queres volver atras.',
+    '  2. Descomprimi el .zip en la carpeta de Sider (la que tiene sider.exe), aceptando reemplazar: cada archivo cae en su lugar.',
+    '     minusculas.txt se reemplaza por la misma tabla: no lo cambies por otro, la textura se armo con esa.',
+    '  3. Revisa que el config.txt ' + (one ? 'del kit' : 'de cada kit') + ' diga:', ...nf,
+    '     (sin extension). Si el .zip trae config.txt, ya esta hecho.',
+    '  4. kitpos_letras.txt tiene que quedar en la carpeta del kit, al lado de la textura: es lo que le dice a KitPos que use la tabla.',
+    '  5. Solo si la textura NO esta en content\\kit-server (por ejemplo, en un livecpk): abri "kitpos_slots - agregar.txt" y pega',
+    `     sus lineas en content\\kitpos\\kitpos_slots.ini (${kits.map(k => k.sec + ' NameLower = 1.00000').join('; ')}).`,
+    '  6. Abri el juego (KitPos lee las tablas al arrancar) y mira el nombre en Editar > Equipos > Uniformes' + where + '.',
+    '     Proba con un jugador que tenga minusculas y alguna tilde en el apellido.', '',
+    'SI NO SE VE BIEN',
+    '  - Toda la hoja de letras chiquita y amontonada en la espalda: KitPos no esta usando la tabla en ese kit. Falta kitpos_letras.txt',
+    '    en la carpeta del kit, o KitPos no cargo (pasos a y b). Mira las lineas [kitpos.lua] en sider.log.',
+    '  - Letras cambiadas o partidas: la textura y la tabla no son de la misma descarga. Copia de nuevo los tres archivos juntos.',
+    '  - Sigue la fuente vieja: kserv lee primero el .ftex. Reemplaza los dos (.ftex y .dds) y reinicia el juego.',
+    '  - Todo en mayusculas: minusculas_juego = 0 (paso c), o el nombre del jugador esta guardado en mayusculas.',
+    '  - En Kit Studio Pro > Fuentes, "Revisar este kit en el juego" lee sider.log y la carpeta del kit y te dice que falta.', '',
+    '-'.repeat(60), '',
+    'SHIRT NAME FONT WITH LOWERCASE (KitPos) - PES Editor Rebuilt' + where, '',
+    'Capitals, lowercase, accents, Cyrillic and Greek: a 4096x4096 texture plus the table that says where each letter is.', '',
+    'FILES', ...filesEn, '     content\\kitpos\\minusculas.txt (general letter table)', '',
+    'BEFORE (once): KitPos 6.4+ in modules\\kitpos.lua; in sider.ini luajit.ext.enabled = 1 and lua.module = "kitpos.lua" below kserv.lua;',
+    '  in content\\kitpos\\kitpos_slots.ini [opciones] minusculas_juego = 1. ("Requirements" in Kit Studio Pro > Fonts installs KitPos.)', '',
+    'HOW TO INSTALL', ...findEn,
+    '  1. Close the game and back up the kit folder.',
+    '  2. Unzip into the Sider folder (the one with sider.exe), replacing files. Keep minusculas.txt as is: the texture was built with it.',
+    '  3. Check NameFontFile in each kit\'s config.txt: ' + kits.map(k => k.file).join(', ') + ' (no extension).',
+    '  4. Keep kitpos_letras.txt in the kit folder, next to the texture: it tells KitPos to use the table.',
+    '  5. Only if the texture is NOT in content\\kit-server (e.g. a livecpk): paste "kitpos_slots - agregar.txt" into kitpos_slots.ini.',
+    '  6. Start the game and check a player with lowercase and accents in Edit > Teams > Kits.', '',
+    'IF IT LOOKS WRONG: the whole letter sheet tiny on the back = KitPos is not using the table (missing kitpos_letras.txt or KitPos not loaded,',
+    '  see [kitpos.lua] lines in sider.log). Mixed-up letters = texture and table from different downloads. Old font = replace both .ftex and .dds.',
+    '  "Check this kit in the game" in Kit Studio Pro > Fonts tells you what is missing.', ''].join('\r\n');
 }
 // .zip para cada uniforme: la carpeta del kit con su textura (y su config.txt si cambió NameFontFile); con la de KitPos además
 // su kitpos_letras.txt, minusculas.txt y lo de kitpos_slots.ini
@@ -912,6 +1253,23 @@ async function kpfZip(log) {
   const name = 'fuente-' + tag.toLowerCase().replace(/-+/g, '-').replace(/^-|-$/g, '') + '.zip';
   await downloadBytes(name, KPF.zipMany(files)); return { name, kits, game: B.game };
 }
+// cambiar de paso sin volver a dibujar la pantalla: el paso nuevo entra deslizándose desde el lado al que se va
+function kpfDropPos() { if (KPS.cur && KPS.orig != null && KPS.curText !== KPS.orig) { KPS.curText = KPS.orig; KPS.cur = KPOS.parse(KPS.orig); KS.dispKey = ''; } }
+function kpfAnim(p) { p.classList.remove('anim'); void p.offsetWidth; p.classList.add('anim'); p.addEventListener('animationend', e => { if (e.target === p) p.classList.remove('anim'); }, { once: true }); }
+function kpfGo(sh, n, req) {
+  const root = sh.querySelector('#kpfDrop'); if (!root || !(n >= 1 && n <= 4)) return; const from = KPFS.tab || 1; KPFS.tab = n;
+  root.dataset.step = n; root.dataset.dir = n < from ? 'back' : 'fwd';
+  root.querySelectorAll('.kpftabs [data-go]').forEach((b, i) => { const done = i + 1 < n || (i === 3 && !!KPFS.done); b.setAttribute('aria-selected', i + 1 === n); b.classList.toggle('done', done); b.querySelector('i').textContent = done ? '✓' : i + 1; });
+  const bar = root.querySelector('.kpfprog i'); if (bar) bar.style.width = (KPFS.done && n === 4 ? 100 : (n - 1) / 3 * 100) + '%';
+  const p = root.querySelector(`.kpfpanel[data-p="${n}"]`);
+  if (p && n !== from) kpfAnim(p);
+  if (p && p.getBoundingClientRect().top < 70) root.querySelector('.kpftabs').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  if (req) { const d = root.querySelector('.kpfreqs'); if (d) { d.open = KPFS.reqOpen = true; setTimeout(() => d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 80); } }
+  if (n === 3) kpfBack3d(sh, true);
+  if (n === 4 && KPFS.guideOpen) kpfDemo(sh);
+}
+// un brillo que cruza la vista previa cuando cambia la fuente o el estilo
+function kpfShine(sh) { const st = sh.querySelector('.kpfstage'); if (!st) return; st.classList.remove('shine'); void st.offsetWidth; st.classList.add('shine'); setTimeout(() => st.classList.remove('shine'), 900); }
 function kpfBind(sh, has) {
   KPFS.has = has;
   const O = kpfOpts(), $k = id => sh.querySelector('#' + id), log = s => { KPFS.log = s; const l = $k('kpfLog'); if (l) l.textContent = s; }, rr = () => KPFS.rr && KPFS.rr();
@@ -924,9 +1282,9 @@ function kpfBind(sh, has) {
   on('kpfW', el => O.weight = +el.value); on('kpfIt', el => O.italic = el.checked); on('kpfWidth', el => O.width = el.value / 100); on('kpfSize', el => O.size = el.value / 100);
   on('kpfFill', el => O.fill = el.value); on('kpfGrad', el => { O.grad = el.checked; $k('kpfFill2').disabled = !el.checked; }); on('kpfFill2', el => O.fill2 = el.value);
   on('kpfSh', el => O.shadow = +el.value); on('kpfShC', el => O.shadowColor = el.value); on('kpfS1', el => O.stroke1 = +el.value); on('kpfC1', el => O.color1 = el.value); on('kpfS2', el => O.stroke2 = +el.value); on('kpfC2', el => O.color2 = el.value);
-  on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgTint', el => O.imgTint = el.checked); on('kpfTplTint', el => O.tplTint = el.checked);
-  $k('kpfFonts').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; O.font = b.dataset.font; $k('kpfFonts').querySelectorAll('[data-font]').forEach(x => x.setAttribute('aria-selected', x === b)); upd(); };
-  $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); rr(); };
+  on('kpfImgSmall', el => O.imgSmall = el.checked); on('kpfImgPlain', el => O.imgPlain = el.checked); on('kpfImgTint', el => { O.imgTint = el.checked; const p = sh.querySelector('.kpfphoto'); if (p) p.classList.toggle('lt', !el.checked && !!(O.imgPh && O.imgPh.scan.dark)); }); on('kpfTplTint', el => O.tplTint = el.checked);
+  $k('kpfFonts').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; O.font = b.dataset.font; $k('kpfFonts').querySelectorAll('[data-font]').forEach(x => x.setAttribute('aria-selected', x === b)); const sb = sh.querySelector('#kpfTab1 small'); if (sb) sb.textContent = O.font; upd(); kpfShine(sh); };
+  $k('kpfPre').onclick = e => { const b = e.target.closest('[data-pre]'); if (!b) return; const { n, ...p } = KPF_PRESETS[b.dataset.pre]; Object.assign(O, p); KPFS.shine = true; rr(); };
   const nm = $k('kpfName'); nm.oninput = () => { KPFS.sample = nm.value; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x.dataset.s === nm.value)); kpfDrawPreview(sh); };
   $k('kpfSam').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; KPFS.sample = nm.value = b.dataset.s; $k('kpfSam').querySelectorAll('[data-s]').forEach(x => x.setAttribute('aria-pressed', x === b)); kpfDrawPreview(sh); };
   $k('kpfView').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; KPFS.view = b.dataset.v; $k('kpfView').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); $k('kpfShirt').hidden = KPFS.view === 'atlas'; sh.querySelector('.kpfatlas').hidden = KPFS.view !== 'atlas'; };
@@ -935,14 +1293,26 @@ function kpfBind(sh, has) {
     if (b.dataset.kit !== '*' && b.dataset.kit !== KS.sel) { if (KS.dirty && !await confirmBox('El kit ' + KS.sel + ' tiene cambios sin guardar en Kit Studio Pro. ¿Cambiar de kit igual?')) return; KS.model = null; try { await ksOpenKit(b.dataset.kit); } catch (er) { toast(er.message, 6000); } }
     rr(); };
   const pick = (accept, fn) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.onchange = () => inp.files[0] && fn(inp.files[0]); inp.click(); };
-  const addFile = async f => { const n = f.name.toLowerCase();
-    try { let bmp = null; if (/\.(png|webp)$/.test(n)) { try { bmp = await createImageBitmap(f); } catch { } }
-      if (n.endsWith('.psd') || (bmp && bmp.width >= 1024 && bmp.height / bmp.width > .85)) { const T = await kpfAddTemplate(f, bmp); toast(`Plantilla cargada: ${T.count} letras.`); }
-      else if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); } else if (/\.(png|jpe?g|webp|dds|ftex)$/.test(n)) { await kpfAddImage(f); toast('Letras de ' + f.name + ' cargadas.'); } else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff), una imagen ni una plantilla (.psd).', 5000); return; } rr(); }
+  // asImg: viene del botón de la foto (nunca es una plantilla)
+  const addFile = async (f, asImg) => { const n = f.name.toLowerCase();
+    try { let bmp = null; if (!asImg && /\.(png|webp)$/.test(n)) { try { bmp = await createImageBitmap(f); } catch { } }
+      let T = null; if (n.endsWith('.psd') || (bmp && bmp.width >= 1024 && bmp.height / bmp.width > .85)) { try { T = await kpfAddTemplate(f, bmp); } catch (e) { if (!asImg && (n.endsWith('.psd') || !/transparencia/.test(e.message))) throw e; } } // una foto cuadrada sin transparencia no es una plantilla
+      if (T) toast(`Plantilla cargada: ${T.count} letras.`);
+      else if (/\.(ttf|otf|woff2?)$/.test(n)) { const fam = await kpfAddFont(f); toast('Fuente ' + fam + ' lista.'); }
+      else if (/\.(png|jpe?g|jfif|webp|bmp|gif|avif|svg|ico|tiff?|heic|heif|dds|ftex|psd)$/.test(n) || /^image\//.test(f.type)) { const r = await kpfAddImage(f); toast(r.game ? 'Letras de ' + f.name + ' cargadas.' : `Encontré ${r.n} letras en la foto: revisá que cada una tenga su letra.`, 5000); }
+      else { toast('Ese archivo no es una fuente (.ttf, .otf, .woff), una imagen ni una plantilla (.psd).', 5000); return; } rr(); }
     catch (e) { toast('No se pudo usar ' + f.name + ': ' + e.message, 7000); } };
   $k('kpfUp').onclick = () => pick('.ttf,.otf,.woff,.woff2', addFile);
-  $k('kpfImg').onclick = () => pick('.png,.jpg,.jpeg,.webp,.dds,.ftex', addFile);
-  const ix = $k('kpfImgX'); if (ix) ix.onclick = () => { O.img = null; O.imgName = ''; rr(); };
+  const IMG_ACCEPT = 'image/*,.png,.jpg,.jpeg,.jfif,.webp,.bmp,.gif,.avif,.svg,.psd,.dds,.ftex';
+  $k('kpfImg').onclick = () => pick(IMG_ACCEPT, f => addFile(f, true)); kpfPasteOn(f => addFile(f, true));
+  const ix = $k('kpfImgX'); if (ix) ix.onclick = () => { O.img = null; O.imgName = ''; O.imgPh = null; rr(); };
+  const i2 = $k('kpfImg2'); if (i2) i2.onclick = () => pick(IMG_ACCEPT, f => addFile(f, true));
+  // letras de la foto: cada casilla, o todas juntas en orden
+  const ph = $k('kpfPh'); if (ph) ph.oninput = e => { const el = e.target.closest('input[data-i]'); if (!el) return; const seq = O.imgPh.seq.slice(), v = [...el.value.trim()].pop() || ''; seq[+el.dataset.i] = v; if (el.value !== v) el.value = v; kpfPhotoSeq(seq); el.closest('label').classList.toggle('off', !v); upd(); };
+  // sin volver a dibujar la pantalla (se pierde el foco al pasar a la siguiente): las repetidas y el campo de todas
+  if (ph) ph.onchange = () => { const seq = O.imgPh.seq, used = seq.filter(Boolean), dup = new Set(used.filter((c, i) => used.indexOf(c) !== i));
+    ph.querySelectorAll('input[data-i]').forEach(el => el.closest('label').classList.toggle('dup', dup.has(seq[+el.dataset.i]))); const ps = $k('kpfPhSeq'); if (ps) ps.value = seq.map(c => c || '·').join(''); };
+  const ps = $k('kpfPhSeq'); if (ps) ps.onchange = () => { const v = [...ps.value.replace(/\s+/g, '')].map(c => c === '·' ? '' : c); kpfPhotoSeq(O.imgPh.seq.map((_, i) => v[i] || '')); rr(); };
   $k('kpfTpl').onclick = () => pick('.png,.webp,.psd', addFile);
   const tx = $k('kpfTplX'); if (tx) tx.onclick = () => { O.tpl = null; O.tplName = ''; rr(); };
   $k('kpfTplOut').onclick = async () => { try { await kpfPng(KPF.tplSheet({ ...O, tpl: null, img: O.img }), 'letras-plantilla-' + String(O.font).replace(/[^\w-]+/g, '-').toLowerCase() + '.png'); } catch (e) { toast('No se pudo: ' + e.message, 6000); } };
@@ -952,7 +1322,7 @@ function kpfBind(sh, has) {
   const busy = (b, fn) => async () => { if (KPFS.busy) return; KPFS.busy = true; const btns = sh.querySelectorAll('.kpfgame .btn, .kpfreqs .btn'); btns.forEach(x => x.disabled = true);
     try { await fn(); } catch (e) { log('No se pudo: ' + e.message); toast('No se pudo: ' + e.message, 7000); } KPFS.busy = false; btns.forEach(x => x.disabled = false); };
   const ins = $k('kpfInstall'); if (ins) ins.onclick = busy(ins, async () => {
-    const { done, lower, n, game } = await kpfInstall(log), kp = await kpsSave(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = true; KPFS.diag = null;
+    const { done, lower, n, game } = await kpfInstall(log), kp = await kpsSave(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = true; KPFS.doneAnim = true; KPFS.diag = null;
     log('Listo: ' + done.join(' · ') + (game ? ' · formato del juego, solo mayúsculas' : ' · con su tabla kitpos_letras.txt' + (kp && lower ? ' · NameLower = 1 en kitpos_slots.ini' : '')) + '. Cerrá el juego y abrilo de nuevo para verla.'); toast('Fuente guardada en ' + n + (n > 1 ? ' kits' : ' kit') + '. Cerrá el juego y abrilo de nuevo para verla.', 8000); rr(); });
   const tr3 = $k('kpfTry'); if (tr3) tr3.onclick = () => { if (!KPFS.out) return;
     KS.T.name = { c: kpfGame() ? KPFS.outGame : KPFS.out.canvas, file: '(sin guardar)', where: 'gen' }; KS.sample = { ...KS.sample, name: KPFS.sample || KS.sample.name }; KS.texRev = (KS.texRev || 0) + 1; KS.dispKey = ''; KS.mode = 'edit'; KS.view = '3d'; rr();
@@ -963,17 +1333,32 @@ function kpfBind(sh, has) {
   const zp = $k('kpfZip'); if (zp) zp.onclick = busy(zp, async () => { const z = await kpfZip(log); log('Descargado ' + z.name + ': ' + z.kits.map(k => k.file + '.dds y .ftex').join(', ') + (z.game ? '' : ', kitpos_letras.txt, minusculas.txt') + ' y LEEME.txt. Descomprimilo en la carpeta de Sider.'); });
   // formato de la textura, revisión del kit y sus arreglos, y la guía
   const fm = $k('kpfFmt'); if (fm) fm.onclick = e => { const b = e.target.closest('[data-fmt]'); if (!b || KPFS.fmt === b.dataset.fmt || (!KPFS.fmt && b.dataset.fmt === 'kitpos')) return; KPFS.fmt = b.dataset.fmt; KPFS.done = false; KPFS.diag = null; KPFS.log = ''; rr(); };
-  const dg = $k('kpfDiag'); if (dg) dg.onclick = busy(dg, async () => { dg.textContent = kpfEn() ? 'Checking…' : 'Revisando…'; await kpfDiagRun(); rr(); });
-  sh.querySelectorAll('[data-dfix]').forEach(b => { b.onclick = busy(b, async () => { const m = await kpfDiagFix(b.dataset.dfix); KPFS.st = null; KPFS.stFor = ''; if (m) { log(m); toast(m, 8000); } try { if (KS.cfg) await kpfDiagRun(); } catch { KPFS.diag = null; } rr(); }); });
+  const dg = $k('kpfDiag'); if (dg) dg.onclick = busy(dg, async () => { dg.textContent = kpfEn() ? 'Checking…' : 'Revisando…'; await kpfDiagRun(); KPFS.diagAnim = true; rr(); });
+  sh.querySelectorAll('[data-dfix]').forEach(b => { b.onclick = busy(b, async () => { const m = await kpfDiagFix(b.dataset.dfix); KPFS.st = null; KPFS.stFor = ''; if (m) { log(m); toast(m, 8000); } try { if (KS.cfg) await kpfDiagRun(); KPFS.diagAnim = true; } catch { KPFS.diag = null; } rr(); }); });
   const gd = sh.querySelector('.kpfguide'); if (gd) gd.ontoggle = () => { KPFS.guideOpen = gd.open; if (gd.open) kpfDemo(sh); };
   const un = $k('kpfUndo'); if (un) un.onclick = busy(un, async () => { if (!await confirmBox('¿Volver a la textura de letras que tenía ' + KS.sel + '?')) return; const n = await kpfUndo(); KPFS.st = null; KPFS.stFor = ''; KPFS.done = false; await ksLoadSlots(); log(n ? 'Listo: ' + KS.sel + ' volvió a su fuente anterior.' : 'No había nada para volver atrás en ' + KS.sel + '.'); rr(); });
   const lw = $k('kpfLower'); if (lw) lw.onclick = busy(lw, async () => { await kpfLowerOn(); KPFS.st = null; KPFS.stFor = ''; toast('Minúsculas activadas en kitpos_slots.ini.'); rr(); });
   for (const id of ['kpfKp', 'kpfKp2']) { const b = $k(id); if (b) b.onclick = busy(b, async () => { const r = await kpsInstall(); KPFS.st = null; KPFS.stFor = '';
     toast(r.lua === 'mas-nuevo' ? 'Ya tenías una versión más nueva de KitPos: no se tocó.' : 'KitPos ' + (r.lua === 'actualizado' ? 'actualizado' : r.lua === 'nuevo' ? 'instalado' : 'listo') + (r.ini === 'agregado' ? ' y agregado a sider.ini (copia en sider.ini.bak-pes-editor)' : r.ini === 'oculto' ? '. Falta agregar lua.module = "kitpos.lua" en sider.ini (debajo de kserv.lua): hacelo en la pestaña Sider' : '') + '. Abrí el juego de nuevo.', 10000); rr(); }); }
+  // pasos: pestañas, Siguiente/Anterior y el aviso de requisitos llevan al paso; los desplegables recuerdan si estaban abiertos
+  const root = $k('kpfDrop'); root.onclick = e => {
+    const b = e.target.closest('[data-go],[data-skip],[data-unskip],[data-posview]'); if (!b || !root.contains(b)) return;
+    if (b.dataset.go) return kpfGo(sh, +b.dataset.go, !!b.dataset.req);
+    if (b.dataset.posview) { if (KPFS.posView !== b.dataset.posview) { KPFS.posView = b.dataset.posview; rr(); } return; }
+    // Saltar la posición (pasa al paso 4) o volver a ajustarla acá (paso 3)
+    const skip = b.hasAttribute('data-skip'); KPFS.skipPos = skip; if (skip) kpfDropPos(); KPFS.tab = skip ? 4 : 3; KPFS.stepAnim = true; rr();
+  };
+  if (KPFS.stepAnim) { KPFS.stepAnim = false; const p = root.querySelector(`.kpfpanel[data-p="${KPFS.tab}"]`); if (p) kpfAnim(p); }
+  const pd = sh.querySelector('.kpfposd'); if (pd) pd.ontoggle = () => { KPFS.posOpen = pd.open; if (pd.open) kpfBack3d(sh, true); };
+  const rq = sh.querySelector('.kpfreqs > summary'); if (rq) rq.onclick = () => { KPFS.reqOpen = !rq.parentElement.open; }; // el toggle también salta al dibujarse abierto
+  if (KPFS.shine) { KPFS.shine = false; kpfShine(sh); }
+  KPFS.diagAnim = KPFS.doneAnim = false;
   // posición, tamaño y arco del nombre (KitPos)
-  kposBind(sh, () => kpfDrawPreview(sh), rr);
+  kposBind(sh, () => { kpfDrawPreview(sh); if (KPR.repaint) KPR.repaint(); }, rr);
   KPFS.kplApi = { cfg: false, wrap: kpfWrap, changed: () => { KS.dispKey = ''; if (KPS.sync) KPS.sync(); if (kpfBind.raf) return; kpfBind.raf = requestAnimationFrame(() => { kpfBind.raf = 0; if (sh.querySelector('#kpfShirt')) kpfDrawPreview(sh); kpfBack3d(sh, true); }); } };
   kplBind(sh, KPFS.kplApi);
+  KPFS.kprApi = { cfg: false, wrap: kpfWrap, changed: () => { KS.dispKey = ''; if (KPS.sync) KPS.sync(); if (kpfBind.raf2) return; kpfBind.raf2 = requestAnimationFrame(() => { kpfBind.raf2 = 0; if (sh.querySelector('#kpfShirt')) kpfDrawPreview(sh); }); } };
+  kprBind(sh, KPFS.kprApi);
   kpfPresetThumbs(sh);
   if (KPFS.out && KPFS.outFor === JSON.stringify([O.font, KPFS.sets])) kpfDrawPreview(sh);
   KPFS.outFor = JSON.stringify([O.font, KPFS.sets]); kpfRun(sh);

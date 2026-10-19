@@ -201,3 +201,68 @@ test('explica por qué el nombre sale mal y ofrece el arreglo que corresponde', 
   assert.deepEqual(ks({ font: 'f', dds: { w: 4096, h: 2048 } }), ['other-no-table']);
   assert.deepEqual(ks({ font: null }), ['no-font']); assert.deepEqual(ks({ font: 'f' }), ['no-tex']);
 });
+
+// ---- letras de una foto ----
+// "foto" sintética: fondo claro con luz despareja, letras oscuras (bloques), una i con su punto, un punto suelto y una
+// segunda fila un poco torcida
+function fakePhoto() {
+  const w = 700, h = 300, px = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4, v = 235 - Math.round(70 * x / w); px[i] = v; px[i + 1] = v - 4; px[i + 2] = v - 12; px[i + 3] = 255; }
+  const box = (x0, y0, bw, bh, c = 30) => { for (let y = y0; y < y0 + bh; y++) for (let x = x0; x < x0 + bw; x++) { const i = (y * w + x) * 4; px[i] = px[i + 1] = px[i + 2] = c; } };
+  // fila 1, base en y = 110: cinco letras de 60 de alto, una i (palito de 44 + punto) y un punto
+  for (let k = 0; k < 5; k++) box(40 + k * 70, 50, 44, 60);
+  box(400, 66, 12, 44); box(400, 50, 12, 10); box(440, 98, 12, 12);
+  // fila 2, base de y = 250 a y = 256 (torcida): tres letras
+  for (let k = 0; k < 3; k++) box(40 + k * 90, 190 + k * 3, 50, 60);
+  return { w, h, px };
+}
+test('letras de una foto: separa el fondo, junta la i con su punto y ordena por filas', () => {
+  const { w, h, px } = fakePhoto(), S = KPF.photoScan(px, w, h);
+  assert.equal(S.lines, 2); assert.equal(S.dark, true); assert.equal(S.glyphs.length, 10);
+  const g = S.glyphs;
+  assert.deepEqual(J(g.map(q => q.line)), [0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+  assert.ok(g.slice(0, 7).every((q, i, a) => !i || q.x0 > a[i - 1].x0), 'de izquierda a derecha');
+  assert.deepEqual(J([g[5].x0, g[5].y0, g[5].y1]), [400, 50, 109]); // la i con el punto es una sola letra
+  assert.ok(Math.abs(g[0].cap - 60) <= 2 && Math.abs(g[0].top + 60) <= 2, g[0].cap + ' ' + g[0].top);
+  assert.ok(Math.abs(g[6].top + 12) <= 2, 'el punto apoyado en la base'); 
+  assert.ok(g.slice(7).every(q => Math.abs(q.top + 60) <= 2), 'la fila torcida tiene su propia base');
+  // sin el fondo: transparente lejos de las letras, opaco adentro
+  assert.equal(S.rgba[(10 * w + 10) * 4 + 3], 0); assert.equal(S.rgba[(80 * w + 60) * 4 + 3], 255);
+});
+test('letras de una foto: qué letra es cada una según cuántas hay, y el mapa para dibujarlas', () => {
+  assert.equal(KPF.photoSeq(26).join(''), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+  assert.equal(KPF.photoSeq(27).join(''), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ.');
+  assert.equal(KPF.photoSeq(52).slice(26).join(''), 'abcdefghijklmnopqrstuvwxyz');
+  assert.equal(KPF.photoSeq(5).join(''), 'ABCDE');
+  const { w, h, px } = fakePhoto(), S = KPF.photoScan(px, w, h);
+  assert.equal(KPF.photoSeq(S).join(''), 'ABCDEF.GHI'); // el alfabeto sigue en la otra fila; la mancha chica es el punto
+  // una fila de minúsculas (letras más bajas que la mayúscula) después de la de mayúsculas, con el punto al final de la primera
+  const low = { glyphs: [...'ABC'].map((_, i) => ({ line: 0, top: -100, cap: 100, y0: 0, y1: 99 })).concat([{ line: 0, top: -20, cap: 100, y0: 80, y1: 99 }],
+    [-140, -70, -140, -70].map(t => ({ line: 1, top: t, cap: 140, y0: 0, y1: -t }))) };
+  assert.equal(KPF.photoSeq(low).join(''), 'ABC.abcd');
+  const m = KPF.photoMap(S, ['A', 'B', '', 'C', 'C', 'i', '.', 'x', 'y', 'z']);
+  assert.deepEqual(J([...m.keys()]), ['A', 'B', 'C', 'i', '.', 'x', 'y', 'z']); // la que no se usa no está; la repetida, la primera
+  assert.equal(m.get('C').sx, S.glyphs[3].x0); assert.deepEqual(J(Object.keys(m.get('A'))), ['sx', 'sy', 'sw', 'sh', 'top', 'cap']);
+});
+test('letras de una imagen transparente: lo que se ve es la letra', () => {
+  const w = 300, h = 120, px = new Uint8Array(w * h * 4); // todo transparente
+  const box = (x0, y0, bw, bh) => { for (let y = y0; y < y0 + bh; y++) for (let x = x0; x < x0 + bw; x++) { const i = (y * w + x) * 4; px[i] = 200; px[i + 1] = 20; px[i + 2] = 20; px[i + 3] = 255; } };
+  box(20, 20, 40, 70); box(90, 20, 40, 70); box(160, 40, 30, 50);
+  const S = KPF.photoScan(px, w, h); assert.equal(S.glyphs.length, 3); assert.equal(S.lines, 1);
+  assert.deepEqual([...S.rgba.subarray((50 * w + 30) * 4, (50 * w + 30) * 4 + 4)], [200, 20, 20, 255]); // conserva el color
+});
+test('letras de una foto: reconoce cada una por su forma, en cualquier orden', () => {
+  // formas simples dibujadas en un alfa de W×H: L, T, O (anillo) e I (palito); la referencia y la "foto" con tamaños distintos
+  const shape = (ch, w, h) => { const a = new Uint8Array(w * h), t = Math.max(2, Math.round(Math.min(w, h) / 5)), on = (x, y) => { a[y * w + x] = 255; };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (ch === 'L' && (x < t || y >= h - t)) on(x, y); if (ch === 'T' && (y < t || Math.abs(x - w / 2) < t / 2)) on(x, y);
+      if (ch === 'O' && (x < t || x >= w - t || y < t || y >= h - t)) on(x, y); if (ch === 'I' && Math.abs(x - w / 2) < t / 2) on(x, y); }
+    return KPF.glyphFeat(a, w, 0, 0, w - 1, h - 1, h - 1, h - 1); };
+  const refs = ['L', 'T', 'O', 'I'].map(ch => ({ ch, f: shape(ch, 40, 50) }));
+  const feats = ['O', 'I', 'L', 'T'].map(ch => shape(ch, 70, 90)); // desordenadas y más grandes
+  const G = KPF.photoGuess(feats, refs, ['L', 'T', 'O', 'I']); // el orden de siempre no coincide con las formas: manda la forma
+  assert.equal(G.seq.join(''), 'OILT'); assert.ok(!G.ordered);
+  assert.equal(KPF.photoGuess(feats, refs, ['O', 'I', 'L', 'T']).ordered, true); // si coincide, la hoja está en orden
+  // cada letra se usa una vez: dos L en la foto, la segunda queda con otra o sin letra
+  const two = KPF.photoGuess([shape('L', 60, 80), shape('L', 62, 80)], refs); assert.equal(new Set(two.seq.filter(Boolean)).size, two.seq.filter(Boolean).length);
+});

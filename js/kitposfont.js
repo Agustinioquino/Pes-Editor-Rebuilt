@@ -525,8 +525,57 @@ const KPF = (() => {
     if (x.stale) add('info', 'stale');
     return out;
   }
+  // ---- el Sider de otra persona (para armar el .zip con sus carpetas y su NameFontFile) ----
+  const trimPath = p => String(p || '').trim().replace(/\//g, '\\').replace(/^[\\]+|[\\]+$/g, '');
+  // carpeta del equipo en el map.txt de kserv (content\kit-server\map.txt):  184,"Bundesliga (Germany)\Schalke"
+  function mapFolder(text, team) {
+    for (const raw of String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/)) {
+      const m = raw.replace(/#.*/, '').match(/^\s*(\d+)\s*,\s*"?([^"]*)"?/);
+      if (m && +m[1] === +team) { const p = trimPath(m[2]); if (p) return p; }
+    }
+    return null;
+  }
+  // lo que kserv dejó en sider.log la última vez: la carpeta del equipo ("tid: 184 ==> content path: …") y, por kit, las
+  // texturas que buscó ("checking: …\p1\Font White.ftex"). La de las letras es la de NameFontFile: kserv la busca junto con
+  // su "_ex" (Font White y Font White_ex). → { path, kits: [{ folder, font, files }] } o null
+  function logKits(text, team) {
+    const all = String(text || '').split(/\r?\n/); let s = 0;
+    for (let i = all.length - 1; i >= 0; i--) if (/^Sider DLL: version/.test(all[i])) { s = i; break; }
+    const L = all.slice(s); let path = null;
+    for (const l of L) { const m = l.match(/\[kserv\.lua\] tid: (\d+) ==> content path: (.+?)\s*$/); if (m && +m[1] === +team) path = trimPath(m[2]); }
+    if (!path) return null;
+    const pre = ('content\\kit-server\\' + path + '\\').toLowerCase(), kits = new Map();
+    for (const l of L) {
+      const m = l.match(/\[kserv\.lua\] checking: (.+?)\s*$/); if (!m) continue;
+      const full = m[1].replace(/\//g, '\\'), i = full.toLowerCase().indexOf(pre); if (i < 0) continue;
+      const rest = full.slice(i + pre.length), j = rest.indexOf('\\'); if (j < 1) continue;
+      const folder = rest.slice(0, j), file = rest.slice(j + 1).replace(/\.ftex$/i, '');
+      if (!kits.has(folder)) kits.set(folder, { folder, files: [] });
+      const k = kits.get(folder); if (!k.files.includes(file)) k.files.push(file);
+    }
+    return { path, kits: [...kits.values()].map(k => ({ folder: k.folder, font: k.files.find(f => k.files.includes(f + '_ex')) || null, files: k.files })) };
+  }
+  // dónde va la fuente de cada kit en ese Sider: su carpeta y el nombre de la textura. Si se sabe qué NameFontFile usa el kit
+  // (por su sider.log o su config.txt), la textura lleva ese nombre y no hay que tocar el config.txt; si no, u0184p1_name.
+  // dest: { path, kits?, font? }  (font: el NameFontFile de un config.txt suelto, solo cuando es un kit)
+  function destPlan(dest, targets, team) {
+    const fallback = k => 'u' + String(team).padStart(4, '0') + k + '_name';
+    return targets.map(k => {
+      const dk = (dest.kits || []).find(x => x.folder.toLowerCase() === String(k).toLowerCase()) || null;
+      const font = (dk && dk.font) || (targets.length === 1 && dest.font) || null;
+      return { kit: k, folder: dk ? dk.folder : k, file: font || fallback(k), own: !!font };
+    });
+  }
+  // NameFontFile de un config.txt (texto), y el mismo texto con NameFontFile cambiado (o agregado al final), sin tocar lo demás
+  const cfgFontGet = txt => { const m = String(txt || '').match(/^[ \t]*NameFontFile[ \t]*=[ \t]*([^;\r\n]*)/mi); return m ? m[1].trim() : null; };
+  function cfgFontSet(txt, file) {
+    txt = String(txt || '').replace(/^﻿/, '');
+    const re = /^([ \t]*NameFontFile[ \t]*=[ \t]*)([^;\r\n]*?)([ \t]*)(;.*)?$/mi; // ojo: \s comería el \r del final
+    if (re.test(txt)) return txt.replace(re, (m, a, v, gap, c) => a + file + (c ? (gap.length ? gap : ' ') + c : ''));
+    const eol = /\r\n/.test(txt) || !/\n/.test(txt) ? '\r\n' : '\n'; return txt.replace(/\s*$/, '') + eol + 'NameFontFile=' + file + eol;
+  }
   return { W, ROW, BASE, CAP, MAX, SETS, TPL, TPL_W, TPL_H, chars, hex, unhex, layout, fromTable, letrasTxt, parseLetras, glyphMap, zipMany, render, drawText, fontCss, imgGlyphs, photoScan, photoSeq, photoMap, glyphFeat, featDist, photoGuess, tplCells, tplScan, psdRead, tplLayers, tplFill, tplLoad, tplSheet, tplGuides,
-    kitTable, sameTable, texSize, texKind, inkDxt5, inkRgba, layoutGuess, logDiag, diagnose };
+    kitTable, sameTable, texSize, texKind, inkDxt5, inkRgba, layoutGuess, logDiag, diagnose, mapFolder, logKits, destPlan, cfgFontGet, cfgFontSet };
 })();
 
 // ===================== La pantalla del creador =====================
@@ -761,6 +810,7 @@ function kpfHtml(has) {
             <button class="btn" type="button" id="kpfTry" title="Abre el Editor de Kit Studio Pro con la fuente puesta, sin guardarla">👁 Ver en el Editor</button>
             <button class="btn ghost" type="button" id="kpfZip">⬇ Descargar .zip</button><button class="btn ghost" type="button" id="kpfUndo" title="Vuelve a poner la textura de letras que tenía el kit (la copia .bak-edit21)">↩ Volver a la anterior</button></div>`
             : `<p class="note">Sin un kit elegido la fuente se descarga en un .zip para copiarla a mano a la carpeta del kit.</p><div class="kpfbtns"><button class="btn primary" type="button" id="kpfZip">⬇ Descargar .zip</button></div>`}
+          ${kpfDestHtml()}
           <p class="note kpflog ${KPFS.done && KPFS.log ? 'saved' : ''} ${KPFS.doneAnim ? 'anim' : ''}" id="kpfLog" aria-live="polite">${esc(KPFS.log)}</p>
           ${has ? `<ul class="kpfst">${row(st ? st.kit || 'info' : null, 'Kit ' + esc(KS.sel), !st ? 'revisando…' : st.old ? 'tiene un kitpos_letras.txt de otra textura (' + st.kitN + ' letras): al guardar se reemplaza por la tabla correcta' : st.own === 'same' ? 'tiene su tabla de letras (kitpos_letras.txt, ' + st.kitN + ' letras)' : st.kit ? 'ya usa una fuente con minúsculas (NameLower = 1, ' + st.kitN + ' letras)' : 'usa la fuente común del juego')}</ul>${kpfDiagHtml()}` : ''}</div>${kpfGuideHtml()}`)}
       </div>
@@ -1148,19 +1198,22 @@ async function kpfUndo() {
   for (const k of [...KS.tex.keys()]) if (k.startsWith(KS.path + '/' + KS.sel + ':')) KS.tex.delete(k);
   return n;
 }
-function kpfReadme(kits, team, game) {
+function kpfReadme(kits, team, game, dest) {
   // tutorial paso a paso con los nombres reales de este .zip (sin tildes: se lee bien en cualquier Bloc de notas)
   const one = kits.length === 1, k0 = kits[0] || { dir: 'content\\kit-server\\<equipo>\\p1', file: 'uXXXXp1_name', sec: '[equipo ID p1]' };
   const named = !/<equipo>|uXXXX/.test(k0.dir + k0.file), where = team ? ' (' + team + ')' : '';
   const files = kits.map(k => `     ${k.dir}\\${k.file}.ftex\r\n     ${k.dir}\\${k.file}.dds${game ? '' : `\r\n     ${k.dir}\\kitpos_letras.txt`}${k.cfg ? `\r\n     ${k.dir}\\config.txt   (ya trae NameFontFile = ${k.file})` : ''}`);
   const filesEn = kits.map(k => `     ${k.dir}\\${k.file}.ftex + .dds${game ? '' : ' + kitpos_letras.txt'}${k.cfg ? ' + config.txt (already has NameFontFile = ' + k.file + ')' : ''}`);
-  const nf = kits.map(k => `     ${k.dir}\\config.txt  ->  NameFontFile = ${k.file}`);
+  const nf = kits.map(k => `     ${k.dir}\\config.txt  ->  NameFontFile = ${k.file}${k.own ? '   (ya lo dice: la textura reemplaza a la que usa ese kit, hace una copia antes)' : ''}`);
+  // armado para el Sider de otra persona: con qué se armaron las carpetas y el nombre de la textura
+  const forYou = dest ? ['Armado para tu Sider: la carpeta del equipo es content\\kit-server\\' + dest.path + ' (sacada de tu ' + dest.src.join(' y tu ') + ').', ''] : [];
+  const forYouEn = dest ? ['Built for your Sider: the team folder is content\\kit-server\\' + dest.path + ' (taken from your ' + dest.src.join(' and your ') + ').', ''] : [];
   const find = named ? [] : ['  0. Busca la carpeta del equipo: abri content\\kit-server\\map.txt en la carpeta de Sider y fijate que carpeta tiene el ID del equipo.',
     '     Adentro hay una carpeta por kit (p1, p2...). En el config.txt del kit, KitFile = u0184p1 -> la textura se llama u0184p1_name.',
     '     Renombra <equipo>, p1 y uXXXXp1_name de este .zip con esos nombres (o elegi el kit en Kit Studio Pro > Fuentes y descargalo de nuevo).'];
   const findEn = named ? [] : ['  0. Find the team folder: open content\\kit-server\\map.txt in the Sider folder and look up the team ID. Inside there is one folder per kit',
     '     (p1, p2...). With KitFile = u0184p1 in the kit\'s config.txt the texture is u0184p1_name. Rename <equipo>, p1 and uXXXXp1_name in this .zip.'];
-  if (game) return ['FUENTE DEL NOMBRE - SOLO MAYUSCULAS - PES Editor Rebuilt' + where, '='.repeat(60), '',
+  if (game) return ['FUENTE DEL NOMBRE - SOLO MAYUSCULAS - PES Editor Rebuilt' + where, '='.repeat(60), '', ...forYou,
     'Textura de 4096x1024 con A-Z y el punto en las casillas del juego. El nombre sale en MAYUSCULAS, pero anda',
     'en cualquier juego y con cualquier Sider: no hace falta KitPos.', '',
     'QUE HAY EN ESTE .ZIP', ...files, '',
@@ -1177,7 +1230,7 @@ function kpfReadme(kits, team, game) {
     '  - Letras cortadas o la hoja entera en la espalda: quedo un kitpos_letras.txt o un NameLower de antes (paso 4).',
     '  - En Kit Studio Pro > Fuentes, "Revisar este kit en el juego" lee sider.log y la carpeta del kit y te dice que falta.', '',
     '-'.repeat(60), '',
-    'SHIRT NAME FONT - CAPITALS ONLY - PES Editor Rebuilt' + where, '',
+    'SHIRT NAME FONT - CAPITALS ONLY - PES Editor Rebuilt' + where, '', ...forYouEn,
     '4096x1024 texture with A-Z and the dot in the game\'s own boxes. Names show in CAPITALS; works in any game and Sider, no KitPos needed.', '',
     'FILES', ...filesEn, '', 'HOW TO INSTALL', ...findEn,
     '  1. Close the game and back up the kit folder.',
@@ -1186,7 +1239,7 @@ function kpfReadme(kits, team, game) {
     '  4. Delete any old kitpos_letras.txt in the kit folder and remove NameLower from ' + kits.map(k => k.sec).join(' ') + ' in content\\kitpos\\kitpos_slots.ini.',
     '  5. Start the game and check the name in Edit > Teams > Kits.', '',
     'IF IT LOOKS WRONG: replace both .ftex and .dds (kserv reads .ftex first) and restart; or use "Check this kit in the game" in Kit Studio Pro > Fonts.', ''].join('\r\n');
-  return ['FUENTE DEL NOMBRE CON MINUSCULAS (KitPos) - PES Editor Rebuilt' + where, '='.repeat(60), '',
+  return ['FUENTE DEL NOMBRE CON MINUSCULAS (KitPos) - PES Editor Rebuilt' + where, '='.repeat(60), '', ...forYou,
     'Mayusculas, minusculas, tildes, enie, cirilico y griego. Es el mismo formato que un kit que ya muestra minusculas en el juego:',
     'una textura de 4096x4096 y la tabla que dice donde esta cada letra.', '',
     'QUE HAY EN ESTE .ZIP', ...files,
@@ -1218,7 +1271,7 @@ function kpfReadme(kits, team, game) {
     '  - Todo en mayusculas: minusculas_juego = 0 (paso c), o el nombre del jugador esta guardado en mayusculas.',
     '  - En Kit Studio Pro > Fuentes, "Revisar este kit en el juego" lee sider.log y la carpeta del kit y te dice que falta.', '',
     '-'.repeat(60), '',
-    'SHIRT NAME FONT WITH LOWERCASE (KitPos) - PES Editor Rebuilt' + where, '',
+    'SHIRT NAME FONT WITH LOWERCASE (KitPos) - PES Editor Rebuilt' + where, '', ...forYouEn,
     'Capitals, lowercase, accents, Cyrillic and Greek: a 4096x4096 texture plus the table that says where each letter is.', '',
     'FILES', ...filesEn, '     content\\kitpos\\minusculas.txt (general letter table)', '',
     'BEFORE (once): KitPos 6.4+ in modules\\kitpos.lua; in sider.ini luajit.ext.enabled = 1 and lua.module = "kitpos.lua" below kserv.lua;',
@@ -1234,21 +1287,60 @@ function kpfReadme(kits, team, game) {
     '  see [kitpos.lua] lines in sider.log). Mixed-up letters = texture and table from different downloads. Old font = replace both .ftex and .dds.',
     '  "Check this kit in the game" in Kit Studio Pro > Fonts tells you what is missing.', ''].join('\r\n');
 }
+// ---- el Sider de otra persona: con su sider.log, su map.txt o el config.txt de su kit el .zip sale con su carpeta del
+// equipo y con el nombre de textura que ya usa cada kit (NameFontFile), en vez de los de este Sider ----
+function kpfDestFor() { const D = KPFS.dest, team = (KPFS.t && KPFS.t.id) || KS.team; return D && D.path && String(D.team) === String(team) ? D : null; }
+async function kpfDestLoad(files) {
+  const team = (KPFS.t && KPFS.t.id) || KS.team; if (!team) throw new Error('Elegí primero el equipo.');
+  const D = kpfDestFor() || { team, path: null, kits: null, font: null, cfgText: null, src: [] }, msg = [], src = s => { if (!D.src.includes(s)) D.src.push(s); };
+  for (const f of files) {
+    const txt = (await f.text()).replace(/^﻿/, ''), n = f.name.toLowerCase();
+    if (/\.log$/.test(n) || /^Sider DLL: version/m.test(txt)) {
+      const r = KPF.logKits(txt, team);
+      if (!r) { msg.push(f.name + ': no dice dónde carga kserv el equipo ' + team + ' (que abra el juego, entre a los uniformes de ese equipo y te mande el sider.log de nuevo)'); continue; }
+      D.path = r.path; D.kits = r.kits; src('sider.log');
+    } else if (KPF.cfgFontGet(txt) != null || /^[ \t]*KitFile[ \t]*=/mi.test(txt)) { D.font = KPF.cfgFontGet(txt) || null; D.cfgText = txt; src('config.txt'); }
+    else if (/^\s*\d+\s*,/m.test(txt)) {
+      const p = KPF.mapFolder(txt, team); if (!p) { msg.push(f.name + ': el equipo ' + team + ' no está en ese map.txt'); continue; }
+      if (!D.src.includes('sider.log')) D.path = p; src('map.txt'); // el sider.log manda: es lo que usó su juego
+    } else msg.push(f.name + ': no es un sider.log, un map.txt ni un config.txt');
+  }
+  if (!D.path) throw new Error(msg.concat('Falta la carpeta del equipo: cargá su sider.log o su map.txt').join(' · '));
+  KPFS.dest = D; KPFS.done = false;
+  return 'El .zip va a usar content\\kit-server\\' + D.path + (msg.length ? ' · ' + msg.join(' · ') : '');
+}
+function kpfDestHtml() {
+  const D = kpfDestFor(), li = (b, t) => `<li class="ok"><i aria-hidden="true">✓</i><span><b>${b}</b> ${t}</span></li>`;
+  const kits = D && D.kits && D.kits.length ? D.kits.map(k => esc(k.folder) + (k.font ? ' → <span class="mono">' + esc(k.font) + '</span>' : '')).join(' · ') : '';
+  return `<details class="kpfsec kpfmore kpfdest" ${D ? 'open' : ''}><summary>📨 Para el Sider de otra persona <small>${D ? esc(D.path) : 'opcional'}</small></summary>
+    <p class="note">Su patch puede guardar el equipo en otra carpeta y usar otra textura de letras (por ejemplo Font White). Cargá su sider.log (el mejor: trae la carpeta y la textura de cada kit), su map.txt o el config.txt de su kit, y el .zip sale con sus nombres.</p>
+    ${D ? `<ul class="kpfst">${li('Carpeta', '<span class="mono">content\\kit-server\\' + esc(D.path) + '</span>')}${kits ? li('Kits', kits) : ''}${D.font ? li('NameFontFile', '<span class="mono">' + esc(D.font) + '</span>') : ''}<li class="info"><i aria-hidden="true">•</i><span>Sacado de su ${esc(D.src.join(' y su '))}</span></li></ul>` : ''}
+    <div class="kpfup"><button class="btn small" type="button" id="kpfDest">📂 Cargar sus archivos</button>${D ? '<button class="btn small ghost" type="button" id="kpfDestX">Quitar</button>' : ''}</div></details>`;
+}
 // .zip para cada uniforme: la carpeta del kit con su textura (y su config.txt si cambió NameFontFile); con la de KitPos además
 // su kitpos_letras.txt, minusculas.txt y lo de kitpos_slots.ini
 async function kpfZip(log) {
-  const B = await kpfBuild(log), has = KPFS.has && KS.cfg, base = has ? 'content/kit-server/' + String(KS.path).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') + '/' : 'content/kit-server/<equipo>/';
-  const targets = has ? (KPFS.target === '*' ? KS.kits.slice() : [KPFS.target]) : ['p1'], files = [], kits = [];
-  for (const k of targets) {
-    const c = has ? kpfCfgFor(k, null, false) : { file: 'uXXXXp1_name', changed: false }, dir = base + k;
+  // D: el Sider de quien va a usar la fuente (su map.txt / sider.log / config.txt). Sin D se usan las carpetas de este Sider.
+  const B = await kpfBuild(log), has = KPFS.has && KS.cfg, D = kpfDestFor(), team = (KPFS.t && KPFS.t.id) || KS.team;
+  const base = D ? 'content/kit-server/' + D.path.replace(/\\/g, '/') + '/' : has ? 'content/kit-server/' + String(KS.path).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') + '/' : 'content/kit-server/<equipo>/';
+  const targets = has ? (KPFS.target === '*' ? KS.kits.slice() : [KPFS.target]) : D && D.kits && D.kits.length ? [D.kits[0].folder] : ['p1'], files = [], kits = [];
+  const plan = D ? KPF.destPlan(D, targets, team) : null;
+  targets.forEach((k, i) => {
+    let c, dir;
+    if (D) {
+      // con el NameFontFile de su kit la textura lleva ese nombre y su config.txt no se toca; si no se sabe, va su
+      // config.txt (si lo cargó) con NameFontFile completado, y si tampoco, el LEEME le dice qué poner
+      const p = plan[i]; dir = base + p.folder; c = { file: p.file, own: p.own, changed: false };
+      if (!p.own && D.cfgText && targets.length === 1) { c.text = KPF.cfgFontSet(D.cfgText, p.file); c.changed = true; }
+    } else { c = has ? kpfCfgFor(k, null, false) : { file: 'uXXXXp1_name', changed: false }; dir = base + k; if (c.changed) c.text = cfgSerialize(c.cfg); }
     files.push({ name: dir + '/' + c.file + '.dds', data: B.dds }, { name: dir + '/' + c.file + '.ftex', data: B.ftex });
     if (!B.game) files.push({ name: dir + '/kitpos_letras.txt', data: KPF.kitTable(B.T.text, kpfLabel()) });
-    if (c.changed) files.push({ name: dir + '/config.txt', data: cfgSerialize(c.cfg) });
-    kits.push({ dir: dir.replace(/\//g, '\\'), file: c.file, cfg: c.changed, sec: '[' + (has ? kpfKitSec(k) : 'equipo ID p1') + ']' });
-  }
+    if (c.changed) files.push({ name: dir + '/config.txt', data: c.text });
+    kits.push({ dir: dir.replace(/\//g, '\\'), file: c.file, cfg: c.changed, own: !!c.own, sec: '[' + (has ? kpfKitSec(k) : team ? 'equipo ' + team + ' ' + (plan ? plan[i].folder : 'p1') : 'equipo ID p1') + ']' });
+  });
   if (!B.game) files.push({ name: 'content/kitpos/minusculas.txt', data: B.T.text },
     { name: 'content/kitpos/kitpos_slots - agregar.txt', data: ['; Solo hace falta si la textura no esta en content\\kit-server (por ejemplo, en un livecpk).', '; Pegalo en content\\kitpos\\kitpos_slots.ini (si la seccion ya existe, agrega solo la linea NameLower)', ...kits.flatMap(k => [k.sec, 'NameLower = 1.00000', ''])].join('\r\n') });
-  files.push({ name: 'LEEME.txt', data: kpfReadme(kits, has && KPFS.t ? KPFS.t.name : '', B.game) });
+  files.push({ name: 'LEEME.txt', data: kpfReadme(kits, KPFS.t ? KPFS.t.name : '', B.game, D) });
   const tag = (has ? (String(KPFS.t && KPFS.t.name || KS.team).replace(/[^\w-]+/g, '-') + '-' + (KPFS.target === '*' ? 'todos' : KPFS.target)) : String(kpfOpts().font).replace(/[^\w-]+/g, '-')) + (B.game ? '-mayusculas' : '');
   const name = 'fuente-' + tag.toLowerCase().replace(/-+/g, '-').replace(/^-|-$/g, '') + '.zip';
   await downloadBytes(name, KPF.zipMany(files)); return { name, kits, game: B.game };
@@ -1295,6 +1387,8 @@ function kpfBind(sh, has) {
   const pick = (accept, fn) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.onchange = () => inp.files[0] && fn(inp.files[0]); inp.click(); };
   // asImg: viene del botón de la foto (nunca es una plantilla)
   const addFile = async (f, asImg) => { const n = f.name.toLowerCase();
+    // sider.log, map.txt o config.txt de otra persona: para armar el .zip con su carpeta y su NameFontFile
+    if (!asImg && /\.(log|txt)$/.test(n)) { try { const m = await kpfDestLoad([f]); log(m); toast(m, 7000); } catch (e) { toast(e.message, 9000); } rr(); return; }
     try { let bmp = null; if (!asImg && /\.(png|webp)$/.test(n)) { try { bmp = await createImageBitmap(f); } catch { } }
       let T = null; if (n.endsWith('.psd') || (bmp && bmp.width >= 1024 && bmp.height / bmp.width > .85)) { try { T = await kpfAddTemplate(f, bmp); } catch (e) { if (!asImg && (n.endsWith('.psd') || !/transparencia/.test(e.message))) throw e; } } // una foto cuadrada sin transparencia no es una plantilla
       if (T) toast(`Plantilla cargada: ${T.count} letras.`);
@@ -1330,6 +1424,9 @@ function kpfBind(sh, has) {
   const dl = $k('kpfKpDl'); if (dl) dl.onclick = busy(dl, async () => { const r = await fetch('sider/kitpos.lua', { cache: 'no-cache' }), t = r.ok ? await r.text() : '', v = (t.match(/local m = \{ version = "([\d.]+)"/) || [])[1];
     if (!v) throw new Error('no se pudo bajar kitpos.lua (¿sin internet?)'); await downloadBytes('kitpos.lua', new TextEncoder().encode(t)); log('Descargado kitpos.lua (KitPos ' + v + '): copialo a Sider\\modules y agregá sus líneas en sider.ini.'); });
   const cp = $k('kpfIniCp'); if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(KPF_INI.replace(/\n/g, '\r\n')); toast('Líneas copiadas: pegalas en sider.ini, en la parte de [sider].'); } catch { toast('No se pudo copiar: seleccioná las líneas y copialas a mano.', 5000); } };
+  const de = $k('kpfDest'); if (de) de.onclick = () => { const inp = document.createElement('input'); inp.type = 'file'; inp.multiple = true; inp.accept = '.txt,.log,.ini,text/plain';
+    inp.onchange = async () => { try { const m = await kpfDestLoad([...inp.files]); log(m); toast(m, 7000); } catch (e) { toast(e.message, 9000); } rr(); }; inp.click(); };
+  const dx = $k('kpfDestX'); if (dx) dx.onclick = () => { KPFS.dest = null; KPFS.log = ''; rr(); };
   const zp = $k('kpfZip'); if (zp) zp.onclick = busy(zp, async () => { const z = await kpfZip(log); log('Descargado ' + z.name + ': ' + z.kits.map(k => k.file + '.dds y .ftex').join(', ') + (z.game ? '' : ', kitpos_letras.txt, minusculas.txt') + ' y LEEME.txt. Descomprimilo en la carpeta de Sider.'); });
   // formato de la textura, revisión del kit y sus arreglos, y la guía
   const fm = $k('kpfFmt'); if (fm) fm.onclick = e => { const b = e.target.closest('[data-fmt]'); if (!b || KPFS.fmt === b.dataset.fmt || (!KPFS.fmt && b.dataset.fmt === 'kitpos')) return; KPFS.fmt = b.dataset.fmt; KPFS.done = false; KPFS.diag = null; KPFS.log = ''; rr(); };

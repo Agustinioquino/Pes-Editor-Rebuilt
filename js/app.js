@@ -1207,7 +1207,7 @@ function bindRosterTable(t, m) {
   };
   $('rbMove').onchange = e => {
     const dest = S.ix.teamById.get(+e.target.value); if (!dest) return; const xs = selected(); const errs = []; let n = 0;
-    edit(xs.length + ' jugadores → ' + tget(dest, 'name'), 't' + t.id, [...regT(t), ...regT(dest)], () => { for (const x of [...xs].sort((a, b) => b.slot - a.slot)) { const e1 = rosterAddCheck(dest, x.pid) || rosterRemove(t, x.slot, true); if (e1) { errs.push((playerName(x.pid) || x.pid) + ': ' + e1); continue; } rosterAdd(dest, x.pid, freeNumber(dest, x.number)); n++; } });
+    edit(xs.length + ' jugadores → ' + tget(dest, 'name'), 't' + t.id, rosterEditRegions([t, dest], xs.map(x => x.pid)), () => { for (const x of [...xs].sort((a, b) => b.slot - a.slot)) { const e1 = rosterAddCheck(dest, x.pid) || rosterRemove(t, x.slot, true); if (e1) { errs.push((playerName(x.pid) || x.pid) + ': ' + e1); continue; } rosterAdd(dest, x.pid, freeNumber(dest, x.number)); n++; } });
     S.rsel.clear(); rebuildTeamOf(); toast(n + ' pasaron a ' + tget(dest, 'name') + '.' + (errs.length ? ' No se pudo con ' + errs.join(' · ') : ''), errs.length ? 7000 : 4000, ['Deshacer', undo]); rer();
   };
 }
@@ -1252,11 +1252,21 @@ function rosterAddCheck(t, pid) {
   const r = PD.roster(S.d, t);
   if (r.some(x => x.pid === pid)) return 'Ese jugador ya está en este plantel.';
   if (r.length >= 40) return 'El plantel ya tiene 40 jugadores.';
+  if (!S.ix.byId.has(pid)) {
+    if (!canMakeEditPlayer(pid)) return 'No hay datos de ese jugador en Player.bin para agregarlo al EDIT.';
+    if ((S.d[96] | S.d[97] << 8) >= EDIT_CAP) return 'El EDIT ya tiene el máximo de jugadores y no hay espacio para agregarlo.';
+  }
   return null;
 }
 function rosterAdd(t, pid, num) {
+  if (!S.ix.byId.has(pid) && !insertEditPlayers([pid]).includes(pid)) return 'No se pudo agregar la ficha del jugador al EDIT.';
   let slot = 0; while (slot < 40) { const o = t.rosterBase + 4 + slot * 4; if (!(S.d[o] | S.d[o + 1] | S.d[o + 2] | S.d[o + 3])) break; slot++; }
   PD.setRosterPlayer(S.d, t, slot, pid); PD.setNumber(S.d, t, slot, num || 0);
+  return null;
+}
+function rosterEditRegions(teams, ids) {
+  const add = [...new Set(ids)].filter(id => !S.ix.byId.has(id) && canMakeEditPlayer(id));
+  return [...new Set(teams)].flatMap(regT).concat(add.length ? editPlayersRegion(add.length) : []);
 }
 function freeNumber(t, pref) { const used = new Set(PD.roster(S.d, t).map(x => x.number)); if (pref && !used.has(pref)) return pref; for (let n = 2; n < 100; n++) if (!used.has(n)) return n; return 0; }
 function addSearch(q) {
@@ -1309,7 +1319,7 @@ function bindTeam(t, m) {
       const x = PD.roster(S.d, t).find(y => y.slot === slot);
       const e1 = rosterAddCheck(dest, x.pid); if (e1) { toast(e1.replace('Ese jugador ya está en este plantel', 'Ya está en ' + tget(dest, 'name'))); el.value = ''; return; }
       let err = null;
-      edit((playerName(x.pid) || 'Jugador ' + x.pid) + ' → ' + tget(dest, 'name'), 't' + t.id, [...regT(t), ...regT(dest)], () => { err = rosterRemove(t, slot, true); if (!err) rosterAdd(dest, x.pid, freeNumber(dest, x.number)); });
+      edit((playerName(x.pid) || 'Jugador ' + x.pid) + ' → ' + tget(dest, 'name'), 't' + t.id, rosterEditRegions([t, dest], [x.pid]), () => { err = rosterRemove(t, slot, true); if (!err) err = rosterAdd(dest, x.pid, freeNumber(dest, x.number)); });
       if (err) { toast(err, 5000); el.value = ''; return; }
       rebuildTeamOf(); toast((playerName(x.pid) || 'Jugador ' + x.pid) + ' pasó a ' + tget(dest, 'name') + '.', 4000, ['Deshacer', undo]); rer();
     }
@@ -1320,18 +1330,19 @@ function bindTeam(t, m) {
     if (b.id === 'addBtn') {
       const pid = parseInt($('addQ').dataset.pid || $('addQ').value, 10);
       if (!pid) { toast('Buscá el jugador por nombre o escribí su ID.'); return; }
-      const err = rosterAddCheck(t, pid); if (err) { toast(err); return; }
+      let err = rosterAddCheck(t, pid); if (err) { toast(err); return; }
       const num = freeNumber(t, parseInt($('addNum').value, 10) || 0), who = playerName(pid) || 'ID ' + pid;
       const old = !isNat(t) ? (teamOf.get(pid) || []).find(x => !isNat(x) && x.id !== t.id) : null;
       if (old) {
         if (!await confirmBox(`${who} juega en ${tget(old, 'name')}. ¿Transferirlo (sale de ese plantel)?`)) return;
         const slot = PD.roster(S.d, old).find(y => y.pid === pid).slot;
         let e2 = null;
-        edit(who + ': ' + tget(old, 'name') + ' → ' + tn(), 't' + t.id, [...regT(t), ...regT(old)], () => { e2 = rosterRemove(old, slot, true); if (!e2) rosterAdd(t, pid, num); });
+        edit(who + ': ' + tget(old, 'name') + ' → ' + tn(), 't' + t.id, rosterEditRegions([t, old], [pid]), () => { e2 = rosterRemove(old, slot, true); if (!e2) e2 = rosterAdd(t, pid, num); });
         if (e2) { toast(e2.replace('Es titular', 'Es titular en ' + tget(old, 'name')).replace('Es el capitán', 'Es el capitán de ' + tget(old, 'name')), 6000); return; }
         rebuildTeamOf(); toast(who + ' transferido con el ' + num + '.', 4000, ['Deshacer', undo]); rer(); return;
       }
-      edit('Agregar ' + who + ' a ' + tn(), 't' + t.id, regT(t), () => rosterAdd(t, pid, num));
+      edit('Agregar ' + who + ' a ' + tn(), 't' + t.id, rosterEditRegions([t], [pid]), () => { err = rosterAdd(t, pid, num); });
+      if (err) { toast(err, 6000); return; }
       rebuildTeamOf(); toast('Agregado: ' + who + ' con el ' + num + '.', 4000, ['Deshacer', undo]); rer(); return;
     }
     if (b.dataset.del != null) {
@@ -1360,7 +1371,7 @@ function bindTeam(t, m) {
       const pid = +b.dataset.up, from = S.ix.teamById.get(+b.dataset.from), who = playerName(pid) || 'ID ' + pid;
       const e1 = rosterAddCheck(t, pid); if (e1) { toast(e1); return; }
       const slot = PD.roster(S.d, from).find(y => y.pid === pid).slot, num = freeNumber(t, PD.roster(S.d, from).find(y => y.pid === pid).number);
-      let err = null; edit(who + ': ' + tget(from, 'name') + ' → ' + tn(), 't' + t.id, [...regT(t), ...regT(from)], () => { err = rosterRemove(from, slot, true); if (!err) rosterAdd(t, pid, num); });
+      let err = null; edit(who + ': ' + tget(from, 'name') + ' → ' + tn(), 't' + t.id, rosterEditRegions([t, from], [pid]), () => { err = rosterRemove(from, slot, true); if (!err) err = rosterAdd(t, pid, num); });
       if (err) { toast(err.replace('Es titular', 'Es titular en ' + tget(from, 'name')), 6000); return; }
       rebuildTeamOf(); RATE_GEN++; toast(who + ' pasó a ' + tn() + ' con el ' + num + '.', 4000, ['Deshacer', undo]); rer();
     }

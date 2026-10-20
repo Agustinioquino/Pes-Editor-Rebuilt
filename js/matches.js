@@ -600,12 +600,16 @@ function bindSquad(t, m) {
   sh.querySelectorAll('[data-sqin]').forEach(b => b.onclick = async () => {
     const id = +b.dataset.sqin, who = playerName(id) || 'ID ' + id, e1 = rosterAddCheck(t, id); if (e1) { toast(e1); return; }
     const num = freeNumber(t, +b.dataset.num), old = !isNat(t) ? (teamOf.get(id) || []).find(x => !isNat(x) && x.id !== t.id) : null;
+    let err = null;
     if (old) {
       if (!await confirmBox(`${who} está en ${tget(old, 'name')}. ¿Pasarlo a ${tn}?`)) return;
-      const slot = PD.roster(S.d, old).find(y => y.pid === id).slot; let err = null;
-      edit(who + ': ' + tget(old, 'name') + ' → ' + tn, 't' + t.id, [...regT(t), ...regT(old)], () => { err = rosterRemove(old, slot, true); if (!err) rosterAdd(t, id, num); });
+      const slot = PD.roster(S.d, old).find(y => y.pid === id).slot;
+      edit(who + ': ' + tget(old, 'name') + ' → ' + tn, 't' + t.id, rosterEditRegions([t, old], [id]), () => { err = rosterRemove(old, slot, true); if (!err) err = rosterAdd(t, id, num); });
       if (err) { toast(err, 6000); return; }
-    } else edit('Agregar ' + who + ' a ' + tn, 't' + t.id, regT(t), () => rosterAdd(t, id, num));
+    } else {
+      edit('Agregar ' + who + ' a ' + tn, 't' + t.id, rosterEditRegions([t], [id]), () => { err = rosterAdd(t, id, num); });
+      if (err) { toast(err, 6000); return; }
+    }
     rebuildTeamOf(); RATE_GEN++; toast(who + ' ahora está en ' + tn + ' con el ' + num + '.', 4000, ['Deshacer', undo]); rer();
   });
   sh.querySelectorAll('[data-sqout]').forEach(b => b.onclick = () => {

@@ -10,15 +10,24 @@ const vm = require('node:vm');
 const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
 const grab = re => { const m = src.match(re); assert.ok(m, 'falta en app.js: ' + re); return m[0]; };
 const code = [
+  grab(/const LAYOUT = [^\n]*\n/),
   grab(/const POS_TO_PP = [^\n]*\n/), grab(/const BODY = [^\n]*\n/), grab(/const DB_ABIL = [^\n]*\n/),
   grab(/const DB_POSFLAG = [^\n]*\n/), grab(/let DBRAW = null, DBSIG = .*;[\s\S]*?\nasync function namesFromBin/).replace(/\nasync function namesFromBin$/, '\n'),
+  grab(/function rosterAddCheck\(t, pid\) \{[\s\S]*?\n\}/), grab(/function rosterAdd\(t, pid, num\) \{[\s\S]*?\n\}/),
+  grab(/function rosterEditRegions\(teams, ids\) \{[\s\S]*?\n\}/), grab(/const regT = [^\n]*\n/),
 ].join('');
 const PD = vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'pesdata.js'), 'utf8') + '\n;PesData', vm.createContext({ TextDecoder, TextEncoder }));
-const toasts = [], hist = [];
+const toasts = [], hist = [], edits = [];
 const ctx = vm.createContext({
   TextDecoder, TextEncoder, Blob, Response, DecompressionStream, PD, toasts, hist, RATE_GEN: 0,
   S: null, toast: m => toasts.push(m), undo: () => { }, playerName: () => 'ALMADA',
-  pget: null, rebuildTeamOf: () => { }, localStorage: (() => { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })(), edit: (label, key, regions, fn) => { hist.push(label); return fn(); },
+  pget: null, rebuildTeamOf: () => { }, localStorage: (() => { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; })(), edit: (label, key, regions, fn) => {
+    hist.push(label);
+    const before = regions.map(([o, l]) => [o, ctx.S.d.slice(o, o + l)]);
+    const result = fn();
+    edits.push({ regions, before, after: regions.map(([o, l]) => [o, ctx.S.d.slice(o, o + l)]) });
+    return result;
+  },
 });
 vm.runInContext(code + `
 pget = (p, k) => PD.player.get(S.d, p.base, k);
@@ -56,6 +65,35 @@ test('al agregar un jugador de la base al EDIT van sus posiciones, el pie y el p
   for (const [k, v] of Object.entries(gkDb)) assert.equal(g(k), v, k);
   // sin PlayerAppearance.bin: cuerpo normal (7 = 0 en el juego), nunca 0 (= -7)
   for (const [k] of run('BODY')) assert.equal(g(k), 7, k);
+});
+
+test('al sumar desde el mercado un jugador ausente del EDIT, agrega su ficha y el deshacer revierte ambos cambios', () => {
+  freshEdit();
+  ctx.S.d = new Uint8Array(0x2000);
+  ctx.S.ix = PD.index(ctx.S.d, '2021');
+  ctx.TEAM = { id: 99, base: 0x800, rosterBase: 0x1000, tacticsBase: null };
+  const regions = run('rosterEditRegions([TEAM], [7001])');
+  assert.ok(regions.some(([o, l]) => o === 0x7C && l >= 0x138));
+  assert.equal(run('rosterAddCheck(TEAM, 7001)'), null);
+  run('edit("Agregar ALMADA", "t99", rosterEditRegions([TEAM], [7001]), () => rosterAdd(TEAM, 7001, 10))');
+
+  const player = ctx.S.ix.byId.get(ID);
+  assert.ok(player);
+  assert.equal(PD.player.get(ctx.S.d, player.base, 'name'), 'Thiago Almada');
+  assert.equal(PD.player.get(ctx.S.d, player.base, 'atk'), 74);
+  assert.deepEqual(JSON.parse(JSON.stringify(PD.roster(ctx.S.d, ctx.TEAM).map(x => [x.pid, x.number]))), [[ID, 10]]);
+
+  for (const [o, b] of edits.at(-1).before) ctx.S.d.set(b, o);
+  ctx.S.ix = PD.index(ctx.S.d, '2021');
+  assert.equal(ctx.S.ix.byId.has(ID), false);
+  assert.equal(PD.roster(ctx.S.d, ctx.TEAM).length, 0);
+
+  const cap = run('EDIT_CAP');
+  ctx.S.d[96] = cap & 255; ctx.S.d[97] = cap >> 8;
+  assert.match(run('rosterAddCheck(TEAM, 7001)'), /máximo de jugadores/);
+  ctx.S.d[96] = 0; ctx.S.d[97] = 0;
+  run('DBRAW.off.clear()');
+  assert.match(run('rosterAddCheck(TEAM, 7001)'), /Player\.bin/);
 });
 
 test('con PlayerAppearance.bin, el físico y la apariencia se copian tal cual', async () => {

@@ -97,6 +97,11 @@ function autoCallList(t) {
   return pick.slice(0, CALL_MAX);
 }
 function applyAutoCall(t, pick) {
+  const missing = [...new Set(pick)].filter(id => !S.ix.byId.has(id));
+  const unavailable = missing.filter(id => !canMakeEditPlayer(id));
+  if (unavailable.length) return unavailable.length + ' jugadores no tienen datos en Player.bin y no se pueden agregar al EDIT.';
+  if (missing.length > EDIT_CAP - (S.d[96] | S.d[97] << 8)) return 'No hay espacio en el EDIT para agregar todos los convocados.';
+  if (missing.length && insertEditPlayers(missing).length !== missing.length) return 'No se pudieron agregar todas las fichas de los convocados al EDIT.';
   const r = PD.roster(S.d, t), keep = new Set(pick), ins = pick.filter(id => !r.some(x => x.pid === id)), outs = r.filter(x => !keep.has(x.pid));
   const clubNum = id => { const c = clubOf(id); const x = c && PD.roster(S.d, c).find(y => y.pid === id); return x ? x.number : 0; };
   // replace in place (keeps the 40-slot order intact), then add or remove the difference
@@ -120,7 +125,8 @@ function bindCall(t, m) {
       if (PD.roster(S.d, t).length >= CALL_MAX) { toast(`Ya hay ${CALL_MAX} convocados. Desconvocá a alguien primero.`, 5000); return; }
       const err = rosterAddCheck(t, id); if (err) { toast(err); return; }
       const c = clubOf(id), cn = c ? (PD.roster(S.d, c).find(y => y.pid === id) || {}).number : 0;
-      edit('Convocar a ' + who + ' (' + tn + ')', 't' + t.id, regT(t), () => rosterAdd(t, id, freeNumber(t, cn)));
+      let addErr = null; edit('Convocar a ' + who + ' (' + tn + ')', 't' + t.id, rosterEditRegions([t], [id]), () => { addErr = rosterAdd(t, id, freeNumber(t, cn)); });
+      if (addErr) { toast(addErr, 6000); return; }
       rebuildTeamOf(); toast(who + ' convocado.', 3500, ['Deshacer', undo]); rer();
     }
     if (b.dataset.uncall != null) {
@@ -131,7 +137,7 @@ function bindCall(t, m) {
     if (b.id === 'autoCall') {
       const pick = autoCallList(t); if (pick.length < 14) { toast('No encontré suficientes jugadores de este país. Conectá la carpeta Sider para cargar la base.', 6000); return; }
       if (!await confirmBox(`¿Reemplazar la convocatoria por los ${pick.length} mejores del país (3 arqueros y el resto repartido por línea) y armar el mejor 11?`)) return;
-      let err = null; edit('Convocatoria automática de ' + tn, 't' + t.id, regT(t), () => { err = applyAutoCall(t, pick); });
+      let err = null; edit('Convocatoria automática de ' + tn, 't' + t.id, rosterEditRegions([t], pick), () => { err = applyAutoCall(t, pick); });
       if (err) toast(err, 6000); else { rebuildTeamOf(); RATE_GEN++; toast('Convocatoria lista: ' + pick.length + ' jugadores.', 5000, ['Deshacer', undo]); rer(); }
     }
     if (b.id === 'best11') {

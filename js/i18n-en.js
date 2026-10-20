@@ -5082,4 +5082,7 @@ Object.assign(I18N_EN, {
 "Pedile su sider.log después de que abra el juego y entre a los uniformes del equipo.":"Ask for their sider.log after they open the game and go to the team's kits.",
 "En 🔤 Fuentes, paso 4, abrí 📨 Para el Sider de otra persona y cargá el archivo (o arrastralo a la pantalla).":"In 🔤 Fonts, step 4, open 📨 For someone else's Sider and load the file (or drag it onto the screen).",
 "Tocá ⬇ Descargar .zip y mandáselo.":"Press ⬇ Download .zip and send it to them.",
+"No hay lugar libre en la táctica para agregar a otro jugador.":"There is no free tactical-order slot for another player.",
+"Agregué al banco los jugadores que faltaban en la táctica: {x}. Guardá el EDIT para llevar el arreglo al juego.":"Added the missing players to the tactical order as reserves: {x}. Save the EDIT to apply the fix in-game.",
+"No pude ubicar en la táctica a todos los jugadores de {x}: no hay lugares libres en su orden táctico.":"I couldn't place all players from {x} in the tactical order: there are no free slots.",
 });

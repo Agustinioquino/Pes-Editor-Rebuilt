@@ -351,6 +351,8 @@ function openBytes(bytes, name) {
   $('bNames').disabled = false; $('gq').disabled = false; $('bReload').disabled = !S.editHandle;
   gameRefresh(); updateTop(); render();
   if (DBRAW) { const fixed = repairEditPlayers(); if (checkDbChanged(fixed) || fixed) render(); }
+  const tacticsFixed = repairTacticalRosters();
+  if (tacticsFixed) render();
 }
 async function openFile(file) {
   try {
@@ -1211,21 +1213,56 @@ function bindRosterTable(t, m) {
     S.rsel.clear(); rebuildTeamOf(); toast(n + ' pasaron a ' + tget(dest, 'name') + '.' + (errs.length ? ' No se pudo con ' + errs.join(' · ') : ''), errs.length ? 7000 : 4000, ['Deshacer', undo]); rer();
   };
 }
-// ---- team order list (40-slot permutation: index 0 = GK, 1..10 = formation roles, rest = bench) ----
+// ---- team order list (40 roster slots: index 0 = GK, 1..10 = formation roles, rest = bench/reserve) ----
 const ORD = 0x1E4, TAKERS = 0x20C, NTAKERS = 9, CAPT = 0x215;
 const getOrder = t => Array.from(S.d.subarray(t.tacticsBase + ORD, t.tacticsBase + ORD + 40));
 const setOrder = (t, a) => S.d.set(a, t.tacticsBase + ORD);
 function swapInOrder(t, i, slot) { const o = getOrder(t), j = o.indexOf(slot); if (j < 0) { o[i] = slot; } else { [o[i], o[j]] = [o[j], o[i]]; } setOrder(t, o); }
+function tacticalOrderPlan(t, extraSlots = []) {
+  if (t.tacticsBase == null) return { slots: [], indices: [], missing: [] };
+  const order = getOrder(t), occupied = new Set([...PD.roster(S.d, t).map(x => x.slot), ...extraSlots]);
+  const listed = new Set(order.filter(v => v !== 255));
+  const slots = [...occupied].filter(v => !listed.has(v)).sort((a, b) => a - b);
+  const indices = order.map((v, i) => v === 255 ? i : -1).filter(i => i >= 0);
+  return { slots, indices: indices.slice(0, slots.length), missing: indices.length < slots.length ? slots : [] };
+}
+function applyTacticalOrderPlan(t, plan) {
+  if (!plan.slots.length || plan.missing.length) return false;
+  const order = getOrder(t);
+  plan.slots.forEach((slot, i) => { order[plan.indices[i]] = slot; });
+  setOrder(t, order);
+  return true;
+}
+function syncTacticalRoster(t) {
+  const plan = tacticalOrderPlan(t);
+  applyTacticalOrderPlan(t, plan);
+  return plan;
+}
+function repairTacticalRosters() {
+  const plans = S.ix.teams.filter(t => t.rosterBase != null && t.tacticsBase != null)
+    .map(t => ({ t, plan: tacticalOrderPlan(t) }))
+    .filter(x => x.plan.slots.length);
+  const ready = plans.filter(x => !x.plan.missing.length), blocked = plans.filter(x => x.plan.missing.length);
+  if (ready.length) {
+    edit('Agregar jugadores sin puesto táctico al banco', 'tactics', ready.flatMap(x => regT(x.t)), () => {
+      for (const x of ready) applyTacticalOrderPlan(x.t, x.plan);
+    });
+  }
+  const names = ready.map(x => `${x.plan.slots.length} de ${tget(x.t, 'name')}`).join(', ');
+  if (ready.length) toast(`Agregué al banco los jugadores que faltaban en la táctica: ${names}. Guardá el EDIT para llevar el arreglo al juego.`, 9000, ['Deshacer', undo]);
+  if (blocked.length) toast(`No pude ubicar en la táctica a todos los jugadores de ${blocked.map(x => tget(x.t, 'name')).join(', ')}: no hay lugares libres en su orden táctico.`, 9000);
+  return ready.length;
+}
 // Frees a starter/captain/taker slot: promotes the first substitute, hands the armband and set pieces to another starter.
 function vacate(t, slot) {
   if (t.tacticsBase == null) return null;
-  const n = PD.roster(S.d, t).length, o = getOrder(t), i = o.indexOf(slot);
+  const occupied = new Set(PD.roster(S.d, t).map(x => x.slot)), o = getOrder(t), i = o.indexOf(slot);
   if (i >= 0 && i < 11) {
-    const j = o.findIndex((v, k) => k >= 11 && v < n && v !== slot);
+    const j = o.findIndex((v, k) => k >= 11 && occupied.has(v) && v !== slot);
     if (j < 0) return 'No hay suplentes para reemplazarlo en el 11 inicial.';
     [o[i], o[j]] = [o[j], o[i]]; setOrder(t, o);
   }
-  const starters = getOrder(t).slice(0, 11).filter(v => v !== slot && v < n);
+  const starters = getOrder(t).slice(0, 11).filter(v => v !== slot && occupied.has(v));
   const repl = starters.find((v, k) => k > 0) ?? starters[0] ?? 0;
   if (S.d[t.tacticsBase + CAPT] === slot) S.d[t.tacticsBase + CAPT] = repl;
   for (let k = 0; k < NTAKERS; k++) if (S.d[t.tacticsBase + TAKERS + k] === slot) S.d[t.tacticsBase + TAKERS + k] = repl;
@@ -1241,7 +1278,9 @@ function rosterRemove(t, slot, auto = false) {
   for (let k = 0; k < 40; k++) { PD.setRosterPlayer(S.d, t, k, ids[k]); PD.setNumber(S.d, t, k, nums[k]); }
   if (t.tacticsBase != null) {
     const o = getOrder(t);
-    if (o.includes(slot)) { const no = o.filter(v => v !== slot).map(v => v > slot && v !== 255 ? v - 1 : v); no.push(39); setOrder(t, no); }
+    const hasSlot = o.includes(slot), no = o.filter(v => v !== slot).map(v => v > slot && v !== 255 ? v - 1 : v);
+    if (hasSlot) no.push(o.includes(255) ? 255 : 39);
+    if (hasSlot || no.some((v, i) => v !== o[i])) setOrder(t, no);
     const fix = off => { const v = S.d[t.tacticsBase + off]; if (v !== 255 && v > slot) S.d[t.tacticsBase + off] = v - 1; };
     fix(CAPT); for (let k = 0; k < NTAKERS; k++) fix(TAKERS + k);
   }
@@ -1252,11 +1291,17 @@ function rosterAddCheck(t, pid) {
   const r = PD.roster(S.d, t);
   if (r.some(x => x.pid === pid)) return 'Ese jugador ya está en este plantel.';
   if (r.length >= 40) return 'El plantel ya tiene 40 jugadores.';
+  if (t.tacticsBase != null) {
+    let slot = 0; while (slot < 40 && (S.d[t.rosterBase + 4 + slot * 4] | S.d[t.rosterBase + 5 + slot * 4] | S.d[t.rosterBase + 6 + slot * 4] | S.d[t.rosterBase + 7 + slot * 4])) slot++;
+    const plan = tacticalOrderPlan(t, [slot]);
+    if (plan.missing.length) return 'No hay lugar libre en la táctica para agregar a otro jugador.';
+  }
   return null;
 }
 function rosterAdd(t, pid, num) {
   let slot = 0; while (slot < 40) { const o = t.rosterBase + 4 + slot * 4; if (!(S.d[o] | S.d[o + 1] | S.d[o + 2] | S.d[o + 3])) break; slot++; }
   PD.setRosterPlayer(S.d, t, slot, pid); PD.setNumber(S.d, t, slot, num || 0);
+  syncTacticalRoster(t);
 }
 function freeNumber(t, pref) { const used = new Set(PD.roster(S.d, t).map(x => x.number)); if (pref && !used.has(pref)) return pref; for (let n = 2; n < 100; n++) if (!used.has(n)) return n; return 0; }
 function addSearch(q) {
